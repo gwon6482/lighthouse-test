@@ -1,9 +1,30 @@
 <template>
   <div class="career-achievement">
-    <header class="career-achievement__header">
-      <button class="career-achievement__back" @click="router.back()">‹</button>
-      <h1 class="career-achievement__title">진로달성</h1>
-    </header>
+    <nav class="career-achievement__header">
+      <img class="career-achievement__logo" src="/Symbol_Logo.svg" alt="LightHouse" />
+    </nav>
+
+    <!-- 소개 텍스트 -->
+    <div class="ca-main__intro journey-intro">
+      <div class="journey-intro__trail">
+        <span class="journey-intro__trail-done">자기이해 ✓</span>
+        <span class="journey-intro__trail-sep">›</span>
+        <span class="journey-intro__trail-done">직업 탐색 ✓</span>
+        <span class="journey-intro__trail-sep">›</span>
+        <span class="journey-intro__trail-done">진로계획 ✓</span>
+        <span class="journey-intro__trail-sep">›</span>
+        <span class="journey-intro__trail-now">진로달성</span>
+      </div>
+      <p class="journey-intro__headline">
+        계획을 세웠으니,<br>
+        <em>이제 실행할 차례예요.</em>
+      </p>
+      <div class="journey-intro__rule" />
+      <p class="journey-intro__body">
+        목표를 향한 여정이 시작됐어요.<br>
+        하나씩 완료해가며 꿈에 가까워지는 과정을 기록해보세요.
+      </p>
+    </div>
 
     <div class="career-achievement__body">
       <div class="career-achievement__icon">🏆</div>
@@ -14,12 +35,13 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
 </script>
 
 <style lang="scss">
+.ca-main__intro {
+  margin: 16px 20px 4px;
+}
+
 .career-achievement {
   display: flex;
   flex-direction: column;
@@ -27,25 +49,19 @@ const router = useRouter()
 
   &__header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    padding: 20px 20px 0;
+    padding: 12px 20px;
+    background: #fff;
+    border-bottom: 1px solid #EEEEE8;
+    position: sticky;
+    top: 0;
+    z-index: 100;
   }
 
-  &__back {
-    background: none;
-    border: none;
-    font-size: 28px;
-    color: #333;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-  }
-
-  &__title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #333;
+  &__logo {
+    height: 29px;
+    width: auto;
   }
 
   &__body {

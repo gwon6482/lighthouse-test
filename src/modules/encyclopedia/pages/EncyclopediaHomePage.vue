@@ -1,12 +1,42 @@
 <template>
-  <div class="encyclopedia-home">
-    <!-- 상단 타이틀 -->
+  <div class="enc-home">
+    <!-- 헤더 -->
     <MainTitle />
 
-    <!-- 검색 바 -->
-    <SearchBar :query="searchQuery" @search="searchJob" @clear="clearSearch" />
+    <!-- 타이틀 -->
+    <div class="enc-home__hero">
+      <h1 class="enc-home__title">진로백과</h1>
+      <p class="enc-home__subtitle">관심 있는 직업을 탐색해보세요</p>
+    </div>
 
-    <!-- 검색 결과 (검색어 있을 때만 노출) -->
+    <!-- 소개 텍스트 -->
+    <div class="enc-home__intro journey-intro">
+      <div class="journey-intro__trail">
+        <span class="journey-intro__trail-done">자기이해 ✓</span>
+        <span class="journey-intro__trail-sep">›</span>
+        <span class="journey-intro__trail-now">직업 탐색</span>
+        <span class="journey-intro__trail-sep">›</span>
+        <span class="journey-intro__trail-next">진로계획</span>
+        <span class="journey-intro__trail-sep">›</span>
+        <span class="journey-intro__trail-next">진로달성</span>
+      </div>
+      <p class="journey-intro__headline">
+        꿈꾸는 직업을,<br>
+        <em>지금 찾아보세요.</em>
+      </p>
+      <div class="journey-intro__rule" />
+      <p class="journey-intro__body">
+        세상에는 수많은 직업이 있어요.<br>
+        관심 가는 직업을 탐색하고, 나에게 맞는 길을 발견해보세요.
+      </p>
+    </div>
+
+    <!-- 검색 바 -->
+    <div class="enc-home__search-wrap">
+      <SearchBar :query="searchQuery" @search="searchJob" @clear="clearSearch" />
+    </div>
+
+    <!-- 검색 결과 -->
     <SearchResult
       v-if="searchQuery"
       :searchQuery="searchQuery"
@@ -14,26 +44,12 @@
       :searchResults="searchResults"
     />
 
-    <!-- <section v-if="searchQuery" class="encyclopedia-home__section">
-      <h2 class="encyclopedia-home__section-title">검색 결과</h2>
-      <div v-if="isLoading" class="encyclopedia-home__state">로딩 중...</div>
-      <div v-else-if="searchResults.length === 0" class="encyclopedia-home__state">검색 결과가 없습니다.</div>
-      <div v-else class="encyclopedia-home__card-list">
-        <SearchResultCard
-          v-for="job in searchResults"
-          :key="job.jobCode"
-          :job="job"
-          @click="goToJobDetail(job.jobCode)"
-        />
-      </div>
-    </section> -->
-
-    <!-- 메인 메뉴 (검색어 없을 때 노출) -->
+    <!-- 메인 메뉴 (검색어 없을 때) -->
     <template v-else>
       <!-- 진로 카드 목록 -->
-      <section class="encyclopedia-home__section">
-        <h2 class="encyclopedia-home__section-title">진로 둘러보기</h2>
-        <div class="encyclopedia-home__card-list">
+      <div class="enc-home__section">
+        <h2 class="enc-home__section-title">진로 둘러보기</h2>
+        <div class="enc-home__card-list">
           <RecommendedJobCard
             v-for="job in featuredJobs"
             :key="job.jobCode"
@@ -41,21 +57,19 @@
             @click="goToJobDetail(job.jobCode)"
           />
         </div>
-      </section>
+      </div>
 
-      <!-- 나의 추천 진로 버튼 -->
-      <section class="encyclopedia-home__section">
-        <button class="encyclopedia-home__menu-btn" @click="goToRecommended">
-          <span class="encyclopedia-home__menu-icon">⭐</span>
-          <div class="encyclopedia-home__menu-text">
-            <span class="encyclopedia-home__menu-title">나의 추천 진로</span>
-            <span class="encyclopedia-home__menu-desc"
-              >자기이해 결과를 바탕으로 추천된 직업을 확인해보세요</span
-            >
+      <!-- 나의 추천 진로 -->
+      <div class="enc-home__section">
+        <button class="enc-home__menu-btn" @click="goToRecommended">
+          <span class="enc-home__menu-icon">⭐</span>
+          <div class="enc-home__menu-text">
+            <span class="enc-home__menu-title">나의 추천 진로</span>
+            <span class="enc-home__menu-desc">자기이해 결과를 바탕으로 추천된 직업을 확인해보세요</span>
           </div>
-          <span class="encyclopedia-home__menu-arrow">›</span>
+          <span class="enc-home__menu-arrow">›</span>
         </button>
-      </section>
+      </div>
     </template>
   </div>
 </template>
@@ -100,32 +114,52 @@ function goToRecommended() {
 </script>
 
 <style lang="scss">
-.encyclopedia-home {
+.enc-home {
   display: flex;
   flex-direction: column;
-  align-items: center;
   min-height: 100vh;
-  padding: 150px 0 32px;
-  gap: 24px;
+  background: #F5F5F5;
+
+  &__hero {
+    padding: 32px 20px 16px;
+    text-align: center;
+  }
+
+  &__title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #222;
+    margin-bottom: 8px;
+  }
+
+  &__subtitle {
+    font-size: 14px;
+    color: #888;
+  }
+
+  &__intro {
+    margin: 0 20px 20px;
+  }
+
+  &__search-wrap {
+    padding: 0 0 8px;
+  }
 
   &__section {
-    width: 100%;
-    max-width: 480px;
-    padding: 0 20px;
+    padding: 12px 20px;
   }
 
   &__section-title {
     font-size: 16px;
-    font-weight: 600;
-    color: #333;
+    font-weight: 700;
+    color: #222;
     margin-bottom: 12px;
   }
 
-  &__state {
-    font-size: 14px;
-    color: #aaa;
-    text-align: center;
-    padding: 32px 0;
+  &__card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 
   &__menu-btn {
@@ -136,15 +170,15 @@ function goToRecommended() {
     padding: 20px;
     border: none;
     border-radius: 16px;
-    background-color: #f5f5f5;
+    background: #fff;
     cursor: pointer;
     text-align: left;
-    transition: background-color 0.15s ease;
+    transition: background 0.15s;
 
-    &:active { background-color: #e8e8e8; }
+    &:active { background: #f0f0f0; }
 
     @media (hover: hover) {
-      &:hover { background-color: #e8e8e8; }
+      &:hover { background: #f0f0f0; }
     }
   }
 
@@ -163,7 +197,7 @@ function goToRecommended() {
   &__menu-title {
     font-size: 16px;
     font-weight: 600;
-    color: #333;
+    color: #222;
   }
 
   &__menu-desc {
@@ -176,12 +210,6 @@ function goToRecommended() {
     font-size: 22px;
     color: #bbb;
     flex-shrink: 0;
-  }
-
-  &__card-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
   }
 }
 </style>

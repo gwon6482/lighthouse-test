@@ -1,16 +1,36 @@
 <template>
   <div class="cd-main">
     <!-- 헤더 -->
-    <header class="cd-main__header">
-      <button class="cd-main__back" @click="router.back()">‹</button>
-      <img class="cd-main__logo" src="/career-design/logo-lighthouse.svg" alt="LightHouse" />
-      <button class="cd-main__menu">≡</button>
-    </header>
+    <nav class="cd-main__header">
+      <img class="cd-main__logo" src="/Symbol_Logo.svg" alt="LightHouse" />
+    </nav>
 
     <!-- 타이틀 -->
     <div class="cd-main__hero">
       <h1 class="cd-main__title">진로계획 세우기</h1>
       <p class="cd-main__subtitle">목표를 향한 체계적인 준비</p>
+    </div>
+
+    <!-- 소개 텍스트 -->
+    <div class="cd-main__intro journey-intro">
+      <div class="journey-intro__trail">
+        <span class="journey-intro__trail-done">자기이해 ✓</span>
+        <span class="journey-intro__trail-sep">›</span>
+        <span class="journey-intro__trail-done">직업 탐색 ✓</span>
+        <span class="journey-intro__trail-sep">›</span>
+        <span class="journey-intro__trail-now">진로계획</span>
+        <span class="journey-intro__trail-sep">›</span>
+        <span class="journey-intro__trail-next">진로달성</span>
+      </div>
+      <p class="journey-intro__headline">
+        목표가 생겼으니,<br>
+        <em>이제 길을 만들어요.</em>
+      </p>
+      <div class="journey-intro__rule" />
+      <p class="journey-intro__body">
+        자신을 이해하고 꿈꾸는 직업을 찾은 지금,<br>
+        그 꿈까지 닿을 구체적인 계획을 세워볼게요.
+      </p>
     </div>
 
     <!-- 진로계획 가이드 -->
@@ -56,16 +76,30 @@
         </div>
         <div class="cd-main__step-preview">
           <div class="g-cat-tabs">
-            <span class="g-cat-tab" style="color:#1DB95A; border-bottom-color:#1DB95A">자격요건</span>
-            <span class="g-cat-tab g-cat-tab--off">분야지식</span>
-            <span class="g-cat-tab g-cat-tab--off">직무기술</span>
-            <span class="g-cat-tab g-cat-tab--off">포트폴리오</span>
+            <span
+              v-for="cat in guideCategories"
+              :key="cat.value"
+              class="g-cat-tab"
+              :class="{ 'g-cat-tab--off': guideActiveTab !== cat.value }"
+              :style="guideActiveTab === cat.value ? { color: cat.color, borderBottomColor: cat.color } : {}"
+              @click="guideActiveTab = cat.value"
+            >{{ cat.label }}</span>
           </div>
-          <div class="g-proj-list">
-            <div class="g-proj-chip" style="border-color:#1DB95A; color:#1DB95A; background:color-mix(in srgb,#1DB95A 8%,white)">GA4 자격증 준비</div>
-            <div class="g-proj-chip" style="border-color:#1DB95A; color:#1DB95A; background:color-mix(in srgb,#1DB95A 8%,white)">SMAT 마케팅 자격증</div>
-            <div class="g-proj-add">+ 프로젝트 추가</div>
-          </div>
+          <Transition name="g-tab-fade" mode="out-in">
+            <div :key="guideActiveTab" class="g-proj-list">
+              <div
+                v-for="proj in guideProjectMap[guideActiveTab]"
+                :key="proj"
+                class="g-proj-chip"
+                :style="{
+                  borderColor: guideCatColor,
+                  color: guideCatColor,
+                  background: `color-mix(in srgb, ${guideCatColor} 8%, white)`
+                }"
+              >{{ proj }}</div>
+              <div class="g-proj-add">+ 프로젝트 추가</div>
+            </div>
+          </Transition>
         </div>
         <p class="cd-main__step-desc">자격요건·분야지식·직무기술·포트폴리오 4가지 카테고리로 프로젝트를 추가해요</p>
       </div>
@@ -155,6 +189,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import RecommendedJobCard from '../../encyclopedia/components/page/home/RecommendedJobCard.vue'
@@ -162,6 +197,28 @@ import type { JobSummary } from '../../encyclopedia/types/encyclopedia'
 
 const router = useRouter()
 const { resetDraftPlan } = useCareerDesign()
+
+// STEP 02 가이드 탭
+const guideCategories = [
+  { value: 'qualification', label: '자격요건', color: '#1DB95A' },
+  { value: 'knowledge',     label: '분야지식', color: '#F47820' },
+  { value: 'skill',         label: '직무기술', color: '#A855F7' },
+  { value: 'portfolio',     label: '포트폴리오', color: '#4480F5' },
+] as const
+type GuideCat = typeof guideCategories[number]['value']
+
+const guideActiveTab = ref<GuideCat>('qualification')
+
+const guideProjectMap: Record<GuideCat, string[]> = {
+  qualification: ['GA4 자격증 준비', 'SMAT 마케팅 자격증', 'ADsP 데이터 분석'],
+  knowledge:     ['마케팅 원론', '소비자행동론', '데이터 마케팅 입문'],
+  skill:         ['Figma 기초', 'SNS 콘텐츠 크리에이티브', 'SQL for 마케터'],
+  portfolio:     ['브랜드 SNS 기획서', '캠페인 기획서 작성', '최종 포트폴리오'],
+}
+
+const guideCatColor = computed(
+  () => guideCategories.find(c => c.value === guideActiveTab.value)?.color ?? '#1DB95A'
+)
 
 function startPlan() {
   resetDraftPlan()
@@ -200,31 +257,24 @@ function goToExplore() {
 
   &__header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    align-items: center;
+    padding: 12px 20px;
     background: #fff;
-  }
-
-  &__back,
-  &__menu {
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: #333;
-    cursor: pointer;
-    padding: 4px;
-    width: 36px;
-    text-align: center;
+    border-bottom: 1px solid #EEEEE8;
+    position: sticky;
+    top: 0;
+    z-index: 100;
   }
 
   &__logo {
-    height: 28px;
+    height: 29px;
     width: auto;
   }
 
+
   &__hero {
-    padding: 40px 20px 24px;
+    padding: 32px 20px 16px;
     text-align: center;
   }
 
@@ -238,6 +288,11 @@ function goToExplore() {
   &__subtitle {
     font-size: 14px;
     color: #888;
+  }
+
+  /* 소개 텍스트 */
+  &__intro {
+    margin: 0 20px 20px;
   }
 
   &__guide {
@@ -391,11 +446,17 @@ function goToExplore() {
     border-bottom: 2px solid transparent;
     margin-bottom: -1.5px;
     color: #aaa;
-
-    &:first-child { border-bottom-color: inherit; }
+    cursor: pointer;
+    transition: color 0.15s, border-bottom-color 0.15s;
+    user-select: none;
   }
 
   .g-cat-tab--off { font-weight: 500; }
+
+  .g-tab-fade-enter-active,
+  .g-tab-fade-leave-active { transition: opacity 0.15s, transform 0.15s; }
+  .g-tab-fade-enter-from   { opacity: 0; transform: translateY(4px); }
+  .g-tab-fade-leave-to     { opacity: 0; transform: translateY(-4px); }
 
   .g-proj-list {
     display: flex;

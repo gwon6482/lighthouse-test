@@ -59,7 +59,7 @@ function handleClear() {
     width: 100%;
     max-width: 480px;
     margin: 0 auto;
-    background-color: #f5f5f5;
+    background-color: #fff;
     border-radius: 14px;
     padding: 10px 14px;
   }

@@ -30,15 +30,15 @@ const emit = defineEmits<{
   width: 100%;
   padding: 18px 20px;
   border-radius: 14px;
-  background-color: #f5f5f5;
+  background-color: #fff;
   cursor: pointer;
   transition: background-color 0.15s ease;
   position: relative;
 
-  &:active { background-color: #e8e8e8; }
+  &:active { background-color: #f5f5f5; }
 
   @media (hover: hover) {
-    &:hover { background-color: #e8e8e8; }
+    &:hover { background-color: #f5f5f5; }
   }
 
   &__classifications {
