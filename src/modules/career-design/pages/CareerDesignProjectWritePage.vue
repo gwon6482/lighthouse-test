@@ -1,11 +1,37 @@
 <template>
-  <div class="cd-proj-write">
+  <div class="cd-proj-write" :style="{ '--cat-color': currentColor }">
     <CdYellowHeader
       title="새로운 프로젝트 추가"
       :subtitle="`${draftPlan.targetJob || '목표 직업'}을 위한 프로젝트를 만들어 보세요`"
+      :color="currentColor"
     />
 
     <div class="cd-proj-write__body">
+      <!-- 카테고리 선택 -->
+      <div class="cd-proj-write__section">
+        <h3 class="cd-proj-write__label">카테고리</h3>
+        <div class="cd-proj-write__categories">
+          <div
+            v-for="cat in categories"
+            :key="cat.value"
+            class="cd-proj-write__cat-item"
+            :class="{ 'cd-proj-write__cat-item--active': draftProject.category === cat.value }"
+            :style="draftProject.category === cat.value ? { borderColor: categoryColorMap[cat.value] } : {}"
+            @click="draftProject.category = cat.value"
+          >
+            <img
+              class="cd-proj-write__cat-icon"
+              :src="`/career-design/icon-${cat.value}.svg`"
+              :alt="cat.label"
+            />
+            <span
+              class="cd-proj-write__cat-label"
+              :style="draftProject.category === cat.value ? { color: categoryColorMap[cat.value], fontWeight: '700' } : {}"
+            >{{ cat.label }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- 프로젝트 이름 -->
       <div class="cd-proj-write__section">
         <h3 class="cd-proj-write__label">프로젝트 이름</h3>
@@ -119,6 +145,64 @@
           rows="4"
         />
       </div>
+
+      <!-- 주차별 커리큘럼 -->
+      <div class="cd-proj-write__section">
+        <div class="cd-proj-write__curr-header">
+          <h3 class="cd-proj-write__label">주차별 커리큘럼 <span class="cd-proj-write__optional">선택</span></h3>
+          <button class="cd-proj-write__week-add-btn" @click="addWeek">+ 주차 추가</button>
+        </div>
+
+        <p v-if="!draftProject.curriculum?.length" class="cd-proj-write__curr-empty">
+          주차별 학습 내용을 추가해보세요
+        </p>
+
+        <div v-else class="cd-proj-write__weeks">
+          <div
+            v-for="(week, wi) in draftProject.curriculum"
+            :key="wi"
+            class="cd-proj-write__week-card"
+          >
+            <!-- 주차 헤더 -->
+            <div class="cd-proj-write__week-head">
+              <span class="cd-proj-write__week-num">{{ week.week }}주차</span>
+              <input
+                v-model="week.title"
+                class="cd-proj-write__week-title"
+                placeholder="주차 제목 입력..."
+              />
+              <button class="cd-proj-write__week-del" @click="deleteWeek(wi)">✕</button>
+            </div>
+
+            <!-- 항목 목록 -->
+            <ol v-if="week.items.length" class="cd-proj-write__week-items">
+              <li
+                v-for="(item, ii) in week.items"
+                :key="ii"
+                class="cd-proj-write__week-item"
+              >
+                <span class="cd-proj-write__week-item-text">{{ item }}</span>
+                <button class="cd-proj-write__item-del" @click="deleteItem(wi, ii)">✕</button>
+              </li>
+            </ol>
+
+            <!-- 항목 추가 input -->
+            <div class="cd-proj-write__item-add">
+              <input
+                v-model="weekItemInputs[wi]"
+                class="cd-proj-write__item-input"
+                placeholder="항목 입력 후 Enter"
+                @keyup.enter="addItem(wi)"
+              />
+              <button
+                class="cd-proj-write__item-btn"
+                :style="{ color: currentColor }"
+                @click="addItem(wi)"
+              >추가</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 하단 버튼 -->
@@ -129,13 +213,37 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
-import type { DayOfWeek, Priority } from '../types/career-design'
+import type { DayOfWeek, Priority, ProjectCategory } from '../types/career-design'
 
 const router = useRouter()
-const { draftPlan, draftProject } = useCareerDesign()
+const { draftPlan, draftProject, editingProjectId } = useCareerDesign()
+
+const weekItemInputs = ref<string[]>([])
+
+onMounted(() => {
+  window.scrollTo(0, 0)
+  weekItemInputs.value = (draftProject.curriculum ?? []).map(() => '')
+})
+
+const categories: { value: ProjectCategory; label: string }[] = [
+  { value: 'qualification', label: '자격요건' },
+  { value: 'knowledge',     label: '분야지식' },
+  { value: 'skill',         label: '직무기술' },
+  { value: 'portfolio',     label: '포트폴리오' },
+]
+
+const categoryColorMap: Record<ProjectCategory, string> = {
+  qualification: '#1DB95A',
+  knowledge:     '#F47820',
+  skill:         '#A855F7',
+  portfolio:     '#4480F5',
+}
+
+const currentColor = computed(() => categoryColorMap[draftProject.category ?? 'knowledge'])
 
 const allDays: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
 
@@ -152,10 +260,37 @@ function toggleDay(day: DayOfWeek) {
   else draftProject.days.push(day)
 }
 
+async function addWeek() {
+  if (!draftProject.curriculum) draftProject.curriculum = []
+  draftProject.curriculum.push({ week: draftProject.curriculum.length + 1, title: '', items: [] })
+  weekItemInputs.value.push('')
+  await nextTick()
+  const titleInputs = document.querySelectorAll<HTMLInputElement>('.cd-proj-write__week-title')
+  titleInputs[titleInputs.length - 1]?.focus()
+}
+
+function deleteWeek(wi: number) {
+  draftProject.curriculum?.splice(wi, 1)
+  weekItemInputs.value.splice(wi, 1)
+  draftProject.curriculum?.forEach((w, i) => { w.week = i + 1 })
+}
+
+function addItem(wi: number) {
+  const text = weekItemInputs.value[wi]?.trim()
+  const week = draftProject.curriculum?.[wi]
+  if (!text || !week) return
+  week.items.push(text)
+  weekItemInputs.value[wi] = ''
+}
+
+function deleteItem(wi: number, ii: number) {
+  draftProject.curriculum?.[wi]?.items.splice(ii, 1)
+}
+
 function addProject() {
   if (!draftProject.name) return
-  draftPlan.projects.push({
-    id: `draft-${Date.now()}`,
+
+  const projectData = {
     category: draftProject.category ?? 'knowledge',
     name: draftProject.name ?? '',
     goal: draftProject.goal ?? '',
@@ -166,13 +301,25 @@ function addProject() {
     missedNotification: draftProject.missedNotification ?? true,
     notificationTime: draftProject.notificationTime ?? '09:00',
     memo: draftProject.memo ?? '',
-  })
+    curriculum: (draftProject.curriculum ?? []).map(w => ({ ...w, items: [...w.items] })),
+  }
+
+  if (editingProjectId.value) {
+    const idx = draftPlan.projects.findIndex(p => p.id === editingProjectId.value)
+    const target = idx >= 0 ? draftPlan.projects[idx] : undefined
+    if (target) Object.assign(target, projectData)
+    editingProjectId.value = null
+  } else {
+    draftPlan.projects.push({ id: `draft-${Date.now()}`, ...projectData })
+  }
+
   router.back()
 }
 </script>
 
 <style lang="scss">
 .cd-proj-write {
+  --cat-color: #F47820;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -205,6 +352,36 @@ function addProject() {
     margin-bottom: 10px;
   }
 
+  /* 카테고리 선택 */
+  &__categories {
+    display: flex;
+    justify-content: space-around;
+  }
+
+  &__cat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    transition: border-color 0.15s;
+  }
+
+  &__cat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+  }
+
+  &__cat-label {
+    font-size: 12px;
+    color: #888;
+    transition: color 0.15s, font-weight 0.15s;
+  }
+
   &__input {
     width: 100%;
     border: 1.5px solid #eee;
@@ -213,9 +390,10 @@ function addProject() {
     font-size: 14px;
     outline: none;
     color: #333;
+    transition: border-color 0.15s;
 
     &::placeholder { color: #bbb; }
-    &:focus { border-color: #FFC700; }
+    &:focus { border-color: var(--cat-color); }
   }
 
   &__days {
@@ -236,8 +414,8 @@ function addProject() {
     transition: all 0.15s;
 
     &--active {
-      background: #FFC700;
-      border-color: #FFC700;
+      background: var(--cat-color);
+      border-color: var(--cat-color);
       color: #fff;
     }
   }
@@ -251,7 +429,7 @@ function addProject() {
 
   &__slider {
     flex: 1;
-    accent-color: #4A8CF7;
+    accent-color: var(--cat-color);
     height: 4px;
   }
 
@@ -347,7 +525,7 @@ function addProject() {
   &__checkbox {
     width: 20px;
     height: 20px;
-    accent-color: #4A8CF7;
+    accent-color: var(--cat-color);
     flex-shrink: 0;
   }
 
@@ -401,9 +579,181 @@ function addProject() {
     color: #333;
     resize: none;
     font-family: inherit;
+    transition: border-color 0.15s;
 
     &::placeholder { color: #bbb; }
-    &:focus { border-color: #FFC700; }
+    &:focus { border-color: var(--cat-color); }
+  }
+
+  /* 커리큘럼 */
+  &__curr-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+
+    .cd-proj-write__label { margin-bottom: 0; }
+  }
+
+  &__optional {
+    font-size: 12px;
+    font-weight: 400;
+    color: #aaa;
+    margin-left: 6px;
+  }
+
+  &__week-add-btn {
+    background: none;
+    border: 1.5px solid var(--cat-color);
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cat-color);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s;
+
+    &:hover { background: color-mix(in srgb, var(--cat-color) 8%, transparent); }
+  }
+
+  &__curr-empty {
+    font-size: 13px;
+    color: #bbb;
+    text-align: center;
+    padding: 20px 0 8px;
+  }
+
+  &__weeks {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__week-card {
+    border: 1.5px solid #eee;
+    border-left: 3px solid var(--cat-color);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__week-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  &__week-num {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--cat-color);
+    white-space: nowrap;
+    background: color-mix(in srgb, var(--cat-color) 10%, white);
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  &__week-title {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    font-weight: 700;
+    color: #222;
+    padding: 0;
+    background: transparent;
+
+    &::placeholder { color: #ccc; font-weight: 400; }
+  }
+
+  &__week-del {
+    background: none;
+    border: none;
+    font-size: 14px;
+    color: #ddd;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    flex-shrink: 0;
+
+    &:hover { background: #FFE8E8; color: #FF5555; }
+  }
+
+  &__week-items {
+    list-style: decimal;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+
+    ::marker { color: var(--cat-color); font-weight: 600; }
+  }
+
+  &__week-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 14px;
+    color: #444;
+    line-height: 1.5;
+    padding: 2px 0;
+  }
+
+  &__week-item-text {
+    flex: 1;
+  }
+
+  &__item-del {
+    background: none;
+    border: none;
+    font-size: 11px;
+    color: #ddd;
+    cursor: pointer;
+    padding: 0 2px;
+    flex-shrink: 0;
+    line-height: 1;
+
+    &:hover { color: #FF5555; }
+  }
+
+  &__item-add {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1.5px dashed #ddd;
+    border-radius: 8px;
+    padding: 8px 12px;
+    transition: border-color 0.15s;
+
+    &:focus-within { border-color: var(--cat-color); }
+  }
+
+  &__item-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 13px;
+    color: #333;
+
+    &::placeholder { color: #ccc; }
+  }
+
+  &__item-btn {
+    background: none;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    white-space: nowrap;
+
+    &:hover { text-decoration: underline; }
   }
 
   &__footer {
@@ -413,13 +763,14 @@ function addProject() {
   &__cta {
     width: 100%;
     padding: 18px;
-    background: #FFC700;
+    background: var(--cat-color);
     border: none;
     border-radius: 16px;
     font-size: 17px;
     font-weight: 700;
     color: #fff;
     cursor: pointer;
+    transition: background 0.2s;
 
     &:active { opacity: 0.85; }
   }

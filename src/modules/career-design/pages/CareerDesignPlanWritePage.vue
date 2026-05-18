@@ -7,41 +7,89 @@
     />
 
     <div class="cd-plan-write__body">
-      <!-- 진로계획 이름 -->
-      <div class="cd-plan-write__section">
-        <h3 class="cd-plan-write__section-title">진로계획 이름</h3>
-        <input
-          v-model="draftPlan.name"
-          class="cd-plan-write__input"
-          placeholder="예 : OOO의 마케팅 기획자 되기 프로젝트"
-        />
-      </div>
 
-      <!-- 목표 직무 -->
+      <!-- 목표 설정 -->
       <div class="cd-plan-write__section">
-        <h3 class="cd-plan-write__section-title">목표 직무</h3>
-        <div class="cd-plan-write__duties">
-          <div
-            v-for="(duty, i) in draftPlan.duties"
-            :key="i"
-            class="cd-plan-write__duty-chip"
-          >
-            {{ duty }}
-          </div>
-          <div class="cd-plan-write__duty-chip cd-plan-write__duty-chip--add">
+        <h3 class="cd-plan-write__section-title">목표 설정</h3>
+
+        <div class="cd-plan-write__preview">
+          <!-- 목표 직업 -->
+          <div class="cd-plan-write__prow">
+            <span class="cd-plan-write__plabel">직업</span>
             <input
-              v-model="newDuty"
-              class="cd-plan-write__duty-input"
-              placeholder="새 직무를 추가하세요..."
-              @keyup.enter="addDuty"
+              v-model="draftPlan.targetJob"
+              class="cd-plan-write__pinput"
+              placeholder="예: 마케팅 기획자"
             />
           </div>
+
+          <!-- 계획명 -->
+          <div class="cd-plan-write__prow">
+            <span class="cd-plan-write__plabel">계획명</span>
+            <input
+              v-model="draftPlan.name"
+              class="cd-plan-write__pinput"
+              placeholder="예: OOO의 마케팅 기획자 되기 프로젝트"
+            />
+          </div>
+
+          <!-- 준비 기간 -->
+          <div class="cd-plan-write__prow">
+            <span class="cd-plan-write__plabel">기간</span>
+            <div class="cd-plan-write__date-row">
+              <CdDatePicker v-model="draftPlan.startDate" placeholder="시작일" />
+              <span class="cd-plan-write__date-tilde">~</span>
+              <CdDatePicker v-model="draftPlan.endDate" placeholder="종료일" />
+            </div>
+          </div>
+
+          <!-- 목표 직무 태그 -->
+          <div class="cd-plan-write__prow cd-plan-write__prow--top">
+            <span class="cd-plan-write__plabel">직무</span>
+            <div class="cd-plan-write__duties-wrap">
+              <template v-for="(duty, i) in draftPlan.duties" :key="i">
+                <!-- 일반 모드 -->
+                <div v-if="editingIndex !== i" class="cd-plan-write__duty-tag">
+                  <span>{{ duty }}</span>
+                  <button class="cd-plan-write__tag-btn" @click="startEdit(i)">✏️</button>
+                  <button class="cd-plan-write__tag-btn cd-plan-write__tag-btn--del" @click="deleteDuty(i)">✕</button>
+                </div>
+                <!-- 편집 모드 -->
+                <div v-else class="cd-plan-write__duty-tag cd-plan-write__duty-tag--editing">
+                  <input
+                    v-model="editingValue"
+                    class="cd-plan-write__duty-edit-input"
+                    @keyup.enter="confirmEdit(i)"
+                    @keyup.esc="cancelEdit"
+                  />
+                  <button class="cd-plan-write__tag-btn cd-plan-write__tag-btn--ok" @click="confirmEdit(i)">✓</button>
+                  <button class="cd-plan-write__tag-btn" @click="cancelEdit">✕</button>
+                </div>
+              </template>
+
+              <!-- 추가 입력 -->
+              <div class="cd-plan-write__duty-tag cd-plan-write__duty-tag--add">
+                <input
+                  v-model="newDuty"
+                  class="cd-plan-write__duty-new-input"
+                  placeholder="직무 추가..."
+                  @keyup.enter="addDuty"
+                />
+                <button class="cd-plan-write__tag-btn cd-plan-write__tag-btn--plus" @click="addDuty">+</button>
+              </div>
+            </div>
+          </div>
         </div>
+
+        <button class="cd-plan-write__duty-link" @click="router.push('/career-encyclopedia')">
+          진로백과에서 채용공고 확인하기 →
+        </button>
       </div>
 
-      <!-- 카테고리 + 계획 -->
+      <!-- 프로젝트 추가하기 -->
       <div class="cd-plan-write__section">
-        <!-- 카테고리 선택 -->
+        <h3 class="cd-plan-write__section-title">프로젝트 추가하기</h3>
+
         <div class="cd-plan-write__categories">
           <div
             v-for="cat in categories"
@@ -59,46 +107,24 @@
           </div>
         </div>
 
-        <!-- 해당 카테고리의 계획 목록 -->
         <div class="cd-plan-write__plan-items">
           <div
             v-for="project in categoryProjects"
             :key="project.id"
             class="cd-plan-write__plan-chip"
-            :style="{ background: currentColors.chipBg, color: currentColors.chipText }"
+            :style="{ background: currentColors.chipBg }"
           >
-            {{ project.name }}
+            <span class="cd-plan-write__plan-chip-name" :style="{ color: currentColors.chipText }">{{ project.name }}</span>
+            <div class="cd-plan-write__plan-chip-actions">
+              <button class="cd-plan-write__plan-btn cd-plan-write__plan-btn--edit" @click="editProject(project)">✏️</button>
+              <button class="cd-plan-write__plan-btn cd-plan-write__plan-btn--delete" @click="deleteProject(project.id)">✕</button>
+            </div>
           </div>
           <button
             class="cd-plan-write__add-btn"
             :style="{ background: currentColors.btn }"
             @click="goToAddProject"
-          >계획 추가하기</button>
-        </div>
-      </div>
-
-      <!-- 목표 기간 -->
-      <div class="cd-plan-write__section">
-        <h3 class="cd-plan-write__section-title">목표 기간</h3>
-        <div class="cd-plan-write__dates">
-          <div class="cd-plan-write__date-field">
-            <label>시작일</label>
-            <div class="cd-plan-write__date-input">
-              <input v-model="draftPlan.startDate" type="date" class="cd-plan-write__date-raw" />
-              <span v-if="!draftPlan.startDate" class="cd-plan-write__date-placeholder">연도. 월. 일</span>
-              <span v-else class="cd-plan-write__date-value">{{ formatDate(draftPlan.startDate) }}</span>
-              <span class="cd-plan-write__date-icon">📅</span>
-            </div>
-          </div>
-          <div class="cd-plan-write__date-field">
-            <label>종료일 (선택)</label>
-            <div class="cd-plan-write__date-input">
-              <input v-model="draftPlan.endDate" type="date" class="cd-plan-write__date-raw" />
-              <span v-if="!draftPlan.endDate" class="cd-plan-write__date-placeholder">연도. 월. 일</span>
-              <span v-else class="cd-plan-write__date-value">{{ formatDate(draftPlan.endDate) }}</span>
-              <span class="cd-plan-write__date-icon">📅</span>
-            </div>
-          </div>
+          >프로젝트 추가하기</button>
         </div>
       </div>
     </div>
@@ -111,16 +137,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
-import type { ProjectCategory } from '../types/career-design'
+import CdDatePicker from '../components/CdDatePicker.vue'
+import type { Project, ProjectCategory } from '../types/career-design'
 
 const router = useRouter()
-const { draftPlan } = useCareerDesign()
+const { draftPlan, draftProject, editingProjectId, resetDraftProject } = useCareerDesign()
 
 const newDuty = ref('')
+const editingIndex = ref<number | null>(null)
+const editingValue = ref('')
 const selectedCategory = ref<ProjectCategory>('knowledge')
 
 const categories = [
@@ -150,14 +179,52 @@ function addDuty() {
   }
 }
 
-function formatDate(dateStr: string) {
-  if (!dateStr) return ''
-  const [y, m, d] = dateStr.split('-')
-  return `${y}년 ${m}월 ${d}일`
+function deleteDuty(i: number) {
+  draftPlan.duties.splice(i, 1)
+  if (editingIndex.value === i) cancelEdit()
 }
 
+async function startEdit(i: number) {
+  editingIndex.value = i
+  editingValue.value = draftPlan.duties[i]
+  await nextTick()
+  document.querySelector<HTMLInputElement>('.cd-plan-write__duty-edit-input')?.focus()
+}
+
+function confirmEdit(i: number) {
+  if (editingValue.value.trim()) {
+    draftPlan.duties[i] = editingValue.value.trim()
+  }
+  cancelEdit()
+}
+
+function cancelEdit() {
+  editingIndex.value = null
+  editingValue.value = ''
+}
+
+
 function goToAddProject() {
+  editingProjectId.value = null
+  resetDraftProject()
+  draftProject.category = selectedCategory.value
   router.push('/career-design/project/new')
+}
+
+function editProject(project: Project) {
+  editingProjectId.value = project.id
+  resetDraftProject()
+  Object.assign(draftProject, {
+    ...project,
+    days: [...project.days],
+    curriculum: project.curriculum?.map(w => ({ ...w, items: [...w.items] })) ?? [],
+  })
+  router.push('/career-design/project/new')
+}
+
+function deleteProject(projectId: string) {
+  const idx = draftPlan.projects.findIndex(p => p.id === projectId)
+  if (idx >= 0) draftPlan.projects.splice(idx, 1)
 }
 
 function goNext() {
@@ -193,47 +260,158 @@ function goNext() {
     margin-bottom: 12px;
   }
 
-  &__input {
-    width: 100%;
-    border: 1.5px solid #eee;
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 14px;
-    outline: none;
-    color: #333;
+  &__duty-link {
+    background: none;
+    border: none;
+    font-size: 12px;
+    color: #FFC700;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 12px 0 0;
+    display: block;
+    text-align: right;
+    white-space: nowrap;
 
-    &::placeholder { color: #bbb; }
+    &:hover { text-decoration: underline; }
+  }
+
+  /* 미리보기 영역 */
+  &__preview {
+    background: #F8F8F8;
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__prow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    &--top { align-items: flex-start; }
+  }
+
+  &__plabel {
+    font-size: 11px;
+    font-weight: 600;
+    color: #aaa;
+    min-width: 34px;
+    padding-top: 1px;
+  }
+
+  &__pinput {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #222;
+    outline: none;
+    transition: border-color 0.15s;
+
+    &::placeholder { color: #bbb; font-weight: 400; }
     &:focus { border-color: #FFC700; }
   }
 
-  &__duties {
+  /* 날짜 row */
+  &__date-row {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: 8px;
+    flex: 1;
   }
 
-  &__duty-chip {
-    background: #F0F0F0;
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 14px;
+  &__date-box {
+    position: relative;
+    flex: 1;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: border-color 0.15s;
+
+    &:focus-within { border-color: #FFC700; }
+  }
+
+  &__date-tilde {
+    font-size: 13px;
+    color: #bbb;
+    flex-shrink: 0;
+  }
+
+  /* 직무 태그 wrap */
+  &__duties-wrap {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  &__duty-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 5px 8px 5px 10px;
+    font-size: 12px;
     color: #333;
 
+    &--editing {
+      border-color: #FFC700;
+      background: #FFFBEC;
+    }
+
     &--add {
-      border: 1.5px dashed #ccc;
-      background: transparent;
+      border: 1.5px dashed #FFC700;
+      padding: 5px 8px;
     }
   }
 
-  &__duty-input {
+  &__tag-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 1px 3px;
+    border-radius: 4px;
+    line-height: 1;
+    color: #aaa;
+    transition: background 0.1s, color 0.1s;
+
+    &--del  { &:hover { color: #FF5555; background: #FFE8E8; } }
+    &--ok   { color: #1DB95A; font-weight: 700; &:hover { background: #E8F9EF; } }
+    &--plus { color: #FFC700; font-weight: 700; font-size: 14px; }
+  }
+
+  &__duty-edit-input {
     border: none;
     outline: none;
     background: transparent;
-    font-size: 14px;
-    width: 100%;
-    color: #333;
+    font-size: 12px;
+    color: #222;
+    min-width: 60px;
+    max-width: 140px;
+  }
 
-    &::placeholder { color: #bbb; }
+  &__duty-new-input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 12px;
+    color: #333;
+    min-width: 70px;
+
+    &::placeholder { color: #FFC700; }
   }
 
   &__categories {
@@ -275,12 +453,38 @@ function goNext() {
   }
 
   &__plan-chip {
-    background: #E8F5EC;
     border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 14px;
-    color: #2D7A4F;
-    font-weight: 500;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+
+    &-name {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    &-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+  }
+
+  &__plan-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1;
+    transition: background 0.12s;
+
+    &--edit   { color: #888; &:hover { background: rgba(0,0,0,0.08); } }
+    &--delete { color: rgba(0,0,0,0.2); &:hover { background: #FFE8E8; color: #FF5555; } }
   }
 
   &__add-btn {
@@ -297,45 +501,6 @@ function goNext() {
 
     &:active { opacity: 0.85; }
   }
-
-  &__dates {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  &__date-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-
-    label {
-      font-size: 13px;
-      color: #888;
-    }
-  }
-
-  &__date-input {
-    position: relative;
-    border: 1.5px solid #eee;
-    border-radius: 10px;
-    padding: 12px 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  &__date-raw {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    cursor: pointer;
-    width: 100%;
-  }
-
-  &__date-placeholder { font-size: 14px; color: #bbb; }
-  &__date-value { font-size: 14px; color: #333; }
-  &__date-icon { font-size: 16px; }
 
   &__footer {
     padding: 16px 20px 32px;

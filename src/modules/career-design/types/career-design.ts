@@ -31,6 +31,11 @@ export interface Project {
   curriculum?: WeekCurriculum[]
 }
 
+export interface TimelineSlot {
+  month: string
+  projects: Project[]
+}
+
 export interface TimelineItem {
   projectId: string
   projectName: string

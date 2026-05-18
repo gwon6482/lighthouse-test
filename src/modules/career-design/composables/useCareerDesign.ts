@@ -1,5 +1,5 @@
 import { ref, reactive } from 'vue'
-import type { CareerPlan, Project, DraftPlan } from '../types/career-design'
+import type { CareerPlan, Project, DraftPlan, TimelineSlot } from '../types/career-design'
 
 const DUMMY_PLANS: CareerPlan[] = [
   // ──────────────────────────────────────────────
@@ -1263,13 +1263,13 @@ const DUMMY_PLANS: CareerPlan[] = [
 ]
 
 const draftPlan = reactive<DraftPlan>({
-  name: 'OO의 마케팅 기획자 되기 프로젝트',
-  targetJob: '마케팅 기획자',
-  duties: ['신규 사업의 마케팅 기획안 작성', '광고 실행 및 데이터 분석'],
-  projects: [...DUMMY_PLANS[0].projects],
-  startDate: '2024-01-02',
-  endDate: '2025-12-31',
-  timeline: [...DUMMY_PLANS[0].timeline],
+  name: '',
+  targetJob: '',
+  duties: [],
+  projects: [],
+  startDate: '',
+  endDate: '',
+  timeline: [],
 })
 
 const draftProject = reactive<Partial<Project>>({
@@ -1283,7 +1283,11 @@ const draftProject = reactive<Partial<Project>>({
   missedNotification: true,
   notificationTime: '09:00',
   memo: '',
+  curriculum: [],
 })
+
+const editingProjectId = ref<string | null>(null)
+const draftTimeline = ref<TimelineSlot[]>([])
 
 export function useCareerDesign() {
   const targetJob = ref('')
@@ -1297,6 +1301,17 @@ export function useCareerDesign() {
     return undefined
   }
 
+  function resetDraftPlan() {
+    draftPlan.name = ''
+    draftPlan.targetJob = ''
+    draftPlan.duties = []
+    draftPlan.projects = []
+    draftPlan.startDate = ''
+    draftPlan.endDate = ''
+    draftPlan.timeline = []
+    draftTimeline.value = []
+  }
+
   function resetDraftProject() {
     draftProject.category = 'knowledge'
     draftProject.name = ''
@@ -1308,6 +1323,7 @@ export function useCareerDesign() {
     draftProject.missedNotification = true
     draftProject.notificationTime = '09:00'
     draftProject.memo = ''
+    draftProject.curriculum = []
   }
 
   return {
@@ -1315,7 +1331,10 @@ export function useCareerDesign() {
     plans,
     draftPlan,
     draftProject,
+    draftTimeline,
+    editingProjectId,
     getProjectById,
+    resetDraftPlan,
     resetDraftProject,
     DUMMY_PLANS,
   }

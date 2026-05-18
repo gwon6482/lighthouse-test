@@ -29,4 +29,9 @@ export default [
     name: 'Career Design Complete',
     component: () => import('./pages/CareerDesignCompletePage.vue'),
   },
+  {
+    path: '/career-design/result',
+    name: 'Career Design Result',
+    component: () => import('./pages/CareerDesignResultPage.vue'),
+  },
 ]
