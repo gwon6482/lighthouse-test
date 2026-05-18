@@ -5,8 +5,18 @@ export default [
     component: () => import('./pages/HomePage.vue'),
   },
   {
+    path: '/main',
+    name: 'Main',
+    component: () => import('./pages/MainPage.vue'),
+  },
+  {
     path: '/self-understanding',
     name: 'Self Understanding',
+    component: () => import('./pages/SelfUnderstandingMainPage.vue'),
+  },
+  {
+    path: '/self-understanding/intro',
+    name: 'Self Understanding Intro',
     component: () => import('./pages/SelfUnderstandingIntroPage.vue'),
   },
   {

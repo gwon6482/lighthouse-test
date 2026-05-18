@@ -19,6 +19,8 @@ const menus = [
   { name: '진로백과', icon: '📚', route: '/career-encyclopedia' },
   { name: '진로설계', icon: '🗺️', route: '/career-design' },
   { name: '진로달성', icon: '🏆', route: '/career-achievement' },
+  { name: '메인 페이지', icon: '🏠', route: '/main' },
+  { name: '자기이해 랜딩페이지', icon: '🌟', route: '/self-understanding/intro' },
 ]
 
 const lastPage = () => {
