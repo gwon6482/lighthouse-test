@@ -165,9 +165,6 @@
 
       <!-- ─── 섹션 3.5: T2 기반 추천 직업 ─────────────────── -->
       <section class="m-sec gray">
-        <span class="m-lbl s">추천 직업</span>
-        <h2 class="m-ttl">좋아하는 일 기반 추천 직업</h2>
-        <p class="m-sub">재능 · 관심 · 가치관을 바탕으로 찾은 직업이야</p>
 
         <!-- 로딩 -->
         <div v-if="t2Loading" class="t2rec-skeleton-list">
@@ -186,6 +183,7 @@
             v-for="job in t2Jobs"
             :key="job.jobCode"
             class="t2rec-card"
+            @click="router.push(`/career-encyclopedia/job/${job.jobCode}`)"
           >
             <div class="t2rec-card-top">
               <span class="t2rec-title">{{ job.title }}</span>
@@ -193,9 +191,9 @@
             </div>
             <p class="t2rec-class">{{ job.classification.primary }} › {{ job.classification.secondary }}</p>
             <p class="t2rec-label">
-              <span class="t2rec-tag">{{ t2LabelInterest }}</span> 분야에서<br>
-              <span class="t2rec-tag">{{ t2LabelTalent }}</span><br>
-              <span class="t2rec-tag">{{ t2LabelValue }}</span>를 추구하는 일
+              <span class="t2rec-pill t2rec-pill--interest">{{ t2LabelInterest }}</span> 분야에서<br>
+              <span class="t2rec-pill t2rec-pill--talent">{{ t2LabelTalent }}</span>하며<br>
+              <span class="t2rec-pill t2rec-pill--value">{{ t2LabelValue }}</span>을 추구하는 일
             </p>
             <p class="t2rec-meta">
               <span v-if="job.salary?.median">급여 중위 {{ job.salary.median.toLocaleString() }}만원</span>
@@ -268,7 +266,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { fetchSurveyAnalysis, fetchT2Recommend } from '../survey.api'
 import type { SurveyAnalysisResponse, T2RecommendJob } from '../types/survey'
 
@@ -490,6 +488,7 @@ const T3_PARTS_MAP: Record<string, { up: Array<{ code: string; weight: number }>
 }
 
 const route = useRoute()
+const router = useRouter()
 const surveyId = route.params.survey_id as string
 
 const isLoading = ref(true)
@@ -589,14 +588,14 @@ async function load() {
 // ─── T2 추천 ────────────────────────────────────────────────────────────────
 
 const T21_LABEL: Record<string, string> = {
-  L: '읽고 쓰고 말하며',
-  M: '논리적으로 분석하고 설계하며',
-  S: '시각적으로 구성하고 표현하며',
-  A: '소리와 리듬으로 창작하며',
-  B: '몸을 활용해 직접 만들고 움직이며',
-  I: '사람을 이해하고 이끌며',
-  N: '깊이 사유하고 성찰하며',
-  T: '자연을 관찰하고 탐구하며',
+  L: '읽고 쓰고 말',
+  M: '논리적으로 분석하고 설계',
+  S: '시각적으로 구성하고 표현',
+  A: '소리와 리듬으로 창작',
+  B: '직접 몸으로 만들고 행동',
+  I: '사람을 이해하고 소통',
+  N: '깊이 사유하고 성찰',
+  T: '자연을 관찰하고 탐구',
 }
 
 const T23_TO_VA_FE: Record<string, string> = {
@@ -771,6 +770,13 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+
+  &:active {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border-color: #D0D0CC;
+  }
 }
 
 .t2rec-card-top {
@@ -803,14 +809,36 @@ onMounted(() => {
 .t2rec-label {
   font-size: 0.8rem;
   color: #444;
-  line-height: 1.7;
-  margin: 0.25rem 0;
+  line-height: 2;
+  margin: 0.375rem 0 0;
 }
 
-.t2rec-tag {
-  display: inline;
+.t2rec-pill {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 100px;
+  font-size: 0.7rem;
   font-weight: 600;
-  color: #1a1a1a;
+  vertical-align: middle;
+  border: 1px solid transparent;
+}
+
+.t2rec-pill--interest {
+  background: #E8F6F6;
+  color: #2E8585;
+  border-color: #B8E0E0;
+}
+
+.t2rec-pill--talent {
+  background: #EBF2FF;
+  color: #3D7FE8;
+  border-color: #B8CFFF;
+}
+
+.t2rec-pill--value {
+  background: #F3EEFF;
+  color: #7C50CC;
+  border-color: #CEB8F5;
 }
 
 .t2rec-meta {

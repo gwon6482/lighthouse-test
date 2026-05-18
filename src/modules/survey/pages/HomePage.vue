@@ -2,7 +2,7 @@
   <div class="home">
     <h1 class="title">라이트하우스 관리자 페이지</h1>
     <HomeButtonContainer :menus="menus" />
-    <button @click="lastPage">마지막 페이지</button>
+    <button @click="lastPage" style="display: none;">마지막 페이지</button>
   </div>
 </template>
 
@@ -17,6 +17,8 @@ const { currentPageIndex, totalPages } = useSurvey()
 const menus = [
   { name: '자기이해', icon: '🔍', route: '/self-understanding' },
   { name: '진로백과', icon: '📚', route: '/career-encyclopedia' },
+  { name: '진로설계', icon: '🗺️', route: '/career-design' },
+  { name: '진로달성', icon: '🏆', route: '/career-achievement' },
 ]
 
 const lastPage = () => {
