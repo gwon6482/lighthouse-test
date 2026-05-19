@@ -246,19 +246,30 @@
 
       <!-- ─── 섹션 5: 버튼 섹션 ─────────────────────────────── -->
       <section class="m-sec result-cta-section">
-        <h2 class="result-cta-title">결과를 저장하고<br>진로를 탐색해봐</h2>
-        <p class="result-cta-sub">로그인하면 결과를 저장하고 맞춤 진로를 추천받을 수 있어.</p>
+        <!-- 비로그인: 가입 유도 -->
+        <template v-if="!authStore.isLoggedIn">
+          <h2 class="result-cta-title">결과를 저장하고<br>진로를 이어가봐</h2>
+          <p class="result-cta-sub">가입하면 이 결과가 저장되고,<br>맞춤 진로를 계속 탐색할 수 있어.</p>
+          <button class="btn-signup-cta" @click="showSignUp = true">
+            회원가입하고 더 진행하기
+          </button>
+        </template>
 
-        <button class="btn-kakao" disabled>
-          <span class="kakao-icon">💬</span>
-          카카오로 결과 저장하기
-          <span class="btn-soon-badge">준비 중</span>
-        </button>
+        <!-- 로그인: 마이페이지 이동 -->
+        <template v-else>
+          <h2 class="result-cta-title">결과가 저장됐어</h2>
+          <p class="result-cta-sub">마이페이지에서 내 검사 결과를 언제든 다시 볼 수 있어.</p>
+          <RouterLink to="/mypage" class="btn-mypage-cta">
+            마이페이지에서 결과 보기
+          </RouterLink>
+        </template>
 
         <RouterLink to="/encyclopedia" class="btn-encyclopedia">
           진로백과 바로가기 →
         </RouterLink>
       </section>
+
+      <SignUpModal v-model="showSignUp" @registered="onRegistered" />
 
     </template>
   </div>
@@ -267,7 +278,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { fetchSurveyAnalysis, fetchT2Recommend } from '../survey.api'
+import { fetchSurveyAnalysis, fetchT2Recommend, linkSurveyToUser } from '../survey.api'
+import { useAuthStore } from '@/shared/stores/auth'
+import SignUpModal from '../components/SignUpModal.vue'
 import type { SurveyAnalysisResponse, T2RecommendJob } from '../types/survey'
 
 const T1_DEFINITIONS: Record<string, string> = {
@@ -445,7 +458,22 @@ const T3_PARTS_MAP: Record<string, { up: Array<{ code: string; weight: number }>
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 const surveyId = route.params.survey_id as string
+
+const showSignUp = ref(false)
+
+async function onRegistered(token: string, user: any) {
+  authStore.setAuth(token, user)
+  await linkSurveyToUser(surveyId).catch(() => {})
+  router.push('/')
+}
+
+async function tryLinkSurvey() {
+  if (!authStore.isLoggedIn) return
+  // 이미 연결된 경우(409)는 정상, 나머지 오류는 무시
+  await linkSurveyToUser(surveyId).catch(() => {})
+}
 
 const isLoading = ref(true)
 const error = ref(false)
@@ -597,6 +625,7 @@ async function loadT2Recommend() {
 onMounted(() => {
   load()
   loadT2Recommend()
+  tryLinkSurvey()
 })
 </script>
 

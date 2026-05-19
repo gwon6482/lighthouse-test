@@ -773,6 +773,57 @@
     }
   }
 
+  .btn-signup-cta {
+    display: block;
+    width: 100%;
+    background: #FFD100;
+    border: none;
+    border-radius: 0.75rem;
+    padding: 1rem 0;
+    font-size: 1rem;
+    font-weight: 800;
+    font-family: 'Pretendard', sans-serif;
+    color: #1a1a1a;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.2px;
+
+    &:hover { background: #f0c400; }
+    &:active { transform: scale(0.98); }
+
+    @media (min-width: 768px) {
+      padding: 1.125rem 0;
+      font-size: 1.125rem;
+    }
+  }
+
+  .btn-mypage-cta {
+    display: block;
+    width: 100%;
+    background: #FFD100;
+    border-radius: 0.75rem;
+    padding: 1rem 0;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.2px;
+
+    &:hover { background: #f0c400; }
+    &:active { transform: scale(0.98); }
+
+    @media (min-width: 768px) {
+      padding: 1.125rem 0;
+      font-size: 1.125rem;
+    }
+  }
+
   .btn-encyclopedia {
     display: block;
     width: 100%;

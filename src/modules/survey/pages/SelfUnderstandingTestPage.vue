@@ -169,8 +169,9 @@ async function handleSubmit() {
     sessionStorage.setItem('lh_survey_id', surveyId.value)
 
     // 로그인 상태면 검사 결과를 유저 계정에 연결 (실패해도 결과 페이지 이동은 정상 진행)
+    // 실패 시 결과지 페이지의 onMounted에서 재시도됨
     if (authStore.isLoggedIn) {
-      linkSurveyToUser(surveyId.value).catch(() => {})
+      linkSurveyToUser(surveyId.value).catch((e) => console.warn('[linkSurvey]', e?.response?.data ?? e))
     }
 
     router.push('/self-understanding/complete')
