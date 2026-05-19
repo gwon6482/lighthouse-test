@@ -185,7 +185,13 @@ export interface SurveyAnalysisResponse {
       priority_2: ValueItem | null
       priority_3: ValueItem | null
     }
-    environment: { parts: EnvironmentPart[] }
+    environment: {
+      parts: EnvironmentPart[]
+      texts?: {
+        good: Array<{ part: string; level: number; text: string }>
+        bad: Array<{ part: string; level: number; text: string }>
+      }
+    }
   }
 }
 

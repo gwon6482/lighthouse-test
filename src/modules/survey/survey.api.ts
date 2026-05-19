@@ -42,3 +42,6 @@ export const fetchSurveyAnalysis = (surveyId: string) =>
 
 export const fetchT2Recommend = (surveyId: string) =>
   req.get<T2RecommendResponse>(`/api/job/recommend-t2/${surveyId}`)
+
+export const linkSurveyToUser = (survey_id: string) =>
+  req.post<{ success: boolean; surveyResults: string[] }>(`/api/user/survey-results`, { survey_id })

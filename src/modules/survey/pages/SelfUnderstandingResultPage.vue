@@ -209,12 +209,12 @@
         <span class="m-lbl" style="color:#2E8FCC;">업무 환경</span>
         <h2 class="m-ttl">나의 업무 환경 성향</h2>
 
-        <div class="env-block env-block--rec">
+        <div v-if="t3GoodTexts.length > 0" class="env-block env-block--rec">
           <p class="env-block-header">
             <span class="env-block-icon">✅</span>
             <span class="env-block-title">나에게 맞는 환경</span>
           </p>
-          <p class="env-block-text">{{ t3RecText }}</p>
+          <p v-for="item in t3GoodTexts" :key="item.part" class="env-block-text">{{ item.text }}</p>
           <div v-if="t3WeVisible && t3WeRec.length > 0" class="env-we-list">
             <div v-for="item in t3WeRec" :key="item.code" class="env-we-item">
               <span class="env-we-icon">{{ T3_WE_ITEMS[item.code]?.icon }}</span>
@@ -226,12 +226,12 @@
           </div>
         </div>
 
-        <div v-if="t3NonRec.length > 0" class="env-block env-block--non">
+        <div v-if="t3BadTexts.length > 0" class="env-block env-block--non">
           <p class="env-block-header">
             <span class="env-block-icon">❌</span>
             <span class="env-block-title">나에게 맞지 않는 환경</span>
           </p>
-          <p class="env-block-text">{{ t3NonRecText }}</p>
+          <p v-for="item in t3BadTexts" :key="item.part" class="env-block-text">{{ item.text }}</p>
           <div v-if="t3WeVisible && t3WeNonRec.length > 0" class="env-we-list">
             <div v-for="item in t3WeNonRec" :key="item.code" class="env-we-item">
               <span class="env-we-icon">{{ T3_WE_ITEMS[item.code]?.icon }}</span>
@@ -331,50 +331,6 @@ const T1_IMG_MAP: Record<string, string> = {
   U: '/T1_img/U-Photoroom.png',
 }
 
-const T3_RESULT_TEXTS: Record<string, Record<string, string>> = {
-  T3_PHY: {
-    '5': '역동적이고 현장감 있는 환경에서 활력을 얻습니다. 강한 신체활동이나 다양한 외부 환경 변화도 부담 없이 감수할 수 있습니다.',
-    '4': '움직이며 일하는 환경을 선호합니다. 실외 활동이 많거나 환경이 바뀌어도 잘 적응하는 편입니다.',
-    '3': '실내외 환경을 크게 가리지 않는 편입니다. 환경 변화에 무난하게 적응할 수 있습니다.',
-    '2': '강도 높은 신체활동이나 열악한 외부 환경에 장시간 노출되는 것은 부담스러울 수 있습니다.',
-    '1': '소음, 먼지, 극한 기온 등 환경적 자극이 강한 현장은 피로감과 스트레스를 줄 수 있습니다.',
-  },
-  T3_PEO: {
-    '5': '항상 사람들과 함께하는 환경을 즐깁니다. 신체적 접촉이 있는 대인 업무도 자연스럽게 받아들일 수 있습니다.',
-    '4': '다양한 사람들과 자주 접촉하고 고객을 응대하는 환경이 잘 맞습니다.',
-    '3': '사람과의 접촉 빈도에 크게 구애받지 않습니다. 혼자 일하는 것도, 함께 일하는 것도 무난하게 적응합니다.',
-    '2': '많은 사람과 지속적으로 접촉해야 하는 환경은 다소 부담스러울 수 있습니다.',
-    '1': '끊임없는 대인 접촉이나 고객 응대가 많은 환경은 쉽게 소진감을 줄 수 있습니다.',
-  },
-  T3_COM: {
-    '5': '발표, 회의, 설득 등 다양한 방식의 소통이 많은 환경에서 잘 발휘됩니다. 커뮤니케이션이 업무의 중심인 환경이 잘 맞습니다.',
-    '4': '전화, 문서, 회의 등 소통 비중이 높은 업무 환경을 편안하게 받아들입니다.',
-    '3': '소통 빈도에 크게 민감하지 않습니다. 많든 적든 상황에 맞게 조율할 수 있습니다.',
-    '2': '잦은 보고나 소통이 요구되는 환경은 집중력을 흩트릴 수 있습니다.',
-    '1': '발표, 회의, 대외 커뮤니케이션이 많은 환경은 부담감과 피로감을 줄 수 있습니다.',
-  },
-  T3_RES: {
-    '5': '높은 의사결정 권한과 그에 따른 책임을 기꺼이 감수합니다. 결과에 대한 책임이 명확한 환경에서 오히려 동기부여가 됩니다.',
-    '4': '어느 정도의 의사결정 권한이 주어지고 책임감 있는 역할을 맡는 환경이 잘 맞습니다.',
-    '3': '책임의 크기에 크게 구애받지 않습니다. 주어진 역할에 맞게 유연하게 적응할 수 있습니다.',
-    '2': '결과에 대한 책임이 크거나 실수의 파급력이 높은 환경은 부담스러울 수 있습니다.',
-    '1': '높은 의사결정 권한이나 강한 책임이 요구되는 환경은 심리적 압박감을 줄 수 있습니다.',
-  },
-  T3_STR: {
-    '5': '마감 압박, 갈등 상황, 치열한 경쟁 환경도 감수할 수 있습니다. 긴장감이 있는 환경에서 오히려 집중력이 높아지는 편입니다.',
-    '4': '어느 정도의 마감 압박이나 경쟁이 있어도 크게 위축되지 않고 잘 대처합니다.',
-    '3': '스트레스 강도에 크게 민감하지 않습니다. 상황에 따라 유연하게 대응할 수 있습니다.',
-    '2': '지속적인 마감 압박이나 갈등이 잦은 환경은 쉽게 소진될 수 있습니다.',
-    '1': '경쟁이 치열하거나 긴장 상태가 오래 지속되는 환경은 번아웃으로 이어질 수 있습니다.',
-  },
-  T3_FLX: {
-    '5': '매일 다른 업무와 역할이 주어지는 비정형적인 환경에서 활력을 얻습니다. 정해진 틀 없이 자유롭게 움직일 수 있는 환경이 가장 잘 맞습니다.',
-    '4': '유동적이고 변화가 많은 업무 환경을 선호합니다. 새로운 상황에 빠르게 적응하는 편입니다.',
-    '3': '업무의 규칙성과 유연성 중 어느 쪽도 크게 가리지 않습니다. 주어진 환경에 무난하게 적응할 수 있습니다.',
-    '2': '예측하기 어렵거나 매일 업무가 크게 달라지는 환경은 다소 불안정하게 느껴질 수 있습니다.',
-    '1': '구조나 루틴 없이 매번 새로운 방식으로 일해야 하는 환경은 혼란스럽고 소모적으로 느껴질 수 있습니다.',
-  },
-}
 
 const T3_WE_ITEMS: Record<string, { icon: string; name: string; description: string }> = {
   WE01: { icon: '🏢', name: '실내 근무', description: '건물 내부에서 주로 업무를 처리하는 환경' },
@@ -500,32 +456,8 @@ const t1ImgSrc = computed(() => {
   return baseType ? (T1_IMG_MAP[baseType] ?? null) : null
 })
 
-const t3Rec = computed(() =>
-  (analysis.value?.environment.parts ?? [])
-    .filter(p => p.level >= 3)
-    .sort((a, b) => b.level - a.level)
-)
-
-const t3NonRec = computed(() =>
-  (analysis.value?.environment.parts ?? [])
-    .filter(p => p.level <= 2)
-    .sort((a, b) => a.level - b.level)
-)
-
-const t3RecText = computed(() => {
-  if (t3Rec.value.length === 0) return '대부분의 업무 환경에 신중하게 접근하는 편입니다.'
-  return t3Rec.value
-    .map(p => T3_RESULT_TEXTS[p.code]?.[String(p.level)] ?? '')
-    .filter(Boolean)
-    .join('\n')
-})
-
-const t3NonRecText = computed(() =>
-  t3NonRec.value
-    .map(p => T3_RESULT_TEXTS[p.code]?.[String(p.level)] ?? '')
-    .filter(Boolean)
-    .join('\n')
-)
+const t3GoodTexts = computed(() => analysis.value?.environment.texts?.good ?? [])
+const t3BadTexts = computed(() => analysis.value?.environment.texts?.bad ?? [])
 
 function computeWEItems(
   parts: Array<{ code: string; level: number }>,

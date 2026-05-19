@@ -13,6 +13,7 @@
         v-if="currentPartInfo && currentPartPageInfo"
         :currentPartInfo="currentPartInfo"
         :currentPartPageInfo="currentPartPageInfo"
+        :userName="userName || undefined"
       />
 
       <!-- 진행바 -->
@@ -113,7 +114,10 @@
  * 라우트: /self-understanding/test
  */
 import { useRouter } from 'vue-router'
+import { computed } from 'vue'
 import { useSurvey } from '../composables/useSurvey'
+import { useAuthStore } from '@/shared/stores/auth'
+import { linkSurveyToUser } from '../survey.api'
 
 import ScaleQuestion5 from '../components/page/su-test-page/su-questions/ScaleQuestion5.vue'
 import MultiSelectQuestion from '../components/page/su-test-page/su-questions/MultiSelectQuestion.vue'
@@ -132,6 +136,9 @@ import ScaleQuestion10 from '../components/page/su-test-page/su-questions/ScaleQ
 import SurveyPartIntro from '../components/page/su-test-page/SurveyPartIntro.vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
+const userName = computed(() => authStore.user?.name ?? authStore.user?.email ?? '')
+
 const {
   surveyId,
   isLoading,
@@ -160,6 +167,12 @@ async function handleSubmit() {
     const respondentId = `user_${Date.now()}`
     await submitSurvey(respondentId)
     sessionStorage.setItem('lh_survey_id', surveyId.value)
+
+    // 로그인 상태면 검사 결과를 유저 계정에 연결 (실패해도 결과 페이지 이동은 정상 진행)
+    if (authStore.isLoggedIn) {
+      linkSurveyToUser(surveyId.value).catch(() => {})
+    }
+
     router.push('/self-understanding/complete')
   } catch {
     // 에러는 useSurvey에서 처리됨
