@@ -9,10 +9,9 @@
   <div class="lh-page">
 
     <!-- NAV -->
-    <nav class="m-nav">
-      <img src="/Symbol_Logo.svg" alt="LightHouse" class="nav-logo" />
-      <RouterLink class="m-nav-btn" to="/self-understanding/guide"> 검사 시작 → </RouterLink>
-    </nav>
+    <AppHeader>
+      <RouterLink class="app-header-btn" to="/self-understanding/guide">검사 시작 →</RouterLink>
+    </AppHeader>
 
     <!-- HERO -->
     <section class="m-hero">
@@ -278,6 +277,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useSurvey } from '../composables/useSurvey'
+import AppHeader from '@/shared/components/AppHeader.vue'
 
 // -------------------------------------------------------
 // Props / Emits

@@ -1,9 +1,7 @@
 <template>
   <div class="guide-wrap">
 
-    <nav class="m-nav">
-      <img src="/Symbol_Logo.svg" alt="LightHouse" class="nav-logo" />
-    </nav>
+    <AppHeader />
 
     <!-- 헤더 -->
     <section class="guide-header">
@@ -56,6 +54,7 @@
 </template>
 
 <script setup lang="ts">
+import AppHeader from '@/shared/components/AppHeader.vue'
 /**
  * SelfUnderstandingGuidePage
  *

@@ -12,47 +12,6 @@
   .y { color: #FFD100; }
   .s { color: #5BB8F5; }
 
-  /* ─── NAV ───────────────────────────────────────────────── */
-  .m-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 1.25rem;
-    background: #fff;
-    border-bottom: 1px solid #EEEEE8;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-
-    @media (min-width: 768px) {
-      padding: 0.875rem 1.5rem;
-    }
-
-    .nav-logo {
-      height: 1.8125rem;
-
-      @media (min-width: 768px) {
-        height: 2.125rem;
-      }
-    }
-
-    .m-nav-btn {
-      background: #FFD100;
-      color: #1a1a1a;
-      border: none;
-      border-radius: 0.5rem;
-      padding: 0.5rem 0.875rem;
-      font-size: 0.8125rem;
-      font-weight: 700;
-      font-family: 'Pretendard', sans-serif;
-      cursor: pointer;
-
-      @media (min-width: 768px) {
-        padding: 0.625rem 1rem;
-        font-size: 0.9375rem;
-      }
-    }
-  }
 
   /* ─── HERO ──────────────────────────────────────────────── */
   .m-hero {

@@ -1,8 +1,6 @@
 <template>
   <div class="career-achievement">
-    <nav class="career-achievement__header">
-      <img class="career-achievement__logo" src="/Symbol_Logo.svg" alt="LightHouse" />
-    </nav>
+    <AppHeader />
 
     <!-- 소개 텍스트 -->
     <div class="ca-main__intro journey-intro">
@@ -35,6 +33,7 @@
 </template>
 
 <script setup lang="ts">
+import AppHeader from '@/shared/components/AppHeader.vue'
 </script>
 
 <style lang="scss">
@@ -46,23 +45,6 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-
-  &__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 20px;
-    background: #fff;
-    border-bottom: 1px solid #EEEEE8;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  &__logo {
-    height: 29px;
-    width: auto;
-  }
 
   &__body {
     flex: 1;

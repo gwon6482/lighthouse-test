@@ -1,9 +1,7 @@
 <template>
   <div class="cd-main">
     <!-- 헤더 -->
-    <nav class="cd-main__header">
-      <img class="cd-main__logo" src="/Symbol_Logo.svg" alt="LightHouse" />
-    </nav>
+    <AppHeader />
 
     <!-- 타이틀 -->
     <div class="cd-main__hero">
@@ -190,6 +188,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import AppHeader from '@/shared/components/AppHeader.vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import RecommendedJobCard from '../../encyclopedia/components/page/home/RecommendedJobCard.vue'
@@ -255,22 +254,6 @@ function goToExplore() {
   min-height: 100vh;
   background: #F5F5F5;
 
-  &__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 20px;
-    background: #fff;
-    border-bottom: 1px solid #EEEEE8;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  &__logo {
-    height: 29px;
-    width: auto;
-  }
 
 
   &__hero {

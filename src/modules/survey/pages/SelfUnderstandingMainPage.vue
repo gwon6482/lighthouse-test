@@ -1,9 +1,7 @@
 <template>
   <div class="su-main">
     <!-- 헤더 -->
-    <nav class="su-main__nav">
-      <img class="su-main__logo" src="/Symbol_Logo.svg" alt="LightHouse" />
-    </nav>
+    <AppHeader />
 
     <!-- 타이틀 -->
     <div class="su-main__hero">
@@ -80,6 +78,7 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import AppHeader from '@/shared/components/AppHeader.vue'
 
 const router = useRouter()
 
@@ -130,21 +129,6 @@ const tips = [
   min-height: 100vh;
   background: #F5F5F5;
 
-  &__nav {
-    display: flex;
-    align-items: center;
-    padding: 12px 20px;
-    background: #fff;
-    border-bottom: 1px solid #EEEEE8;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  &__logo {
-    height: 29px;
-    width: auto;
-  }
 
   &__hero {
     padding: 32px 20px 16px;

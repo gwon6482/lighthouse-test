@@ -1,8 +1,6 @@
 <template>
   <div class="self-understanding-select">
-    <nav class="select-nav">
-      <img src="/Symbol_Logo.svg" alt="LightHouse" class="select-nav__logo" />
-    </nav>
+    <AppHeader />
 
     <div class="select-header">
       <p class="select-eyebrow">검사 방식 선택</p>
@@ -69,6 +67,7 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import AppHeader from '@/shared/components/AppHeader.vue'
 import { useSurvey } from '../composables/useSurvey'
 
 const router = useRouter()
