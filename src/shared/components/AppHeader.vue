@@ -1,6 +1,8 @@
 <template>
   <nav class="app-header">
-    <img class="app-header__logo" src="/Symbol_Logo.svg" alt="LightHouse" />
+    <RouterLink to="/" class="app-header__logo-link">
+      <img class="app-header__logo" src="/Symbol_Logo.svg" alt="LightHouse" />
+    </RouterLink>
     <slot />
   </nav>
 </template>
@@ -19,6 +21,11 @@
   position: sticky;
   top: 0;
   z-index: 100;
+
+  &__logo-link {
+    display: flex;
+    align-items: center;
+  }
 
   &__logo {
     height: 29px;

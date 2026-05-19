@@ -3,26 +3,14 @@
     <AppHeader />
 
     <!-- 소개 텍스트 -->
-    <div class="ca-main__intro journey-intro">
-      <div class="journey-intro__trail">
-        <span class="journey-intro__trail-done">자기이해 ✓</span>
-        <span class="journey-intro__trail-sep">›</span>
-        <span class="journey-intro__trail-done">직업 탐색 ✓</span>
-        <span class="journey-intro__trail-sep">›</span>
-        <span class="journey-intro__trail-done">진로계획 ✓</span>
-        <span class="journey-intro__trail-sep">›</span>
-        <span class="journey-intro__trail-now">진로달성</span>
-      </div>
-      <p class="journey-intro__headline">
-        계획을 세웠으니,<br>
-        <em>이제 실행할 차례예요.</em>
-      </p>
-      <div class="journey-intro__rule" />
-      <p class="journey-intro__body">
-        목표를 향한 여정이 시작됐어요.<br>
-        하나씩 완료해가며 꿈에 가까워지는 과정을 기록해보세요.
-      </p>
-    </div>
+    <JourneyIntro
+      class="ca-main__intro"
+      :step="3"
+      headlineMain="계획을 세웠으니,"
+      headlineEm="이제 실행할 차례예요."
+      bodyLine1="목표를 향한 여정이 시작됐어요."
+      bodyLine2="하나씩 완료해가며 꿈에 가까워지는 과정을 기록해보세요."
+    />
 
     <div class="career-achievement__body">
       <div class="career-achievement__icon">🏆</div>
@@ -34,6 +22,7 @@
 
 <script setup lang="ts">
 import AppHeader from '@/shared/components/AppHeader.vue'
+import JourneyIntro from '@/shared/components/JourneyIntro.vue'
 </script>
 
 <style lang="scss">

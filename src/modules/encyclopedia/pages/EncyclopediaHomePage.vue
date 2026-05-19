@@ -10,26 +10,14 @@
     </div>
 
     <!-- 소개 텍스트 -->
-    <div class="enc-home__intro journey-intro">
-      <div class="journey-intro__trail">
-        <span class="journey-intro__trail-done">자기이해 ✓</span>
-        <span class="journey-intro__trail-sep">›</span>
-        <span class="journey-intro__trail-now">직업 탐색</span>
-        <span class="journey-intro__trail-sep">›</span>
-        <span class="journey-intro__trail-next">진로계획</span>
-        <span class="journey-intro__trail-sep">›</span>
-        <span class="journey-intro__trail-next">진로달성</span>
-      </div>
-      <p class="journey-intro__headline">
-        꿈꾸는 직업을,<br>
-        <em>지금 찾아보세요.</em>
-      </p>
-      <div class="journey-intro__rule" />
-      <p class="journey-intro__body">
-        세상에는 수많은 직업이 있어요.<br>
-        관심 가는 직업을 탐색하고, 나에게 맞는 길을 발견해보세요.
-      </p>
-    </div>
+    <JourneyIntro
+      class="enc-home__intro"
+      :step="1"
+      headlineMain="꿈꾸는 직업을,"
+      headlineEm="지금 찾아보세요."
+      bodyLine1="세상에는 수많은 직업이 있어요."
+      bodyLine2="관심 가는 직업을 탐색하고, 나에게 맞는 길을 발견해보세요."
+    />
 
     <!-- 검색 바 -->
     <div class="enc-home__search-wrap">
@@ -79,6 +67,7 @@ import { useRouter } from 'vue-router'
 import { useEncyclopedia } from '../composables/useEncyclopedia'
 import type { JobSummary } from '../types/encyclopedia'
 import MainTitle from '../components/page/home/MainTitle.vue'
+import JourneyIntro from '@/shared/components/JourneyIntro.vue'
 import SearchBar from '../components/page/home/SearchBar.vue'
 import RecommendedJobCard from '../components/page/home/RecommendedJobCard.vue'
 import SearchResult from '../components/page/home/SearchResult.vue'

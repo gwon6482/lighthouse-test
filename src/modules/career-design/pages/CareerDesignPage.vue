@@ -10,26 +10,14 @@
     </div>
 
     <!-- 소개 텍스트 -->
-    <div class="cd-main__intro journey-intro">
-      <div class="journey-intro__trail">
-        <span class="journey-intro__trail-done">자기이해 ✓</span>
-        <span class="journey-intro__trail-sep">›</span>
-        <span class="journey-intro__trail-done">직업 탐색 ✓</span>
-        <span class="journey-intro__trail-sep">›</span>
-        <span class="journey-intro__trail-now">진로계획</span>
-        <span class="journey-intro__trail-sep">›</span>
-        <span class="journey-intro__trail-next">진로달성</span>
-      </div>
-      <p class="journey-intro__headline">
-        목표가 생겼으니,<br>
-        <em>이제 길을 만들어요.</em>
-      </p>
-      <div class="journey-intro__rule" />
-      <p class="journey-intro__body">
-        자신을 이해하고 꿈꾸는 직업을 찾은 지금,<br>
-        그 꿈까지 닿을 구체적인 계획을 세워볼게요.
-      </p>
-    </div>
+    <JourneyIntro
+      class="cd-main__intro"
+      :step="2"
+      headlineMain="목표가 생겼으니,"
+      headlineEm="이제 길을 만들어요."
+      bodyLine1="자신을 이해하고 꿈꾸는 직업을 찾은 지금,"
+      bodyLine2="그 꿈까지 닿을 구체적인 계획을 세워볼게요."
+    />
 
     <!-- 진로계획 가이드 -->
     <div class="cd-main__guide">
@@ -189,6 +177,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import AppHeader from '@/shared/components/AppHeader.vue'
+import JourneyIntro from '@/shared/components/JourneyIntro.vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import RecommendedJobCard from '../../encyclopedia/components/page/home/RecommendedJobCard.vue'

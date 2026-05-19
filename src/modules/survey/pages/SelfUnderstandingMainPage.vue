@@ -10,26 +10,14 @@
     </div>
 
     <!-- 소개 박스 -->
-    <div class="su-main__intro journey-intro">
-      <div class="journey-intro__trail">
-        <span class="journey-intro__trail-now">자기이해</span>
-        <span class="journey-intro__trail-sep">›</span>
-        <span class="journey-intro__trail-next">직업 탐색</span>
-        <span class="journey-intro__trail-sep">›</span>
-        <span class="journey-intro__trail-next">진로계획</span>
-        <span class="journey-intro__trail-sep">›</span>
-        <span class="journey-intro__trail-next">진로달성</span>
-      </div>
-      <p class="journey-intro__headline">
-        나를 알면,<br>
-        <em>길이 보여요.</em>
-      </p>
-      <div class="journey-intro__rule" />
-      <p class="journey-intro__body">
-        진로는 남들이 정해줄 수 없어요.<br>
-        나의 흥미, 강점, 성격을 먼저 파악하는 것부터 시작해볼게요.
-      </p>
-    </div>
+    <JourneyIntro
+      class="su-main__intro"
+      :step="0"
+      headlineMain="나를 알면,"
+      headlineEm="길이 보여요."
+      bodyLine1="진로는 남들이 정해줄 수 없어요."
+      bodyLine2="나의 흥미, 강점, 성격을 먼저 파악하는 것부터 시작해볼게요."
+    />
 
     <!-- 검사 절차 -->
     <div class="su-main__section">
@@ -79,6 +67,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import AppHeader from '@/shared/components/AppHeader.vue'
+import JourneyIntro from '@/shared/components/JourneyIntro.vue'
 
 const router = useRouter()
 
