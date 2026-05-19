@@ -209,39 +209,52 @@
         <span class="m-lbl" style="color:#2E8FCC;">업무 환경</span>
         <h2 class="m-ttl">나의 업무 환경 성향</h2>
 
-        <div v-if="t3GoodTexts.length > 0" class="env-block env-block--rec">
+        <!-- 6개 파트 전체 레벨 3: 환경 유연형 안내 -->
+        <div v-if="t3AllNeutral" class="env-block env-block--neutral">
           <p class="env-block-header">
-            <span class="env-block-icon">✅</span>
-            <span class="env-block-title">나에게 맞는 환경</span>
+            <span class="env-block-icon">🔄</span>
+            <span class="env-block-title">환경 유연형</span>
           </p>
-          <p v-for="item in t3GoodTexts" :key="item.part" class="env-block-text">{{ item.text }}</p>
-          <div v-if="t3WeVisible && t3WeRec.length > 0" class="env-we-list">
-            <div v-for="item in t3WeRec" :key="item.code" class="env-we-item">
-              <span class="env-we-icon">{{ T3_WE_ITEMS[item.code]?.icon }}</span>
-              <div class="env-we-info">
-                <span class="env-we-name">{{ T3_WE_ITEMS[item.code]?.name }}</span>
-                <p class="env-we-desc">{{ T3_WE_ITEMS[item.code]?.description }}</p>
-              </div>
-            </div>
-          </div>
+          <p class="env-block-text">특정 환경에 대한 강한 선호나 거부감이 없어요.</p>
+          <p class="env-block-text">다양한 업무 환경에 무난하게 적응할 수 있는 유연한 성향이에요.</p>
         </div>
 
-        <div v-if="t3BadTexts.length > 0" class="env-block env-block--non">
-          <p class="env-block-header">
-            <span class="env-block-icon">❌</span>
-            <span class="env-block-title">나에게 맞지 않는 환경</span>
-          </p>
-          <p v-for="item in t3BadTexts" :key="item.part" class="env-block-text">{{ item.text }}</p>
-          <div v-if="t3WeVisible && t3WeNonRec.length > 0" class="env-we-list">
-            <div v-for="item in t3WeNonRec" :key="item.code" class="env-we-item">
-              <span class="env-we-icon">{{ T3_WE_ITEMS[item.code]?.icon }}</span>
-              <div class="env-we-info">
-                <span class="env-we-name">{{ T3_WE_ITEMS[item.code]?.name }}</span>
-                <p class="env-we-desc">{{ T3_WE_ITEMS[item.code]?.description }}</p>
+        <!-- 일부라도 레벨 3이 아닐 때: 기존 로직 -->
+        <template v-else>
+          <div v-if="t3GoodTexts.length > 0" class="env-block env-block--rec">
+            <p class="env-block-header">
+              <span class="env-block-icon">✅</span>
+              <span class="env-block-title">나에게 맞는 환경</span>
+            </p>
+            <p v-for="item in t3GoodTexts" :key="item.part" class="env-block-text">{{ item.text }}</p>
+            <div v-if="t3WeVisible && t3WeRec.length > 0" class="env-we-list">
+              <div v-for="item in t3WeRec" :key="item.code" class="env-we-item">
+                <span class="env-we-icon">{{ T3_WE_ITEMS[item.code]?.icon }}</span>
+                <div class="env-we-info">
+                  <span class="env-we-name">{{ T3_WE_ITEMS[item.code]?.name }}</span>
+                  <p class="env-we-desc">{{ T3_WE_ITEMS[item.code]?.description }}</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+
+          <div v-if="t3BadTexts.length > 0" class="env-block env-block--non">
+            <p class="env-block-header">
+              <span class="env-block-icon">❌</span>
+              <span class="env-block-title">나에게 맞지 않는 환경</span>
+            </p>
+            <p v-for="item in t3BadTexts" :key="item.part" class="env-block-text">{{ item.text }}</p>
+            <div v-if="t3WeVisible && t3WeNonRec.length > 0" class="env-we-list">
+              <div v-for="item in t3WeNonRec" :key="item.code" class="env-we-item">
+                <span class="env-we-icon">{{ T3_WE_ITEMS[item.code]?.icon }}</span>
+                <div class="env-we-info">
+                  <span class="env-we-name">{{ T3_WE_ITEMS[item.code]?.name }}</span>
+                  <p class="env-we-desc">{{ T3_WE_ITEMS[item.code]?.description }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
       </section>
 
       <!-- ─── 섹션 5: 버튼 섹션 ─────────────────────────────── -->
@@ -487,6 +500,11 @@ const t1ImgSrc = computed(() => {
 const t3GoodTexts = computed(() => analysis.value?.environment.texts?.good ?? [])
 const t3BadTexts = computed(() => analysis.value?.environment.texts?.bad ?? [])
 
+const t3AllNeutral = computed(() =>
+  (analysis.value?.environment.parts ?? []).length === 6 &&
+  (analysis.value?.environment.parts ?? []).every(p => p.level === 3)
+)
+
 function computeWEItems(
   parts: Array<{ code: string; level: number }>,
   config: Array<{ levels: number[]; side: 'up' | 'down' }>
@@ -644,6 +662,11 @@ onMounted(() => {
 .env-block--non {
   background: #FFF4F4;
   border: 1px solid #F5B8B8;
+}
+
+.env-block--neutral {
+  background: #F5F5F0;
+  border: 1px solid #DDDDD5;
 }
 
 .env-block-header {
