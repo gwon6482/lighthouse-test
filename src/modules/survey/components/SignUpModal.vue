@@ -46,6 +46,48 @@
               />
             </div>
 
+            <div class="modal__field">
+              <label class="modal__label">이름</label>
+              <input
+                type="text"
+                v-model="form.name"
+                placeholder="홍길동"
+                class="modal__input"
+                autocomplete="name"
+              />
+            </div>
+
+            <div class="modal__row">
+              <div class="modal__field">
+                <label class="modal__label">나이</label>
+                <input
+                  type="number"
+                  v-model.number="form.age"
+                  placeholder="25"
+                  min="1"
+                  max="120"
+                  class="modal__input"
+                />
+              </div>
+              <div class="modal__field">
+                <label class="modal__label">성별</label>
+                <div class="modal__gender">
+                  <button
+                    type="button"
+                    class="modal__gender-btn"
+                    :class="{ 'modal__gender-btn--active': form.gender === 'M' }"
+                    @click="form.gender = form.gender === 'M' ? '' : 'M'"
+                  >남</button>
+                  <button
+                    type="button"
+                    class="modal__gender-btn"
+                    :class="{ 'modal__gender-btn--active': form.gender === 'F' }"
+                    @click="form.gender = form.gender === 'F' ? '' : 'F'"
+                  >여</button>
+                </div>
+              </div>
+            </div>
+
             <p v-if="errorMsg" class="modal__error">{{ errorMsg }}</p>
             <p v-if="successMsg" class="modal__success">{{ successMsg }}</p>
 
@@ -64,9 +106,12 @@ import { reactive, ref, watch } from 'vue'
 import { req } from '@/shared/api'
 
 const props = defineProps<{ modelValue: boolean }>()
-const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
+const emit = defineEmits<{
+  (e: 'update:modelValue', v: boolean): void
+  (e: 'registered', token: string, user: any): void
+}>()
 
-const form = reactive({ email: '', password: '', passwordConfirm: '' })
+const form = reactive({ email: '', password: '', passwordConfirm: '', name: '', age: null as number | null, gender: '' })
 const loading = ref(false)
 const errorMsg = ref('')
 const successMsg = ref('')
@@ -76,6 +121,9 @@ watch(() => props.modelValue, (open) => {
     form.email = ''
     form.password = ''
     form.passwordConfirm = ''
+    form.name = ''
+    form.age = null
+    form.gender = ''
     errorMsg.value = ''
     successMsg.value = ''
   }
@@ -100,9 +148,18 @@ const handleRegister = async () => {
 
   loading.value = true
   try {
-    await req.post('/api/auth/register', { email: form.email, password: form.password })
-    successMsg.value = '가입 완료! 로그인 해주세요.'
-    setTimeout(() => emit('update:modelValue', false), 1500)
+    const res = await req.post('/api/auth/register', {
+      email: form.email,
+      password: form.password,
+      ...(form.name && { name: form.name }),
+      ...(form.age && { age: form.age }),
+      ...(form.gender && { gender: form.gender }),
+    })
+    successMsg.value = '가입 완료!'
+    setTimeout(() => {
+      emit('update:modelValue', false)
+      emit('registered', res.data.token, res.data.user)
+    }, 800)
   } catch (e: any) {
     errorMsg.value = e.response?.data?.error ?? '회원가입 중 오류가 발생했습니다.'
   } finally {
@@ -196,6 +253,37 @@ const handleRegister = async () => {
     &:focus {
       border-color: #FFD100;
       box-shadow: 0 0 0 3px rgba(255, 209, 0, 0.15);
+    }
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  &__gender {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  &__gender-btn {
+    flex: 1;
+    padding: 0.6875rem 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: 'Pretendard', sans-serif;
+    border: 1px solid #EEEEE8;
+    border-radius: 0.75rem;
+    background: #FAFAF8;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &--active {
+      border-color: #FFD100;
+      background: #FFF9D6;
+      color: #1a1a1a;
     }
   }
 

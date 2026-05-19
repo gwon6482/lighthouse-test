@@ -46,4 +46,9 @@ export default [
     name: 'Self Understanding Result',
     component: () => import('./pages/SelfUnderstandingResultPage.vue'),
   },
+  {
+    path: '/mypage',
+    name: 'MyPage',
+    component: () => import('./pages/MyPage.vue'),
+  },
 ]
