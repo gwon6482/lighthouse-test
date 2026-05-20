@@ -294,6 +294,7 @@ const {
   setScaleAnswer,
   setMultiSelectAnswer,
   setPriorityAnswer,
+  setT3Answers,
 } = useSurvey()
 
 function onLoginClick() {
@@ -342,8 +343,17 @@ async function devSkipToT3() {
     })
   }
 
-  const t3Index = allPages.value.findIndex((p) => p.type === 'threeChoice')
-  if (t3Index !== -1) currentPageIndex.value = t3Index
+  setT3Answers({
+    T3_PHY: Math.ceil(Math.random() * 5),
+    T3_PEO: Math.ceil(Math.random() * 5),
+    T3_COM: Math.ceil(Math.random() * 5),
+    T3_RES: Math.ceil(Math.random() * 5),
+    T3_STR: Math.ceil(Math.random() * 5),
+    T3_FLX: Math.ceil(Math.random() * 5),
+  })
+
+  const t3LastIndex = allPages.value.reduce((last, p, i) => p.type === 'threeChoice' ? i : last, -1)
+  if (t3LastIndex !== -1) currentPageIndex.value = t3LastIndex
 
   router.push('/self-understanding/test')
 }

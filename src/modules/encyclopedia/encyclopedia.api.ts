@@ -41,3 +41,38 @@ export const fetchJobPreparations = (jobCode: string) =>
 /** 직업 채용정보 조회 GET /api/job/:jobCode/recruitment */
 export const fetchJobRecruitments = (jobCode: string) =>
   req.get<JobRecruitmentResponse>(`/api/job/${jobCode}/recruitment`)
+
+/** 북마크 목록 조회 GET /api/user/bookmarks (로그인 필요) */
+export const fetchBookmarks = () =>
+  req.get<{ success: boolean; bookmarkedJobs: { jobCode: string }[] }>('/api/user/bookmarks')
+
+/** 북마크 추가 POST /api/user/bookmarks/:jobCode (로그인 필요) */
+export const addBookmark = (jobCode: string) =>
+  req.post<{ success: boolean; bookmarkedJobs: string[] }>(`/api/user/bookmarks/${jobCode}`)
+
+/** 북마크 삭제 DELETE /api/user/bookmarks/:jobCode (로그인 필요) */
+export const removeBookmark = (jobCode: string) =>
+  req.delete<{ success: boolean; bookmarkedJobs: string[] }>(`/api/user/bookmarks/${jobCode}`)
+
+/** 유저 프로필 조회 GET /api/user/profile (로그인 필요) */
+export const fetchUserProfile = () =>
+  req.get<{ success: boolean; user: { recommendedJobs: string[] } }>('/api/user/profile')
+
+/** 유저 설문 목록 조회 GET /api/user/survey-results (로그인 필요) */
+export const fetchUserSurveyResults = () =>
+  req.get<{ success: boolean; surveyResults: Array<{ survey_id: string; submitted_at: string }> }>('/api/user/survey-results')
+
+export interface TargetCareer {
+  refType: 'jobCode' | 'custom'
+  ref: string
+  title: string | null
+  classification?: { primary: string; secondary: string } | null
+}
+
+/** 목표 진로 조회 GET /api/user/target-career (로그인 필요) */
+export const fetchTargetCareer = () =>
+  req.get<{ success: boolean; targetCareer: TargetCareer | null }>('/api/user/target-career')
+
+/** 목표 진로 설정 PUT /api/user/target-career (로그인 필요) */
+export const updateTargetCareer = (data: { refType: 'jobCode' | 'custom'; ref: string } | null) =>
+  req.put<{ success: boolean; targetCareer: TargetCareer | null }>('/api/user/target-career', data)

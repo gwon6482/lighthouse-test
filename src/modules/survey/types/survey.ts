@@ -58,6 +58,8 @@ export interface MultiSelectItem {
 
 export interface PriorityItem {
   item_id: string
+  value_code?: string
+  value_name?: string
   item_text?: string
   item_definition?: string
 }
@@ -210,4 +212,27 @@ export interface T2RecommendResponse {
   survey_id: string
   count: number
   data: T2RecommendJob[]
+}
+
+export interface ComprehensiveRecommendJob {
+  jobCode: string
+  title: string
+  classification: { primary: string; secondary: string }
+  match_score: number
+  match_detail: {
+    T1: number
+    T21: number
+    T22: number
+    T23: number
+    T3: number
+  }
+  salary: { lower: number; median: number; upper: number } | null
+  jobSatisfaction: number | null
+}
+
+export interface ComprehensiveRecommendResponse {
+  success: boolean
+  survey_id: string
+  total_jobs: number
+  data: ComprehensiveRecommendJob[]
 }

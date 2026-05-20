@@ -17,6 +17,11 @@ import {
   fetchJobReviews,
   fetchJobPreparations,
   fetchJobRecruitments,
+  fetchBookmarks,
+  addBookmark,
+  removeBookmark,
+  fetchUserProfile,
+  fetchUserSurveyResults,
 } from '../encyclopedia.api'
 import type {
   Job,
@@ -48,6 +53,12 @@ const recruitments = ref<RecruitmentCard[]>([])
 // 선택된 채용 카드 (팝업용)
 const selectedRecruitment = ref<RecruitmentCard | null>(null)
 
+// 북마크
+const bookmarkedJobCodes = ref<string[]>([])
+
+// 유저 저장된 추천 직업 jobCodes (프로필 기반)
+const userRecommendedJobCodes = ref<string[]>([])
+
 // 로딩 / 에러 상태
 const isLoading = ref(false)
 const error = ref<string | null>(null)
@@ -62,7 +73,23 @@ export function useEncyclopedia() {
 
   /** 추천 진로 목록 로드 */
   async function loadRecommendedJobs(surveyId?: string) {
-    const id = surveyId ?? sessionStorage.getItem('lh_survey_id') ?? ''
+    let id = surveyId ?? sessionStorage.getItem('lh_survey_id') ?? ''
+
+    // sessionStorage에 없으면 유저 survey 이력에서 가장 최근 id 사용
+    if (!id) {
+      try {
+        const { data: ud } = await fetchUserSurveyResults()
+        if (ud.success && ud.surveyResults.length > 0) {
+          const sorted = [...ud.surveyResults].sort(
+            (a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
+          )
+          id = sorted[0].survey_id
+        }
+      } catch {
+        // 비로그인 또는 실패 시 무시
+      }
+    }
+
     if (!id) {
       error.value = '검사 결과가 없습니다. 자기이해 검사를 먼저 완료해주세요.'
       return
@@ -80,6 +107,18 @@ export function useEncyclopedia() {
       error.value = e instanceof Error ? e.message : '추천 진로를 불러오는데 실패했습니다.'
     } finally {
       isLoading.value = false
+    }
+  }
+
+  /** 유저 프로필에 저장된 추천 직업 jobCode 목록 로드 */
+  async function loadUserRecommendedJobCodes() {
+    try {
+      const { data } = await fetchUserProfile()
+      if (data.success) {
+        userRecommendedJobCodes.value = data.user.recommendedJobs ?? []
+      }
+    } catch {
+      // 비로그인 또는 실패 시 무시
     }
   }
 
@@ -206,6 +245,32 @@ export function useEncyclopedia() {
     selectedRecruitment.value = null
   }
 
+  // ── 북마크 ────────────────────────────────────────────────────────────────
+
+  /** 북마크 목록 로드 (로그인 상태에서만 호출) */
+  async function loadBookmarks() {
+    try {
+      const { data, status } = await fetchBookmarks()
+      if (status === 200) {
+        bookmarkedJobCodes.value = data.bookmarkedJobs.map(j => j.jobCode)
+      }
+    } catch {
+      // 비로그인 또는 실패 시 무시
+    }
+  }
+
+  /** 북마크 토글 (이미 북마크면 해제, 아니면 추가) */
+  async function toggleBookmark(jobCode: string) {
+    const isBookmarked = bookmarkedJobCodes.value.includes(jobCode)
+    if (isBookmarked) {
+      await removeBookmark(jobCode)
+      bookmarkedJobCodes.value = bookmarkedJobCodes.value.filter(c => c !== jobCode)
+    } else {
+      await addBookmark(jobCode)
+      bookmarkedJobCodes.value.push(jobCode)
+    }
+  }
+
   return {
     // 상태
     searchQuery,
@@ -235,5 +300,14 @@ export function useEncyclopedia() {
     loadRecruitments,
     openRecruitmentPopup,
     closeRecruitmentPopup,
+
+    // 북마크
+    bookmarkedJobCodes,
+    loadBookmarks,
+    toggleBookmark,
+
+    // 유저 추천 직업 (프로필 저장 기반)
+    userRecommendedJobCodes,
+    loadUserRecommendedJobCodes,
   }
 }

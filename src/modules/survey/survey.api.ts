@@ -1,5 +1,5 @@
 import { req } from '@/shared/api'
-import type { SurveyFormResponse, SurveySubmitRequest, SurveySubmitResponse, SurveyAnalysisResponse, T2RecommendResponse } from './types/survey'
+import type { SurveyFormResponse, SurveySubmitRequest, SurveySubmitResponse, SurveyAnalysisResponse, T2RecommendResponse, ComprehensiveRecommendResponse } from './types/survey'
 
 /**
  * surveyApi 서비스
@@ -45,3 +45,9 @@ export const fetchT2Recommend = (surveyId: string) =>
 
 export const linkSurveyToUser = (survey_id: string) =>
   req.post<{ success: boolean; surveyResults: string[] }>(`/api/user/survey-results`, { survey_id })
+
+export const fetchComprehensiveRecommend = (surveyId: string, limit = 5) =>
+  req.get<ComprehensiveRecommendResponse>(`/api/job/recommend/${surveyId}`, { params: { limit } })
+
+export const saveRecommendedJobs = (jobCodes: string[]) =>
+  req.post<{ success: boolean; recommendedJobs: string[] }>('/api/user/recommended-jobs', { jobCodes })

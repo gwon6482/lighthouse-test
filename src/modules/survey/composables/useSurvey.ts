@@ -28,7 +28,7 @@ const answers = reactive<SurveyAnswers>({
   T21: {},
   T22: { checked: [] },
   T23: { priority_1: '', priority_2: '', priority_3: '', no_priority: [] },
-  T3: { T3_PHY: 3, T3_PEO: 3, T3_COM: 3, T3_RES: 3, T3_STR: 3, T3_FLX: 3 },
+  T3: { T3_PHY: 0, T3_PEO: 0, T3_COM: 0, T3_RES: 0, T3_STR: 0, T3_FLX: 0 },
 })
 
 // 현재 페이지 인덱스
@@ -277,7 +277,7 @@ export function useSurvey() {
     }
 
     if (page.type === 'threeChoice') {
-      return true // 슬라이더는 항상 유효한 값(1~5)을 가짐
+      return Object.values(answers.T3).every(v => v > 0)
     }
 
     if (page.type === 'partIntro') {

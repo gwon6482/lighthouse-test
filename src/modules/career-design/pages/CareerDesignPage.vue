@@ -154,37 +154,121 @@
       </div>
     </div>
 
-    <!-- 나의 좋아요 직업 -->
-    <div class="cd-main__card-wrap">
-      <h2 class="cd-main__section-title">나의 좋아요 직업</h2>
-      <div class="cd-main__job-list">
-        <RecommendedJobCard
-          v-for="job in likedJobs"
-          :key="job.jobCode"
-          :job="job"
-        />
+    <!-- 목표 진로 카드 -->
+    <div class="cd-main__target-wrap">
+      <h2 class="cd-main__section-title">목표 진로</h2>
+
+      <!-- 로딩 -->
+      <div v-if="targetLoading" class="cd-target-skeleton" />
+
+      <!-- 설정된 목표 진로 -->
+      <div v-else-if="targetCareer" class="cd-target-card cd-target-card--set">
+        <div class="cd-target-card__icon">🎯</div>
+        <div class="cd-target-card__info">
+          <p class="cd-target-card__title">{{ targetCareer.title ?? targetCareer.ref }}</p>
+          <p v-if="targetCareer.classification" class="cd-target-card__sub">
+            {{ targetCareer.classification.primary }} · {{ targetCareer.classification.secondary }}
+          </p>
+          <p v-else class="cd-target-card__sub">사용자 지정 진로</p>
+        </div>
+        <button class="cd-target-card__edit" @click="openPopup">변경</button>
+      </div>
+
+      <!-- 미설정 -->
+      <div v-else class="cd-target-card cd-target-card--empty" @click="openPopup">
+        <div class="cd-target-card__icon">＋</div>
+        <p class="cd-target-card__hint">목표 진로를 설정해보세요</p>
+        <span class="cd-target-card__arrow">›</span>
       </div>
     </div>
 
     <!-- 하단 버튼 -->
     <div class="cd-main__footer">
+      <button class="cd-main__cta-target" @click="openPopup">목표 진로 설정하기</button>
       <button class="cd-main__cta" @click="startPlan">진로계획 시작하기</button>
       <button class="cd-main__cta-secondary" @click="goToExplore">진로계획 탐색하기</button>
     </div>
+
+    <!-- 목표 진로 설정 팝업 -->
+    <Teleport to="body">
+      <Transition name="popup-fade">
+        <div v-if="popupOpen" class="cd-popup-overlay" @click.self="closePopup">
+          <Transition name="popup-slide">
+            <div v-if="popupOpen" class="cd-popup">
+              <div class="cd-popup__handle" />
+
+              <!-- 모드 선택 -->
+              <template v-if="popupMode === 'choose'">
+                <div class="cd-popup__header">
+                  <p class="cd-popup__title">목표 진로 설정</p>
+                  <button class="cd-popup__close" @click="closePopup">✕</button>
+                </div>
+                <p class="cd-popup__desc">목표 진로를 어떻게 설정할까요?</p>
+                <div class="cd-popup__options">
+                  <button class="cd-popup__option" @click="goToEncyclopedia">
+                    <span class="cd-popup__option-icon">📚</span>
+                    <div class="cd-popup__option-text">
+                      <strong>진로백과에서 선택하기</strong>
+                      <span>538개 직업 중 나의 목표 진로를 찾아요</span>
+                    </div>
+                    <span class="cd-popup__option-arrow">›</span>
+                  </button>
+                  <button class="cd-popup__option" @click="popupMode = 'manual'">
+                    <span class="cd-popup__option-icon">✏️</span>
+                    <div class="cd-popup__option-text">
+                      <strong>내가 직접 입력하기</strong>
+                      <span>진로백과에 없는 직업도 자유롭게 입력해요</span>
+                    </div>
+                    <span class="cd-popup__option-arrow">›</span>
+                  </button>
+                </div>
+              </template>
+
+              <!-- 직접 입력 -->
+              <template v-else-if="popupMode === 'manual'">
+                <div class="cd-popup__header">
+                  <button class="cd-popup__back" @click="popupMode = 'choose'">‹</button>
+                  <p class="cd-popup__title">직접 입력하기</p>
+                  <button class="cd-popup__close" @click="closePopup">✕</button>
+                </div>
+                <p class="cd-popup__desc">목표 진로 이름을 자유롭게 입력해주세요</p>
+                <div class="cd-popup__input-wrap">
+                  <input
+                    ref="manualInputRef"
+                    v-model="manualInput"
+                    class="cd-popup__input"
+                    type="text"
+                    placeholder="예) 유튜브 크리에이터, 파티시에"
+                    maxlength="40"
+                    @keyup.enter="submitManual"
+                  />
+                  <span class="cd-popup__input-count">{{ manualInput.length }}/40</span>
+                </div>
+                <button
+                  class="cd-popup__confirm"
+                  :disabled="!manualInput.trim()"
+                  @click="submitManual"
+                >설정 완료</button>
+              </template>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import AppHeader from '@/shared/components/AppHeader.vue'
 import JourneyIntro from '@/shared/components/JourneyIntro.vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
-import RecommendedJobCard from '../../encyclopedia/components/page/home/RecommendedJobCard.vue'
-import type { JobSummary } from '../../encyclopedia/types/encyclopedia'
+import { fetchTargetCareer, updateTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
+import type { TargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 
 const router = useRouter()
-const { resetDraftPlan } = useCareerDesign()
+const { resetDraftPlan, draftPlan } = useCareerDesign()
 
 // STEP 02 가이드 탭
 const guideCategories = [
@@ -210,30 +294,74 @@ const guideCatColor = computed(
 
 function startPlan() {
   resetDraftPlan()
+  if (targetCareer.value) {
+    draftPlan.targetJob = targetCareer.value.title ?? targetCareer.value.ref
+  }
   router.push('/career-design/plan/new')
 }
-
-const likedJobs: JobSummary[] = [
-  {
-    jobCode: '013601',
-    title: '마케팅 기획자',
-    classification: { primary: '경영·사무·금융·보험직', secondary: '광고·홍보·조사 전문가' },
-  },
-  {
-    jobCode: '013602',
-    title: '콘텐츠 마케터',
-    classification: { primary: '문화·예술·디자인·방송직', secondary: '작가·출판 전문가' },
-  },
-  {
-    jobCode: '013603',
-    title: '브랜드 매니저',
-    classification: { primary: '경영·사무·금융·보험직', secondary: '마케팅 전문가' },
-  },
-]
 
 function goToExplore() {
   router.push('/career-design/explore')
 }
+
+// ── 목표 진로 ──
+const targetCareer = ref<TargetCareer | null>(null)
+const targetLoading = ref(false)
+
+async function loadTargetCareer() {
+  targetLoading.value = true
+  try {
+    const { data } = await fetchTargetCareer()
+    if (data.success) targetCareer.value = data.targetCareer
+  } catch { /* 비로그인 등 무시 */ } finally {
+    targetLoading.value = false
+  }
+}
+
+// ── 팝업 ──
+const popupOpen = ref(false)
+const popupMode = ref<'choose' | 'manual'>('choose')
+const manualInput = ref('')
+const manualInputRef = ref<HTMLInputElement | null>(null)
+
+function openPopup() {
+  popupMode.value = 'choose'
+  manualInput.value = ''
+  popupOpen.value = true
+}
+
+function closePopup() {
+  popupOpen.value = false
+}
+
+function goToEncyclopedia() {
+  closePopup()
+  router.push('/career-encyclopedia')
+}
+
+async function submitManual() {
+  const name = manualInput.value.trim()
+  if (!name) return
+  try {
+    const { data } = await updateTargetCareer({ refType: 'custom', ref: name })
+    if (data.success) {
+      targetCareer.value = { refType: 'custom', ref: name, title: name }
+    }
+  } catch { /* ignore */ }
+  closePopup()
+}
+
+// 직접 입력 모드 전환 시 자동 포커스
+watch(popupMode, async (mode) => {
+  if (mode === 'manual') {
+    await nextTick()
+    manualInputRef.value?.focus()
+  }
+})
+
+onMounted(() => {
+  loadTargetCareer()
+})
 </script>
 
 <style lang="scss">
@@ -603,11 +731,6 @@ function goToExplore() {
     background: #fff;
   }
 
-  &__card-wrap {
-    flex: 1;
-    padding: 20px;
-  }
-
   &__section-title {
     font-size: 16px;
     font-weight: 700;
@@ -615,10 +738,86 @@ function goToExplore() {
     margin-bottom: 12px;
   }
 
-  &__job-list {
+  /* ── 목표 진로 섹션 ── */
+  &__target-wrap {
+    padding: 20px 20px 4px;
+  }
+
+  .cd-target-skeleton {
+    height: 72px;
+    background: linear-gradient(90deg, #ebebeb 25%, #e0e0e0 50%, #ebebeb 75%);
+    background-size: 200% 100%;
+    animation: blink 1.4s infinite;
+    border-radius: 16px;
+  }
+
+  .cd-target-card {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    cursor: pointer;
+
+    &--set {
+      background: #FFFBEC;
+      border: 1.5px solid #FFE566;
+    }
+
+    &--empty {
+      background: #F8F8F8;
+      border: 1.5px dashed #D8D8D4;
+    }
+
+    &__icon {
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    &__info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    &__title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #222;
+      margin: 0 0 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    &__sub {
+      font-size: 12px;
+      color: #888;
+      margin: 0;
+    }
+
+    &__hint {
+      font-size: 14px;
+      color: #AAA;
+      margin: 0;
+      flex: 1;
+    }
+
+    &__edit {
+      flex-shrink: 0;
+      padding: 5px 12px;
+      background: #FFC700;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    &__arrow {
+      font-size: 20px;
+      color: #ccc;
+    }
   }
 
   &__footer {
@@ -626,6 +825,20 @@ function goToExplore() {
     display: flex;
     flex-direction: column;
     gap: 10px;
+  }
+
+  &__cta-target {
+    width: 100%;
+    padding: 18px;
+    background: #fff;
+    border: 2px solid #FFC700;
+    border-radius: 16px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #FFC700;
+    cursor: pointer;
+
+    &:active { opacity: 0.85; }
   }
 
   &__cta {
@@ -656,4 +869,189 @@ function goToExplore() {
     &:active { opacity: 0.85; }
   }
 }
+
+/* ── 팝업 오버레이 ── */
+.cd-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+}
+
+/* ── 팝업 시트 ── */
+.cd-popup {
+  width: 100%;
+  background: #fff;
+  border-radius: 24px 24px 0 0;
+  padding: 12px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+
+  &__handle {
+    width: 40px;
+    height: 4px;
+    background: #DDD;
+    border-radius: 2px;
+    margin: 0 auto 20px;
+    flex-shrink: 0;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  &__back {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #555;
+    cursor: pointer;
+    padding: 0 12px 0 0;
+    line-height: 1;
+  }
+
+  &__title {
+    flex: 1;
+    font-size: 17px;
+    font-weight: 800;
+    color: #111;
+    margin: 0;
+  }
+
+  &__close {
+    background: none;
+    border: none;
+    font-size: 16px;
+    color: #AAA;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  &__desc {
+    font-size: 13px;
+    color: #888;
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+
+  &__options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: #F8F8F6;
+    border: 1.5px solid #EEEEE8;
+    border-radius: 16px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+
+    &:active {
+      background: #F0F0EC;
+      border-color: #DDD;
+    }
+
+    &-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    &-text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+
+      strong {
+        font-size: 15px;
+        font-weight: 700;
+        color: #111;
+      }
+
+      span {
+        font-size: 12px;
+        color: #999;
+      }
+    }
+
+    &-arrow {
+      font-size: 22px;
+      color: #CCC;
+      flex-shrink: 0;
+    }
+  }
+
+  &__input-wrap {
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  &__input {
+    width: 100%;
+    padding: 14px 50px 14px 16px;
+    background: #F8F8F6;
+    border: 1.5px solid #E4E4E0;
+    border-radius: 14px;
+    font-size: 15px;
+    color: #111;
+    outline: none;
+    box-sizing: border-box;
+    font-family: inherit;
+    transition: border-color 0.15s;
+
+    &::placeholder { color: #BBB; }
+    &:focus { border-color: #FFC700; }
+  }
+
+  &__input-count {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: #BBB;
+  }
+
+  &__confirm {
+    width: 100%;
+    padding: 16px;
+    background: #FFC700;
+    border: none;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.15s;
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    &:not(:disabled):active { opacity: 0.85; }
+  }
+}
+
+/* ── 팝업 트랜지션 ── */
+.popup-fade-enter-active,
+.popup-fade-leave-active { transition: opacity 0.22s; }
+.popup-fade-enter-from,
+.popup-fade-leave-to     { opacity: 0; }
+
+.popup-slide-enter-active,
+.popup-slide-leave-active { transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1); }
+.popup-slide-enter-from,
+.popup-slide-leave-to     { transform: translateY(100%); }
 </style>

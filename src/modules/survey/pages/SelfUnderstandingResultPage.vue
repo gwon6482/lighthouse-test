@@ -161,6 +161,22 @@
             </div>
           </template>
         </div>
+
+        <!-- 좋아하는 일 요약 카드 -->
+        <div
+          v-if="topInterestCategoryName || analysis.talent.top3.length || analysis.values.priority_1"
+          class="like-card"
+          style="margin-top: 1.5rem;"
+        >
+          <p class="like-text">
+            <span v-if="topInterestCategoryName" class="lc-chip lc-chip--s">{{ topInterestCategoryName }}</span>
+            <template v-if="topInterestCategoryName"> 분야에서<br></template>
+            <span v-if="analysis.talent.top3[0]" class="lc-chip lc-chip--y">{{ analysis.talent.top3[0].name }}</span>
+            <template v-if="analysis.talent.top3[0]">을 활용해<br></template>
+            <span v-if="analysis.values.priority_1" class="lc-chip lc-chip--p">{{ analysis.values.priority_1.name }}</span>
+            <template v-if="analysis.values.priority_1">을 쫓는 일을 할 때 가장 빛나요.</template>
+          </p>
+        </div>
       </section>
 
       <!-- ─── 섹션 3.5: T2 기반 추천 직업 ─────────────────── -->
@@ -257,6 +273,64 @@
         </template>
       </section>
 
+      <!-- ─── 섹션 4.5: 종합 추천 직업 Top5 ─────────────────── -->
+      <section class="m-sec white">
+        <span class="m-lbl" style="color:#3D7FE8;">종합 추천</span>
+        <h2 class="m-ttl">나에게 맞는 직업 Top 5</h2>
+        <p class="m-sub">성격·재능·관심·가치관·업무환경을 모두 고려한 추천이야</p>
+
+        <div v-if="compLoading" class="t2rec-skeleton-list">
+          <div v-for="n in 3" :key="n" class="t2rec-skeleton" />
+        </div>
+
+        <p v-else-if="compError" class="t2rec-message">데이터를 불러오지 못했습니다.</p>
+        <p v-else-if="compJobs.length === 0" class="t2rec-message">추천 직업을 찾을 수 없습니다.</p>
+
+        <div v-else class="comp-list">
+          <div
+            v-for="(job, idx) in compJobs"
+            :key="job.jobCode"
+            class="comp-card"
+            @click="router.push(`/career-encyclopedia/job/${job.jobCode}`)"
+          >
+            <div class="comp-rank" :class="`comp-rank--${idx + 1}`">{{ idx + 1 }}</div>
+            <div class="comp-body">
+              <div class="comp-top">
+                <span class="comp-title">{{ job.title }}</span>
+                <span class="comp-total-score">{{ Math.round(job.match_score * 100) }}%</span>
+              </div>
+              <p class="comp-class">{{ job.classification.primary }} › {{ job.classification.secondary }}</p>
+
+              <div class="comp-bars">
+                <span class="comp-bar-lbl comp-bar-lbl--t1">성격/기질</span>
+                <div class="comp-bar-track">
+                  <div class="comp-bar-fill comp-bar-fill--t1" :style="{ width: `${Math.round(job.match_detail.T1 * 100)}%` }"></div>
+                </div>
+                <span class="comp-bar-val comp-bar-val--t1">{{ Math.round(job.match_detail.T1 * 100) }}</span>
+
+                <span class="comp-bar-lbl comp-bar-lbl--t2">재능/흥미/가치관</span>
+                <div class="comp-bar-track">
+                  <div class="comp-bar-fill comp-bar-fill--t2" :style="{ width: `${Math.round(calcT2Score(job.match_detail) * 100)}%` }"></div>
+                </div>
+                <span class="comp-bar-val comp-bar-val--t2">{{ Math.round(calcT2Score(job.match_detail) * 100) }}</span>
+
+                <span class="comp-bar-lbl comp-bar-lbl--t3">업무환경</span>
+                <div class="comp-bar-track">
+                  <div class="comp-bar-fill comp-bar-fill--t3" :style="{ width: `${Math.round(job.match_detail.T3 * 100)}%` }"></div>
+                </div>
+                <span class="comp-bar-val comp-bar-val--t3">{{ Math.round(job.match_detail.T3 * 100) }}</span>
+              </div>
+
+              <p class="comp-meta">
+                <span v-if="job.salary?.median">급여 중위 {{ job.salary.median.toLocaleString() }}만원</span>
+                <span v-if="job.salary?.median && job.jobSatisfaction"> · </span>
+                <span v-if="job.jobSatisfaction">만족도 {{ job.jobSatisfaction }}%</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- ─── 섹션 5: 버튼 섹션 ─────────────────────────────── -->
       <section class="m-sec result-cta-section">
         <!-- 비로그인: 가입 유도 -->
@@ -291,10 +365,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { fetchSurveyAnalysis, fetchT2Recommend, linkSurveyToUser } from '../survey.api'
+import { fetchSurveyAnalysis, fetchT2Recommend, fetchComprehensiveRecommend, saveRecommendedJobs, linkSurveyToUser } from '../survey.api'
 import { useAuthStore } from '@/shared/stores/auth'
 import SignUpModal from '../components/SignUpModal.vue'
-import type { SurveyAnalysisResponse, T2RecommendJob } from '../types/survey'
+import type { SurveyAnalysisResponse, T2RecommendJob, ComprehensiveRecommendJob } from '../types/survey'
 
 const T1_DEFINITIONS: Record<string, string> = {
   E: '외부 세계와의 상호작용에서 활력과 긍정적인 감정을 얻는 경향',
@@ -623,6 +697,13 @@ const t2LabelValue = computed(() => {
   return vaCode ? (T23_LABEL[vaCode] ?? '') : ''
 })
 
+// 좋아하는 일 카드용 — T22 최다 선택 카테고리명
+const topInterestCategoryName = computed(() => {
+  const cats = Object.values(analysis.value?.interest.by_category ?? {})
+  if (cats.length === 0) return null
+  return cats.reduce((a, b) => a.items.length >= b.items.length ? a : b).name
+})
+
 async function loadT2Recommend() {
   t2Loading.value = true
   t2Error.value = false
@@ -640,9 +721,40 @@ async function loadT2Recommend() {
   }
 }
 
+// ─── 종합 추천 ──────────────────────────────────────────────────────────────
+
+const compJobs = ref<ComprehensiveRecommendJob[]>([])
+const compLoading = ref(false)
+const compError = ref(false)
+
+function calcT2Score(detail: { T21: number; T22: number; T23: number }): number {
+  return (detail.T21 * 0.25 + detail.T22 * 0.25 + detail.T23 * 0.20) / 0.70
+}
+
+async function loadComprehensiveRecommend() {
+  compLoading.value = true
+  compError.value = false
+  try {
+    const { data } = await fetchComprehensiveRecommend(surveyId, 5)
+    if (data.success) {
+      compJobs.value = data.data
+      if (authStore.isLoggedIn) {
+        saveRecommendedJobs(data.data.map(j => j.jobCode)).catch(() => {})
+      }
+    } else {
+      compError.value = true
+    }
+  } catch {
+    compError.value = true
+  } finally {
+    compLoading.value = false
+  }
+}
+
 onMounted(() => {
   load()
   loadT2Recommend()
+  loadComprehensiveRecommend()
   tryLinkSurvey()
 })
 </script>
@@ -860,5 +972,177 @@ onMounted(() => {
   text-align: center;
   padding: 1.5rem 0;
   margin: 0;
+}
+
+/* ── 종합 추천 직업 ───────────────────────────────────── */
+.comp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-top: 0.5rem;
+}
+
+.comp-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: #fff;
+  border: 1px solid #E8E8E4;
+  border-radius: 16px;
+  padding: 1rem 1rem 0.875rem;
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.1s;
+
+  &:active {
+    transform: scale(0.99);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.07);
+  }
+}
+
+.comp-rank {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 900;
+  margin-top: 2px;
+
+  &--1 { background: #FFF0B0; color: #8A6200; box-shadow: 0 1px 4px rgba(200,150,0,0.25); }
+  &--2 { background: #EBEBEB; color: #4A4A4A; }
+  &--3 { background: #F5DEC8; color: #8A4A00; }
+  &--4, &--5 { background: #F2F2EE; color: #999; }
+}
+
+.comp-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.comp-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.comp-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #111;
+  line-height: 1.3;
+}
+
+.comp-total-score {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #fff;
+  background: #3D7FE8;
+  border-radius: 20px;
+  padding: 2px 8px;
+  letter-spacing: -0.01em;
+}
+
+.comp-class {
+  font-size: 0.72rem;
+  color: #AAA;
+  margin: 0 0 0.25rem;
+}
+
+/* ── 점수 바: CSS grid로 모든 행의 레이블 너비 자동 통일 ── */
+.comp-bars {
+  display: grid;
+  grid-template-columns: max-content 1fr 26px;
+  align-items: center;
+  row-gap: 0.3rem;
+  column-gap: 0.5rem;
+  background: #F9F9F6;
+  border-radius: 10px;
+  padding: 0.5rem 0.625rem;
+  margin-top: 0.25rem;
+}
+
+.comp-bar-lbl {
+  white-space: nowrap;
+  font-size: 0.625rem;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 2px 6px;
+  text-align: left;
+
+  &--t1 { background: #FFF0E6; color: #C85A00; }
+  &--t2 { background: #EBF2FF; color: #3D7FE8; }
+  &--t3 { background: #E6F6F4; color: #2E8888; }
+}
+
+.comp-bar-track {
+  height: 7px;
+  background: #E4E4E0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.comp-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+.comp-bar-fill--t1 { background: linear-gradient(90deg, #FFCA8A, #FF5A20); }
+.comp-bar-fill--t2 { background: linear-gradient(90deg, #80BAFF, #2C6EE8); }
+.comp-bar-fill--t3 { background: linear-gradient(90deg, #6EDDD0, #219E92); }
+
+.comp-bar-val {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: right;
+
+  &--t1 { color: #D06020; }
+  &--t2 { color: #3D7FE8; }
+  &--t3 { color: #2E9090; }
+}
+
+/* 좋아하는 일 카드 */
+.like-card {
+  background: #FAFAF8;
+  border: 1px solid #EEEEE8;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.like-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1A1A1A;
+  line-height: 1.9;
+  margin: 0;
+}
+
+.lc-chip {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 12px;
+  margin: 0 1px;
+}
+
+.lc-chip--y { background: #FFF8CC; color: #997A00; }
+.lc-chip--s { background: #E8F4FE; color: #2E8FCC; }
+.lc-chip--p { background: #F0EEFF; color: #6B5FCC; }
+
+.comp-meta {
+  font-size: 0.72rem;
+  color: #AAA;
+  margin: 0;
+  margin-top: 0.375rem;
+  padding-top: 0.375rem;
+  border-top: 1px solid #F0F0EC;
 }
 </style>
