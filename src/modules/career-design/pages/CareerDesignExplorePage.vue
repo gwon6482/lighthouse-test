@@ -5,6 +5,7 @@
       <CdYellowHeader
         title="진로계획 탐색"
         subtitle="다른 사람들의 진로 준비과정을 참고하세요"
+        back-to="/career-design"
       />
       <div class="cd-explore__search-wrap">
         <div class="cd-explore__search">
@@ -54,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import type { CareerPlan } from '../types/career-design'
 import { useCareerDesign } from '../composables/useCareerDesign'
@@ -64,7 +65,7 @@ import CdTimeline from '../components/CdTimeline.vue'
 
 const router = useRouter()
 const route = useRoute()
-const { plans, draftPlan } = useCareerDesign()
+const { plans, draftPlan, fetchPublicPlans } = useCareerDesign()
 
 const searchQuery = ref((route.query.q as string) ?? '')
 const selectedPlan = ref<CareerPlan | null>(null)
@@ -78,6 +79,10 @@ const filteredPlans = computed(() =>
       )
     : plans.value
 )
+
+onMounted(() => {
+  if (plans.value.length === 0) fetchPublicPlans()
+})
 
 function selectPlan(plan: CareerPlan) {
   selectedPlan.value = plan

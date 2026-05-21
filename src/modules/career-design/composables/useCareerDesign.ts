@@ -1,5 +1,6 @@
 import { ref, reactive } from 'vue'
 import type { CareerPlan, Project, DraftPlan, TimelineSlot } from '../types/career-design'
+import { req } from '@/shared/api'
 
 const DUMMY_PLANS: CareerPlan[] = [
   // ──────────────────────────────────────────────
@@ -1263,6 +1264,7 @@ const DUMMY_PLANS: CareerPlan[] = [
 ]
 
 const draftPlan = reactive<DraftPlan>({
+  planId: null,
   name: '',
   targetJob: '',
   duties: [],
@@ -1288,13 +1290,23 @@ const draftProject = reactive<Partial<Project>>({
 
 const editingProjectId = ref<string | null>(null)
 const draftTimeline = ref<TimelineSlot[]>([])
+const plans = ref<CareerPlan[]>([])
+
+async function fetchPublicPlans(q?: string): Promise<void> {
+  try {
+    const params = q ? { q } : {}
+    const res = await req.get('/api/career-plan/templates', { params })
+    plans.value = (res.data.plans ?? []).map((p: any) => ({ ...p, id: p._id ?? p.id }))
+  } catch {
+    // API 실패 시 빈 목록 유지
+  }
+}
 
 export function useCareerDesign() {
   const targetJob = ref('')
-  const plans = ref<CareerPlan[]>(DUMMY_PLANS)
 
   function getProjectById(projectId: string): Project | undefined {
-    for (const plan of DUMMY_PLANS) {
+    for (const plan of plans.value) {
       const found = plan.projects.find(p => p.id === projectId)
       if (found) return found
     }
@@ -1302,6 +1314,7 @@ export function useCareerDesign() {
   }
 
   function resetDraftPlan() {
+    draftPlan.planId = null
     draftPlan.name = ''
     draftPlan.targetJob = ''
     draftPlan.duties = []
@@ -1310,6 +1323,122 @@ export function useCareerDesign() {
     draftPlan.endDate = ''
     draftPlan.timeline = []
     draftTimeline.value = []
+  }
+
+  // ── API 연동 ────────────────────────────────────────────────
+
+  // STEP1 완료 시: 계획 생성 or 수정
+  async function syncPlanStep1(): Promise<boolean> {
+    try {
+      const payload = {
+        name:      draftPlan.name,
+        targetJob: draftPlan.targetJob,
+        duties:    draftPlan.duties,
+        startDate: draftPlan.startDate,
+        endDate:   draftPlan.endDate,
+      }
+      if (draftPlan.planId) {
+        await req.put(`/api/career-plan/${draftPlan.planId}`, payload)
+      } else {
+        const res = await req.post('/api/career-plan', payload)
+        draftPlan.planId = res.data.plan.planId
+      }
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // STEP2: 프로젝트 추가
+  async function syncAddProject(project: Project): Promise<boolean> {
+    if (!draftPlan.planId) return true
+    try {
+      const res = await req.post(`/api/career-plan/${draftPlan.planId}/projects`, {
+        name:       project.name,
+        category:   project.category,
+        goal:       project.goal,
+        days:       project.days,
+        startTime:  project.notificationTime,
+        endTime:    '',
+        curriculum: project.curriculum,
+      })
+      // 서버에서 반환된 id로 local id 동기화
+      project.id = res.data.project.id
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // STEP2: 프로젝트 수정
+  async function syncUpdateProject(project: Project): Promise<boolean> {
+    if (!draftPlan.planId) return true
+    try {
+      await req.put(`/api/career-plan/${draftPlan.planId}/projects/${project.id}`, {
+        name:       project.name,
+        category:   project.category,
+        goal:       project.goal,
+        days:       project.days,
+        startTime:  project.notificationTime,
+        curriculum: project.curriculum,
+      })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // STEP2: 프로젝트 삭제
+  async function syncDeleteProject(projectId: string): Promise<boolean> {
+    if (!draftPlan.planId) return true
+    try {
+      await req.delete(`/api/career-plan/${draftPlan.planId}/projects/${projectId}`)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // STEP3: 타임라인 저장
+  async function syncTimeline(): Promise<boolean> {
+    if (!draftPlan.planId) return true
+    try {
+      await req.put(`/api/career-plan/${draftPlan.planId}/timeline`, {
+        timeline: draftTimeline.value,
+      })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // 마이페이지 등에서 저장된 계획 불러오기
+  async function loadPlanFromApi(planId: string): Promise<boolean> {
+    try {
+      const res = await req.get(`/api/career-plan/${planId}`)
+      const plan = res.data.plan
+      draftPlan.planId    = plan.planId
+      draftPlan.name      = plan.name      ?? ''
+      draftPlan.targetJob = plan.targetJob ?? ''
+      draftPlan.duties    = plan.duties    ?? []
+      draftPlan.startDate = plan.startDate ?? ''
+      draftPlan.endDate   = plan.endDate   ?? ''
+      draftPlan.projects  = plan.projects  ?? []
+      draftTimeline.value = plan.timeline  ?? []
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // 마이페이지용: 내 계획 목록 조회
+  async function fetchMyPlans(): Promise<any[]> {
+    try {
+      const res = await req.get('/api/career-plan')
+      return res.data.plans ?? []
+    } catch {
+      return []
+    }
   }
 
   function resetDraftProject() {
@@ -1336,6 +1465,13 @@ export function useCareerDesign() {
     getProjectById,
     resetDraftPlan,
     resetDraftProject,
-    DUMMY_PLANS,
+    syncPlanStep1,
+    syncAddProject,
+    syncUpdateProject,
+    syncDeleteProject,
+    syncTimeline,
+    loadPlanFromApi,
+    fetchMyPlans,
+    fetchPublicPlans,
   }
 }
