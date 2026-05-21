@@ -1,6 +1,6 @@
 <template>
   <div class="cd-result">
-    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" />
+    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" back-to="/career-design/complete" />
 
     <div class="cd-result__body">
       <!-- 요약 카드 -->
@@ -49,6 +49,7 @@
                   :key="project.id"
                   class="cd-result__project"
                   :style="{ borderLeftColor: categoryColorMap[project.category] }"
+                  @click="openProject(project)"
                 >
                   <div class="cd-result__project-top">
                     <span class="cd-result__project-name">{{ project.name }}</span>
@@ -74,12 +75,70 @@
             :key="project.id"
             class="cd-result__unplaced-chip"
             :style="{ borderColor: categoryColorMap[project.category], color: categoryColorMap[project.category] }"
+            @click="openProject(project)"
           >
             {{ project.name }}
           </div>
         </div>
       </div>
     </div>
+
+    <!-- 프로젝트 상세 팝업 -->
+    <Teleport to="body">
+      <Transition name="cd-popup">
+        <div v-if="selectedProject" class="cd-proj-popup" @click.self="closeProject">
+          <div class="cd-proj-popup__sheet">
+            <!-- 핸들 -->
+            <div class="cd-proj-popup__handle" />
+
+            <!-- 헤더 -->
+            <div
+              class="cd-proj-popup__header"
+              :style="{ borderLeftColor: categoryColorMap[selectedProject.category] }"
+            >
+              <div class="cd-proj-popup__header-left">
+                <span
+                  class="cd-proj-popup__cat"
+                  :style="{ color: categoryColorMap[selectedProject.category], background: `color-mix(in srgb, ${categoryColorMap[selectedProject.category]} 10%, white)` }"
+                >{{ categoryLabel(selectedProject.category) }}</span>
+                <h2 class="cd-proj-popup__name">{{ selectedProject.name }}</h2>
+                <p v-if="selectedProject.goal" class="cd-proj-popup__goal">{{ selectedProject.goal }}</p>
+              </div>
+              <button class="cd-proj-popup__close" @click="closeProject">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M15 5L5 15M5 5l10 10" stroke="#888" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- 주차별 커리큘럼 -->
+            <div class="cd-proj-popup__body">
+              <div v-if="!selectedProject.curriculum?.length" class="cd-proj-popup__empty">
+                등록된 주차별 계획이 없습니다
+              </div>
+              <div
+                v-for="week in selectedProject.curriculum"
+                :key="week.week"
+                class="cd-proj-popup__week"
+              >
+                <div class="cd-proj-popup__week-header">
+                  <span
+                    class="cd-proj-popup__week-badge"
+                    :style="{ background: categoryColorMap[selectedProject.category] }"
+                  >{{ week.week }}주차</span>
+                  <span class="cd-proj-popup__week-title">{{ week.title }}</span>
+                </div>
+                <ul v-if="week.items?.length" class="cd-proj-popup__items">
+                  <li v-for="(item, i) in week.items" :key="i" class="cd-proj-popup__item">
+                    {{ item }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- 하단 버튼 -->
     <div class="cd-result__footer">
@@ -94,14 +153,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
-import type { ProjectCategory } from '../types/career-design'
+import type { Project, ProjectCategory } from '../types/career-design'
 
 const router = useRouter()
 const { draftPlan, draftTimeline } = useCareerDesign()
+
+const selectedProject = ref<Project | null>(null)
+const openProject  = (p: Project) => { selectedProject.value = p }
+const closeProject = () => { selectedProject.value = null }
 
 const categories: { value: ProjectCategory; label: string }[] = [
   { value: 'qualification', label: '자격요건' },
@@ -301,6 +364,10 @@ const periodLabel = computed(() => {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    cursor: pointer;
+    transition: background 0.12s;
+
+    &:hover { background: #f0f0f0; }
   }
 
   &__project-top {
@@ -344,6 +411,10 @@ const periodLabel = computed(() => {
     padding: 5px 12px;
     font-size: 12px;
     font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.12s;
+
+    &:hover { opacity: 0.7; }
   }
 
   /* 하단 버튼 */
@@ -380,6 +451,179 @@ const periodLabel = computed(() => {
     cursor: pointer;
 
     &:active { opacity: 0.85; }
+  }
+}
+
+/* ── 프로젝트 상세 팝업 ─────────────────────────── */
+.cd-proj-popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+
+  &__sheet {
+    width: 100%;
+    max-height: 80vh;
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  &__handle {
+    width: 36px;
+    height: 4px;
+    background: #ddd;
+    border-radius: 2px;
+    margin: 12px auto 4px;
+    flex-shrink: 0;
+  }
+
+  &__header {
+    padding: 14px 20px 16px;
+    border-left: 4px solid;
+    margin: 0 20px;
+    border-radius: 2px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  &__header-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__cat {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    align-self: flex-start;
+  }
+
+  &__name {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  &__goal {
+    font-size: 13px;
+    color: #888;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  &__close {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F5F5F5;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    margin-top: 2px;
+  }
+
+  &__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__empty {
+    font-size: 13px;
+    color: #bbb;
+    text-align: center;
+    padding: 24px 0;
+  }
+
+  &__week {
+    background: #fafafa;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  &__week-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee;
+  }
+
+  &__week-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  &__week-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #222;
+  }
+
+  &__items {
+    list-style: none;
+    margin: 0;
+    padding: 8px 14px 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__item {
+    font-size: 13px;
+    color: #555;
+    padding-left: 12px;
+    position: relative;
+    line-height: 1.4;
+
+    &::before {
+      content: '·';
+      position: absolute;
+      left: 0;
+      color: #bbb;
+    }
+  }
+}
+
+/* 팝업 트랜지션 */
+.cd-popup-enter-active,
+.cd-popup-leave-active {
+  transition: opacity 0.22s ease;
+
+  .cd-proj-popup__sheet {
+    transition: transform 0.22s ease;
+  }
+}
+.cd-popup-enter-from,
+.cd-popup-leave-to {
+  opacity: 0;
+
+  .cd-proj-popup__sheet {
+    transform: translateY(100%);
   }
 }
 </style>
