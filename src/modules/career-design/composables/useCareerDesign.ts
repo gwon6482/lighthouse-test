@@ -1342,6 +1342,13 @@ export function useCareerDesign() {
       } else {
         const res = await req.post('/api/career-plan', payload)
         draftPlan.planId = res.data.plan.planId
+
+        // 복사된 프로젝트가 있으면 일괄 동기화 (붙여넣기 플로우)
+        if (draftPlan.projects.length > 0) {
+          await req.post(`/api/career-plan/${draftPlan.planId}/projects/bulk`, {
+            projects: draftPlan.projects
+          })
+        }
       }
       return true
     } catch {
