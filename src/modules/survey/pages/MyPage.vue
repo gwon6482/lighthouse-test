@@ -83,11 +83,40 @@
 
       <!-- 내 진로설계 -->
       <section class="mypage__section">
-        <h2 class="mypage__section-title">내 진로설계</h2>
-        <div class="mypage__coming-soon">
-          <span class="mypage__coming-soon-icon">🗺️</span>
-          <p>준비 중인 기능입니다.</p>
+        <div class="mypage__section-header">
+          <h2 class="mypage__section-title">내 진로설계</h2>
+          <button class="mypage__section-add" @click="router.push('/career-design/plan/new')">+ 새 계획</button>
         </div>
+        <div v-if="loadingPlans" class="mypage__loading">불러오는 중...</div>
+        <div v-else-if="careerPlans.length === 0" class="mypage__empty">
+          아직 저장된 진로계획이 없습니다.
+        </div>
+        <ul v-else class="plan-list">
+          <li
+            v-for="plan in careerPlans"
+            :key="plan.planId"
+            class="plan-list__item"
+          >
+            <div class="plan-list__body" @click="openPlan(plan.planId)">
+              <div class="plan-list__top-row">
+                <span class="plan-list__job">{{ plan.targetJob || '목표 직업 미설정' }}</span>
+                <span class="plan-list__status" :class="`plan-list__status--${plan.status}`">
+                  {{ statusLabel(plan.status) }}
+                </span>
+              </div>
+              <p class="plan-list__name">{{ plan.name || '이름 없는 계획' }}</p>
+              <p class="plan-list__meta">
+                프로젝트 {{ plan.projects?.length ?? 0 }}개
+                <template v-if="plan.startDate"> · {{ plan.startDate }}</template>
+              </p>
+            </div>
+            <button class="plan-list__delete" @click.stop="deletePlan(plan.planId)">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                <path d="M2 4h11M5 4V2.5a.5.5 0 01.5-.5h4a.5.5 0 01.5.5V4M6 7v4M9 7v4M3 4l.8 8.1A1 1 0 004.8 13h5.4a1 1 0 001-.9L12 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </li>
+        </ul>
       </section>
 
       <!-- 내 진로달성 -->
@@ -108,9 +137,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import { req } from '@/shared/api'
+import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { fetchMyPlans, loadPlanFromApi } = useCareerDesign()
 const user = computed(() => authStore.user)
 
 const avatarLetter = computed(() => {
@@ -120,8 +151,10 @@ const avatarLetter = computed(() => {
 
 const surveyResults = ref<any[]>([])
 const bookmarks = ref<any[]>([])
+const careerPlans = ref<any[]>([])
 const loadingSurveys = ref(true)
 const loadingBookmarks = ref(true)
+const loadingPlans = ref(true)
 
 const formatDate = (iso: string) => {
   if (!iso) return ''
@@ -129,19 +162,42 @@ const formatDate = (iso: string) => {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
 }
 
+const statusLabel = (status: string) => {
+  if (status === 'active')    return '진행중'
+  if (status === 'completed') return '완료'
+  return '초안'
+}
+
+async function openPlan(planId: string) {
+  const ok = await loadPlanFromApi(planId)
+  if (ok) router.push('/career-design/result')
+}
+
+async function deletePlan(planId: string) {
+  try {
+    await req.delete(`/api/career-plan/${planId}`)
+    careerPlans.value = careerPlans.value.filter(p => p.planId !== planId)
+  } catch {
+    // silent fail
+  }
+}
+
 onMounted(async () => {
   if (!authStore.isLoggedIn) {
     router.replace('/')
     return
   }
-  const [surveyRes, bookmarkRes] = await Promise.allSettled([
+  const [surveyRes, bookmarkRes, plans] = await Promise.allSettled([
     req.get('/api/user/survey-results'),
     req.get('/api/user/bookmarks'),
+    fetchMyPlans(),
   ])
-  if (surveyRes.status === 'fulfilled') surveyResults.value = surveyRes.value.data.surveyResults ?? []
+  if (surveyRes.status === 'fulfilled')  surveyResults.value = surveyRes.value.data.surveyResults ?? []
   if (bookmarkRes.status === 'fulfilled') bookmarks.value = bookmarkRes.value.data.bookmarkedJobs ?? []
+  if (plans.status === 'fulfilled')      careerPlans.value = plans.value
   loadingSurveys.value = false
   loadingBookmarks.value = false
+  loadingPlans.value = false
 })
 </script>
 
@@ -199,6 +255,16 @@ onMounted(async () => {
     overflow: hidden;
   }
 
+  &__section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.125rem 0.75rem;
+    border-bottom: 1px solid #F5F5F5;
+
+    .mypage__section-title { padding: 0; border-bottom: none; }
+  }
+
   &__section-title {
     font-size: 0.9375rem;
     font-weight: 800;
@@ -206,6 +272,16 @@ onMounted(async () => {
     padding: 1rem 1.125rem 0.75rem;
     border-bottom: 1px solid #F5F5F5;
     margin: 0;
+  }
+
+  &__section-add {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #FFC700;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
   }
 
   &__loading,
@@ -392,5 +468,89 @@ onMounted(async () => {
   }
 
   &__arrow { flex-shrink: 0; margin-left: 0.5rem; }
+}
+
+.plan-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #F5F5F5;
+    &:last-child { border-bottom: none; }
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+    padding: 0.875rem 0 0.875rem 1.125rem;
+    cursor: pointer;
+    transition: background 0.12s;
+    &:hover { background: #FAFAF8; }
+    &:active { background: #F5F5F5; }
+  }
+
+  &__top-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__job {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__status {
+    font-size: 0.625rem;
+    font-weight: 700;
+    padding: 0.125rem 0.4375rem;
+    border-radius: 0.375rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    &--draft     { color: #888;    background: #F0F0F0; }
+    &--active    { color: #F47820; background: #FFF2E8; }
+    &--completed { color: #1DB95A; background: #E8F9EF; }
+  }
+
+  &__name {
+    font-size: 0.8125rem;
+    color: #555;
+    margin: 0.125rem 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__meta {
+    font-size: 0.75rem;
+    color: #aaa;
+    margin: 0.125rem 0 0;
+  }
+
+  &__delete {
+    flex-shrink: 0;
+    width: 44px;
+    height: 100%;
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.15s;
+
+    &:hover { color: #FF4D4F; }
+    &:active { color: #CF1322; }
+  }
 }
 </style>
