@@ -7,6 +7,7 @@
       <p class="ca__subtitle">목표를 향한 여정을 기록해요</p>
     </div>
 
+
     <JourneyIntro
       class="ca__intro"
       :step="3"
@@ -45,22 +46,20 @@ const router = useRouter()
   background: #F5F5F5;
 
   &__hero {
-    background: #fff;
-    padding: 20px 20px 16px;
-    border-bottom: 1px solid #EEEEE8;
+    padding: 32px 20px 16px;
+    text-align: center;
   }
 
   &__title {
-    font-size: 22px;
+    font-size: 28px;
     font-weight: 800;
-    color: #1a1a1a;
-    margin: 0;
+    color: #222;
+    margin-bottom: 8px;
   }
 
   &__subtitle {
-    font-size: 13px;
+    font-size: 14px;
     color: #888;
-    margin: 4px 0 0;
   }
 
   &__intro {
