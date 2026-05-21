@@ -83,11 +83,73 @@
 
       <!-- 내 진로설계 -->
       <section class="mypage__section">
-        <h2 class="mypage__section-title">내 진로설계</h2>
-        <div class="mypage__coming-soon">
-          <span class="mypage__coming-soon-icon">🗺️</span>
-          <p>준비 중인 기능입니다.</p>
+        <div class="mypage__section-header">
+          <h2 class="mypage__section-title">내 진로설계</h2>
+          <button class="mypage__section-add" @click="router.push('/career-design/plan/new')">+ 새 계획</button>
         </div>
+        <div v-if="loadingPlans" class="mypage__loading">불러오는 중...</div>
+        <div v-else-if="careerPlans.length === 0" class="mypage__empty">
+          아직 저장된 진로계획이 없습니다.
+        </div>
+        <ul v-else class="plan-list">
+          <li
+            v-for="plan in careerPlans"
+            :key="plan.planId"
+            class="plan-list__item"
+          >
+            <!-- 계획 요약 행 -->
+            <div class="plan-list__row" @click="openPlan(plan.planId)">
+              <div class="plan-list__left">
+                <div class="plan-list__top-row">
+                  <span class="plan-list__job">{{ plan.targetJob || '목표 직업 미설정' }}</span>
+                  <span class="plan-list__status" :class="`plan-list__status--${plan.status}`">
+                    {{ statusLabel(plan.status) }}
+                  </span>
+                </div>
+                <p class="plan-list__name">{{ plan.name || '이름 없는 계획' }}</p>
+                <p class="plan-list__meta">
+                  프로젝트 {{ plan.projects?.length ?? 0 }}개
+                  <template v-if="plan.startDate"> · {{ plan.startDate }}</template>
+                </p>
+              </div>
+              <button
+                class="plan-list__toggle"
+                :class="{ 'plan-list__toggle--open': expandedPlanIds.has(plan.planId) }"
+                @click.stop="toggleExpand(plan.planId)"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M4 6L8 10L12 6" stroke="#ccc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- 프로젝트 목록 (펼침 시) -->
+            <div v-if="expandedPlanIds.has(plan.planId)" class="plan-list__projects">
+              <div v-if="!plan.projects?.length" class="plan-list__no-projects">
+                등록된 프로젝트가 없습니다
+              </div>
+              <div
+                v-for="project in plan.projects"
+                :key="project.id"
+                class="plan-list__project"
+              >
+                <span
+                  class="plan-list__project-dot"
+                  :style="{ background: categoryColor(project.category) }"
+                />
+                <span class="plan-list__project-name">{{ project.name }}</span>
+                <span
+                  class="plan-list__project-cat"
+                  :style="{ color: categoryColor(project.category) }"
+                >{{ categoryLabel(project.category) }}</span>
+                <button
+                  class="plan-list__project-del"
+                  @click="deleteProjectFromPlan(plan.planId, project.id)"
+                >×</button>
+              </div>
+            </div>
+          </li>
+        </ul>
       </section>
 
       <!-- 내 진로달성 -->
@@ -108,9 +170,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import { req } from '@/shared/api'
+import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { fetchMyPlans, loadPlanFromApi } = useCareerDesign()
 const user = computed(() => authStore.user)
 
 const avatarLetter = computed(() => {
@@ -120,8 +184,46 @@ const avatarLetter = computed(() => {
 
 const surveyResults = ref<any[]>([])
 const bookmarks = ref<any[]>([])
+const careerPlans = ref<any[]>([])
 const loadingSurveys = ref(true)
 const loadingBookmarks = ref(true)
+const loadingPlans = ref(true)
+
+const expandedPlanIds = ref<Set<string>>(new Set())
+
+const CATEGORY_COLOR: Record<string, string> = {
+  qualification: '#1DB95A',
+  knowledge:     '#F47820',
+  skill:         '#A855F7',
+  portfolio:     '#4480F5',
+}
+const CATEGORY_LABEL: Record<string, string> = {
+  qualification: '자격요건',
+  knowledge:     '분야지식',
+  skill:         '직무기술',
+  portfolio:     '포트폴리오',
+}
+const categoryColor = (cat: string) => CATEGORY_COLOR[cat] ?? '#aaa'
+const categoryLabel = (cat: string) => CATEGORY_LABEL[cat] ?? cat
+
+function toggleExpand(planId: string) {
+  const next = new Set(expandedPlanIds.value)
+  if (next.has(planId)) next.delete(planId)
+  else next.add(planId)
+  expandedPlanIds.value = next
+}
+
+async function deleteProjectFromPlan(planId: string, projectId: string) {
+  try {
+    await req.delete(`/api/career-plan/${planId}/projects/${projectId}`)
+    const plan = careerPlans.value.find(p => p.planId === planId)
+    if (plan) {
+      plan.projects = plan.projects.filter((p: any) => p.id !== projectId)
+    }
+  } catch {
+    // silent fail
+  }
+}
 
 const formatDate = (iso: string) => {
   if (!iso) return ''
@@ -129,19 +231,33 @@ const formatDate = (iso: string) => {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
 }
 
+const statusLabel = (status: string) => {
+  if (status === 'active')    return '진행중'
+  if (status === 'completed') return '완료'
+  return '초안'
+}
+
+async function openPlan(planId: string) {
+  const ok = await loadPlanFromApi(planId)
+  if (ok) router.push('/career-design/result')
+}
+
 onMounted(async () => {
   if (!authStore.isLoggedIn) {
     router.replace('/')
     return
   }
-  const [surveyRes, bookmarkRes] = await Promise.allSettled([
+  const [surveyRes, bookmarkRes, plans] = await Promise.allSettled([
     req.get('/api/user/survey-results'),
     req.get('/api/user/bookmarks'),
+    fetchMyPlans(),
   ])
   if (surveyRes.status === 'fulfilled') surveyResults.value = surveyRes.value.data.surveyResults ?? []
   if (bookmarkRes.status === 'fulfilled') bookmarks.value = bookmarkRes.value.data.bookmarkedJobs ?? []
+  if (plans.status === 'fulfilled') careerPlans.value = plans.value
   loadingSurveys.value = false
   loadingBookmarks.value = false
+  loadingPlans.value = false
 })
 </script>
 
@@ -199,6 +315,19 @@ onMounted(async () => {
     overflow: hidden;
   }
 
+  &__section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.125rem 0.75rem;
+    border-bottom: 1px solid #F5F5F5;
+
+    .mypage__section-title {
+      padding: 0;
+      border-bottom: none;
+    }
+  }
+
   &__section-title {
     font-size: 0.9375rem;
     font-weight: 800;
@@ -206,6 +335,16 @@ onMounted(async () => {
     padding: 1rem 1.125rem 0.75rem;
     border-bottom: 1px solid #F5F5F5;
     margin: 0;
+  }
+
+  &__section-add {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #FFC700;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
   }
 
   &__loading,
@@ -392,5 +531,167 @@ onMounted(async () => {
   }
 
   &__arrow { flex-shrink: 0; margin-left: 0.5rem; }
+}
+
+.plan-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  &__item {
+    border-bottom: 1px solid #F5F5F5;
+    &:last-child { border-bottom: none; }
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1.125rem;
+    cursor: pointer;
+    transition: background 0.12s;
+
+    &:hover { background: #FAFAF8; }
+    &:active { background: #F5F5F5; }
+  }
+
+  &__left { flex: 1; min-width: 0; }
+
+  &__top-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__job {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__status {
+    font-size: 0.625rem;
+    font-weight: 700;
+    padding: 0.125rem 0.4375rem;
+    border-radius: 0.375rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    &--draft     { color: #888;    background: #F0F0F0; }
+    &--active    { color: #F47820; background: #FFF2E8; }
+    &--completed { color: #1DB95A; background: #E8F9EF; }
+  }
+
+  &__name {
+    font-size: 0.8125rem;
+    color: #555;
+    margin: 0.125rem 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__meta {
+    font-size: 0.75rem;
+    color: #aaa;
+    margin: 0.125rem 0 0;
+  }
+
+  &__toggle {
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background 0.12s, transform 0.2s;
+
+    &:hover { background: #F0F0F0; }
+    &--open { transform: rotate(180deg); }
+  }
+
+  &__projects {
+    padding: 0 1.125rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    background: #FAFAF8;
+    border-top: 1px solid #F0F0F0;
+  }
+
+  &__no-projects {
+    font-size: 0.8125rem;
+    color: #bbb;
+    padding: 0.75rem 0;
+    text-align: center;
+  }
+
+  &__project {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    background: #fff;
+    border-radius: 0.5rem;
+    border: 1px solid #EEEEE8;
+    margin-top: 0.375rem;
+
+    &:first-child { margin-top: 0.75rem; }
+  }
+
+  &__project-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &__project-name {
+    flex: 1;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #222;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__project-cat {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  &__project-del {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    color: #bbb;
+    font-size: 0.875rem;
+    cursor: pointer;
+    line-height: 1;
+    transition: border-color 0.12s, color 0.12s, background 0.12s;
+
+    &:hover {
+      border-color: #FF4D4F;
+      color: #FF4D4F;
+      background: #FFF0F0;
+    }
+  }
 }
 </style>
