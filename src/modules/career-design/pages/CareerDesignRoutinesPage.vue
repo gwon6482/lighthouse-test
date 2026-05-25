@@ -53,7 +53,7 @@ import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { Routine, DayOfWeek } from '../types/career-design'
 
 const router = useRouter()
-const { draftPlan, draftRoutine, editingRoutineId, resetDraftRoutine } = useCareerDesign()
+const { draftPlan, draftRoutine, editingRoutineId, resetDraftRoutine, syncDeleteRoutine } = useCareerDesign()
 
 const ALL_DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
 
@@ -77,9 +77,12 @@ function editRoutine(routine: Routine) {
   router.push('/career-design/routine/new')
 }
 
-function deleteRoutine(routineId: string) {
+async function deleteRoutine(routineId: string) {
   const idx = draftPlan.routines.findIndex(r => r.id === routineId)
-  if (idx >= 0) draftPlan.routines.splice(idx, 1)
+  if (idx >= 0) {
+    draftPlan.routines.splice(idx, 1)
+    await syncDeleteRoutine(routineId)
+  }
 }
 
 function goNext() {

@@ -1425,6 +1425,54 @@ export function useCareerDesign() {
     }
   }
 
+  // 루틴 추가
+  async function syncAddRoutine(routine: Routine): Promise<boolean> {
+    if (!draftPlan.planId) return true
+    try {
+      const res = await req.post(`/api/career-plan/${draftPlan.planId}/routines`, {
+        name:             routine.name,
+        days:             routine.days,
+        duration:         routine.duration,
+        notificationTime: routine.notificationTime,
+        notification:     routine.notification,
+        memo:             routine.memo,
+      })
+      routine.id = res.data.routine.id
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // 루틴 수정
+  async function syncUpdateRoutine(routine: Routine): Promise<boolean> {
+    if (!draftPlan.planId) return true
+    try {
+      await req.put(`/api/career-plan/${draftPlan.planId}/routines/${routine.id}`, {
+        name:             routine.name,
+        days:             routine.days,
+        duration:         routine.duration,
+        notificationTime: routine.notificationTime,
+        notification:     routine.notification,
+        memo:             routine.memo,
+      })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // 루틴 삭제
+  async function syncDeleteRoutine(routineId: string): Promise<boolean> {
+    if (!draftPlan.planId) return true
+    try {
+      await req.delete(`/api/career-plan/${draftPlan.planId}/routines/${routineId}`)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   // STEP3: 타임라인 저장
   async function syncTimeline(): Promise<boolean> {
     if (!draftPlan.planId) return true
@@ -1498,6 +1546,9 @@ export function useCareerDesign() {
     syncAddProject,
     syncUpdateProject,
     syncDeleteProject,
+    syncAddRoutine,
+    syncUpdateRoutine,
+    syncDeleteRoutine,
     syncTimeline,
     loadPlanFromApi,
     fetchMyPlans,

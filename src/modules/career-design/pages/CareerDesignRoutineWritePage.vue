@@ -104,7 +104,7 @@ import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { DayOfWeek } from '../types/career-design'
 
 const router = useRouter()
-const { draftPlan, draftRoutine, editingRoutineId } = useCareerDesign()
+const { draftPlan, draftRoutine, editingRoutineId, syncAddRoutine, syncUpdateRoutine } = useCareerDesign()
 
 const allDays: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
 
@@ -121,7 +121,7 @@ function setDays(days: DayOfWeek[]) {
   draftRoutine.days = [...days]
 }
 
-function saveRoutine() {
+async function saveRoutine() {
   const name = draftRoutine.name?.trim()
   if (!name) return
 
@@ -136,10 +136,15 @@ function saveRoutine() {
 
   if (editingRoutineId.value) {
     const target = draftPlan.routines.find(r => r.id === editingRoutineId.value)
-    if (target) Object.assign(target, routineData)
+    if (target) {
+      Object.assign(target, routineData)
+      await syncUpdateRoutine(target)
+    }
     editingRoutineId.value = null
   } else {
-    draftPlan.routines.push({ id: `draft-${Date.now()}`, ...routineData })
+    const newRoutine = { id: `draft-${Date.now()}`, ...routineData }
+    draftPlan.routines.push(newRoutine)
+    await syncAddRoutine(newRoutine)
   }
 
   router.back()
