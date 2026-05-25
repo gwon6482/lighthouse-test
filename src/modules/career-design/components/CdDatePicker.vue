@@ -10,8 +10,9 @@
     </div>
 
     <!-- 캘린더 패널 -->
-    <Transition name="cd-dp-slide">
-      <div v-if="isOpen" class="cd-dp__panel" @click.stop>
+    <Teleport to="body">
+      <Transition name="cd-dp-slide">
+        <div v-if="isOpen" class="cd-dp__panel" :style="panelStyle" @click.stop>
         <!-- 월 네비게이션 -->
         <div class="cd-dp__nav">
           <button class="cd-dp__nav-btn" @click="shift(-1)">
@@ -56,25 +57,60 @@
           <button class="cd-dp__today-btn" @click="pickToday">오늘</button>
           <button class="cd-dp__clear-btn" @click="clear">초기화</button>
         </div>
-      </div>
-    </Transition>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps<{ modelValue: string; placeholder?: string }>()
 const emit  = defineEmits<{ (e: 'update:modelValue', v: string): void }>()
 
 const rootRef = ref<HTMLElement | null>(null)
 const isOpen  = ref(false)
+const panelStyle = ref<Record<string, string>>({})
 
 const today = new Date()
 const viewYear  = ref(props.modelValue ? +props.modelValue.slice(0, 4) : today.getFullYear())
 const viewMonth = ref(props.modelValue ? +props.modelValue.slice(5, 7) - 1 : today.getMonth())
 
-function toggle() { isOpen.value = !isOpen.value }
+const PANEL_WIDTH = 300
+const VIEWPORT_MARGIN = 8
+
+function updatePanelPosition() {
+  const el = rootRef.value
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  const width = Math.min(PANEL_WIDTH, window.innerWidth - VIEWPORT_MARGIN * 2)
+  let left = rect.left + rect.width / 2 - width / 2
+  if (left < VIEWPORT_MARGIN) left = VIEWPORT_MARGIN
+  if (left + width > window.innerWidth - VIEWPORT_MARGIN) {
+    left = window.innerWidth - width - VIEWPORT_MARGIN
+  }
+  panelStyle.value = {
+    top:   `${rect.bottom + 6}px`,
+    left:  `${left}px`,
+    width: `${width}px`,
+  }
+}
+
+function openPanel() {
+  isOpen.value = true
+  nextTick(updatePanelPosition)
+  window.addEventListener('scroll', updatePanelPosition, true)
+  window.addEventListener('resize', updatePanelPosition)
+}
+
+function closePanel() {
+  isOpen.value = false
+  window.removeEventListener('scroll', updatePanelPosition, true)
+  window.removeEventListener('resize', updatePanelPosition)
+}
+
+function toggle() { isOpen.value ? closePanel() : openPanel() }
 
 function shift(d: number) {
   let m = viewMonth.value + d
@@ -154,24 +190,28 @@ function pick(dateStr: string) {
   emit('update:modelValue', dateStr)
   viewYear.value  = +dateStr.slice(0, 4)
   viewMonth.value = +dateStr.slice(5, 7) - 1
-  isOpen.value = false
+  closePanel()
 }
 
 function pickToday() { pick(fmt(today)) }
 
 function clear() {
   emit('update:modelValue', '')
-  isOpen.value = false
+  closePanel()
 }
 
 function onOutsideClick(e: MouseEvent) {
   if (rootRef.value && !rootRef.value.contains(e.target as Node)) {
-    isOpen.value = false
+    closePanel()
   }
 }
 
 onMounted(()  => document.addEventListener('click', onOutsideClick))
-onBeforeUnmount(() => document.removeEventListener('click', onOutsideClick))
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onOutsideClick)
+  window.removeEventListener('scroll', updatePanelPosition, true)
+  window.removeEventListener('resize', updatePanelPosition)
+})
 </script>
 
 <style lang="scss">
@@ -212,18 +252,15 @@ onBeforeUnmount(() => document.removeEventListener('click', onOutsideClick))
     .cd-dp__trigger--filled & { color: #FFC700; }
   }
 
-  /* 패널 */
+  /* 패널 (Teleport to body — top/left/width는 인라인 스타일로 동적 지정) */
   &__panel {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 50%;
-    transform: translateX(-50%);
-    width: 300px;
+    position: fixed;
     background: #fff;
     border-radius: 18px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
     padding: 16px;
     z-index: 100;
+    box-sizing: border-box;
   }
 
   /* 월 네비 */
@@ -366,6 +403,6 @@ onBeforeUnmount(() => document.removeEventListener('click', onOutsideClick))
 .cd-dp-slide-enter-from,
 .cd-dp-slide-leave-to {
   opacity: 0;
-  transform: translateX(-50%) translateY(-6px);
+  transform: translateY(-6px);
 }
 </style>
