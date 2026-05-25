@@ -35,6 +35,16 @@ export default [
     component: () => import('./pages/CareerDesignCompletePage.vue'),
   },
   {
+    path: '/career-design/plan/routines',
+    name: 'Career Design Routines',
+    component: () => import('./pages/CareerDesignRoutinesPage.vue'),
+  },
+  {
+    path: '/career-design/routine/new',
+    name: 'Career Design Routine Write',
+    component: () => import('./pages/CareerDesignRoutineWritePage.vue'),
+  },
+  {
     path: '/career-design/result',
     name: 'Career Design Result',
     component: () => import('./pages/CareerDesignResultPage.vue'),

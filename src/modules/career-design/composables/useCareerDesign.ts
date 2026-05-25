@@ -1,5 +1,5 @@
 import { ref, reactive } from 'vue'
-import type { CareerPlan, Project, DraftPlan, TimelineSlot } from '../types/career-design'
+import type { CareerPlan, Project, Routine, DraftPlan, TimelineSlot } from '../types/career-design'
 import { req } from '@/shared/api'
 
 const DUMMY_PLANS: CareerPlan[] = [
@@ -1268,10 +1268,22 @@ const draftPlan = reactive<DraftPlan>({
   name: '',
   targetJob: '',
   projects: [],
+  routines: [],
   startDate: '',
   endDate: '',
   timeline: [],
 })
+
+const draftRoutine = reactive<Partial<Routine>>({
+  name: '',
+  days: ['월', '화', '수', '목', '금'],
+  duration: 30,
+  notificationTime: '09:00',
+  notification: false,
+  memo: '',
+})
+
+const editingRoutineId = ref<string | null>(null)
 
 const draftProject = reactive<Partial<Project>>({
   category: 'knowledge',
@@ -1317,10 +1329,20 @@ export function useCareerDesign() {
     draftPlan.name = ''
     draftPlan.targetJob = ''
     draftPlan.projects = []
+    draftPlan.routines = []
     draftPlan.startDate = ''
     draftPlan.endDate = ''
     draftPlan.timeline = []
     draftTimeline.value = []
+  }
+
+  function resetDraftRoutine() {
+    draftRoutine.name = ''
+    draftRoutine.days = ['월', '화', '수', '목', '금']
+    draftRoutine.duration = 30
+    draftRoutine.notificationTime = '09:00'
+    draftRoutine.notification = false
+    draftRoutine.memo = ''
   }
 
   // ── API 연동 ────────────────────────────────────────────────
@@ -1427,6 +1449,7 @@ export function useCareerDesign() {
       draftPlan.startDate = plan.startDate ?? ''
       draftPlan.endDate   = plan.endDate   ?? ''
       draftPlan.projects  = plan.projects  ?? []
+      draftPlan.routines  = plan.routines  ?? []
       draftTimeline.value = plan.timeline  ?? []
       return true
     } catch {
@@ -1463,11 +1486,14 @@ export function useCareerDesign() {
     plans,
     draftPlan,
     draftProject,
+    draftRoutine,
     draftTimeline,
     editingProjectId,
+    editingRoutineId,
     getProjectById,
     resetDraftPlan,
     resetDraftProject,
+    resetDraftRoutine,
     syncPlanStep1,
     syncAddProject,
     syncUpdateProject,

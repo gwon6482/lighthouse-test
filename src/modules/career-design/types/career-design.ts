@@ -31,6 +31,16 @@ export interface Project {
   curriculum?: WeekCurriculum[]
 }
 
+export interface Routine {
+  id: string
+  name: string
+  days: DayOfWeek[]
+  duration: number
+  notificationTime: string
+  notification: boolean
+  memo: string
+}
+
 export interface TimelineSlot {
   month: string
   projects: Project[]
@@ -68,6 +78,7 @@ export interface DraftPlan {
   name: string
   targetJob: string
   projects: Project[]
+  routines: Routine[]
   startDate: string
   endDate: string
   timeline: TimelineMonth[]

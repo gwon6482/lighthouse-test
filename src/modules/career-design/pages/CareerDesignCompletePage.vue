@@ -233,7 +233,7 @@ const { draftPlan, draftTimeline, syncTimeline } = useCareerDesign()
 
 async function goComplete() {
   await syncTimeline()
-  router.push('/career-design/result')
+  router.push('/career-design/plan/routines')
 }
 
 // ── 카테고리 ──────────────────────────────────────
