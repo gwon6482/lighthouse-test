@@ -24,15 +24,15 @@
       <h2 class="cd-main__section-title">어떻게 진행되나요?</h2>
 
       <!-- STEP 1: 목표 설정 -->
+      <div class="cd-main__step-header">
+        <span class="cd-main__step-no">STEP 01</span>
+        <span class="cd-main__step-title">목표 설정</span>
+      </div>
       <div class="cd-main__step-card">
-        <div class="cd-main__step-header">
-          <span class="cd-main__step-no">STEP 01</span>
-          <span class="cd-main__step-title">목표 설정</span>
-        </div>
         <div class="cd-main__step-preview">
           <div class="g-row">
             <span class="g-label">목표 직무</span>
-            <div class="g-input-mock">마케팅 기획자<span class="g-cursor" /></div>
+            <div class="g-input-mock">{{ typingText }}<span class="g-cursor" /></div>
           </div>
           <div class="g-row">
             <span class="g-label">준비 기간</span>
@@ -55,11 +55,11 @@
       </div>
 
       <!-- STEP 2: 프로젝트 구성 -->
+      <div class="cd-main__step-header">
+        <span class="cd-main__step-no">STEP 02</span>
+        <span class="cd-main__step-title">프로젝트 구성</span>
+      </div>
       <div class="cd-main__step-card">
-        <div class="cd-main__step-header">
-          <span class="cd-main__step-no">STEP 02</span>
-          <span class="cd-main__step-title">프로젝트 구성</span>
-        </div>
         <div class="cd-main__step-preview">
           <div class="g-cat-tabs">
             <span
@@ -91,11 +91,11 @@
       </div>
 
       <!-- STEP 3: 타임라인 배치 -->
+      <div class="cd-main__step-header">
+        <span class="cd-main__step-no">STEP 03</span>
+        <span class="cd-main__step-title">타임라인 배치</span>
+      </div>
       <div class="cd-main__step-card">
-        <div class="cd-main__step-header">
-          <span class="cd-main__step-no">STEP 03</span>
-          <span class="cd-main__step-title">타임라인 배치</span>
-        </div>
         <div class="cd-main__step-preview">
           <div class="g-pool-row">
             <div class="g-pool-chip" style="border-color:#1DB95A;color:#1DB95A">GA4 자격증</div>
@@ -116,11 +116,11 @@
       </div>
 
       <!-- STEP 4: 계획 완성 -->
+      <div class="cd-main__step-header">
+        <span class="cd-main__step-no">STEP 04</span>
+        <span class="cd-main__step-title">계획 완성</span>
+      </div>
       <div class="cd-main__step-card">
-        <div class="cd-main__step-header">
-          <span class="cd-main__step-no">STEP 04</span>
-          <span class="cd-main__step-title">계획 완성</span>
-        </div>
         <div class="cd-main__step-preview">
           <div class="g-result-top">
             <span class="g-result-job">🎯 마케팅 기획자</span>
@@ -259,7 +259,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import AppHeader from '@/shared/components/AppHeader.vue'
 import JourneyIntro from '@/shared/components/JourneyIntro.vue'
 import { useRouter } from 'vue-router'
@@ -291,6 +291,39 @@ const guideProjectMap: Record<GuideCat, string[]> = {
 const guideCatColor = computed(
   () => guideCategories.find(c => c.value === guideActiveTab.value)?.color ?? '#1DB95A'
 )
+
+// ── 타이핑 효과 ──
+const typingWords = ['마케팅 기획자', '소프트웨어 엔지니어', 'UX 디자이너', '데이터 분석가', '영상 크리에이터', '간호사', '건축가']
+const typingText = ref('')
+let typingTimer: ReturnType<typeof setTimeout> | null = null
+let typingIdx = 0
+let charIdx = 0
+let isDeleting = false
+
+function runTyping() {
+  const word = typingWords[typingIdx]
+  if (!word) return
+  if (!isDeleting) {
+    typingText.value = word.slice(0, charIdx + 1)
+    charIdx++
+    if (charIdx === word.length) {
+      isDeleting = true
+      typingTimer = setTimeout(runTyping, 1400)
+      return
+    }
+    typingTimer = setTimeout(runTyping, 110)
+  } else {
+    typingText.value = word.slice(0, charIdx - 1)
+    charIdx--
+    if (charIdx === 0) {
+      isDeleting = false
+      typingIdx = (typingIdx + 1) % typingWords.length
+      typingTimer = setTimeout(runTyping, 300)
+      return
+    }
+    typingTimer = setTimeout(runTyping, 55)
+  }
+}
 
 function startPlan() {
   resetDraftPlan()
@@ -361,6 +394,11 @@ watch(popupMode, async (mode) => {
 
 onMounted(() => {
   loadTargetCareer()
+  runTyping()
+})
+
+onUnmounted(() => {
+  if (typingTimer) clearTimeout(typingTimer)
 })
 </script>
 
@@ -399,7 +437,7 @@ onMounted(() => {
     padding: 0 20px 4px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
   }
 
   /* 단계 카드 */
@@ -418,6 +456,10 @@ onMounted(() => {
     gap: 10px;
   }
 
+  &__step-card + &__step-header {
+    margin-top: 24px;
+  }
+
   &__step-no {
     font-size: 11px;
     font-weight: 800;
@@ -429,7 +471,7 @@ onMounted(() => {
   }
 
   &__step-title {
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 700;
     color: #222;
   }
@@ -444,8 +486,9 @@ onMounted(() => {
   }
 
   &__step-desc {
-    font-size: 12px;
-    color: #999;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
     line-height: 1.6;
   }
 

@@ -1,6 +1,6 @@
 <template>
   <div class="cd-yellow-header" :style="{ background: color ?? '#FFC700' }">
-    <button class="cd-yellow-header__back" :style="{ color: textColor }" @click="router.back()">‹</button>
+    <button class="cd-yellow-header__back" :style="{ color: textColor }" @click="backTo ? router.push(backTo) : router.back()">‹</button>
     <div class="cd-yellow-header__text">
       <h1 class="cd-yellow-header__title" :style="{ color: textColor }">{{ title }}</h1>
       <p v-if="subtitle" class="cd-yellow-header__subtitle" :style="{ color: subtitleColor }">{{ subtitle }}</p>
@@ -12,7 +12,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 
-const props = defineProps<{ title: string; subtitle?: string; color?: string }>()
+const props = defineProps<{ title: string; subtitle?: string; color?: string; backTo?: string }>()
 const router = useRouter()
 
 const isYellow = computed(() => !props.color || props.color === '#FFC700')

@@ -1,6 +1,6 @@
 <template>
   <div class="cd-complete">
-    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" />
+    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" back-to="/career-design/plan/projects" />
 
     <div class="cd-complete__body">
       <!-- 계획 요약 -->
@@ -27,7 +27,10 @@
             v-for="cat in categories"
             :key="cat.value"
             class="cd-complete__tab"
-            :class="{ 'cd-complete__tab--active': activeTab === cat.value }"
+            :class="{
+              'cd-complete__tab--active': activeTab === cat.value,
+              'cd-complete__tab--done': isCategoryDone[cat.value],
+            }"
             :style="activeTab === cat.value
               ? { color: categoryColorMap[cat.value], borderBottomColor: categoryColorMap[cat.value] }
               : {}"
@@ -35,6 +38,12 @@
           >
             {{ cat.label }}
             <span
+              v-if="isCategoryDone[cat.value]"
+              class="cd-complete__tab-done"
+              :style="{ background: categoryColorMap[cat.value] }"
+            >✓</span>
+            <span
+              v-else
               class="cd-complete__tab-count"
               :style="activeTab === cat.value ? { background: categoryColorMap[cat.value] } : {}"
             >{{ projectsByCategory[cat.value].length }}</span>
@@ -109,47 +118,106 @@
             </div>
 
             <!-- 동적 생성 슬롯 -->
-            <div
-              v-else
-              v-for="slot in draftTimeline"
-              :key="slot.month"
-              class="cd-complete__slot"
-              :class="{ 'cd-complete__slot--active': !!selectedProject }"
-              @click="addToSlot(slot.month)"
-            >
-              <div class="cd-complete__slot-head">
-                <span class="cd-complete__slot-badge">{{ slot.month }}</span>
-                <div class="cd-complete__slot-line" />
-              </div>
-              <div class="cd-complete__slot-body">
-                <div v-if="!slot.projects.length" class="cd-complete__slot-placeholder">
-                  {{ selectedProject ? '탭해서 추가' : '비어 있음' }}
+            <template v-else>
+              <div
+                v-for="slot in draftTimeline"
+                :key="slot.month"
+                class="cd-complete__slot"
+                :class="{ 'cd-complete__slot--active': !!selectedProject }"
+                @click="addToSlot(slot.month)"
+              >
+                <div class="cd-complete__slot-head">
+                  <span class="cd-complete__slot-badge">{{ slot.month }}</span>
+                  <div class="cd-complete__slot-line" />
                 </div>
-                <div
-                  v-for="project in slot.projects"
-                  :key="project.id"
-                  class="cd-complete__slot-item"
-                  :style="{ borderLeftColor: categoryColorMap[project.category] }"
-                >
-                  <span class="cd-complete__slot-item-name">{{ project.name }}</span>
-                  <span class="cd-complete__slot-item-cat" :style="{ color: categoryColorMap[project.category] }">
-                    {{ categoryLabel(project.category) }}
-                  </span>
-                  <button class="cd-complete__slot-item-del" @click.stop="removeFromSlot(slot.month, project.id)">✕</button>
+                <div class="cd-complete__slot-body">
+                  <div v-if="!slot.projects.length" class="cd-complete__slot-placeholder">
+                    {{ selectedProject ? '탭해서 추가' : '비어 있음' }}
+                  </div>
+                  <div
+                    v-for="project in slot.projects"
+                    :key="project.id"
+                    class="cd-complete__slot-item"
+                    :style="{ borderLeftColor: categoryColorMap[project.category] }"
+                    @click.stop="openProjectPopup(project)"
+                  >
+                    <span class="cd-complete__slot-item-name">{{ project.name }}</span>
+                    <span class="cd-complete__slot-item-cat" :style="{ color: categoryColorMap[project.category] }">
+                      {{ categoryLabel(project.category) }}
+                    </span>
+                    <button class="cd-complete__slot-item-del" @click.stop="removeFromSlot(slot.month, project.id)">✕</button>
+                  </div>
                 </div>
               </div>
-            </div>
+            </template>
+
+            <!-- 다음 달 추가 버튼 -->
+            <button class="cd-complete__add-month" @click="addNextMonth">＋</button>
           </div>
         </template>
       </div>
     </div>
+
+    <!-- 프로젝트 상세 팝업 -->
+    <Teleport to="body">
+      <Transition name="cd-popup">
+        <div v-if="popupProject" class="cd-proj-popup" @click.self="closeProjectPopup">
+          <div class="cd-proj-popup__sheet">
+            <div class="cd-proj-popup__handle" />
+
+            <div
+              class="cd-proj-popup__header"
+              :style="{ borderLeftColor: categoryColorMap[popupProject.category] }"
+            >
+              <div class="cd-proj-popup__header-left">
+                <span
+                  class="cd-proj-popup__cat"
+                  :style="{ color: categoryColorMap[popupProject.category], background: `color-mix(in srgb, ${categoryColorMap[popupProject.category]} 10%, white)` }"
+                >{{ categoryLabel(popupProject.category) }}</span>
+                <h2 class="cd-proj-popup__name">{{ popupProject.name }}</h2>
+                <p v-if="popupProject.goal" class="cd-proj-popup__goal">{{ popupProject.goal }}</p>
+              </div>
+              <button class="cd-proj-popup__close" @click="closeProjectPopup">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M15 5L5 15M5 5l10 10" stroke="#888" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="cd-proj-popup__body">
+              <div v-if="!popupProject.curriculum?.length" class="cd-proj-popup__empty">
+                등록된 주차별 계획이 없습니다
+              </div>
+              <div
+                v-for="week in popupProject.curriculum"
+                :key="week.week"
+                class="cd-proj-popup__week"
+              >
+                <div class="cd-proj-popup__week-header">
+                  <span
+                    class="cd-proj-popup__week-badge"
+                    :style="{ background: categoryColorMap[popupProject.category] }"
+                  >{{ week.week }}주차</span>
+                  <span class="cd-proj-popup__week-title">{{ week.title }}</span>
+                </div>
+                <ul v-if="week.items?.length" class="cd-proj-popup__items">
+                  <li v-for="(item, i) in week.items" :key="i" class="cd-proj-popup__item">
+                    {{ item }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- 하단 버튼 -->
     <div class="cd-complete__footer">
       <button class="cd-complete__btn-secondary" @click="router.push('/career-design/plan/new')">
         계획 수정하기
       </button>
-      <button class="cd-complete__btn-primary" @click="router.push('/career-design/result')">
+      <button class="cd-complete__btn-primary" @click="goComplete">
         완료
       </button>
     </div>
@@ -164,7 +232,12 @@ import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { Project, ProjectCategory } from '../types/career-design'
 
 const router = useRouter()
-const { draftPlan, draftTimeline } = useCareerDesign()
+const { draftPlan, draftTimeline, syncTimeline } = useCareerDesign()
+
+async function goComplete() {
+  await syncTimeline()
+  router.push('/career-design/result')
+}
 
 // ── 카테고리 ──────────────────────────────────────
 const categories: { value: ProjectCategory; label: string }[] = [
@@ -229,21 +302,31 @@ const endMonthStr = computed(() => {
 })
 
 function normalizeSlots() {
-  // 비어있는 슬롯은 제거 (맨 마지막 빈 슬롯 제외)
-  const filled = draftTimeline.value.filter(s => s.projects.length > 0)
+  const slots = [...draftTimeline.value].sort(
+    (a, b) => parseMonthStr(a.month).getTime() - parseMonthStr(b.month).getTime()
+  )
 
-  if (filled.length === 0) {
+  // 마지막으로 채워진 슬롯의 인덱스
+  let lastFilledIdx = -1
+  for (let i = slots.length - 1; i >= 0; i--) {
+    if (slots[i].projects.length > 0) { lastFilledIdx = i; break }
+  }
+
+  if (lastFilledIdx === -1) {
     draftTimeline.value = []
     return
   }
 
-  // 마지막 채워진 슬롯 다음 달을 빈 드롭존으로 추가
-  const last = filled[filled.length - 1]
+  // 마지막 채워진 슬롯까지는 빈 슬롯 포함 전부 유지
+  const kept = slots.slice(0, lastFilledIdx + 1)
+
+  // 그 다음 달 빈 슬롯 하나만 추가
+  const last = kept[kept.length - 1]
   const nextDate = parseMonthStr(last.month)
   nextDate.setMonth(nextDate.getMonth() + 1)
-  filled.push({ month: formatMonthStr(nextDate), projects: [] })
+  kept.push({ month: formatMonthStr(nextDate), projects: [] })
 
-  draftTimeline.value = filled
+  draftTimeline.value = kept
 }
 
 // ── 배치 상태 ─────────────────────────────────────
@@ -252,6 +335,15 @@ const placedProjectIds = computed(() =>
 )
 const isPlaced = (id: string) => placedProjectIds.value.has(id)
 const placedCount = computed(() => placedProjectIds.value.size)
+
+const isCategoryDone = computed(() => {
+  const result: Partial<Record<ProjectCategory, boolean>> = {}
+  for (const cat of categories) {
+    const projects = projectsByCategory.value[cat.value]
+    result[cat.value] = projects.length > 0 && projects.every(p => isPlaced(p.id))
+  }
+  return result
+})
 
 // ── 요약 정보 ─────────────────────────────────────
 const periodLabel = computed(() => {
@@ -267,6 +359,11 @@ const selectedProject = ref<Project | null>(null)
 function selectProject(project: Project) {
   selectedProject.value = selectedProject.value?.id === project.id ? null : project
 }
+
+// ── 프로젝트 상세 팝업 ────────────────────────────
+const popupProject = ref<Project | null>(null)
+const openProjectPopup  = (p: Project) => { popupProject.value = p }
+const closeProjectPopup = () => { popupProject.value = null }
 
 function addToSlot(month: string) {
   const project = selectedProject.value
@@ -301,6 +398,22 @@ function removeFromSlot(month: string, projectId: string) {
   const idx = slot.projects.findIndex(p => p.id === projectId)
   if (idx >= 0) slot.projects.splice(idx, 1)
   normalizeSlots()
+}
+
+function addNextMonth() {
+  if (draftTimeline.value.length === 0) {
+    const next = parseMonthStr(startMonthStr.value)
+    next.setMonth(next.getMonth() + 1)
+    draftTimeline.value = [
+      { month: startMonthStr.value, projects: [] },
+      { month: formatMonthStr(next), projects: [] },
+    ]
+  } else {
+    const last = draftTimeline.value[draftTimeline.value.length - 1]
+    const next = parseMonthStr(last.month)
+    next.setMonth(next.getMonth() + 1)
+    draftTimeline.value.push({ month: formatMonthStr(next), projects: [] })
+  }
 }
 </script>
 
@@ -414,6 +527,20 @@ function removeFromSlot(month: string, projectId: string) {
     margin-bottom: -1.5px;
 
     &--active { font-weight: 700; color: #222; }
+    &--done { color: #555; font-weight: 600; }
+  }
+
+  &__tab-done {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    padding: 0 4px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
   }
 
   &__tab-count {
@@ -431,6 +558,7 @@ function removeFromSlot(month: string, projectId: string) {
   &__pool {
     display: flex;
     flex-wrap: wrap;
+    align-items: flex-start;
     gap: 8px;
     min-height: 44px;
   }
@@ -447,16 +575,27 @@ function removeFromSlot(month: string, projectId: string) {
     padding: 6px 14px;
     font-size: 13px;
     font-weight: 500;
+    white-space: nowrap;
     cursor: pointer;
     user-select: none;
     transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
 
-    &:active { transform: scale(0.95); }
+    &:active { opacity: 0.75; }
 
     &--selected {
-      box-shadow: 0 0 0 3px currentColor;
+      border-width: 2.5px;
       font-weight: 700;
-      transform: scale(1.04);
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: currentColor;
+        opacity: 0.18;
+        pointer-events: none;
+      }
     }
   }
 
@@ -516,6 +655,24 @@ function removeFromSlot(month: string, projectId: string) {
     display: flex;
     flex-direction: column;
     gap: 8px;
+  }
+
+  &__add-month {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin: 4px auto 0;
+    border-radius: 50%;
+    border: 1.5px dashed #d0d0d0;
+    background: none;
+    color: #c8c8c8;
+    font-size: 18px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+
+    &:hover { border-color: #aaa; color: #aaa; }
   }
 
   &__slot {
@@ -640,5 +797,186 @@ function removeFromSlot(month: string, projectId: string) {
 
     &:active { opacity: 0.85; }
   }
+}
+
+/* ── 프로젝트 상세 팝업 ─────────────────────────── */
+.cd-proj-popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+
+  &__sheet {
+    width: 100%;
+    max-height: 80vh;
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  &__handle {
+    width: 36px;
+    height: 4px;
+    background: #ddd;
+    border-radius: 2px;
+    margin: 12px auto 4px;
+    flex-shrink: 0;
+  }
+
+  &__header {
+    padding: 14px 20px 16px;
+    border-left: 4px solid;
+    margin: 0 20px;
+    border-radius: 2px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  &__header-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__cat {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    align-self: flex-start;
+  }
+
+  &__name {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  &__goal {
+    font-size: 13px;
+    color: #888;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  &__close {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F5F5F5;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    margin-top: 2px;
+  }
+
+  &__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__empty {
+    font-size: 13px;
+    color: #bbb;
+    text-align: center;
+    padding: 24px 0;
+  }
+
+  &__week {
+    background: #fafafa;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  &__week-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee;
+  }
+
+  &__week-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  &__week-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #222;
+  }
+
+  &__items {
+    list-style: none;
+    margin: 0;
+    padding: 8px 14px 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__item {
+    font-size: 13px;
+    color: #555;
+    padding-left: 12px;
+    position: relative;
+    line-height: 1.4;
+
+    &::before {
+      content: '·';
+      position: absolute;
+      left: 0;
+      color: #bbb;
+    }
+  }
+}
+
+/* 팝업 트랜지션 */
+.cd-popup-enter-active,
+.cd-popup-leave-active {
+  transition: opacity 0.22s ease;
+
+  .cd-proj-popup__sheet {
+    transition: transform 0.22s ease;
+  }
+}
+.cd-popup-enter-from,
+.cd-popup-leave-to {
+  opacity: 0;
+
+  .cd-proj-popup__sheet {
+    transform: translateY(100%);
+  }
+}
+
+/* CompletePage 슬롯 아이템 클릭 가능 표시 */
+.cd-complete__slot-item {
+  cursor: pointer;
+  transition: background 0.12s;
+
+  &:hover { background: #fafafa; }
 }
 </style>

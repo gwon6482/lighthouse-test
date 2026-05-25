@@ -4,6 +4,7 @@
       title="새로운 프로젝트 추가"
       :subtitle="`${draftPlan.targetJob || '목표 직업'}을 위한 프로젝트를 만들어 보세요`"
       :color="currentColor"
+      back-to="/career-design/plan/projects"
     />
 
     <div class="cd-proj-write__body">
@@ -220,7 +221,7 @@ import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { DayOfWeek, Priority, ProjectCategory } from '../types/career-design'
 
 const router = useRouter()
-const { draftPlan, draftProject, editingProjectId } = useCareerDesign()
+const { draftPlan, draftProject, editingProjectId, syncAddProject, syncUpdateProject } = useCareerDesign()
 
 const weekItemInputs = ref<string[]>([])
 
@@ -287,7 +288,7 @@ function deleteItem(wi: number, ii: number) {
   draftProject.curriculum?.[wi]?.items.splice(ii, 1)
 }
 
-function addProject() {
+async function addProject() {
   if (!draftProject.name) return
 
   const projectData = {
@@ -307,10 +308,15 @@ function addProject() {
   if (editingProjectId.value) {
     const idx = draftPlan.projects.findIndex(p => p.id === editingProjectId.value)
     const target = idx >= 0 ? draftPlan.projects[idx] : undefined
-    if (target) Object.assign(target, projectData)
+    if (target) {
+      Object.assign(target, projectData)
+      await syncUpdateProject(target)
+    }
     editingProjectId.value = null
   } else {
-    draftPlan.projects.push({ id: `draft-${Date.now()}`, ...projectData })
+    const newProject = { id: `draft-${Date.now()}`, ...projectData }
+    draftPlan.projects.push(newProject)
+    await syncAddProject(newProject)
   }
 
   router.back()

@@ -4,6 +4,7 @@
     <CdYellowHeader
       title="진로계획 세우기"
       :subtitle="`${draftPlan.targetJob || '목표 직업'}을 위한 프로젝트를 만들어 보세요`"
+      back-to="/career-design"
     />
 
     <div class="cd-plan-write__body">
@@ -85,48 +86,6 @@
           진로백과에서 채용공고 확인하기 →
         </button>
       </div>
-
-      <!-- 프로젝트 추가하기 -->
-      <div class="cd-plan-write__section">
-        <h3 class="cd-plan-write__section-title">프로젝트 추가하기</h3>
-
-        <div class="cd-plan-write__categories">
-          <div
-            v-for="cat in categories"
-            :key="cat.value"
-            class="cd-plan-write__cat-item"
-            :class="{ 'cd-plan-write__cat-item--active': selectedCategory === cat.value }"
-            @click="selectedCategory = cat.value"
-          >
-            <img
-              class="cd-plan-write__cat-icon"
-              :src="`/career-design/icon-${cat.value}.svg`"
-              :alt="cat.label"
-            />
-            <span class="cd-plan-write__cat-label">{{ cat.label }}</span>
-          </div>
-        </div>
-
-        <div class="cd-plan-write__plan-items">
-          <div
-            v-for="project in categoryProjects"
-            :key="project.id"
-            class="cd-plan-write__plan-chip"
-            :style="{ background: currentColors.chipBg }"
-          >
-            <span class="cd-plan-write__plan-chip-name" :style="{ color: currentColors.chipText }">{{ project.name }}</span>
-            <div class="cd-plan-write__plan-chip-actions">
-              <button class="cd-plan-write__plan-btn cd-plan-write__plan-btn--edit" @click="editProject(project)">✏️</button>
-              <button class="cd-plan-write__plan-btn cd-plan-write__plan-btn--delete" @click="deleteProject(project.id)">✕</button>
-            </div>
-          </div>
-          <button
-            class="cd-plan-write__add-btn"
-            :style="{ background: currentColors.btn }"
-            @click="goToAddProject"
-          >프로젝트 추가하기</button>
-        </div>
-      </div>
     </div>
 
     <!-- 하단 버튼 -->
@@ -137,40 +96,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import CdDatePicker from '../components/CdDatePicker.vue'
-import type { Project, ProjectCategory } from '../types/career-design'
 
 const router = useRouter()
-const { draftPlan, draftProject, editingProjectId, resetDraftProject } = useCareerDesign()
+const { draftPlan, syncPlanStep1 } = useCareerDesign()
 
 const newDuty = ref('')
 const editingIndex = ref<number | null>(null)
 const editingValue = ref('')
-const selectedCategory = ref<ProjectCategory>('knowledge')
-
-const categories = [
-  { value: 'qualification' as ProjectCategory, label: '자격요건' },
-  { value: 'knowledge' as ProjectCategory, label: '분야지식' },
-  { value: 'skill' as ProjectCategory, label: '직무기술' },
-  { value: 'portfolio' as ProjectCategory, label: '포트폴리오' },
-]
-
-const categoryColorMap: Record<ProjectCategory, { chipBg: string; chipText: string; btn: string }> = {
-  qualification: { chipBg: '#E8F9EF', chipText: '#1DB95A', btn: '#1DB95A' },
-  knowledge:     { chipBg: '#FFF2E8', chipText: '#F47820', btn: '#F47820' },
-  skill:         { chipBg: '#F5EEFF', chipText: '#A855F7', btn: '#A855F7' },
-  portfolio:     { chipBg: '#EBF2FF', chipText: '#4480F5', btn: '#4480F5' },
-}
-
-const currentColors = computed(() => categoryColorMap[selectedCategory.value])
-
-const categoryProjects = computed(() =>
-  draftPlan.projects.filter(p => p.category === selectedCategory.value)
-)
 
 function addDuty() {
   if (newDuty.value.trim()) {
@@ -203,32 +140,9 @@ function cancelEdit() {
   editingValue.value = ''
 }
 
-
-function goToAddProject() {
-  editingProjectId.value = null
-  resetDraftProject()
-  draftProject.category = selectedCategory.value
-  router.push('/career-design/project/new')
-}
-
-function editProject(project: Project) {
-  editingProjectId.value = project.id
-  resetDraftProject()
-  Object.assign(draftProject, {
-    ...project,
-    days: [...project.days],
-    curriculum: project.curriculum?.map(w => ({ ...w, items: [...w.items] })) ?? [],
-  })
-  router.push('/career-design/project/new')
-}
-
-function deleteProject(projectId: string) {
-  const idx = draftPlan.projects.findIndex(p => p.id === projectId)
-  if (idx >= 0) draftPlan.projects.splice(idx, 1)
-}
-
-function goNext() {
-  router.push('/career-design/complete')
+async function goNext() {
+  await syncPlanStep1()
+  router.push('/career-design/plan/projects')
 }
 </script>
 
