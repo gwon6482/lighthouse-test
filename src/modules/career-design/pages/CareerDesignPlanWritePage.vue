@@ -130,6 +130,7 @@ async function goNext() {
     display: flex;
     align-items: center;
     gap: 10px;
+    min-width: 0;
   }
 
   &__plabel {
@@ -162,6 +163,7 @@ async function goNext() {
     align-items: center;
     gap: 8px;
     flex: 1;
+    min-width: 0;
   }
 
   &__date-box {

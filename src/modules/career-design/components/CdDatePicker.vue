@@ -218,11 +218,13 @@ onBeforeUnmount(() => {
 .cd-dp {
   position: relative;
   flex: 1;
+  min-width: 0;
 
   &__trigger {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 6px;
     background: #fff;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
@@ -230,6 +232,7 @@ onBeforeUnmount(() => {
     cursor: pointer;
     transition: border-color 0.15s;
     user-select: none;
+    min-width: 0;
 
     &--filled { border-color: #FFC700; }
     &:hover   { border-color: #FFC700; }
@@ -239,6 +242,11 @@ onBeforeUnmount(() => {
     font-size: 13px;
     font-weight: 500;
     color: #222;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
     .cd-dp__trigger:not(.cd-dp__trigger--filled) & { color: #bbb; font-weight: 400; }
   }
