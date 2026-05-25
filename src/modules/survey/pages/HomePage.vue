@@ -57,6 +57,24 @@
     <HomeButtonContainer :menus="menus" />
     <button @click="lastPage" style="display: none;">마지막 페이지</button>
 
+    <!-- 개발 도구: 오늘 날짜 시뮬레이션 -->
+    <section class="dev-tools">
+      <div class="dev-tools__head">
+        <span class="dev-tools__badge">DEV</span>
+        <h2 class="dev-tools__title">오늘 날짜 시뮬레이션</h2>
+      </div>
+      <p class="dev-tools__desc">
+        진로달성 페이지가 "오늘"을 인식하는 날짜를 임의로 바꿔서 테스트할 수 있어요.
+        <strong v-if="devDate">현재 시뮬레이션: {{ devDate }}</strong>
+        <strong v-else>현재: 실제 오늘 사용 중</strong>
+      </p>
+      <div class="dev-tools__row">
+        <input v-model="devDateInput" type="date" class="dev-tools__input" />
+        <button class="dev-tools__btn dev-tools__btn--primary" @click="applyDevDate">적용</button>
+        <button class="dev-tools__btn" @click="clearDevDate">실제 오늘로</button>
+      </div>
+    </section>
+
     <SignUpModal v-model="showSignUp" @registered="onRegistered" />
   </div>
 </template>
@@ -68,6 +86,7 @@ import HomeButtonContainer from '../components/page/HomeButtonContainer.vue'
 import SignUpModal from '../components/SignUpModal.vue'
 import { useSurvey } from '../composables/useSurvey'
 import { useAuthStore } from '@/shared/stores/auth'
+import { useDevDate } from '@/shared/utils/dev-date'
 
 const router = useRouter()
 const { currentPageIndex, totalPages } = useSurvey()
@@ -123,4 +142,107 @@ const handleLogout = () => {
 const onRegistered = (token: string, user: any) => {
   authStore.setAuth(token, user)
 }
+
+// ── 개발 도구: 오늘 날짜 시뮬레이션 ───────────────
+const { devDate, setDevDate } = useDevDate()
+const devDateInput = ref(devDate.value ?? '')
+
+function applyDevDate() {
+  const v = devDateInput.value.trim()
+  if (!v) return
+  setDevDate(v)
+}
+
+function clearDevDate() {
+  devDateInput.value = ''
+  setDevDate(null)
+}
 </script>
+
+<style scoped lang="scss">
+.dev-tools {
+  margin: 20px 16px 24px;
+  background: #1a1a1a;
+  color: #fff;
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__badge {
+    background: #FFC700;
+    color: #1a1a1a;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  &__desc {
+    font-size: 12px;
+    color: #bbb;
+    line-height: 1.5;
+    margin: 0;
+
+    strong { color: #FFC700; font-weight: 700; margin-left: 6px; }
+  }
+
+  &__row {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  &__input {
+    flex: 1;
+    min-width: 0;
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    outline: none;
+
+    &:focus { border-color: #FFC700; }
+    &::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.5); cursor: pointer; }
+  }
+
+  &__btn {
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover { background: #3a3a3a; }
+
+    &--primary {
+      background: #FFC700;
+      color: #1a1a1a;
+      border-color: #FFC700;
+      font-weight: 800;
+
+      &:hover { background: #FFB300; }
+    }
+  }
+}
+</style>

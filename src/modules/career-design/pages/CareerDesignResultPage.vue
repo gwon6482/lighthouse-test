@@ -3,6 +3,19 @@
     <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" back-to="/career-design/complete" />
 
     <div class="cd-result__body">
+      <!-- 완성 축하 -->
+      <div class="cd-result__celebrate">
+        <span class="cd-result__celebrate-emoji">🎉</span>
+        <h2 class="cd-result__celebrate-title">진로계획 완성!</h2>
+        <p class="cd-result__celebrate-msg">
+          수고하셨습니다! <strong>{{ userName }}</strong>님의 진로계획이 완성되었어요!
+        </p>
+        <p class="cd-result__celebrate-guide">
+          앞으로는 메인화면에서 매일매일 진로계획에 맞춰서 오늘의 할일을 알려드려요!
+          일주일에 한번씩 리뷰하는 시간을 가지며 자유롭게 수정할 수 있어요!
+        </p>
+      </div>
+
       <!-- 요약 카드 -->
       <div class="cd-result__summary">
         <div class="cd-result__target">
@@ -12,6 +25,26 @@
         <div class="cd-result__period-row">
           <span class="cd-result__period">{{ periodLabel }}</span>
           <span class="cd-result__stats">프로젝트 {{ placedCount }}개 배치</span>
+        </div>
+      </div>
+
+      <!-- 루틴 목록 -->
+      <div v-if="draftPlan.routines.length" class="cd-result__section">
+        <h3 class="cd-result__section-title">매일의 루틴</h3>
+        <div class="cd-result__routines">
+          <div
+            v-for="routine in draftPlan.routines"
+            :key="routine.id"
+            class="cd-result__routine"
+          >
+            <div class="cd-result__routine-left">
+              <span class="cd-result__routine-name">{{ routine.name }}</span>
+              <span class="cd-result__routine-meta">
+                {{ daysSummary(routine.days) }} · {{ routine.duration }}분
+                <template v-if="routine.notification"> · 🔔 {{ routine.notificationTime }}</template>
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -140,7 +173,7 @@
       <button class="cd-result__btn-secondary" @click="router.push('/career-design/complete')">
         계획 수정하기
       </button>
-      <button class="cd-result__btn-primary" @click="router.push('/')">
+      <button class="cd-result__btn-primary" @click="router.push('/career-achievement')">
         프로젝트 시작하기
       </button>
     </div>
@@ -151,11 +184,23 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
+import { useAuthStore } from '@/shared/stores/auth'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
-import type { Project, ProjectCategory } from '../types/career-design'
+import type { Project, ProjectCategory, DayOfWeek } from '../types/career-design'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const { draftPlan, draftTimeline } = useCareerDesign()
+
+const userName = computed(() => authStore.user?.name ?? authStore.user?.email?.split('@')[0] ?? '회원')
+
+const ALL_DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
+function daysSummary(days: DayOfWeek[]): string {
+  if (days.length === 7) return '매일'
+  if (days.length === 5 && ALL_DAYS.slice(0, 5).every(d => days.includes(d))) return '평일'
+  if (days.length === 2 && days.includes('토') && days.includes('일')) return '주말'
+  return days.join('·')
+}
 
 const selectedProject = ref<Project | null>(null)
 const openProject  = (p: Project) => { selectedProject.value = p }
@@ -207,6 +252,88 @@ const periodLabel = computed(() => {
     display: flex;
     flex-direction: column;
     gap: 12px;
+  }
+
+  /* 완성 축하 */
+  &__celebrate {
+    background: linear-gradient(135deg, #FFFBEC 0%, #FFF4D4 100%);
+    border: 1px solid #FFE99A;
+    border-radius: 16px;
+    padding: 24px 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__celebrate-emoji {
+    font-size: 36px;
+    line-height: 1;
+  }
+
+  &__celebrate-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #222;
+    margin: 0;
+  }
+
+  &__celebrate-msg {
+    font-size: 14px;
+    color: #444;
+    margin: 0;
+    line-height: 1.5;
+
+    strong { color: #CC9D00; font-weight: 700; }
+  }
+
+  &__celebrate-guide {
+    font-size: 12px;
+    color: #888;
+    line-height: 1.6;
+    margin: 6px 0 0;
+    padding-top: 12px;
+    border-top: 1px dashed #FFE99A;
+    width: 100%;
+  }
+
+  /* 루틴 목록 */
+  &__routines {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__routine {
+    background: #FFFBEC;
+    border: 1px solid #FFE99A;
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+  }
+
+  &__routine-left {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  &__routine-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #222;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__routine-meta {
+    font-size: 12px;
+    color: #888;
   }
 
   /* 요약 카드 */
