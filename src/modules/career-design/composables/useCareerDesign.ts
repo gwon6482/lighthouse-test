@@ -1267,7 +1267,6 @@ const draftPlan = reactive<DraftPlan>({
   planId: null,
   name: '',
   targetJob: '',
-  duties: [],
   projects: [],
   startDate: '',
   endDate: '',
@@ -1317,7 +1316,6 @@ export function useCareerDesign() {
     draftPlan.planId = null
     draftPlan.name = ''
     draftPlan.targetJob = ''
-    draftPlan.duties = []
     draftPlan.projects = []
     draftPlan.startDate = ''
     draftPlan.endDate = ''
@@ -1333,7 +1331,6 @@ export function useCareerDesign() {
       const payload = {
         name:      draftPlan.name,
         targetJob: draftPlan.targetJob,
-        duties:    draftPlan.duties,
         startDate: draftPlan.startDate,
         endDate:   draftPlan.endDate,
       }
@@ -1427,7 +1424,6 @@ export function useCareerDesign() {
       draftPlan.planId    = plan.planId
       draftPlan.name      = plan.name      ?? ''
       draftPlan.targetJob = plan.targetJob ?? ''
-      draftPlan.duties    = plan.duties    ?? []
       draftPlan.startDate = plan.startDate ?? ''
       draftPlan.endDate   = plan.endDate   ?? ''
       draftPlan.projects  = plan.projects  ?? []

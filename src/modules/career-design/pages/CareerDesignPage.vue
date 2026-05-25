@@ -31,8 +31,12 @@
       <div class="cd-main__step-card">
         <div class="cd-main__step-preview">
           <div class="g-row">
-            <span class="g-label">목표 직무</span>
+            <span class="g-label">목표 직업</span>
             <div class="g-input-mock">{{ typingText }}<span class="g-cursor" /></div>
+          </div>
+          <div class="g-row">
+            <span class="g-label">계획명</span>
+            <div class="g-input-mock g-input-mock--static">OOO의 마케팅 기획자 되기 프로젝트</div>
           </div>
           <div class="g-row">
             <span class="g-label">준비 기간</span>
@@ -42,16 +46,8 @@
               <div class="g-date-mock">2025.12</div>
             </div>
           </div>
-          <div class="g-row">
-            <span class="g-label">목표 직무</span>
-            <div class="g-chip-row">
-              <span class="g-duty-chip">마케팅 기획안 작성</span>
-              <span class="g-duty-chip">데이터 분석</span>
-              <span class="g-add-chip">+ 추가</span>
-            </div>
-          </div>
         </div>
-        <p class="cd-main__step-desc">목표 직무, 준비 기간, 맡고 싶은 직무를 입력해요</p>
+        <p class="cd-main__step-desc">목표 직업, 계획명, 준비 기간을 입력해요</p>
       </div>
 
       <!-- STEP 2: 프로젝트 구성 -->
@@ -518,6 +514,8 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     gap: 2px;
+
+    &--static { color: #888; }
   }
 
   .g-cursor {
@@ -547,31 +545,6 @@ onUnmounted(() => {
   }
 
   .g-tilde { font-size: 12px; color: #aaa; }
-
-  .g-chip-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    flex: 1;
-  }
-
-  .g-duty-chip {
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 4px 8px;
-    font-size: 11px;
-    color: #444;
-  }
-
-  .g-add-chip {
-    border: 1.5px dashed #FFC700;
-    border-radius: 8px;
-    padding: 4px 8px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #FFC700;
-  }
 
   /* STEP 2 */
   .g-cat-tabs {

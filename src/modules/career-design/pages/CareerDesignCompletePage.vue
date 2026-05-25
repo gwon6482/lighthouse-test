@@ -9,9 +9,6 @@
           <span class="cd-complete__target">🎯 {{ draftPlan.targetJob || '목표 직업 미설정' }}</span>
           <span class="cd-complete__period">{{ periodLabel }}</span>
         </div>
-        <div v-if="draftPlan.duties.length" class="cd-complete__duties">
-          <span v-for="duty in draftPlan.duties" :key="duty" class="cd-complete__duty-chip">{{ duty }}</span>
-        </div>
       </div>
 
       <!-- 프로젝트 풀 -->
@@ -459,20 +456,6 @@ function addNextMonth() {
     font-size: 12px;
     color: #aaa;
     white-space: nowrap;
-  }
-
-  &__duties {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  &__duty-chip {
-    background: #F5F5F5;
-    border-radius: 8px;
-    padding: 4px 10px;
-    font-size: 12px;
-    color: #555;
   }
 
   /* 공통 섹션 */

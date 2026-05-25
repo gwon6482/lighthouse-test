@@ -43,43 +43,6 @@
               <CdDatePicker v-model="draftPlan.endDate" placeholder="종료일" />
             </div>
           </div>
-
-          <!-- 목표 직무 태그 -->
-          <div class="cd-plan-write__prow cd-plan-write__prow--top">
-            <span class="cd-plan-write__plabel">직무</span>
-            <div class="cd-plan-write__duties-wrap">
-              <template v-for="(duty, i) in draftPlan.duties" :key="i">
-                <!-- 일반 모드 -->
-                <div v-if="editingIndex !== i" class="cd-plan-write__duty-tag">
-                  <span>{{ duty }}</span>
-                  <button class="cd-plan-write__tag-btn" @click="startEdit(i)">✏️</button>
-                  <button class="cd-plan-write__tag-btn cd-plan-write__tag-btn--del" @click="deleteDuty(i)">✕</button>
-                </div>
-                <!-- 편집 모드 -->
-                <div v-else class="cd-plan-write__duty-tag cd-plan-write__duty-tag--editing">
-                  <input
-                    v-model="editingValue"
-                    class="cd-plan-write__duty-edit-input"
-                    @keyup.enter="confirmEdit(i)"
-                    @keyup.esc="cancelEdit"
-                  />
-                  <button class="cd-plan-write__tag-btn cd-plan-write__tag-btn--ok" @click="confirmEdit(i)">✓</button>
-                  <button class="cd-plan-write__tag-btn" @click="cancelEdit">✕</button>
-                </div>
-              </template>
-
-              <!-- 추가 입력 -->
-              <div class="cd-plan-write__duty-tag cd-plan-write__duty-tag--add">
-                <input
-                  v-model="newDuty"
-                  class="cd-plan-write__duty-new-input"
-                  placeholder="직무 추가..."
-                  @keyup.enter="addDuty"
-                />
-                <button class="cd-plan-write__tag-btn cd-plan-write__tag-btn--plus" @click="addDuty">+</button>
-              </div>
-            </div>
-          </div>
         </div>
 
         <button class="cd-plan-write__duty-link" @click="router.push('/career-encyclopedia')">
@@ -96,7 +59,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
@@ -104,41 +66,6 @@ import CdDatePicker from '../components/CdDatePicker.vue'
 
 const router = useRouter()
 const { draftPlan, syncPlanStep1 } = useCareerDesign()
-
-const newDuty = ref('')
-const editingIndex = ref<number | null>(null)
-const editingValue = ref('')
-
-function addDuty() {
-  if (newDuty.value.trim()) {
-    draftPlan.duties.push(newDuty.value.trim())
-    newDuty.value = ''
-  }
-}
-
-function deleteDuty(i: number) {
-  draftPlan.duties.splice(i, 1)
-  if (editingIndex.value === i) cancelEdit()
-}
-
-async function startEdit(i: number) {
-  editingIndex.value = i
-  editingValue.value = draftPlan.duties[i]
-  await nextTick()
-  document.querySelector<HTMLInputElement>('.cd-plan-write__duty-edit-input')?.focus()
-}
-
-function confirmEdit(i: number) {
-  if (editingValue.value.trim()) {
-    draftPlan.duties[i] = editingValue.value.trim()
-  }
-  cancelEdit()
-}
-
-function cancelEdit() {
-  editingIndex.value = null
-  editingValue.value = ''
-}
 
 async function goNext() {
   await syncPlanStep1()
@@ -203,8 +130,6 @@ async function goNext() {
     display: flex;
     align-items: center;
     gap: 10px;
-
-    &--top { align-items: flex-start; }
   }
 
   &__plabel {
@@ -258,74 +183,6 @@ async function goNext() {
     font-size: 13px;
     color: #bbb;
     flex-shrink: 0;
-  }
-
-  /* 직무 태그 wrap */
-  &__duties-wrap {
-    flex: 1;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: flex-start;
-  }
-
-  &__duty-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 5px 8px 5px 10px;
-    font-size: 12px;
-    color: #333;
-
-    &--editing {
-      border-color: #FFC700;
-      background: #FFFBEC;
-    }
-
-    &--add {
-      border: 1.5px dashed #FFC700;
-      padding: 5px 8px;
-    }
-  }
-
-  &__tag-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 11px;
-    padding: 1px 3px;
-    border-radius: 4px;
-    line-height: 1;
-    color: #aaa;
-    transition: background 0.1s, color 0.1s;
-
-    &--del  { &:hover { color: #FF5555; background: #FFE8E8; } }
-    &--ok   { color: #1DB95A; font-weight: 700; &:hover { background: #E8F9EF; } }
-    &--plus { color: #FFC700; font-weight: 700; font-size: 14px; }
-  }
-
-  &__duty-edit-input {
-    border: none;
-    outline: none;
-    background: transparent;
-    font-size: 12px;
-    color: #222;
-    min-width: 60px;
-    max-width: 140px;
-  }
-
-  &__duty-new-input {
-    border: none;
-    outline: none;
-    background: transparent;
-    font-size: 12px;
-    color: #333;
-    min-width: 70px;
-
-    &::placeholder { color: #FFC700; }
   }
 
   &__categories {

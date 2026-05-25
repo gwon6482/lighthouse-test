@@ -67,7 +67,6 @@ export interface DraftPlan {
   planId: string | null
   name: string
   targetJob: string
-  duties: string[]
   projects: Project[]
   startDate: string
   endDate: string

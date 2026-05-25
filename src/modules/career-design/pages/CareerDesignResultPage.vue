@@ -13,11 +13,6 @@
           <span class="cd-result__period">{{ periodLabel }}</span>
           <span class="cd-result__stats">프로젝트 {{ placedCount }}개 배치</span>
         </div>
-        <div v-if="draftPlan.duties.length" class="cd-result__duties">
-          <span v-for="duty in draftPlan.duties" :key="duty" class="cd-result__duty-chip">
-            {{ duty }}
-          </span>
-        </div>
       </div>
 
       <!-- 타임라인 -->
@@ -256,20 +251,6 @@ const periodLabel = computed(() => {
     background: #FFFBEC;
     padding: 3px 10px;
     border-radius: 20px;
-  }
-
-  &__duties {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  &__duty-chip {
-    background: #F5F5F5;
-    border-radius: 8px;
-    padding: 4px 10px;
-    font-size: 12px;
-    color: #555;
   }
 
   /* 섹션 공통 */
