@@ -46,7 +46,7 @@
         </div>
 
         <button class="cd-plan-write__duty-link" @click="router.push('/career-encyclopedia')">
-          진로백과에서 채용공고 확인하기 →
+          진로백과에서 진로정보 확인하기 →
         </button>
       </div>
     </div>
