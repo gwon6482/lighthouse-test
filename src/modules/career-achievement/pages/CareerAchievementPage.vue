@@ -29,32 +29,32 @@
           </div>
         </template>
 
-        <!-- 이번 주 path (듀오링고 스타일 zigzag) -->
+        <!-- 이번 달 주차 path (듀오링고 스타일 zigzag) -->
         <div class="ca__path">
           <div class="ca__path-title">
-            <span>이번 주</span>
-            <span class="ca__path-meta"><strong>{{ week.done }}</strong> / {{ week.planned }}</span>
+            <span>이번 달 주차별 목표</span>
+            <span class="ca__path-meta"><strong>{{ weekTotals.done }}</strong> / {{ weekTotals.planned }}</span>
           </div>
           <div class="ca__path-row">
             <div
-              v-for="(d, i) in weekDates"
-              :key="i"
+              v-for="(n, i) in weekNodes"
+              :key="n.index"
               class="ca__node"
               :class="{
                 [`ca__node--pos-${i % 5}`]: true,
-                'ca__node--today': isSameDate(d, today),
-                'ca__node--done':  dayStatus(d) === 'done',
-                'ca__node--partial': dayStatus(d) === 'partial',
-                'ca__node--past':  d < today && !isSameDate(d, today) && dayStatus(d) !== 'done',
+                'ca__node--today':   n.isCurrent,
+                'ca__node--done':    n.status === 'done',
+                'ca__node--partial': n.status === 'partial',
+                'ca__node--past':    n.isPast && n.status !== 'done',
               }"
             >
-              <span v-if="isSameDate(d, today)" class="ca__node-bubble">START</span>
+              <span v-if="n.isCurrent" class="ca__node-bubble">START</span>
               <div class="ca__node-circle">
-                <span v-if="dayStatus(d) === 'done'">✓</span>
-                <span v-else-if="isSameDate(d, today)">●</span>
-                <span v-else>{{ d.getDate() }}</span>
+                <span v-if="n.status === 'done'">✓</span>
+                <span v-else>{{ n.index }}</span>
               </div>
-              <span class="ca__node-dow">{{ dowLabel(d) }}</span>
+              <span class="ca__node-dow">{{ n.index }}주차</span>
+              <span class="ca__node-range">{{ shortRange(n) }}</span>
             </div>
           </div>
         </div>
@@ -149,9 +149,9 @@ import type { Project, ProjectCategory } from '@/modules/career-design/types/car
 const router = useRouter()
 const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
 const {
-  today, weekDates, todayRoutines, todayProjects,
+  today, todayRoutines, todayProjects,
   isProjectDone, isRoutineDone, toggleProject, toggleRoutine,
-  plannedCount, doneCount, weekProgress, monthProgress, toDateKey,
+  plannedCount, doneCount, monthProgress, toDateKey,
 } = useAchievement()
 
 const loading = ref(true)
@@ -186,11 +186,67 @@ const todayProjectsList = computed(() =>
   todayProjects(draftPlan.projects, timelineForCalc.value, draftPlan.startDate, draftPlan.endDate)
 )
 
-const week = computed(() =>
-  weekProgress(draftPlan.projects, draftPlan.routines, timelineForCalc.value, draftPlan.startDate, draftPlan.endDate)
+const month = computed(() => monthProgress(timelineForCalc.value))
+
+type WeekNodeStatus = 'none' | 'partial' | 'done'
+interface WeekNode {
+  index: number
+  start: Date
+  end: Date
+  planned: number
+  done: number
+  status: WeekNodeStatus
+  isCurrent: boolean
+  isPast: boolean
+}
+
+const weekNodes = computed<WeekNode[]>(() => {
+  const t = today.value
+  const first = new Date(t.getFullYear(), t.getMonth(), 1)
+  const last = new Date(t.getFullYear(), t.getMonth() + 1, 0)
+  const tNorm = new Date(t); tNorm.setHours(0, 0, 0, 0)
+
+  const nodes: WeekNode[] = []
+  const cursor = new Date(first)
+  let idx = 1
+  while (cursor <= last) {
+    const wStart = new Date(cursor)
+    const wEnd = new Date(cursor)
+    wEnd.setDate(wStart.getDate() + 6)
+    if (wEnd > last) wEnd.setTime(last.getTime())
+
+    let planned = 0
+    let done = 0
+    const d = new Date(wStart)
+    while (d <= wEnd) {
+      planned += plannedCount(d, draftPlan.projects, draftPlan.routines, timelineForCalc.value, draftPlan.startDate, draftPlan.endDate)
+      done    += doneCount(d)
+      d.setDate(d.getDate() + 1)
+    }
+
+    const isCurrent = tNorm >= wStart && tNorm <= wEnd
+    const isPast = wEnd < tNorm && !isCurrent
+    const status: WeekNodeStatus =
+      planned === 0 ? 'none' :
+      done >= planned ? 'done' :
+      done > 0 ? 'partial' : 'none'
+
+    nodes.push({ index: idx, start: wStart, end: wEnd, planned, done, status, isCurrent, isPast })
+    cursor.setDate(cursor.getDate() + 7)
+    idx++
+  }
+  return nodes
+})
+
+const weekTotals = computed(() =>
+  weekNodes.value.reduce((acc, n) => ({ planned: acc.planned + n.planned, done: acc.done + n.done }), { planned: 0, done: 0 })
 )
 
-const month = computed(() => monthProgress(timelineForCalc.value))
+function shortRange(n: WeekNode): string {
+  const s = `${n.start.getMonth() + 1}/${n.start.getDate()}`
+  const e = `${n.end.getMonth() + 1}/${n.end.getDate()}`
+  return `${s}~${e}`
+}
 
 // 카테고리
 const categories: Record<ProjectCategory, { label: string; color: string }> = {
@@ -201,24 +257,6 @@ const categories: Record<ProjectCategory, { label: string; color: string }> = {
 }
 const categoryLabel = (c: ProjectCategory) => categories[c]?.label ?? ''
 const categoryColor = (c: ProjectCategory) => categories[c]?.color ?? '#aaa'
-
-// 주간 캘린더 도우미
-function dowLabel(d: Date): string {
-  return ['일', '월', '화', '수', '목', '금', '토'][d.getDay()]!
-}
-
-function isSameDate(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
-}
-
-function dayStatus(d: Date): 'none' | 'partial' | 'done' {
-  const planned = plannedCount(d, draftPlan.projects, draftPlan.routines, timelineForCalc.value, draftPlan.startDate, draftPlan.endDate)
-  if (!planned) return 'none'
-  const done = doneCount(d)
-  if (done === 0) return 'none'
-  if (done >= planned) return 'done'
-  return 'partial'
-}
 
 function startProject(p: Project) {
   router.push({ path: `/career-achievement/start/project/${p.id}`, query: { date: toDateKey(today.value) } })
@@ -377,10 +415,10 @@ onMounted(async () => {
   }
 
   &__path-row {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    display: flex;
     align-items: center;
-    gap: 2px;
+    justify-content: space-around;
+    gap: 4px;
     padding: 16px 0 0;     /* bubble을 위한 위쪽 여유 */
   }
 
@@ -390,6 +428,8 @@ onMounted(async () => {
     flex-direction: column;
     align-items: center;
     gap: 4px;
+    flex: 1 1 0;
+    min-width: 0;
 
     /* zigzag offset — 0~4 cycle */
     &--pos-0 { transform: translateY(0); }
@@ -414,10 +454,17 @@ onMounted(async () => {
   }
 
   &__node-dow {
-    font-size: 10px;
-    font-weight: 700;
-    opacity: 0.78;
+    font-size: 11px;
+    font-weight: 800;
+    opacity: 0.92;
     margin-top: 2px;
+  }
+
+  &__node-range {
+    font-size: 10px;
+    font-weight: 600;
+    opacity: 0.72;
+    letter-spacing: 0.2px;
   }
 
   &__node-bubble {
