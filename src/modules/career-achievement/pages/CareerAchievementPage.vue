@@ -72,28 +72,49 @@
                 <span class="ca__vcard-meta"><strong>{{ n.done }}</strong> / {{ n.planned }}</span>
               </div>
 
-              <div v-if="currentWeekGoals.length" class="ca__vgoals-bar">
-                <span
-                  v-for="(g, gi) in currentWeekGoals"
-                  :key="gi"
-                  class="ca__vgoals-seg"
-                  :class="{ 'ca__vgoals-seg--done': g.done }"
-                />
-              </div>
-
-              <ul v-if="currentWeekGoals.length" class="ca__vgoals">
+              <ul v-if="currentWeekProjectBars.length" class="ca__pgoals">
                 <li
-                  v-for="g in currentWeekGoals"
-                  :key="g.project.id"
-                  class="ca__vgoal"
-                  :class="{ 'ca__vgoal--done': g.done }"
+                  v-for="bar in currentWeekProjectBars"
+                  :key="bar.project.id"
+                  class="ca__pgoal"
                 >
-                  <span class="ca__vgoal-mark">{{ g.done ? '✓' : '○' }}</span>
-                  <span
-                    class="ca__vgoal-cat"
-                    :style="{ background: categoryColor(g.project.category) }"
-                  />
-                  <span class="ca__vgoal-name">{{ g.project.name }}</span>
+                  <button class="ca__pgoal-head" @click="toggleExpand(bar.project.id)">
+                    <span
+                      class="ca__pgoal-dot"
+                      :style="{ background: categoryColor(bar.project.category) }"
+                    />
+                    <span class="ca__pgoal-name">{{ bar.project.name }}</span>
+                    <span class="ca__pgoal-week">{{ bar.weekIdx }}주차</span>
+                    <span class="ca__pgoal-count">
+                      <strong>{{ bar.itemsDone }}</strong> / {{ bar.itemsTotal }}
+                    </span>
+                    <span class="ca__pgoal-chev" :class="{ 'ca__pgoal-chev--open': expandedProjects[bar.project.id] }">▾</span>
+                  </button>
+
+                  <div class="ca__pgoal-bar">
+                    <span
+                      v-for="i in bar.itemsTotal"
+                      :key="i"
+                      class="ca__pgoal-seg"
+                      :class="{ 'ca__pgoal-seg--done': isItemDone(bar.project.id, bar.curriculumWeek.week, i - 1) }"
+                      :style="isItemDone(bar.project.id, bar.curriculumWeek.week, i - 1) ? { background: categoryColor(bar.project.category) } : undefined"
+                    />
+                  </div>
+
+                  <ul v-if="expandedProjects[bar.project.id]" class="ca__pgoal-items">
+                    <li
+                      v-for="(text, idx) in bar.curriculumWeek.items"
+                      :key="idx"
+                      class="ca__pgoal-item"
+                      :class="{ 'ca__pgoal-item--done': isItemDone(bar.project.id, bar.curriculumWeek.week, idx) }"
+                      @click="toggleItem(bar.project.id, bar.curriculumWeek.week, idx)"
+                    >
+                      <span class="ca__pgoal-check" :class="{ 'ca__pgoal-check--done': isItemDone(bar.project.id, bar.curriculumWeek.week, idx) }">
+                        <span v-if="isItemDone(bar.project.id, bar.curriculumWeek.week, idx)">✓</span>
+                      </span>
+                      <span class="ca__pgoal-text">{{ text }}</span>
+                    </li>
+                  </ul>
                 </li>
               </ul>
               <p v-else class="ca__vgoals-empty">이번 주에 예정된 목표가 없어요</p>
@@ -192,16 +213,18 @@ import AppHeader from '@/shared/components/AppHeader.vue'
 import CelebrationModal from '../components/CelebrationModal.vue'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 import { useAchievement } from '../composables/useAchievement'
-import type { Project, ProjectCategory } from '@/modules/career-design/types/career-design'
+import { useCurriculumCompletion } from '../composables/useCurriculumCompletion'
+import type { Project, ProjectCategory, WeekCurriculum } from '@/modules/career-design/types/career-design'
 
 
 const router = useRouter()
 const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
 const {
-  today, todayKey, todayRoutines, todayProjects, dateProjects,
+  today, todayKey, todayRoutines, todayProjects, dateProjects, parseMonthLabel,
   isProjectDone, isRoutineDone, toggleProject, toggleRoutine,
   plannedCount, doneCount, monthProgress, toDateKey,
 } = useAchievement()
+const { isItemDone, toggleItem, weekItemsDoneCount } = useCurriculumCompletion()
 
 const loading = ref(true)
 
@@ -315,14 +338,44 @@ const visibleNodes = computed<(WeekNode | null)[]>(() => {
   ]
 })
 
-// 현재 주차에 매칭되는 unique 프로젝트 + 그 주에 한 번이라도 완료되면 done
-interface WeekGoal { project: Project; done: boolean }
-const currentWeekGoals = computed<WeekGoal[]>(() => {
+// 프로젝트가 처음 timeline에 배치된 month의 1일 (1주차 시작일)
+function projectFirstMonthFirstDay(projectId: string): Date | null {
+  let best: { year: number; month: number } | null = null
+  for (const slot of timelineForCalc.value) {
+    if (!slot.projects.some(p => p.id === projectId)) continue
+    const parsed = parseMonthLabel(slot.month)
+    if (!parsed) continue
+    if (!best || (parsed.year < best.year) || (parsed.year === best.year && parsed.month < best.month)) {
+      best = parsed
+    }
+  }
+  return best ? new Date(best.year, best.month - 1, 1) : null
+}
+
+// 현재 주차의 시작일과 첫 배치월 1일 차이 / 7 + 1 = 그 프로젝트의 N주차
+function projectWeekIdx(projectId: string, weekStart: Date): number | null {
+  const firstDay = projectFirstMonthFirstDay(projectId)
+  if (!firstDay) return null
+  const days = Math.floor((weekStart.getTime() - firstDay.getTime()) / (1000 * 60 * 60 * 24))
+  if (days < 0) return null
+  return Math.floor(days / 7) + 1
+}
+
+// 현재 주차 vcard용 프로젝트별 progress bar 데이터
+interface ProjectBar {
+  project: Project
+  weekIdx: number                    // 그 프로젝트의 N주차 (1-based)
+  curriculumWeek: WeekCurriculum     // curriculum[weekIdx-1] (반드시 존재)
+  itemsTotal: number
+  itemsDone: number
+}
+
+const currentWeekProjectBars = computed<ProjectBar[]>(() => {
   const cur = currentWeekIdx.value === -1 ? null : weekNodes.value[currentWeekIdx.value] ?? null
   if (!cur) return []
 
   const seen = new Set<string>()
-  const out: WeekGoal[] = []
+  const out: ProjectBar[] = []
 
   const d = new Date(cur.start)
   while (d <= cur.end) {
@@ -331,18 +384,29 @@ const currentWeekGoals = computed<WeekGoal[]>(() => {
       if (seen.has(p.id)) continue
       seen.add(p.id)
 
-      let done = false
-      const dd = new Date(cur.start)
-      while (dd <= cur.end) {
-        if (isProjectDone(p.id, toDateKey(dd))) { done = true; break }
-        dd.setDate(dd.getDate() + 1)
-      }
-      out.push({ project: p, done })
+      const wIdx = projectWeekIdx(p.id, cur.start)
+      if (wIdx === null) continue
+      const cw = p.curriculum?.[wIdx - 1]
+      if (!cw || !cw.items?.length) continue
+
+      out.push({
+        project: p,
+        weekIdx: wIdx,
+        curriculumWeek: cw,
+        itemsTotal: cw.items.length,
+        itemsDone: weekItemsDoneCount(p.id, cw.week, cw.items.length),
+      })
     }
     d.setDate(d.getDate() + 1)
   }
   return out
 })
+
+// 프로젝트별 펼침 상태 (vcard 안)
+const expandedProjects = ref<Record<string, boolean>>({})
+function toggleExpand(projectId: string) {
+  expandedProjects.value = { ...expandedProjects.value, [projectId]: !expandedProjects.value[projectId] }
+}
 
 // 카테고리
 const categories: Record<ProjectCategory, { label: string; color: string }> = {
@@ -682,35 +746,14 @@ onMounted(async () => {
     }
   }
 
-  /* 현재 주차 목표 N등분 progress bar */
-  &__vgoals-bar {
-    display: flex;
-    gap: 3px;
-    height: 6px;
-    margin-top: 14px;
-  }
-
-  &__vgoals-seg {
-    flex: 1;
-    height: 100%;
-    background: #EEEEE8;
-    border-radius: 3px;
-    transition: background 0.25s;
-
-    &--done {
-      background: linear-gradient(135deg, #FFC700, #FFB300);
-      box-shadow: 0 1px 4px rgba(255, 138, 0, 0.35);
-    }
-  }
-
-  /* 현재 주차 목표 list */
-  &__vgoals {
+  /* 현재 주차 — 프로젝트별 progress bar list */
+  &__pgoals {
     list-style: none;
-    margin: 10px 0 0;
+    margin: 14px 0 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 14px;
   }
 
   &__vgoals-empty {
@@ -720,45 +763,145 @@ onMounted(async () => {
     margin: 14px 0 4px;
   }
 
-  &__vgoal {
+  &__pgoal {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__pgoal-head {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    color: #333;
-    font-weight: 600;
-
-    &--done {
-      color: #555;
-      .ca__vgoal-mark { color: #1DB95A; }
-    }
+    gap: 8px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    color: inherit;
   }
 
-  &__vgoal-mark {
+  &__pgoal-dot {
     flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: 900;
-    color: #ccc;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
   }
 
-  &__vgoal-cat {
-    flex-shrink: 0;
-    width: 4px;
-    height: 18px;
-    border-radius: 2px;
-  }
-
-  &__vgoal-name {
+  &__pgoal-name {
     flex: 1;
     min-width: 0;
+    font-size: 14px;
+    font-weight: 800;
+    color: #222;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  &__pgoal-week {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: #FF8A00;
+    background: #FFF5E0;
+    padding: 2px 7px;
+    border-radius: 8px;
+  }
+
+  &__pgoal-count {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #888;
+
+    strong {
+      font-weight: 900;
+      color: #222;
+    }
+  }
+
+  &__pgoal-chev {
+    flex-shrink: 0;
+    color: #aaa;
+    font-size: 12px;
+    transition: transform 0.2s;
+
+    &--open { transform: rotate(180deg); }
+  }
+
+  &__pgoal-bar {
+    display: flex;
+    gap: 3px;
+    height: 8px;
+  }
+
+  &__pgoal-seg {
+    flex: 1;
+    height: 100%;
+    background: #EEEEE8;
+    border-radius: 4px;
+    transition: background 0.25s;
+
+    &--done {
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    }
+  }
+
+  &__pgoal-items {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 4px 0 0;
+    border-top: 1px dashed #EEEEE8;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__pgoal-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 4px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #444;
+    cursor: pointer;
+    transition: background 0.12s;
+
+    &:hover { background: #fafafa; }
+
+    &--done {
+      color: #888;
+    }
+  }
+
+  &__pgoal-check {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #ddd;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+
+    &--done {
+      background: #1DB95A;
+      border-color: #1DB95A;
+    }
+  }
+
+  &__pgoal-text {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.4;
+    word-break: break-word;
   }
 
   /* 섹션 공통 */

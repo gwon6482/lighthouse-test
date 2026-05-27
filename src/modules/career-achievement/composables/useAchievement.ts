@@ -228,6 +228,7 @@ export function useAchievement() {
     todayRoutines,
     todayProjects,
     dateProjects,
+    parseMonthLabel,
     isProjectDone,
     isRoutineDone,
     toggleProject,
