@@ -132,6 +132,7 @@ import { useCareerDesign } from '@/modules/career-design/composables/useCareerDe
 import { useAchievement } from '../composables/useAchievement'
 import type { Project, Routine, ProjectCategory } from '@/modules/career-design/types/career-design'
 
+
 const router = useRouter()
 const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
 const {
@@ -213,13 +214,12 @@ function circleClass(d: Date) {
   }
 }
 
-// 시작 버튼 — 다음 작업에서 실제 시작 페이지 라우팅 연결
-function startProject(_p: Project) {
-  alert('프로젝트 시작 화면은 다음 작업에서 구현됩니다.')
+function startProject(p: Project) {
+  router.push({ path: `/career-achievement/start/project/${p.id}`, query: { date: toDateKey(today.value) } })
 }
 
-function startRoutine(_r: Routine) {
-  alert('루틴 시작 화면은 다음 작업에서 구현됩니다.')
+function startRoutine(r: Routine) {
+  router.push({ path: `/career-achievement/start/routine/${r.id}`, query: { date: toDateKey(today.value) } })
 }
 
 // 초기 로드: 가장 최근 활성 진로계획 1건 로드
@@ -235,8 +235,6 @@ onMounted(async () => {
   }
 })
 
-// 사용하지 않는 import 경고 방지
-void toDateKey
 </script>
 
 <style lang="scss">

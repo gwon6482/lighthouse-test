@@ -90,7 +90,6 @@ export function useAchievement() {
   const today = computed(() => getToday())
   const todayKey = computed(() => toDateKey(today.value))
   const todayDow = computed(() => getDayOfWeek(today.value))
-  const todayYm = computed(() => todayKey.value.slice(0, 7))
 
   // ── 이번 주 (월~일) ───────────────────────────────
   const weekDates = computed<Date[]>(() => {
