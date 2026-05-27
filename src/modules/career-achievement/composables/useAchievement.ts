@@ -36,24 +36,49 @@ function getDayOfWeek(d: Date): DayOfWeek {
   return DOW[d.getDay()]!
 }
 
-// 'YYYY-MM' 비교 (start ≤ ymCheck ≤ end), endDate 비어있으면 start만 체크
-function isMonthInRange(ymCheck: string, startDate: string, endDate: string): boolean {
-  const start = startDate.slice(0, 7)
+// timeline.month는 표시 형식이 다양함 ("2026년 3월" / "2026.03" / "2026-03")
+// → (year, month) 파싱해서 비교
+function parseMonthLabel(monthStr: string): { year: number; month: number } | null {
+  if (!monthStr) return null
+  // "2026년 3월"
+  const kr = monthStr.match(/(\d+)\s*년\s*(\d+)\s*월/)
+  if (kr) return { year: +kr[1]!, month: +kr[2]! }
+  // "2026.03" / "2026.3"
+  const dot = monthStr.match(/^(\d+)\.(\d+)/)
+  if (dot) return { year: +dot[1]!, month: +dot[2]! }
+  // "2026-03" (startDate/endDate 같은 ISO)
+  const dash = monthStr.match(/^(\d+)-(\d+)/)
+  if (dash) return { year: +dash[1]!, month: +dash[2]! }
+  return null
+}
+
+function cmpYm(a: { year: number; month: number }, b: { year: number; month: number }): number {
+  if (a.year !== b.year) return a.year - b.year
+  return a.month - b.month
+}
+
+// 오늘이 startDate~endDate 사이인지 (월 단위), endDate 없으면 startDate만 체크
+function isMonthInRange(today: Date, startDate: string, endDate: string): boolean {
+  const start = parseMonthLabel(startDate)
   if (!start) return true
-  if (ymCheck < start) return false
+  const cur = { year: today.getFullYear(), month: today.getMonth() + 1 }
+  if (cmpYm(cur, start) < 0) return false
   if (endDate) {
-    const end = endDate.slice(0, 7)
-    if (ymCheck > end) return false
+    const end = parseMonthLabel(endDate)
+    if (end && cmpYm(cur, end) > 0) return false
   }
   return true
 }
 
-// 현재 월이 timeline의 어떤 month에도 포함되는지 + 그 month의 projectIds 가져오기
-function getProjectIdsInMonth(timeline: { month: string; projects: { id: string }[] }[], ym: string): Set<string> {
-  // timeline.month 포맷이 'YYYY.MM'이라는 점에 유의 — 'YYYY-MM' 입력을 변환
-  const target = ym.replace('-', '.')
+// 오늘의 월에 해당하는 timeline 슬롯의 projectIds 가져오기
+function getProjectIdsInMonth(
+  timeline: { month: string; projects: { id: string }[] }[],
+  today: Date,
+): Set<string> {
+  const cur = { year: today.getFullYear(), month: today.getMonth() + 1 }
   for (const slot of timeline) {
-    if (slot.month === target) {
+    const parsed = parseMonthLabel(slot.month)
+    if (parsed && parsed.year === cur.year && parsed.month === cur.month) {
       return new Set(slot.projects.map(p => p.id))
     }
   }
@@ -92,8 +117,8 @@ export function useAchievement() {
     startDate: string,
     endDate: string,
   ): Project[] {
-    if (!isMonthInRange(todayYm.value, startDate, endDate)) return []
-    const idsInMonth = getProjectIdsInMonth(timeline, todayYm.value)
+    if (!isMonthInRange(today.value, startDate, endDate)) return []
+    const idsInMonth = getProjectIdsInMonth(timeline, today.value)
     return projects.filter(p => idsInMonth.has(p.id) && p.days.includes(todayDow.value))
   }
 
@@ -138,10 +163,9 @@ export function useAchievement() {
     endDate: string,
   ): number {
     const dow = getDayOfWeek(date)
-    const ym = toDateKey(date).slice(0, 7)
     let count = routines.filter(r => r.days.includes(dow)).length
-    if (isMonthInRange(ym, startDate, endDate)) {
-      const idsInMonth = getProjectIdsInMonth(timeline, ym)
+    if (isMonthInRange(date, startDate, endDate)) {
+      const idsInMonth = getProjectIdsInMonth(timeline, date)
       count += projects.filter(p => idsInMonth.has(p.id) && p.days.includes(dow)).length
     }
     return count
