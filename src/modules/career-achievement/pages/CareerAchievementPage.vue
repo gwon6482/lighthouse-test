@@ -149,7 +149,11 @@
               </button>
             </div>
             <h4 class="ca__pcard-name">{{ p.name }}</h4>
-            <p v-if="p.goal" class="ca__pcard-goal">{{ p.goal }}</p>
+            <p
+              v-if="projectTodayFocus(p).text"
+              class="ca__pcard-goal"
+              :class="{ 'ca__pcard-goal--done': projectTodayFocus(p).allDone }"
+            >{{ projectTodayFocus(p).text }}</p>
             <div class="ca__pcard-bottom">
               <span class="ca__pcard-meta">⏱ {{ p.duration }}분</span>
               <button class="ca__pcard-start" :disabled="isProjectDone(p.id)" @click="startProject(p)">
@@ -406,6 +410,23 @@ const currentWeekProjectBars = computed<ProjectBar[]>(() => {
 const expandedProjects = ref<Record<string, boolean>>({})
 function toggleExpand(projectId: string) {
   expandedProjects.value = { ...expandedProjects.value, [projectId]: !expandedProjects.value[projectId] }
+}
+
+// 오늘의 할 일 카드 본문 — 그 주차의 첫 미완료 item을 표시 (없으면 goal로 fallback)
+function projectTodayFocus(p: Project): { text: string; allDone: boolean } {
+  const i = currentWeekIdx.value
+  const cur = i === -1 ? null : weekNodes.value[i] ?? null
+  if (!cur) return { text: p.goal, allDone: false }
+
+  const wIdx = projectWeekIdx(p.id, cur.start)
+  if (wIdx === null) return { text: p.goal, allDone: false }
+
+  const cw = p.curriculum?.find(c => c.week === wIdx)
+  if (!cw || !cw.items?.length) return { text: p.goal, allDone: false }
+
+  const firstUndoneIdx = cw.items.findIndex((_, idx) => !isItemDone(p.id, cw.week, idx))
+  if (firstUndoneIdx === -1) return { text: '이번 주 모든 목표 완료!', allDone: true }
+  return { text: cw.items[firstUndoneIdx]!, allDone: false }
 }
 
 // 카테고리
@@ -1018,6 +1039,11 @@ onMounted(async () => {
     color: #666;
     margin: -4px 0 0;
     line-height: 1.5;
+
+    &--done {
+      color: #1DB95A;
+      font-weight: 700;
+    }
   }
 
   &__pcard-bottom {
