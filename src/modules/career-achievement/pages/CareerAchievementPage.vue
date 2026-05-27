@@ -10,7 +10,7 @@
     </div>
 
     <template v-else-if="hasPlan">
-      <!-- 진로계획 hero (N일차 타이틀급 + 타임라인 단계) -->
+      <!-- 진로계획 hero (N일차 + 전체 진행률 + 이번 주 path) -->
       <div class="ca__plan-hero">
         <span class="ca__plan-date">{{ todayLabel }}</span>
         <div class="ca__plan-counter">
@@ -18,6 +18,7 @@
           <span class="ca__plan-counter-num">{{ daysSinceStart ?? 1 }}</span>
           <span class="ca__plan-counter-unit">일차</span>
         </div>
+
         <template v-if="month">
           <div class="ca__plan-stage">
             <span class="ca__plan-stage-month">{{ month.monthLabel }}</span>
@@ -27,38 +28,33 @@
             <div class="ca__plan-stage-bar-fill" :style="{ width: `${(month.current / month.total) * 100}%` }" />
           </div>
         </template>
-      </div>
 
-      <!-- 이번 주 진행률 -->
-      <div class="ca__week-card">
-        <div class="ca__week-head">
-          <div>
-            <span class="ca__week-label">이번 주</span>
-            <div class="ca__week-percent">{{ week.percent }}<span class="ca__week-percent-unit">%</span></div>
+        <!-- 이번 주 path (듀오링고 스타일 zigzag) -->
+        <div class="ca__path">
+          <div class="ca__path-title">
+            <span>이번 주</span>
+            <span class="ca__path-meta"><strong>{{ week.done }}</strong> / {{ week.planned }}</span>
           </div>
-          <div class="ca__week-meta">
-            <span class="ca__week-meta-row"><strong>{{ week.done }}</strong> / {{ week.planned }} 완료</span>
-          </div>
-        </div>
-
-        <div class="ca__week-bar">
-          <div class="ca__week-bar-fill" :style="{ width: `${week.percent}%` }" />
-        </div>
-
-        <div class="ca__week-days">
-          <div
-            v-for="(d, i) in weekDates"
-            :key="i"
-            class="ca__week-day"
-            :class="{
-              'ca__week-day--today': isSameDate(d, today),
-              'ca__week-day--past':  d < today && !isSameDate(d, today),
-            }"
-          >
-            <span class="ca__week-day-label">{{ dowLabel(d) }}</span>
-            <div class="ca__week-day-circle" :class="circleClass(d)">
-              <span v-if="dayStatus(d) === 'done'">✓</span>
-              <span v-else>{{ d.getDate() }}</span>
+          <div class="ca__path-row">
+            <div
+              v-for="(d, i) in weekDates"
+              :key="i"
+              class="ca__node"
+              :class="{
+                [`ca__node--pos-${i % 5}`]: true,
+                'ca__node--today': isSameDate(d, today),
+                'ca__node--done':  dayStatus(d) === 'done',
+                'ca__node--partial': dayStatus(d) === 'partial',
+                'ca__node--past':  d < today && !isSameDate(d, today) && dayStatus(d) !== 'done',
+              }"
+            >
+              <span v-if="isSameDate(d, today)" class="ca__node-bubble">START</span>
+              <div class="ca__node-circle">
+                <span v-if="dayStatus(d) === 'done'">✓</span>
+                <span v-else-if="isSameDate(d, today)">●</span>
+                <span v-else>{{ d.getDate() }}</span>
+              </div>
+              <span class="ca__node-dow">{{ dowLabel(d) }}</span>
             </div>
           </div>
         </div>
@@ -224,15 +220,6 @@ function dayStatus(d: Date): 'none' | 'partial' | 'done' {
   return 'partial'
 }
 
-function circleClass(d: Date) {
-  const st = dayStatus(d)
-  return {
-    'ca__week-day-circle--done':    st === 'done',
-    'ca__week-day-circle--partial': st === 'partial',
-    'ca__week-day-circle--today':   isSameDate(d, today.value),
-  }
-}
-
 function startProject(p: Project) {
   router.push({ path: `/career-achievement/start/project/${p.id}`, query: { date: toDateKey(today.value) } })
 }
@@ -260,10 +247,10 @@ onMounted(async () => {
   background: #F5F5F5;
   padding-bottom: 32px;
 
-  /* ── 진로계획 hero (N일차 + 타임라인 단계) ── */
+  /* ── 진로계획 hero (N일차 + 타임라인 단계 + 이번 주 path) ── */
   &__plan-hero {
     margin: 16px 16px 12px;
-    padding: 22px 22px 20px;
+    padding: 22px 22px 36px;
     border-radius: 22px;
     background: linear-gradient(135deg, #FFC700 0%, #FFB300 100%);
     color: #fff;
@@ -366,111 +353,126 @@ onMounted(async () => {
     cursor: pointer;
   }
 
-  /* 이번 주 카드 */
-  &__week-card {
-    background: linear-gradient(135deg, #FFC700 0%, #FFB300 100%);
-    color: #fff;
-    border-radius: 18px;
-    padding: 20px;
-    margin: 0 16px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    box-shadow: 0 4px 16px rgba(255, 199, 0, 0.25);
+  /* ── 이번 주 path (듀오링고 zigzag) ── */
+  &__path {
+    margin-top: 6px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.28);
   }
 
-  &__week-head {
+  &__path-title {
     display: flex;
-    align-items: flex-end;
+    align-items: baseline;
     justify-content: space-between;
-    gap: 12px;
-  }
-
-  &__week-label {
-    font-size: 12px;
-    font-weight: 600;
-    opacity: 0.9;
-  }
-
-  &__week-percent {
-    font-size: 40px;
-    font-weight: 800;
-    line-height: 1;
-    margin-top: 4px;
-  }
-
-  &__week-percent-unit {
-    font-size: 22px;
-    font-weight: 700;
-    margin-left: 2px;
-  }
-
-  &__week-meta {
-    text-align: right;
     font-size: 13px;
-    opacity: 0.95;
-
-    strong { font-weight: 800; font-size: 15px; }
+    font-weight: 800;
+    margin-bottom: 12px;
+    opacity: 0.98;
   }
 
-  &__week-bar {
-    height: 6px;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
-    overflow: hidden;
+  &__path-meta {
+    font-size: 12px;
+    opacity: 0.9;
+    strong { font-weight: 800; font-size: 13px; }
   }
 
-  &__week-bar-fill {
-    height: 100%;
-    background: #fff;
-    border-radius: 3px;
-    transition: width 0.3s;
-  }
-
-  &__week-days {
+  &__path-row {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
+    align-items: center;
+    gap: 2px;
+    padding: 16px 0 0;     /* bubble을 위한 위쪽 여유 */
   }
 
-  &__week-day {
+  &__node {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
+
+    /* zigzag offset — 0~4 cycle */
+    &--pos-0 { transform: translateY(0); }
+    &--pos-1 { transform: translateY(10px); }
+    &--pos-2 { transform: translateY(18px); }
+    &--pos-3 { transform: translateY(10px); }
+    &--pos-4 { transform: translateY(0); }
   }
 
-  &__week-day-label {
-    font-size: 11px;
-    opacity: 0.85;
-    font-weight: 600;
-  }
-
-  &__week-day-circle {
-    width: 28px;
-    height: 28px;
+  &__node-circle {
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.25);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 700;
+    background: rgba(255, 255, 255, 0.22);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    font-weight: 800;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.1);
+  }
 
-    &--done {
-      background: #fff;
-      color: #FFC700;
-    }
+  &__node-dow {
+    font-size: 10px;
+    font-weight: 700;
+    opacity: 0.78;
+    margin-top: 2px;
+  }
 
-    &--partial {
-      background: rgba(255, 255, 255, 0.7);
-      color: #CC8800;
-    }
+  &__node-bubble {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #fff;
+    color: #FF8A00;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    white-space: nowrap;
 
-    &--today {
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 4px solid #fff;
     }
+  }
+
+  &__node--done .ca__node-circle {
+    background: #fff;
+    color: #FFB300;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.06);
+  }
+
+  &__node--partial .ca__node-circle {
+    background: rgba(255, 255, 255, 0.75);
+    color: #B07800;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.08);
+  }
+
+  &__node--today .ca__node-circle {
+    background: #fff;
+    color: #FF8A00;
+    box-shadow:
+      0 0 0 4px rgba(255, 255, 255, 0.85),
+      inset 0 -3px 0 rgba(0, 0, 0, 0.06);
+    font-size: 8px;
+  }
+
+  &__node--past:not(.ca__node--done):not(.ca__node--partial) .ca__node-circle {
+    background: rgba(255, 255, 255, 0.16);
+    color: rgba(255, 255, 255, 0.55);
   }
 
   /* 섹션 공통 */
