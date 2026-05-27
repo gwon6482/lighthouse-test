@@ -175,6 +175,20 @@ export function useAchievement() {
     return day.projects.length + day.routines.length
   }
 
+  // ── 타임라인 월 진행도 (현재 월의 인덱스 / 전체 슬롯 수) ─
+  function monthProgress(
+    timeline: { month: string; projects: { id: string }[] }[],
+  ): { current: number; total: number; monthLabel: string } | null {
+    if (!timeline.length) return null
+    const cur = { year: today.value.getFullYear(), month: today.value.getMonth() + 1 }
+    const idx = timeline.findIndex(slot => {
+      const p = parseMonthLabel(slot.month)
+      return p && p.year === cur.year && p.month === cur.month
+    })
+    if (idx === -1) return null
+    return { current: idx + 1, total: timeline.length, monthLabel: timeline[idx]!.month }
+  }
+
   // ── 이번 주 진행률 ────────────────────────────────
   function weekProgress(
     projects: Project[],
@@ -206,6 +220,7 @@ export function useAchievement() {
     plannedCount,
     doneCount,
     weekProgress,
+    monthProgress,
     toDateKey,
     getDayOfWeek,
   }

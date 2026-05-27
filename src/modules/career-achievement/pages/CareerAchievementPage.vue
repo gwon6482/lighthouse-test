@@ -2,20 +2,6 @@
   <div class="ca">
     <AppHeader />
 
-    <!-- 타이틀 -->
-    <div class="ca__hero">
-      <h1 class="ca__title">진로달성</h1>
-      <p class="ca__subtitle">일일이 쌓여가는 오늘의 기록이 꿈을 완성해요</p>
-    </div>
-
-    <!-- 날짜 + 진행 일차 -->
-    <div class="ca__date-row">
-      <span class="ca__date">{{ todayLabel }}</span>
-      <span v-if="daysSinceStart !== null" class="ca__day-counter">
-        진로계획 <strong>{{ daysSinceStart }}</strong>일차
-      </span>
-    </div>
-
     <!-- 활성 진로계획 없음 -->
     <div v-if="!loading && !hasPlan" class="ca__empty">
       <div class="ca__empty-icon">🏆</div>
@@ -24,6 +10,25 @@
     </div>
 
     <template v-else-if="hasPlan">
+      <!-- 진로계획 hero (N일차 타이틀급 + 타임라인 단계) -->
+      <div class="ca__plan-hero">
+        <span class="ca__plan-date">{{ todayLabel }}</span>
+        <div class="ca__plan-counter">
+          <span class="ca__plan-counter-label">진로계획</span>
+          <span class="ca__plan-counter-num">{{ daysSinceStart ?? 1 }}</span>
+          <span class="ca__plan-counter-unit">일차</span>
+        </div>
+        <template v-if="month">
+          <div class="ca__plan-stage">
+            <span class="ca__plan-stage-month">{{ month.monthLabel }}</span>
+            <span class="ca__plan-stage-meta"><strong>{{ month.current }}</strong> / {{ month.total }} 단계</span>
+          </div>
+          <div class="ca__plan-stage-bar">
+            <div class="ca__plan-stage-bar-fill" :style="{ width: `${(month.current / month.total) * 100}%` }" />
+          </div>
+        </template>
+      </div>
+
       <!-- 이번 주 진행률 -->
       <div class="ca__week-card">
         <div class="ca__week-head">
@@ -59,6 +64,43 @@
         </div>
       </div>
 
+      <!-- 오늘의 할일 (프로젝트) - 강조 -->
+      <div v-if="todayProjectsList.length" class="ca__section ca__section--primary">
+        <h3 class="ca__section-title ca__section-title--primary">오늘의 할일</h3>
+        <div class="ca__list ca__list--primary">
+          <div
+            v-for="p in todayProjectsList"
+            :key="p.id"
+            class="ca__pcard"
+            :class="{ 'ca__pcard--done': isProjectDone(p.id) }"
+            :style="{ '--cat-color': categoryColor(p.category) } as any"
+          >
+            <div class="ca__pcard-head">
+              <span
+                class="ca__pcard-cat"
+                :style="{ color: categoryColor(p.category), background: `color-mix(in srgb, ${categoryColor(p.category)} 14%, white)` }"
+              >{{ categoryLabel(p.category) }}</span>
+              <button
+                class="ca__pcard-check"
+                :class="{ 'ca__pcard-check--done': isProjectDone(p.id) }"
+                @click="toggleProject(p.id)"
+                :aria-label="isProjectDone(p.id) ? '완료 취소' : '완료 표시'"
+              >
+                <span v-if="isProjectDone(p.id)">✓</span>
+              </button>
+            </div>
+            <h4 class="ca__pcard-name">{{ p.name }}</h4>
+            <p v-if="p.goal" class="ca__pcard-goal">{{ p.goal }}</p>
+            <div class="ca__pcard-bottom">
+              <span class="ca__pcard-meta">⏱ {{ p.duration }}분</span>
+              <button class="ca__pcard-start" :disabled="isProjectDone(p.id)" @click="startProject(p)">
+                {{ isProjectDone(p.id) ? '완료됨' : '시작하기' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 오늘의 루틴 -->
       <div v-if="todayRoutinesList.length" class="ca__section">
         <h3 class="ca__section-title">오늘의 루틴</h3>
@@ -69,9 +111,6 @@
             class="ca__card ca__card--routine"
             :class="{ 'ca__card--done': isRoutineDone(r.id) }"
           >
-            <button class="ca__check" :class="{ 'ca__check--done': isRoutineDone(r.id) }" @click="toggleRoutine(r.id)">
-              <span v-if="isRoutineDone(r.id)">✓</span>
-            </button>
             <div class="ca__card-body">
               <span class="ca__card-name">{{ r.name }}</span>
               <span class="ca__card-meta">
@@ -79,36 +118,14 @@
                 <template v-if="r.notification"> · 🔔 {{ r.notificationTime }}</template>
               </span>
             </div>
-            <button class="ca__start" :disabled="isRoutineDone(r.id)" @click="startRoutine(r)">시작</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 오늘의 할일 (프로젝트) -->
-      <div v-if="todayProjectsList.length" class="ca__section">
-        <h3 class="ca__section-title">오늘의 할일</h3>
-        <div class="ca__list">
-          <div
-            v-for="p in todayProjectsList"
-            :key="p.id"
-            class="ca__card"
-            :class="{ 'ca__card--done': isProjectDone(p.id) }"
-            :style="{ borderLeftColor: categoryColor(p.category) }"
-          >
-            <button class="ca__check" :class="{ 'ca__check--done': isProjectDone(p.id) }" @click="toggleProject(p.id)">
-              <span v-if="isProjectDone(p.id)">✓</span>
+            <button
+              class="ca__rdone"
+              :class="{ 'ca__rdone--done': isRoutineDone(r.id) }"
+              @click="toggleRoutine(r.id)"
+            >
+              <span v-if="isRoutineDone(r.id)">✓ 완료</span>
+              <span v-else>완료</span>
             </button>
-            <div class="ca__card-body">
-              <div class="ca__card-top">
-                <span class="ca__card-name">{{ p.name }}</span>
-                <span
-                  class="ca__card-cat"
-                  :style="{ color: categoryColor(p.category), background: `color-mix(in srgb, ${categoryColor(p.category)} 12%, white)` }"
-                >{{ categoryLabel(p.category) }}</span>
-              </div>
-              <span class="ca__card-meta">{{ p.duration }}분<template v-if="p.goal"> · {{ p.goal }}</template></span>
-            </div>
-            <button class="ca__start" :disabled="isProjectDone(p.id)" @click="startProject(p)">시작</button>
           </div>
         </div>
       </div>
@@ -130,7 +147,7 @@ import { useRouter } from 'vue-router'
 import AppHeader from '@/shared/components/AppHeader.vue'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 import { useAchievement } from '../composables/useAchievement'
-import type { Project, Routine, ProjectCategory } from '@/modules/career-design/types/career-design'
+import type { Project, ProjectCategory } from '@/modules/career-design/types/career-design'
 
 
 const router = useRouter()
@@ -138,7 +155,7 @@ const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDes
 const {
   today, weekDates, todayRoutines, todayProjects,
   isProjectDone, isRoutineDone, toggleProject, toggleRoutine,
-  plannedCount, doneCount, weekProgress, toDateKey,
+  plannedCount, doneCount, weekProgress, monthProgress, toDateKey,
 } = useAchievement()
 
 const loading = ref(true)
@@ -176,6 +193,8 @@ const todayProjectsList = computed(() =>
 const week = computed(() =>
   weekProgress(draftPlan.projects, draftPlan.routines, timelineForCalc.value, draftPlan.startDate, draftPlan.endDate)
 )
+
+const month = computed(() => monthProgress(timelineForCalc.value))
 
 // 카테고리
 const categories: Record<ProjectCategory, { label: string; color: string }> = {
@@ -218,10 +237,6 @@ function startProject(p: Project) {
   router.push({ path: `/career-achievement/start/project/${p.id}`, query: { date: toDateKey(today.value) } })
 }
 
-function startRoutine(r: Routine) {
-  router.push({ path: `/career-achievement/start/routine/${r.id}`, query: { date: toDateKey(today.value) } })
-}
-
 // 초기 로드: 가장 최근 활성 진로계획 1건 로드
 onMounted(async () => {
   try {
@@ -245,65 +260,81 @@ onMounted(async () => {
   background: #F5F5F5;
   padding-bottom: 32px;
 
-  &__hero {
-    padding: 28px 20px 8px;
-    text-align: center;
+  /* ── 진로계획 hero (N일차 + 타임라인 단계) ── */
+  &__plan-hero {
+    margin: 16px 16px 12px;
+    padding: 22px 22px 20px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #FFC700 0%, #FFB300 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 6px 20px rgba(255, 199, 0, 0.28);
   }
 
-  &__title {
-    font-size: 26px;
-    font-weight: 800;
-    color: #222;
-    margin: 0 0 8px;
-    letter-spacing: -0.4px;
-
-    &::before {
-      content: '';
-      display: block;
-      width: 36px;
-      height: 4px;
-      background: linear-gradient(90deg, #FFC700, #FFB300);
-      border-radius: 2px;
-      margin: 0 auto 12px;
-    }
+  &__plan-date {
+    font-size: 12px;
+    font-weight: 700;
+    opacity: 0.92;
+    letter-spacing: 0.2px;
   }
 
-  &__subtitle {
-    font-size: 13px;
-    color: #888;
-    margin: 0;
-    line-height: 1.6;
+  &__plan-counter {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: -2px;
   }
 
-  &__date-row {
+  &__plan-counter-label {
+    font-size: 16px;
+    font-weight: 700;
+    opacity: 0.95;
+  }
+
+  &__plan-counter-num {
+    font-size: 44px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.5px;
+  }
+
+  &__plan-counter-unit {
+    font-size: 18px;
+    font-weight: 700;
+    opacity: 0.95;
+  }
+
+  &__plan-stage {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin: 16px 16px 12px;
-    padding: 10px 16px;
-    background: #fff;
-    border-radius: 12px;
-    border: 1px solid #EEEEE8;
-  }
-
-  &__date {
+    align-items: baseline;
+    margin-top: 4px;
     font-size: 13px;
     font-weight: 700;
-    color: #444;
+    opacity: 0.95;
   }
 
-  &__day-counter {
+  &__plan-stage-month { font-weight: 700; }
+  &__plan-stage-meta {
     font-size: 12px;
-    color: #888;
-    background: #FFFBEC;
-    border-radius: 8px;
-    padding: 4px 10px;
+    opacity: 0.9;
+    strong { font-weight: 800; font-size: 14px; }
+  }
 
-    strong {
-      color: #CC9D00;
-      font-weight: 800;
-      font-size: 13px;
-    }
+  &__plan-stage-bar {
+    height: 7px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  &__plan-stage-bar-fill {
+    height: 100%;
+    background: #fff;
+    border-radius: 4px;
+    transition: width 0.3s;
   }
 
   &__loading {
@@ -448,6 +479,12 @@ onMounted(async () => {
     background: #fff;
     border-radius: 16px;
     padding: 16px 16px 18px;
+
+    &--primary {
+      background: transparent;
+      padding: 4px 0 12px;
+      margin: 12px 16px 8px;
+    }
   }
 
   &__section-title {
@@ -455,14 +492,140 @@ onMounted(async () => {
     font-weight: 800;
     color: #222;
     margin: 0 0 12px;
+
+    &--primary {
+      font-size: 17px;
+      margin: 0 4px 12px;
+
+      &::before {
+        content: '';
+        display: inline-block;
+        width: 4px;
+        height: 16px;
+        background: #FFC700;
+        border-radius: 2px;
+        vertical-align: -2px;
+        margin-right: 8px;
+      }
+    }
   }
 
   &__list {
     display: flex;
     flex-direction: column;
     gap: 8px;
+
+    &--primary { gap: 12px; }
   }
 
+  /* ── 오늘의 할일 (강조 카드) ── */
+  &__pcard {
+    background: #fff;
+    border: 1px solid #EEEEE8;
+    border-left: 4px solid var(--cat-color, #FFC700);
+    border-radius: 16px;
+    padding: 16px 18px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    transition: opacity 0.15s;
+
+    &--done {
+      opacity: 0.55;
+      .ca__pcard-name { text-decoration: line-through; }
+    }
+  }
+
+  &__pcard-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__pcard-cat {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+
+  &__pcard-check {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid #ddd;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 14px;
+    padding: 0;
+    transition: background 0.15s, border-color 0.15s;
+
+    &--done {
+      background: #1DB95A;
+      border-color: #1DB95A;
+    }
+  }
+
+  &__pcard-name {
+    font-size: 17px;
+    font-weight: 800;
+    color: #222;
+    margin: 0;
+    letter-spacing: -0.2px;
+  }
+
+  &__pcard-goal {
+    font-size: 13px;
+    color: #666;
+    margin: -4px 0 0;
+    line-height: 1.5;
+  }
+
+  &__pcard-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  &__pcard-meta {
+    font-size: 12px;
+    color: #888;
+    font-weight: 600;
+  }
+
+  &__pcard-start {
+    background: #FFC700;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 11px 22px;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(255, 199, 0, 0.35);
+    transition: transform 0.1s;
+
+    &:active { transform: scale(0.97); }
+
+    &:disabled {
+      background: #e8e8e8;
+      color: #aaa;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+  }
+
+  /* ── 오늘의 루틴 (간략 카드 + 완료 토글) ── */
   &__card {
     display: flex;
     align-items: center;
@@ -470,40 +633,17 @@ onMounted(async () => {
     padding: 12px 14px;
     background: #fafafa;
     border: 1px solid #eee;
-    border-left: 3px solid transparent;
     border-radius: 12px;
     transition: opacity 0.15s;
 
     &--routine {
-      border-left-color: #FFC700;
       background: #FFFBEC;
       border-color: #FFE99A;
     }
 
     &--done {
-      opacity: 0.5;
+      opacity: 0.55;
       .ca__card-name { text-decoration: line-through; }
-    }
-  }
-
-  &__check {
-    flex-shrink: 0;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    border: 2px solid #ccc;
-    background: #fff;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 13px;
-    padding: 0;
-
-    &--done {
-      background: #1DB95A;
-      border-color: #1DB95A;
     }
   }
 
@@ -515,30 +655,13 @@ onMounted(async () => {
     gap: 3px;
   }
 
-  &__card-top {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
   &__card-name {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     color: #222;
-    flex: 1;
-    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-
-  &__card-cat {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: 8px;
-    white-space: nowrap;
-    flex-shrink: 0;
   }
 
   &__card-meta {
@@ -546,21 +669,22 @@ onMounted(async () => {
     color: #888;
   }
 
-  &__start {
+  &__rdone {
     flex-shrink: 0;
-    background: #FFC700;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 700;
+    background: #fff;
+    color: #CC9D00;
+    border: 1.5px solid #FFD84D;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 800;
     cursor: pointer;
+    transition: background 0.15s, color 0.15s;
 
-    &:disabled {
-      background: #ddd;
-      color: #aaa;
-      cursor: not-allowed;
+    &--done {
+      background: #1DB95A;
+      border-color: #1DB95A;
+      color: #fff;
     }
   }
 
