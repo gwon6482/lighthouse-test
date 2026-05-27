@@ -29,34 +29,67 @@
           </div>
         </template>
 
-        <!-- 이번 달 주차 path (듀오링고 스타일 zigzag) -->
-        <div class="ca__path">
-          <div class="ca__path-title">
+        <!-- 이번 달 주차 path (세로 zigzag, prev / current(큰 카드) / next) -->
+        <div class="ca__vpath">
+          <div class="ca__vpath-title">
             <span>이번 달 주차별 목표</span>
-            <span class="ca__path-meta"><strong>{{ weekTotals.done }}</strong> / {{ weekTotals.planned }}</span>
+            <span class="ca__vpath-meta"><strong>{{ weekTotals.done }}</strong> / {{ weekTotals.planned }}</span>
           </div>
-          <div class="ca__path-row">
+
+          <template v-for="(n, i) in visibleNodes" :key="i">
+            <!-- prev / next (작은 노드) -->
             <div
-              v-for="(n, i) in weekNodes"
-              :key="n.index"
-              class="ca__node"
-              :class="{
-                [`ca__node--pos-${i % 5}`]: true,
-                'ca__node--today':   n.isCurrent,
-                'ca__node--done':    n.status === 'done',
-                'ca__node--partial': n.status === 'partial',
-                'ca__node--past':    n.isPast && n.status !== 'done',
-              }"
+              v-if="n && i !== 1"
+              class="ca__vnode"
+              :class="i === 0 ? 'ca__vnode--prev' : 'ca__vnode--next'"
             >
-              <span v-if="n.isCurrent" class="ca__node-bubble">START</span>
-              <div class="ca__node-circle">
+              <div
+                class="ca__vnode-circle"
+                :class="{
+                  'ca__vnode-circle--done':    n.status === 'done',
+                  'ca__vnode-circle--partial': n.status === 'partial',
+                  'ca__vnode-circle--past':    n.isPast && n.status !== 'done',
+                }"
+              >
                 <span v-if="n.status === 'done'">✓</span>
                 <span v-else>{{ n.index }}</span>
               </div>
-              <span class="ca__node-dow">{{ n.index }}주차</span>
-              <span class="ca__node-range">{{ shortRange(n) }}</span>
+              <div class="ca__vnode-info">
+                <span class="ca__vnode-label">{{ n.index }}주차</span>
+                <span class="ca__vnode-range">{{ shortRange(n) }}</span>
+              </div>
             </div>
-          </div>
+
+            <!-- current (큰 카드 + 목표 list) -->
+            <div v-else-if="n && i === 1" class="ca__vcard">
+              <span class="ca__vcard-bubble">START</span>
+              <div class="ca__vcard-head">
+                <div class="ca__vcard-circle">{{ n.index }}</div>
+                <div class="ca__vcard-headinfo">
+                  <span class="ca__vcard-label">{{ n.index }}주차</span>
+                  <span class="ca__vcard-range">{{ shortRange(n) }}</span>
+                </div>
+                <span class="ca__vcard-meta"><strong>{{ n.done }}</strong> / {{ n.planned }}</span>
+              </div>
+
+              <ul v-if="currentWeekGoals.length" class="ca__vgoals">
+                <li
+                  v-for="g in currentWeekGoals"
+                  :key="g.project.id"
+                  class="ca__vgoal"
+                  :class="{ 'ca__vgoal--done': g.done }"
+                >
+                  <span class="ca__vgoal-mark">{{ g.done ? '✓' : '○' }}</span>
+                  <span
+                    class="ca__vgoal-cat"
+                    :style="{ background: categoryColor(g.project.category) }"
+                  />
+                  <span class="ca__vgoal-name">{{ g.project.name }}</span>
+                </li>
+              </ul>
+              <p v-else class="ca__vgoals-empty">이번 주에 예정된 목표가 없어요</p>
+            </div>
+          </template>
         </div>
       </div>
 
@@ -149,7 +182,7 @@ import type { Project, ProjectCategory } from '@/modules/career-design/types/car
 const router = useRouter()
 const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
 const {
-  today, todayRoutines, todayProjects,
+  today, todayRoutines, todayProjects, dateProjects,
   isProjectDone, isRoutineDone, toggleProject, toggleRoutine,
   plannedCount, doneCount, monthProgress, toDateKey,
 } = useAchievement()
@@ -248,6 +281,53 @@ function shortRange(n: WeekNode): string {
   return `${s}~${e}`
 }
 
+// 현재 주차 인덱스 + 보이는 3개 노드 (prev / current / next, 가장자리면 null)
+const currentWeekIdx = computed(() => weekNodes.value.findIndex(n => n.isCurrent))
+
+const visibleNodes = computed<(WeekNode | null)[]>(() => {
+  const all = weekNodes.value
+  const i = currentWeekIdx.value
+  if (!all.length) return [null, null, null]
+  if (i === -1) {
+    // 현재 월에 isCurrent가 없는 경우(첫/끝 경계) — 첫 3개 표시
+    return [all[0] ?? null, all[1] ?? null, all[2] ?? null]
+  }
+  return [
+    i - 1 >= 0 ? all[i - 1]! : null,
+    all[i]!,
+    i + 1 < all.length ? all[i + 1]! : null,
+  ]
+})
+
+// 현재 주차에 매칭되는 unique 프로젝트 + 그 주에 한 번이라도 완료되면 done
+interface WeekGoal { project: Project; done: boolean }
+const currentWeekGoals = computed<WeekGoal[]>(() => {
+  const cur = currentWeekIdx.value === -1 ? null : weekNodes.value[currentWeekIdx.value] ?? null
+  if (!cur) return []
+
+  const seen = new Set<string>()
+  const out: WeekGoal[] = []
+
+  const d = new Date(cur.start)
+  while (d <= cur.end) {
+    const ps = dateProjects(d, draftPlan.projects, timelineForCalc.value, draftPlan.startDate, draftPlan.endDate)
+    for (const p of ps) {
+      if (seen.has(p.id)) continue
+      seen.add(p.id)
+
+      let done = false
+      const dd = new Date(cur.start)
+      while (dd <= cur.end) {
+        if (isProjectDone(p.id, toDateKey(dd))) { done = true; break }
+        dd.setDate(dd.getDate() + 1)
+      }
+      out.push({ project: p, done })
+    }
+    d.setDate(d.getDate() + 1)
+  }
+  return out
+})
+
 // 카테고리
 const categories: Record<ProjectCategory, { label: string; color: string }> = {
   qualification: { label: '자격요건',   color: '#1DB95A' },
@@ -285,10 +365,10 @@ onMounted(async () => {
   background: #F5F5F5;
   padding-bottom: 32px;
 
-  /* ── 진로계획 hero (N일차 + 타임라인 단계 + 이번 주 path) ── */
+  /* ── 진로계획 hero (N일차 + 타임라인 단계 + 세로 path) ── */
   &__plan-hero {
     margin: 16px 16px 12px;
-    padding: 22px 22px 36px;
+    padding: 22px 22px 22px;
     border-radius: 22px;
     background: linear-gradient(135deg, #FFC700 0%, #FFB300 100%);
     color: #fff;
@@ -391,135 +471,228 @@ onMounted(async () => {
     cursor: pointer;
   }
 
-  /* ── 이번 주 path (듀오링고 zigzag) ── */
-  &__path {
+  /* ── 세로 path (prev / current(큰 카드) / next) ── */
+  &__vpath {
     margin-top: 6px;
     padding-top: 14px;
     border-top: 1px solid rgba(255, 255, 255, 0.28);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 
-  &__path-title {
+  &__vpath-title {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     font-size: 13px;
     font-weight: 800;
-    margin-bottom: 12px;
     opacity: 0.98;
+    margin-bottom: 2px;
   }
 
-  &__path-meta {
+  &__vpath-meta {
     font-size: 12px;
     opacity: 0.9;
     strong { font-weight: 800; font-size: 13px; }
   }
 
-  &__path-row {
+  /* prev/next 작은 노드 (좌/우 정렬로 zigzag) */
+  &__vnode {
     display: flex;
     align-items: center;
-    justify-content: space-around;
-    gap: 4px;
-    padding: 16px 0 0;     /* bubble을 위한 위쪽 여유 */
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.14);
+    max-width: 64%;
+    backdrop-filter: blur(2px);
+
+    &--prev { align-self: flex-start; }
+    &--next { align-self: flex-end; flex-direction: row-reverse; }
   }
 
-  &__node {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    flex: 1 1 0;
-    min-width: 0;
-
-    /* zigzag offset — 0~4 cycle */
-    &--pos-0 { transform: translateY(0); }
-    &--pos-1 { transform: translateY(10px); }
-    &--pos-2 { transform: translateY(18px); }
-    &--pos-3 { transform: translateY(10px); }
-    &--pos-4 { transform: translateY(0); }
-  }
-
-  &__node-circle {
-    width: 36px;
-    height: 36px;
+  &__vnode-circle {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.22);
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 13px;
+    background: rgba(255, 255, 255, 0.28);
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 12px;
     font-weight: 800;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.1);
-  }
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.08);
 
-  &__node-dow {
-    font-size: 11px;
-    font-weight: 800;
-    opacity: 0.92;
-    margin-top: 2px;
-  }
-
-  &__node-range {
-    font-size: 10px;
-    font-weight: 600;
-    opacity: 0.72;
-    letter-spacing: 0.2px;
-  }
-
-  &__node-bubble {
-    position: absolute;
-    top: -22px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #fff;
-    color: #FF8A00;
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 0.5px;
-    padding: 3px 8px;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-    white-space: nowrap;
-
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: -4px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 4px solid transparent;
-      border-right: 4px solid transparent;
-      border-top: 4px solid #fff;
+    &--done {
+      background: #fff;
+      color: #FFB300;
+    }
+    &--partial {
+      background: rgba(255, 255, 255, 0.75);
+      color: #B07800;
+    }
+    &--past {
+      background: rgba(255, 255, 255, 0.16);
+      color: rgba(255, 255, 255, 0.55);
     }
   }
 
-  &__node--done .ca__node-circle {
-    background: #fff;
-    color: #FFB300;
-    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.06);
+  &__vnode-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
   }
 
-  &__node--partial .ca__node-circle {
-    background: rgba(255, 255, 255, 0.75);
-    color: #B07800;
-    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.08);
+  &__vnode-label {
+    font-size: 12px;
+    font-weight: 800;
   }
 
-  &__node--today .ca__node-circle {
-    background: #fff;
-    color: #FF8A00;
-    box-shadow:
-      0 0 0 4px rgba(255, 255, 255, 0.85),
-      inset 0 -3px 0 rgba(0, 0, 0, 0.06);
-    font-size: 8px;
+  &__vnode-range {
+    font-size: 10px;
+    font-weight: 600;
+    opacity: 0.78;
   }
 
-  &__node--past:not(.ca__node--done):not(.ca__node--partial) .ca__node-circle {
-    background: rgba(255, 255, 255, 0.16);
-    color: rgba(255, 255, 255, 0.55);
+  /* current 큰 카드 */
+  &__vcard {
+    position: relative;
+    margin: 6px 0;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 18px;
+    padding: 18px 18px 16px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+    color: #333;
+  }
+
+  &__vcard-bubble {
+    position: absolute;
+    top: -12px;
+    left: 18px;
+    background: #FF8A00;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  }
+
+  &__vcard-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #EEEEE8;
+  }
+
+  &__vcard-circle {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FFC700 0%, #FFB300 100%);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(255, 138, 0, 0.35);
+  }
+
+  &__vcard-headinfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__vcard-label {
+    font-size: 17px;
+    font-weight: 900;
+    color: #222;
+  }
+
+  &__vcard-range {
+    font-size: 12px;
+    font-weight: 600;
+    color: #888;
+  }
+
+  &__vcard-meta {
+    font-size: 12px;
+    color: #888;
+    font-weight: 600;
+
+    strong {
+      color: #FF8A00;
+      font-weight: 900;
+      font-size: 14px;
+    }
+  }
+
+  /* 현재 주차 목표 list */
+  &__vgoals {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__vgoals-empty {
+    font-size: 12px;
+    color: #aaa;
+    text-align: center;
+    margin: 14px 0 4px;
+  }
+
+  &__vgoal {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #333;
+    font-weight: 600;
+
+    &--done {
+      color: #aaa;
+      .ca__vgoal-name { text-decoration: line-through; }
+      .ca__vgoal-mark { color: #1DB95A; }
+    }
+  }
+
+  &__vgoal-mark {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 900;
+    color: #ccc;
+  }
+
+  &__vgoal-cat {
+    flex-shrink: 0;
+    width: 4px;
+    height: 18px;
+    border-radius: 2px;
+  }
+
+  &__vgoal-name {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* 섹션 공통 */

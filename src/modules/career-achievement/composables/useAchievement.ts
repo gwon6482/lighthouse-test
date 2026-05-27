@@ -121,6 +121,20 @@ export function useAchievement() {
     return projects.filter(p => idsInMonth.has(p.id) && p.days.includes(todayDow.value))
   }
 
+  // 임의 날짜에 매칭되는 프로젝트 (todayProjects 일반화)
+  function dateProjects(
+    date: Date,
+    projects: Project[],
+    timeline: { month: string; projects: { id: string }[] }[],
+    startDate: string,
+    endDate: string,
+  ): Project[] {
+    if (!isMonthInRange(date, startDate, endDate)) return []
+    const idsInMonth = getProjectIdsInMonth(timeline, date)
+    const dow = getDayOfWeek(date)
+    return projects.filter(p => idsInMonth.has(p.id) && p.days.includes(dow))
+  }
+
   // ── 완료 상태 조회/토글 ───────────────────────────
   function getDay(dateKey: string): DailyCompletion {
     return completion.value[dateKey] ?? { projects: [], routines: [] }
@@ -213,6 +227,7 @@ export function useAchievement() {
     weekDates,
     todayRoutines,
     todayProjects,
+    dateProjects,
     isProjectDone,
     isRoutineDone,
     toggleProject,
