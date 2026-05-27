@@ -1,7 +1,7 @@
 <template>
-  <div class="rjc" :class="`rjc--rank-${Math.min(rank, 4)}`" @click="emit('click')">
+  <div class="rjc" :class="rank ? `rjc--rank-${Math.min(rank, 4)}` : ''" @click="emit('click')">
     <!-- 순위 배지 -->
-    <div class="rjc__rank">
+    <div v-if="rank" class="rjc__rank">
       <span class="rjc__rank-num">{{ rank }}</span>
     </div>
 
@@ -29,7 +29,7 @@ import type { JobSummary } from '../../../types/encyclopedia'
 
 defineProps<{
   job: JobSummary
-  rank: number
+  rank?: number
 }>()
 
 const emit = defineEmits<{
