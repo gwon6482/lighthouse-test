@@ -72,6 +72,15 @@
                 <span class="ca__vcard-meta"><strong>{{ n.done }}</strong> / {{ n.planned }}</span>
               </div>
 
+              <div v-if="currentWeekGoals.length" class="ca__vgoals-bar">
+                <span
+                  v-for="(g, gi) in currentWeekGoals"
+                  :key="gi"
+                  class="ca__vgoals-seg"
+                  :class="{ 'ca__vgoals-seg--done': g.done }"
+                />
+              </div>
+
               <ul v-if="currentWeekGoals.length" class="ca__vgoals">
                 <li
                   v-for="g in currentWeekGoals"
@@ -167,13 +176,20 @@
     </template>
 
     <div v-if="loading" class="ca__loading">불러오는 중...</div>
+
+    <CelebrationModal
+      v-model="celebrate"
+      title="오늘 모든 목표 완료!"
+      :sub="`진로계획 ${daysSinceStart ?? 1}일차를 멋지게 마쳤어요`"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/shared/components/AppHeader.vue'
+import CelebrationModal from '../components/CelebrationModal.vue'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 import { useAchievement } from '../composables/useAchievement'
 import type { Project, ProjectCategory } from '@/modules/career-design/types/career-design'
@@ -182,7 +198,7 @@ import type { Project, ProjectCategory } from '@/modules/career-design/types/car
 const router = useRouter()
 const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
 const {
-  today, todayRoutines, todayProjects, dateProjects,
+  today, todayKey, todayRoutines, todayProjects, dateProjects,
   isProjectDone, isRoutineDone, toggleProject, toggleRoutine,
   plannedCount, doneCount, monthProgress, toDateKey,
 } = useAchievement()
@@ -341,6 +357,36 @@ const categoryColor = (c: ProjectCategory) => categories[c]?.color ?? '#aaa'
 function startProject(p: Project) {
   router.push({ path: `/career-achievement/start/project/${p.id}`, query: { date: toDateKey(today.value) } })
 }
+
+// ── 오늘 전체 완료 시 축하 팝업 ─────────────────────
+const celebrate = ref(false)
+const CELEBRATION_KEY_PREFIX = 'lh_celebration_'
+
+const allTodayDone = computed(() => {
+  const total = todayProjectsList.value.length + todayRoutinesList.value.length
+  if (total === 0) return false
+  return (
+    todayProjectsList.value.every(p => isProjectDone(p.id)) &&
+    todayRoutinesList.value.every(r => isRoutineDone(r.id))
+  )
+})
+
+function alreadyCelebratedToday(): boolean {
+  try {
+    return localStorage.getItem(CELEBRATION_KEY_PREFIX + todayKey.value) === '1'
+  } catch { return false }
+}
+
+function markCelebratedToday() {
+  try { localStorage.setItem(CELEBRATION_KEY_PREFIX + todayKey.value, '1') } catch { /* quota */ }
+}
+
+watch(allTodayDone, (now) => {
+  if (now && !alreadyCelebratedToday()) {
+    celebrate.value = true
+    markCelebratedToday()
+  }
+})
 
 // 초기 로드: 가장 최근 활성 진로계획 1건 로드
 onMounted(async () => {
@@ -636,10 +682,31 @@ onMounted(async () => {
     }
   }
 
+  /* 현재 주차 목표 N등분 progress bar */
+  &__vgoals-bar {
+    display: flex;
+    gap: 3px;
+    height: 6px;
+    margin-top: 14px;
+  }
+
+  &__vgoals-seg {
+    flex: 1;
+    height: 100%;
+    background: #EEEEE8;
+    border-radius: 3px;
+    transition: background 0.25s;
+
+    &--done {
+      background: linear-gradient(135deg, #FFC700, #FFB300);
+      box-shadow: 0 1px 4px rgba(255, 138, 0, 0.35);
+    }
+  }
+
   /* 현재 주차 목표 list */
   &__vgoals {
     list-style: none;
-    margin: 12px 0 0;
+    margin: 10px 0 0;
     padding: 0;
     display: flex;
     flex-direction: column;
@@ -662,8 +729,7 @@ onMounted(async () => {
     font-weight: 600;
 
     &--done {
-      color: #aaa;
-      .ca__vgoal-name { text-decoration: line-through; }
+      color: #555;
       .ca__vgoal-mark { color: #1DB95A; }
     }
   }
