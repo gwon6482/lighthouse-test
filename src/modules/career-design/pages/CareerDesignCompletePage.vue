@@ -285,7 +285,7 @@ function formatMonthStr(date: Date): string {
 function parseMonthStr(monthStr: string): Date {
   const match = monthStr.match(/(\d+)년 (\d+)월/)
   if (!match) return new Date()
-  return new Date(parseInt(match[1]), parseInt(match[2]) - 1, 1)
+  return new Date(parseInt(match[1]!), parseInt(match[2]!) - 1, 1)
 }
 
 const startMonthStr = computed(() => {
@@ -306,7 +306,7 @@ function normalizeSlots() {
   // 마지막으로 채워진 슬롯의 인덱스
   let lastFilledIdx = -1
   for (let i = slots.length - 1; i >= 0; i--) {
-    if (slots[i].projects.length > 0) { lastFilledIdx = i; break }
+    if (slots[i]!.projects.length > 0) { lastFilledIdx = i; break }
   }
 
   if (lastFilledIdx === -1) {
@@ -318,7 +318,7 @@ function normalizeSlots() {
   const kept = slots.slice(0, lastFilledIdx + 1)
 
   // 그 다음 달 빈 슬롯 하나만 추가
-  const last = kept[kept.length - 1]
+  const last = kept[kept.length - 1]!
   const nextDate = parseMonthStr(last.month)
   nextDate.setMonth(nextDate.getMonth() + 1)
   kept.push({ month: formatMonthStr(nextDate), projects: [] })
@@ -406,7 +406,7 @@ function addNextMonth() {
       { month: formatMonthStr(next), projects: [] },
     ]
   } else {
-    const last = draftTimeline.value[draftTimeline.value.length - 1]
+    const last = draftTimeline.value[draftTimeline.value.length - 1]!
     const next = parseMonthStr(last.month)
     next.setMonth(next.getMonth() + 1)
     draftTimeline.value.push({ month: formatMonthStr(next), projects: [] })

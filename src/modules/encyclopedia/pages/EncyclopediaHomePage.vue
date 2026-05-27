@@ -39,9 +39,10 @@
         <h2 class="enc-home__section-title">진로 둘러보기</h2>
         <div class="enc-home__card-list">
           <RecommendedJobCard
-            v-for="job in featuredJobs"
+            v-for="(job, i) in featuredJobs"
             :key="job.jobCode"
             :job="job"
+            :rank="i + 1"
             @click="goToJobDetail(job.jobCode)"
           />
         </div>

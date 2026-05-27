@@ -27,7 +27,7 @@
         </div>
         <div class="level-desc">
           <div class="desc-label">레벨 {{ answers[i] }}</div>
-          <div class="desc-text">{{ part.levels[answers[i] - 1] }}</div>
+          <div class="desc-text">{{ part.levels[answers[i]! - 1] }}</div>
         </div>
       </div>
     </div>

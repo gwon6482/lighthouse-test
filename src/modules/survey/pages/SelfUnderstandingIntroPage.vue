@@ -302,7 +302,7 @@ function onLoginClick() {
 }
 
 function randItem<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]
+  return arr[Math.floor(Math.random() * arr.length)]!
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -336,9 +336,9 @@ async function devSkipToT3() {
   if (t23Page?.items && t23Page.items.length >= 3) {
     const shuffled = shuffle(t23Page.items.map((i) => i.item_id))
     setPriorityAnswer({
-      priority_1: shuffled[0],
-      priority_2: shuffled[1],
-      priority_3: shuffled[2],
+      priority_1: shuffled[0]!,
+      priority_2: shuffled[1]!,
+      priority_3: shuffled[2]!,
       no_priority: shuffled.slice(3),
     })
   }

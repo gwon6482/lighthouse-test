@@ -8,7 +8,7 @@
     </section>
 
     <section class="complete-summary">
-      <div v-for="part in parts" :key="part.label" class="complete-part-row">
+      <div v-for="part in parts" :key="part.name" class="complete-part-row">
         <span class="complete-part-emoji">{{ part.emoji }}</span>
         <span class="complete-part-name">{{ part.name }}</span>
         <span class="complete-check">✓</span>

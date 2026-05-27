@@ -123,7 +123,7 @@ async function resolveSurveyId(): Promise<string> {
       const sorted = [...data.surveyResults].sort(
         (a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
       )
-      return sorted[0].survey_id
+      return sorted[0]!.survey_id
     }
   } catch { /* 비로그인 시 무시 */ }
   return ''

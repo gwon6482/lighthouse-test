@@ -83,7 +83,7 @@ export function useEncyclopedia() {
           const sorted = [...ud.surveyResults].sort(
             (a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
           )
-          id = sorted[0].survey_id
+          id = sorted[0]!.survey_id
         }
       } catch {
         // 비로그인 또는 실패 시 무시
