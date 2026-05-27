@@ -386,7 +386,7 @@ const currentWeekProjectBars = computed<ProjectBar[]>(() => {
 
       const wIdx = projectWeekIdx(p.id, cur.start)
       if (wIdx === null) continue
-      const cw = p.curriculum?.[wIdx - 1]
+      const cw = p.curriculum?.find(c => c.week === wIdx)
       if (!cw || !cw.items?.length) continue
 
       out.push({
