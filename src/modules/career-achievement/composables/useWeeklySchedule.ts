@@ -65,23 +65,18 @@ function parseMonthLabel(s: string): { year: number; month: number } | null {
   return null
 }
 
-// 진로계획 startDate 와 reviewDay 로 첫 주 [weekStart, weekEnd] 범위 계산.
-// weekStart 는 startDate (포함), weekEnd 는 startDate 이후 처음 등장하는 reviewDay (포함).
-// startDate 가 곧 reviewDay 면 다음 주 reviewDay 까지 7일을 첫 주로 잡음.
+// 진로계획 첫 주 [weekStart, weekEnd] 범위 — 항상 startDate 부터 7일.
+// 모든 주는 7일 블록으로 통일 (subsequent 주차도 +7 일씩 이동).
+// reviewDay 는 더 이상 boundary 가 아니라 "그 주의 리뷰를 하는 요일" annotation 으로 사용.
+// (signature 는 호환을 위해 유지)
 export function computeFirstWeekRange(
-  startDate: string, reviewDay: DayOfWeek,
+  startDate: string, _reviewDay: DayOfWeek,
 ): { weekStart: string; weekEnd: string } | null {
   const sd = parseDateKey(startDate)
   if (!sd) return null
-
-  const cursor = new Date(sd)
-  if (dowOf(cursor) === reviewDay) {
-    cursor.setDate(cursor.getDate() + 1)
-  }
-  while (dowOf(cursor) !== reviewDay) {
-    cursor.setDate(cursor.getDate() + 1)
-  }
-  return { weekStart: startDate, weekEnd: toDateKey(cursor) }
+  const ed = new Date(sd)
+  ed.setDate(ed.getDate() + 6)   // 7일 inclusive
+  return { weekStart: startDate, weekEnd: toDateKey(ed) }
 }
 
 // 임의 날짜 date 가 속한 주의 [weekStart, weekEnd] 계산.
