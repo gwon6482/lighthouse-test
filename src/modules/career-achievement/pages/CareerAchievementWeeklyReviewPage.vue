@@ -1,10 +1,14 @@
 <template>
   <div class="wr">
-    <header class="wr__header">
-      <button class="wr__back" @click="router.back()">‹</button>
-      <span class="wr__header-title">주간 리뷰</span>
-      <span class="wr__header-spacer" />
-    </header>
+    <AppHeader />
+
+    <div class="wr__intro">
+      <h1 class="wr__intro-title">주간 리뷰</h1>
+      <p class="wr__intro-desc">
+        매주 한 번, 지난 한 주를 돌아보고 다음 한 주의 일정을 직접 배치하는 시간이에요.
+        계획대로 흘러가지 않아도 괜찮아요. 매주 다시 그려나가면 돼요.
+      </p>
+    </div>
 
     <div v-if="loading" class="wr__loading">불러오는 중...</div>
 
@@ -17,18 +21,9 @@
       </div>
     </template>
 
-    <template v-else-if="!prevRange">
-      <div class="wr__empty">
-        <span class="wr__empty-icon">🌱</span>
-        <h2 class="wr__empty-title">아직 리뷰할 한 주가 없어요</h2>
-        <p class="wr__empty-text">첫 주를 보낸 뒤 다시 들러주세요.</p>
-        <button class="wr__empty-btn" @click="router.replace('/career-achievement')">데일리로 가기</button>
-      </div>
-    </template>
-
     <template v-else>
-      <!-- 지난 주 회고 -->
-      <section class="wr__section">
+      <!-- 지난 주 회고 — 첫 주이면 안내 카드만 -->
+      <section v-if="prevRange" class="wr__section">
         <div class="wr__section-head">
           <h2 class="wr__section-title">지난 주 회고</h2>
           <span class="wr__range">{{ fmtRange(prevRange) }}</span>
@@ -83,6 +78,59 @@
         </p>
       </section>
 
+      <!-- 첫 주용 안내 (회고할 직전 주가 없을 때) -->
+      <section v-else class="wr__section wr__section--info">
+        <span class="wr__info-icon">🌱</span>
+        <div class="wr__info-body">
+          <h3 class="wr__info-title">첫 주를 시작했어요</h3>
+          <p class="wr__info-text">아직 회고할 한 주가 없어요. 아래에서 첫 주와 다음 주 일정을 미리 다듬어 보세요.</p>
+        </div>
+      </section>
+
+      <!-- 첫 주 일정 (직전 주 없는 경우에만 노출) — 사용자가 시작 직후에도 첫 주 일정을 다듬을 수 있도록 -->
+      <section v-if="!prevRange && currentRange" class="wr__section">
+        <div class="wr__section-head">
+          <h2 class="wr__section-title">이번 주 일정</h2>
+          <span class="wr__range">{{ fmtRange(currentRange) }}</span>
+        </div>
+        <p class="wr__next-hint">
+          첫 주는 미리 잡힌 디폴트가 있어요. 필요하면 조정해 주세요. 변경은 자동 저장돼요.
+          <span v-if="currentSaving" class="wr__autosave">저장 중...</span>
+        </p>
+        <div v-if="currentDays.length" class="wr__days">
+          <div
+            v-for="day in currentDays"
+            :key="day.date"
+            class="wr__day"
+            :class="{ 'wr__day--empty': !day.items.length }"
+          >
+            <div class="wr__day-head">
+              <span class="wr__day-dow">{{ day.dow }}</span>
+              <span class="wr__day-date">{{ day.dateLabel }}</span>
+              <span v-if="day.items.length" class="wr__day-count">{{ day.items.length }}</span>
+              <button class="wr__day-add" @click="openAddSheet(day.date, 'current')" type="button">+ 추가</button>
+            </div>
+            <ul v-if="day.items.length" class="wr__day-items">
+              <li
+                v-for="it in day.items"
+                :key="it.id"
+                class="wr__day-item wr__day-item--project"
+                :style="{ '--cat-color': it.color } as any"
+              >
+                <span
+                  class="wr__day-item-cat"
+                  :style="{ color: it.color, background: `color-mix(in srgb, ${it.color} 14%, white)` }"
+                >{{ it.categoryLabel }}</span>
+                <span class="wr__day-item-name">{{ it.name }}</span>
+                <span class="wr__day-item-meta">{{ it.duration }}분</span>
+                <button class="wr__day-item-remove" @click="removeItem(it.id, 'current')" type="button" aria-label="삭제">✕</button>
+              </li>
+            </ul>
+            <p v-else class="wr__day-empty">예정된 프로젝트 없음</p>
+          </div>
+        </div>
+      </section>
+
       <!-- 다음 주 일정 -->
       <section v-if="nextRange" class="wr__section">
         <div class="wr__section-head">
@@ -91,7 +139,7 @@
         </div>
 
         <p class="wr__next-hint">
-          다음 주 일정을 미리 보고 조정해 주세요. 변경사항은 자동으로 저장돼요.
+          다음 주 프로젝트 일정을 미리 보고 조정해 주세요. 루틴은 정해진 요일에 따라 자동 배치돼요. 변경은 자동 저장돼요.
           <span v-if="nextSaving" class="wr__autosave">저장 중...</span>
         </p>
 
@@ -106,104 +154,66 @@
               <span class="wr__day-dow">{{ day.dow }}</span>
               <span class="wr__day-date">{{ day.dateLabel }}</span>
               <span v-if="day.items.length" class="wr__day-count">{{ day.items.length }}</span>
-              <button class="wr__day-add" @click="openAddSheet(day.date)" type="button">+ 추가</button>
+              <button class="wr__day-add" @click="openAddSheet(day.date, 'next')" type="button">+ 추가</button>
             </div>
             <ul v-if="day.items.length" class="wr__day-items">
               <li
                 v-for="it in day.items"
                 :key="it.id"
-                class="wr__day-item"
-                :class="`wr__day-item--${it.itemType}`"
-                :style="it.color ? { '--cat-color': it.color } as any : undefined"
+                class="wr__day-item wr__day-item--project"
+                :style="{ '--cat-color': it.color } as any"
               >
                 <span
-                  v-if="it.itemType === 'project'"
                   class="wr__day-item-cat"
                   :style="{ color: it.color, background: `color-mix(in srgb, ${it.color} 14%, white)` }"
                 >{{ it.categoryLabel }}</span>
-                <span v-else class="wr__day-item-cat wr__day-item-cat--routine">루틴</span>
                 <span class="wr__day-item-name">{{ it.name }}</span>
                 <span class="wr__day-item-meta">{{ it.duration }}분</span>
                 <button
                   class="wr__day-item-remove"
-                  @click="removeItem(it.id)"
+                  @click="removeItem(it.id, 'next')"
                   type="button"
                   aria-label="삭제"
                 >✕</button>
               </li>
             </ul>
-            <p v-else class="wr__day-empty">예정된 일정 없음</p>
+            <p v-else class="wr__day-empty">예정된 프로젝트 없음</p>
           </div>
         </div>
-        <p v-else class="wr__placeholder-text">다음 주에 잡힌 일정이 없어요.</p>
+        <p v-else class="wr__placeholder-text">다음 주에 잡힌 프로젝트가 없어요.</p>
       </section>
     </template>
 
-    <!-- 항목 추가 bottom sheet -->
+    <!-- 항목 추가 bottom sheet — 프로젝트만 추가 가능 (루틴은 마스터 days 로 자동 배치) -->
     <Teleport to="body">
       <Transition name="wr-sheet">
         <div v-if="addSheetOpen" class="wr-sheet" @click.self="closeAddSheet">
           <div class="wr-sheet__panel">
             <div class="wr-sheet__handle" />
             <div class="wr-sheet__head">
-              <h3 class="wr-sheet__title">{{ addSheetDateLabel }} 에 추가</h3>
+              <h3 class="wr-sheet__title">{{ addSheetDateLabel }} 에 프로젝트 추가</h3>
               <button class="wr-sheet__close" @click="closeAddSheet" type="button">✕</button>
             </div>
 
-            <div class="wr-sheet__tabs">
-              <button
-                class="wr-sheet__tab"
-                :class="{ 'wr-sheet__tab--active': addTab === 'project' }"
-                @click="addTab = 'project'"
-                type="button"
-              >프로젝트 ({{ draftPlan.projects.length }})</button>
-              <button
-                class="wr-sheet__tab"
-                :class="{ 'wr-sheet__tab--active': addTab === 'routine' }"
-                @click="addTab = 'routine'"
-                type="button"
-              >루틴 ({{ draftPlan.routines.length }})</button>
-            </div>
-
             <div class="wr-sheet__list">
-              <template v-if="addTab === 'project'">
-                <button
-                  v-for="p in draftPlan.projects"
-                  :key="p.id"
-                  class="wr-sheet__row"
-                  @click="addItem('project', p.id)"
-                  type="button"
-                >
-                  <span
-                    class="wr-sheet__row-dot"
-                    :style="{ background: CAT_COLOR[p.category] }"
-                  />
-                  <div class="wr-sheet__row-body">
-                    <span class="wr-sheet__row-name">{{ p.name }}</span>
-                    <span class="wr-sheet__row-meta">{{ CAT_LABEL[p.category] }} · {{ p.duration }}분</span>
-                  </div>
-                  <span class="wr-sheet__row-plus">＋</span>
-                </button>
-                <p v-if="!draftPlan.projects.length" class="wr-sheet__empty">등록된 프로젝트가 없어요.</p>
-              </template>
-
-              <template v-else>
-                <button
-                  v-for="r in draftPlan.routines"
-                  :key="r.id"
-                  class="wr-sheet__row"
-                  @click="addItem('routine', r.id)"
-                  type="button"
-                >
-                  <span class="wr-sheet__row-dot" :style="{ background: '#FFD84D' }" />
-                  <div class="wr-sheet__row-body">
-                    <span class="wr-sheet__row-name">{{ r.name }}</span>
-                    <span class="wr-sheet__row-meta">루틴 · {{ r.duration }}분</span>
-                  </div>
-                  <span class="wr-sheet__row-plus">＋</span>
-                </button>
-                <p v-if="!draftPlan.routines.length" class="wr-sheet__empty">등록된 루틴이 없어요.</p>
-              </template>
+              <button
+                v-for="p in draftPlan.projects"
+                :key="p.id"
+                class="wr-sheet__row"
+                @click="addItem(p.id)"
+                type="button"
+              >
+                <span
+                  class="wr-sheet__row-dot"
+                  :style="{ background: CAT_COLOR[p.category] }"
+                />
+                <div class="wr-sheet__row-body">
+                  <span class="wr-sheet__row-name">{{ p.name }}</span>
+                  <span class="wr-sheet__row-meta">{{ CAT_LABEL[p.category] }} · {{ p.duration }}분</span>
+                </div>
+                <span class="wr-sheet__row-plus">＋</span>
+              </button>
+              <p v-if="!draftPlan.projects.length" class="wr-sheet__empty">등록된 프로젝트가 없어요.</p>
             </div>
           </div>
         </div>
@@ -215,6 +225,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import AppHeader from '@/shared/components/AppHeader.vue'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 import {
   useWeeklySchedule, computeWeekRangeContaining, parseDateKey, toDateKey,
@@ -229,64 +240,79 @@ const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDes
 const { fetchScheduleByWeek, updateSchedule, ensureWeekSchedule } = useWeeklySchedule()
 const { isProjectDone, isRoutineDone } = useAchievement()
 
-const loading       = ref(true)
-const saving        = ref(false)
-const nextSaving    = ref(false)
-const prevSchedule  = ref<WeeklySchedule | null>(null)
-const nextSchedule  = ref<WeeklySchedule | null>(null)
-const reviewNote    = ref('')
+type EditTarget = 'current' | 'next'
 
-// 항목 추가 bottom sheet
-const addSheetOpen = ref(false)
-const addSheetDate = ref('')
-const addTab       = ref<'project' | 'routine'>('project')
+const loading        = ref(true)
+const saving         = ref(false)
+const nextSaving     = ref(false)
+const currentSaving  = ref(false)
+const prevSchedule   = ref<WeeklySchedule | null>(null)
+const currentSchedule = ref<WeeklySchedule | null>(null)
+const nextSchedule   = ref<WeeklySchedule | null>(null)
+const reviewNote     = ref('')
+
+// 항목 추가 bottom sheet — 프로젝트만 (루틴은 days 자동 배치, 주간 조정 불필요)
+const addSheetOpen   = ref(false)
+const addSheetDate   = ref('')
+const addSheetTarget = ref<EditTarget>('next')
 
 const addSheetDateLabel = computed(() => addSheetDate.value ? fmtDateLabel(addSheetDate.value) : '')
 
-function openAddSheet(date: string) {
+function openAddSheet(date: string, target: EditTarget) {
   addSheetDate.value = date
-  addTab.value = 'project'
+  addSheetTarget.value = target
   addSheetOpen.value = true
 }
 function closeAddSheet() {
   addSheetOpen.value = false
 }
 
-// 다음 주 schedule 의 items 를 변경하고 즉시 BE 동기화 (autosave).
-// nextSchedule.value 는 미리 local 업데이트해서 UI 가 즉각 반영되도록 함.
-async function persistNextItems(newItems: WeeklySchedule['items']) {
-  if (!draftPlan.planId || !nextSchedule.value) return
+// target 별로 schedule 을 가리키는 헬퍼 — 코드 중복 줄임
+function scheduleRefFor(target: EditTarget) {
+  return target === 'current' ? currentSchedule : nextSchedule
+}
+function savingRefFor(target: EditTarget) {
+  return target === 'current' ? currentSaving : nextSaving
+}
+
+// schedule 의 items 를 변경하고 즉시 BE 동기화 (autosave) — current / next 공용
+async function persistItems(target: EditTarget, newItems: WeeklySchedule['items']) {
+  const sched = scheduleRefFor(target)
+  if (!draftPlan.planId || !sched.value) return
   const planId = draftPlan.planId
-  const weekStart = nextSchedule.value.weekStart
-  // optimistic
-  nextSchedule.value = { ...nextSchedule.value, items: newItems }
-  nextSaving.value = true
+  const weekStart = sched.value.weekStart
+  sched.value = { ...sched.value, items: newItems }
+  const savingRef = savingRefFor(target)
+  savingRef.value = true
   try {
     const updated = await updateSchedule(planId, weekStart, { items: newItems })
-    if (updated) nextSchedule.value = updated
+    if (updated) sched.value = updated
   } finally {
-    nextSaving.value = false
+    savingRef.value = false
   }
 }
 
-function removeItem(itemId: string) {
-  if (!nextSchedule.value) return
-  const next = nextSchedule.value.items.filter(it => it.id !== itemId)
-  persistNextItems(next)
+function removeItem(itemId: string, target: EditTarget) {
+  const sched = scheduleRefFor(target)
+  if (!sched.value) return
+  const next = sched.value.items.filter(it => it.id !== itemId)
+  persistItems(target, next)
 }
 
-function addItem(itemType: 'project' | 'routine', itemId: string) {
-  if (!nextSchedule.value || !addSheetDate.value) return
+// 프로젝트만 추가 (루틴은 마스터 days 로 자동 배치, 주간 조정 불필요)
+function addItem(projectId: string) {
+  const sched = scheduleRefFor(addSheetTarget.value)
+  if (!sched.value || !addSheetDate.value) return
   const newItem = {
     id: crypto.randomUUID(),
-    itemType,
-    itemId,
+    itemType: 'project' as const,
+    itemId: projectId,
     date: addSheetDate.value,
     curriculumWeek: null,
     note: '',
   }
-  const next = [...nextSchedule.value.items, newItem]
-  persistNextItems(next)
+  const next = [...sched.value.items, newItem]
+  persistItems(addSheetTarget.value, next)
   closeAddSheet()
 }
 
@@ -340,79 +366,73 @@ const summary = computed(() => {
   return { routinePlanned: rp, routineDone: rd, projectPlanned: pp, projectDone: pd }
 })
 
+// 이번 주 범위 (첫 주 일정 편집용)
+const currentRange = computed<{ weekStart: string; weekEnd: string } | null>(() => {
+  if (!draftPlan.startDate || !draftPlan.reviewDay) return null
+  return computeWeekRangeContaining(getToday(), draftPlan.startDate, draftPlan.reviewDay)
+})
+
 // 다음 주 범위: 현재 주 다음 날부터 +6 일 (next reviewDay)
 const nextRange = computed<{ weekStart: string; weekEnd: string } | null>(() => {
-  if (!draftPlan.startDate || !draftPlan.reviewDay) return null
-  const cur = computeWeekRangeContaining(getToday(), draftPlan.startDate, draftPlan.reviewDay)
-  if (!cur) return null
-  const curEnd = parseDateKey(cur.weekEnd)
+  if (!currentRange.value) return null
+  const curEnd = parseDateKey(currentRange.value.weekEnd)
   if (!curEnd) return null
   const ns = new Date(curEnd); ns.setDate(ns.getDate() + 1)
   const ne = new Date(ns);     ne.setDate(ne.getDate() + 6)
   return { weekStart: toDateKey(ns), weekEnd: toDateKey(ne) }
 })
 
-// 다음 주 요일별 카드 데이터 (UI 렌더링 편의)
-interface NextDayItem {
+// 요일별 카드 데이터 (project 만 — 루틴은 days 로 자동 배치, 주간 조정 UI 에 노출 안 함)
+interface DayCardItem {
   id: string
-  itemType: 'project' | 'routine'
+  itemType: 'project'
   itemId: string
   name: string
   duration: number
   categoryLabel: string
   color: string
 }
-interface NextDay {
+interface DayCard {
   date: string
   dateLabel: string
   dow: string
-  items: NextDayItem[]
+  items: DayCardItem[]
 }
 
-const nextDays = computed<NextDay[]>(() => {
-  if (!nextRange.value || !nextSchedule.value) return []
-  const sd = parseDateKey(nextRange.value.weekStart)
-  const ed = parseDateKey(nextRange.value.weekEnd)
+function buildDayCards(
+  range: { weekStart: string; weekEnd: string } | null,
+  schedule: WeeklySchedule | null,
+): DayCard[] {
+  if (!range || !schedule) return []
+  const sd = parseDateKey(range.weekStart)
+  const ed = parseDateKey(range.weekEnd)
   if (!sd || !ed) return []
 
-  const itemsByDate: Record<string, typeof nextSchedule.value.items> = {}
-  for (const it of nextSchedule.value.items) {
+  const itemsByDate: Record<string, WeeklySchedule['items']> = {}
+  for (const it of schedule.items) {
+    if (it.itemType !== 'project') continue   // 루틴은 주간 조정 UI 미노출
     ;(itemsByDate[it.date] ??= []).push(it)
   }
 
   const DOW = ['일', '월', '화', '수', '목', '금', '토']
-  const out: NextDay[] = []
+  const out: DayCard[] = []
   const cursor = new Date(sd)
   while (cursor.getTime() <= ed.getTime()) {
     const key = toDateKey(cursor)
     const rawItems = itemsByDate[key] ?? []
-    const items: NextDayItem[] = []
+    const items: DayCardItem[] = []
     for (const it of rawItems) {
-      if (it.itemType === 'project') {
-        const p = draftPlan.projects.find(x => x.id === it.itemId)
-        if (!p) continue
-        items.push({
-          id: it.id,
-          itemType: 'project',
-          itemId: it.itemId,
-          name: p.name,
-          duration: p.duration ?? 0,
-          categoryLabel: CAT_LABEL[p.category] ?? '',
-          color: CAT_COLOR[p.category] ?? '#888',
-        })
-      } else {
-        const r = draftPlan.routines.find(x => x.id === it.itemId)
-        if (!r) continue
-        items.push({
-          id: it.id,
-          itemType: 'routine',
-          itemId: it.itemId,
-          name: r.name,
-          duration: r.duration ?? 0,
-          categoryLabel: '',
-          color: '#CC9D00',
-        })
-      }
+      const p = draftPlan.projects.find(x => x.id === it.itemId)
+      if (!p) continue
+      items.push({
+        id: it.id,
+        itemType: 'project',
+        itemId: it.itemId,
+        name: p.name,
+        duration: p.duration ?? 0,
+        categoryLabel: CAT_LABEL[p.category] ?? '',
+        color: CAT_COLOR[p.category] ?? '#888',
+      })
     }
     out.push({
       date: key,
@@ -423,7 +443,10 @@ const nextDays = computed<NextDay[]>(() => {
     cursor.setDate(cursor.getDate() + 1)
   }
   return out
-})
+}
+
+const currentDays = computed<DayCard[]>(() => buildDayCards(currentRange.value, currentSchedule.value))
+const nextDays    = computed<DayCard[]>(() => buildDayCards(nextRange.value,    nextSchedule.value))
 
 // 놓친 루틴 이름 목록 (중복 제거)
 const missedRoutineNames = computed<string[]>(() => {
@@ -489,6 +512,16 @@ onMounted(async () => {
       prevSchedule.value = s
       if (s) reviewNote.value = s.reviewNote ?? ''
     }
+    // 첫 주(직전 주 없음)면 이번 주 schedule 도 편집 가능하게 로드
+    if (draftPlan.planId && !prevRange.value && currentRange.value) {
+      currentSchedule.value = await ensureWeekSchedule(
+        draftPlan.planId,
+        { projects: draftPlan.projects, routines: draftPlan.routines },
+        draftTimeline.value,
+        currentRange.value.weekStart,
+        currentRange.value.weekEnd,
+      )
+    }
     if (draftPlan.planId && nextRange.value) {
       nextSchedule.value = await ensureWeekSchedule(
         draftPlan.planId,
@@ -512,37 +545,41 @@ onMounted(async () => {
   background: #F5F5F5;
   padding-bottom: 32px;
 
-  &__header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    display: grid;
-    grid-template-columns: 44px 1fr 44px;
-    align-items: center;
-    height: 52px;
-    padding: 0 8px;
-    background: #fff;
-    border-bottom: 1px solid #EEEEE8;
+  &__intro {
+    padding: 20px 20px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
 
-  &__back {
-    width: 36px;
-    height: 36px;
-    border: none;
-    background: transparent;
-    font-size: 20px;
-    color: #444;
-    cursor: pointer;
-  }
-
-  &__header-title {
-    text-align: center;
-    font-size: 14px;
-    font-weight: 700;
+  &__intro-title {
+    font-size: 22px;
+    font-weight: 900;
     color: #222;
+    margin: 0;
+    letter-spacing: -0.4px;
   }
 
-  &__header-spacer { width: 44px; }
+  &__intro-desc {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  /* 첫 주 안내 카드 */
+  &__section--info {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: #FFFBEC;
+    border: 1px solid #FFE99A;
+  }
+
+  &__info-icon { font-size: 22px; line-height: 1; padding-top: 2px; }
+  &__info-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  &__info-title { font-size: 14px; font-weight: 800; color: #B07800; margin: 0; }
+  &__info-text  { font-size: 12.5px; color: #888; margin: 0; line-height: 1.5; }
 
   &__loading {
     padding: 60px 20px;
