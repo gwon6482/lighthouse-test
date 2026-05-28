@@ -61,29 +61,23 @@
           </div>
         </div>
 
-        <!-- 놓친 프로젝트 → 같은 요일로 다음 주 이월 -->
+        <!-- 자동 이월된 프로젝트 (지난 주 미완료 → 이번 주 같은 요일) -->
         <div v-if="missedProjects.length" class="wr__missed-proj">
           <div class="wr__missed-proj-head">
             <span class="wr__missed-proj-label">
-              놓친 프로젝트
-              <strong>{{ missedProjects.length }}</strong>건
-              <span v-if="remainingMissedCount < missedProjects.length" class="wr__missed-proj-sub">
-                ({{ missedProjects.length - remainingMissedCount }} 이월됨)
-              </span>
+              지난 주 미완료
+              <strong>{{ missedProjects.length }}</strong>건 — 이번 주로 이월
             </span>
-            <button
-              v-if="remainingMissedCount > 0"
-              class="wr__missed-proj-all"
-              type="button"
-              @click="carryOverAll"
-            >전부 이번 주로 이월 →</button>
           </div>
+          <p class="wr__missed-proj-hint">
+            놓친 항목은 자동으로 이번 주 같은 요일에 다시 잡아뒀어요. 빼고 싶다면 아래 "이번 주 일정" 에서 ✕ 로 제거해 주세요.
+          </p>
           <ul class="wr__missed-proj-list">
             <li
               v-for="m in missedProjects"
               :key="m.scheduleItemId"
               class="wr__missed-proj-row"
-              :class="{ 'wr__missed-proj-row--carried': isCarriedOver(m) }"
+              :class="{ 'wr__missed-proj-row--dropped': !isCarriedOver(m) }"
               :style="{ '--cat-color': m.color } as any"
             >
               <span
@@ -98,13 +92,8 @@
                   <span class="wr__missed-proj-target">{{ m.targetLabel }}</span>
                 </span>
               </div>
-              <button
-                v-if="!isCarriedOver(m)"
-                class="wr__missed-proj-btn"
-                type="button"
-                @click="carryOver(m)"
-              >이월</button>
-              <span v-else class="wr__missed-proj-done">✓ 이월됨</span>
+              <span v-if="isCarriedOver(m)" class="wr__missed-proj-done">✓ 이월됨</span>
+              <span v-else class="wr__missed-proj-dropped">이번 주에서 제외</span>
             </li>
           </ul>
         </div>
@@ -521,39 +510,8 @@ const remainingMissedCount = computed(() =>
   missedProjects.value.filter(m => !isCarriedOver(m)).length,
 )
 
-// 단일 이월 — 지난 주 미완료를 이번 주(currentSchedule)로 옮김
-function carryOver(m: MissedProject) {
-  if (!currentSchedule.value || isCarriedOver(m)) return
-  const newItem = {
-    id: crypto.randomUUID(),
-    itemType: 'project' as const,
-    itemId: m.itemId,
-    date: m.targetDate,
-    curriculumWeek: null,
-    note: '',
-  }
-  persistItems('current', [...currentSchedule.value.items, newItem])
-}
-
-// 일괄 이월 — single PUT 로 한 번에 추가
-function carryOverAll() {
-  if (!currentSchedule.value) return
-  const items = [...currentSchedule.value.items]
-  let added = false
-  for (const m of missedProjects.value) {
-    if (isCarriedOver(m)) continue
-    items.push({
-      id: crypto.randomUUID(),
-      itemType: 'project',
-      itemId: m.itemId,
-      date: m.targetDate,
-      curriculumWeek: null,
-      note: '',
-    })
-    added = true
-  }
-  if (added) persistItems('current', items)
-}
+// 자동 이월은 onMounted 에서 일괄 처리.
+// 별도 카르오버 트리거 함수는 더 이상 노출하지 않음 (사용자는 '이번 주 일정' 에서 ✕ 로 제외만 가능).
 
 // 놓친 루틴 이름 목록 (중복 제거)
 const missedRoutineNames = computed<string[]>(() => {
@@ -628,6 +586,25 @@ onMounted(async () => {
         currentRange.value.weekStart,
         currentRange.value.weekEnd,
       )
+    }
+    // 자동 이월: 지난 주에 놓친 프로젝트를 같은 요일로 이번 주에 자동 추가
+    // — isCarriedOver 중복 체크로 idempotent (재진입 시 안전)
+    if (prevSchedule.value && currentSchedule.value && draftPlan.planId) {
+      const toAdd: WeeklySchedule['items'] = []
+      for (const m of missedProjects.value) {
+        if (isCarriedOver(m)) continue
+        toAdd.push({
+          id: crypto.randomUUID(),
+          itemType: 'project',
+          itemId: m.itemId,
+          date: m.targetDate,
+          curriculumWeek: null,
+          note: '',
+        })
+      }
+      if (toAdd.length > 0) {
+        await persistItems('current', [...currentSchedule.value.items, ...toAdd])
+      }
     }
   } finally {
     loading.value = false
@@ -952,19 +929,11 @@ onMounted(async () => {
     font-weight: 600;
   }
 
-  &__missed-proj-all {
-    flex-shrink: 0;
-    background: #fff;
+  &__missed-proj-hint {
+    font-size: 11.5px;
     color: #B05D00;
-    border: 1px solid #FFCC88;
-    border-radius: 999px;
-    padding: 5px 10px;
-    font-size: 11px;
-    font-weight: 800;
-    cursor: pointer;
-    transition: background 0.12s;
-
-    &:hover { background: #FFF1DD; }
+    line-height: 1.5;
+    margin: -2px 0 0;
   }
 
   &__missed-proj-list {
@@ -985,7 +954,16 @@ onMounted(async () => {
     border-radius: 8px;
     border-left: 3px solid var(--cat-color, #FFC700);
 
-    &--carried { opacity: 0.55; }
+    /* 사용자가 이번 주에서 ✕ 로 뺀 상태 */
+    &--dropped {
+      opacity: 0.5;
+      background: #FAFAF7;
+
+      .wr__missed-proj-name {
+        text-decoration: line-through;
+        color: #aaa;
+      }
+    }
   }
 
   &__missed-proj-cat {
@@ -1027,26 +1005,19 @@ onMounted(async () => {
   &__missed-proj-arrow { color: #B05D00; font-weight: 800; }
   &__missed-proj-target { color: #B05D00; font-weight: 800; }
 
-  &__missed-proj-btn {
-    flex-shrink: 0;
-    background: #FFC700;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 6px 12px;
-    font-size: 11px;
-    font-weight: 800;
-    cursor: pointer;
-    transition: opacity 0.12s;
-
-    &:active { opacity: 0.85; }
-  }
-
   &__missed-proj-done {
     flex-shrink: 0;
     font-size: 11px;
     font-weight: 800;
     color: #1DB95A;
+    padding: 6px 12px;
+  }
+
+  &__missed-proj-dropped {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 800;
+    color: #aaa;
     padding: 6px 12px;
   }
 
