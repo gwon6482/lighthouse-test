@@ -283,20 +283,27 @@ async function resetProgress() {
 </script>
 
 <style scoped lang="scss">
-/* 랜딩페이지 진입 — 넓은 단일 버튼 */
+/* 랜딩페이지 진입 — button-container 와 동일 폭, login/user panel 과 동일 간격 */
 .landing-link {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin: 16px 16px 0;
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 1.5rem;             // button-container 와의 간격 (panel 들과 동일)
   padding: 16px 20px;
   background: linear-gradient(135deg, #FFFBEC 0%, #FFF1D6 100%);
   border: 1px solid #FFE99A;
-  border-radius: 16px;
+  border-radius: 1rem;
   text-decoration: none;
   color: inherit;
   box-shadow: 0 3px 12px rgba(255, 199, 0, 0.10);
   transition: transform 0.08s, box-shadow 0.15s, border-color 0.15s;
+  box-sizing: border-box;
+
+  @media (min-width: 768px) {
+    max-width: 480px;
+  }
 
   &:hover {
     border-color: #FFC700;
