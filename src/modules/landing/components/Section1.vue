@@ -18,7 +18,3 @@
 import symbolImg from '@/assets/landing/section1_symbol.png'
 import arrowImg from '@/assets/landing/section1_arrow_down.png'
 </script>
-
-<style lang="scss">
-@import '@/appearance/modules/landing/section1';
-</style>

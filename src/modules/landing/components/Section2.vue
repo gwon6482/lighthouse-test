@@ -7,6 +7,3 @@
   </section>
 </template>
 
-<style lang="scss">
-@import '@/appearance/modules/landing/section2';
-</style>

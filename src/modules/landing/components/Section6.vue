@@ -21,7 +21,3 @@
 <script setup lang="ts">
 import img from '@/assets/landing/section6_image.png'
 </script>
-
-<style lang="scss">
-@import '@/appearance/modules/landing/section6';
-</style>

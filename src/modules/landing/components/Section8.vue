@@ -23,7 +23,3 @@
 import iphoneFrame from '@/assets/landing/section8_iphone_frame.png'
 import videoSrc from '@/assets/landing/section8_sample_video.mov'
 </script>
-
-<style lang="scss">
-@import '@/appearance/modules/landing/section8';
-</style>
