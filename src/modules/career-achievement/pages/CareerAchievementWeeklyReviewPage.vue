@@ -2,13 +2,14 @@
   <div class="wr">
     <AppHeader />
 
-    <div class="wr__intro">
-      <h1 class="wr__intro-title">주간 리뷰</h1>
-      <p class="wr__intro-desc">
-        매주 한 번, 지난 한 주를 돌아보고 다음 한 주의 일정을 직접 배치하는 시간이에요.
-        계획대로 흘러가지 않아도 괜찮아요. 매주 다시 그려나가면 돼요.
-      </p>
-    </div>
+    <section class="wr__hero">
+      <div class="wr__hero-icon">📝</div>
+      <div class="wr__hero-body">
+        <span class="wr__hero-eyebrow">WEEKLY REVIEW</span>
+        <h1 class="wr__hero-title">한 주를 돌아보고<br />다음 한 주를 그려요</h1>
+        <p class="wr__hero-desc">계획대로 흘러가지 않아도 괜찮아요 — 매주 다시 다듬어 나가요.</p>
+      </div>
+    </section>
 
     <div v-if="loading" class="wr__loading">불러오는 중...</div>
 
@@ -545,26 +546,81 @@ onMounted(async () => {
   background: #F5F5F5;
   padding-bottom: 32px;
 
-  &__intro {
-    padding: 20px 20px 4px;
+  &__hero {
+    margin: 16px 16px 4px;
+    padding: 22px 22px 22px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #FFC700 0%, #FFB300 100%);
+    color: #fff;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    box-shadow: 0 6px 20px rgba(255, 199, 0, 0.28);
+    position: relative;
+    overflow: hidden;
+
+    /* 우측 상단 장식 원 */
+    &::after {
+      content: '';
+      position: absolute;
+      right: -36px;
+      top: -36px;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      pointer-events: none;
+    }
+  }
+
+  &__hero-icon {
+    font-size: 28px;
+    line-height: 1;
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 14px;
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(2px);
+  }
+
+  &__hero-body {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
+    min-width: 0;
+    position: relative;
+    z-index: 1;
   }
 
-  &__intro-title {
+  &__hero-eyebrow {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 1.4px;
+    opacity: 0.85;
+    margin-bottom: 2px;
+  }
+
+  &__hero-title {
     font-size: 22px;
     font-weight: 900;
-    color: #222;
     margin: 0;
-    letter-spacing: -0.4px;
+    letter-spacing: -0.5px;
+    line-height: 1.25;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
   }
 
-  &__intro-desc {
-    font-size: 13px;
-    color: #666;
+  &__hero-desc {
+    margin: 6px 0 0;
+    font-size: 12.5px;
     line-height: 1.55;
-    margin: 0;
+    opacity: 0.95;
+    font-weight: 600;
   }
 
   /* 첫 주 안내 카드 */
