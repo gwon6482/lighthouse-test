@@ -76,7 +76,7 @@
               class="wr__missed-proj-all"
               type="button"
               @click="carryOverAll"
-            >전부 다음 주로 이월 →</button>
+            >전부 이번 주로 이월 →</button>
           </div>
           <ul class="wr__missed-proj-list">
             <li
@@ -149,14 +149,17 @@
         </div>
       </section>
 
-      <!-- 이번 주 일정 (직전 주 없는 첫 주에만 노출) — 사용자가 시작 직후에도 일정을 직접 그릴 수 있도록 -->
-      <section v-if="!prevRange && currentRange" class="wr__section">
+      <!-- 이번 주 일정 — 첫 주든 회고 모드든 항상 노출 -->
+      <section v-if="currentRange" class="wr__section">
         <div class="wr__section-head">
           <h2 class="wr__section-title">{{ isFirstSetup ? '이번 주 일정 그리기' : '이번 주 일정' }}</h2>
           <span class="wr__range">{{ fmtRange(currentRange) }}</span>
         </div>
         <p class="wr__next-hint">
-          기본 배치가 미리 깔려있어요. 요일·항목을 자유롭게 조정해 보세요. 변경은 자동 저장돼요.
+          {{ isFirstSetup
+            ? '기본 배치가 미리 깔려있어요. 요일·항목을 자유롭게 조정해 보세요. 변경은 자동 저장돼요.'
+            : '이번 한 주의 일정을 보고 조정하세요. 놓친 항목을 이월하거나 새로 추가할 수 있어요.'
+          }}
           <span v-if="currentSaving" class="wr__autosave">저장 중...</span>
         </p>
         <div v-if="currentDays.length" class="wr__days">
@@ -258,60 +261,49 @@ const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDes
 const { fetchScheduleByWeek, updateSchedule, ensureWeekSchedule } = useWeeklySchedule()
 const { isProjectDone, isRoutineDone, toggleProject, toggleRoutine } = useAchievement()
 
-type EditTarget = 'current' | 'next'
+// 'next' target 은 더 이상 사용 안 함 — 모든 편집/이월은 currentSchedule 로
+// 시그니처는 호환 위해 유지 (호출처에서 'current' 만 사용)
+type EditTarget = 'current'
 
 const loading        = ref(true)
 const saving         = ref(false)
-const nextSaving     = ref(false)
 const currentSaving  = ref(false)
 const prevSchedule   = ref<WeeklySchedule | null>(null)
 const currentSchedule = ref<WeeklySchedule | null>(null)
-const nextSchedule   = ref<WeeklySchedule | null>(null)
 const reviewNote     = ref('')
 
 // 항목 추가 bottom sheet — 프로젝트만 (루틴은 days 자동 배치, 주간 조정 불필요)
 const addSheetOpen   = ref(false)
 const addSheetDate   = ref('')
-const addSheetTarget = ref<EditTarget>('next')
 
 const addSheetDateLabel = computed(() => addSheetDate.value ? fmtDateLabel(addSheetDate.value) : '')
 
-function openAddSheet(date: string, target: EditTarget) {
+function openAddSheet(date: string, _target: EditTarget = 'current') {
   addSheetDate.value = date
-  addSheetTarget.value = target
   addSheetOpen.value = true
 }
 function closeAddSheet() {
   addSheetOpen.value = false
 }
 
-// target 별로 schedule 을 가리키는 헬퍼 — 코드 중복 줄임
-function scheduleRefFor(target: EditTarget) {
-  return target === 'current' ? currentSchedule : nextSchedule
-}
-function savingRefFor(target: EditTarget) {
-  return target === 'current' ? currentSaving : nextSaving
-}
-
-// schedule 의 items 를 변경하고 즉시 BE 동기화 (autosave) — current / next 공용
-async function persistItems(target: EditTarget, newItems: WeeklySchedule['items']) {
-  const sched = scheduleRefFor(target)
+// schedule 의 items 를 변경하고 즉시 BE 동기화 (autosave) — currentSchedule 전용
+async function persistItems(_target: EditTarget, newItems: WeeklySchedule['items']) {
+  const sched = currentSchedule
   if (!draftPlan.planId || !sched.value) return
   const planId = draftPlan.planId
   const weekStart = sched.value.weekStart
   sched.value = { ...sched.value, items: newItems }
-  const savingRef = savingRefFor(target)
-  savingRef.value = true
+  currentSaving.value = true
   try {
     const updated = await updateSchedule(planId, weekStart, { items: newItems })
     if (updated) sched.value = updated
   } finally {
-    savingRef.value = false
+    currentSaving.value = false
   }
 }
 
-function removeItem(itemId: string, target: EditTarget) {
-  const sched = scheduleRefFor(target)
+function removeItem(itemId: string, _target: EditTarget = 'current') {
+  const sched = currentSchedule
   if (!sched.value) return
 
   // 정합성 (Gap 3): localStorage 의 done 마킹이 남아있으면 함께 해제
@@ -326,12 +318,12 @@ function removeItem(itemId: string, target: EditTarget) {
   }
 
   const next = sched.value.items.filter(it => it.id !== itemId)
-  persistItems(target, next)
+  persistItems('current', next)
 }
 
 // 프로젝트만 추가 (루틴은 마스터 days 로 자동 배치, 주간 조정 불필요)
 function addItem(projectId: string) {
-  const sched = scheduleRefFor(addSheetTarget.value)
+  const sched = currentSchedule
   if (!sched.value || !addSheetDate.value) return
   const newItem = {
     id: crypto.randomUUID(),
@@ -342,7 +334,7 @@ function addItem(projectId: string) {
     note: '',
   }
   const next = [...sched.value.items, newItem]
-  persistItems(addSheetTarget.value, next)
+  persistItems('current', next)
   closeAddSheet()
 }
 
@@ -403,16 +395,6 @@ const summary = computed(() => {
 const currentRange = computed<{ weekStart: string; weekEnd: string } | null>(() => {
   if (!draftPlan.startDate || !draftPlan.reviewDay) return null
   return computeWeekRangeContaining(getToday(), draftPlan.startDate, draftPlan.reviewDay)
-})
-
-// 다음 주 범위: 현재 주 다음 날부터 +6 일 (next reviewDay)
-const nextRange = computed<{ weekStart: string; weekEnd: string } | null>(() => {
-  if (!currentRange.value) return null
-  const curEnd = parseDateKey(currentRange.value.weekEnd)
-  if (!curEnd) return null
-  const ns = new Date(curEnd); ns.setDate(ns.getDate() + 1)
-  const ne = new Date(ns);     ne.setDate(ne.getDate() + 6)
-  return { weekStart: toDateKey(ns), weekEnd: toDateKey(ne) }
 })
 
 // 요일별 카드 데이터 (project 만 — 루틴은 days 로 자동 배치, 주간 조정 UI 에 노출 안 함)
@@ -479,8 +461,6 @@ function buildDayCards(
 }
 
 const currentDays = computed<DayCard[]>(() => buildDayCards(currentRange.value, currentSchedule.value))
-// nextDays 는 더 이상 UI 노출 안 함 — 이월(carryOver) 만 nextSchedule 을 사용
-// (다음 주 일정 편집 섹션 제거됨, BE 자동 ensure 는 유지)
 
 // 지난 주 놓친 프로젝트 항목 — 같은 요일로 다음 주로 이월 가능
 interface MissedProject {
@@ -496,9 +476,7 @@ interface MissedProject {
 }
 
 const missedProjects = computed<MissedProject[]>(() => {
-  if (!prevSchedule.value || !nextRange.value) return []
-  const nextStart = parseDateKey(nextRange.value.weekStart)
-  if (!nextStart) return []
+  if (!prevSchedule.value || !currentRange.value) return []
 
   const out: MissedProject[] = []
   for (const it of prevSchedule.value.items) {
@@ -529,9 +507,9 @@ const missedProjects = computed<MissedProject[]>(() => {
   return out
 })
 
-// 다음 주 schedule 에 이미 동일 (itemId, targetDate) 가 있는지 — 이월 완료 여부 판단
+// 이번 주 schedule 에 이미 동일 (itemId, targetDate) 가 있는지 — 이월 완료 여부 판단
 function isCarriedOver(m: MissedProject): boolean {
-  const items = nextSchedule.value?.items ?? []
+  const items = currentSchedule.value?.items ?? []
   return items.some(it =>
     it.itemType === 'project' &&
     it.itemId === m.itemId &&
@@ -543,9 +521,9 @@ const remainingMissedCount = computed(() =>
   missedProjects.value.filter(m => !isCarriedOver(m)).length,
 )
 
-// 단일 이월
+// 단일 이월 — 지난 주 미완료를 이번 주(currentSchedule)로 옮김
 function carryOver(m: MissedProject) {
-  if (!nextSchedule.value || isCarriedOver(m)) return
+  if (!currentSchedule.value || isCarriedOver(m)) return
   const newItem = {
     id: crypto.randomUUID(),
     itemType: 'project' as const,
@@ -554,13 +532,13 @@ function carryOver(m: MissedProject) {
     curriculumWeek: null,
     note: '',
   }
-  persistItems('next', [...nextSchedule.value.items, newItem])
+  persistItems('current', [...currentSchedule.value.items, newItem])
 }
 
 // 일괄 이월 — single PUT 로 한 번에 추가
 function carryOverAll() {
-  if (!nextSchedule.value) return
-  const items = [...nextSchedule.value.items]
+  if (!currentSchedule.value) return
+  const items = [...currentSchedule.value.items]
   let added = false
   for (const m of missedProjects.value) {
     if (isCarriedOver(m)) continue
@@ -574,7 +552,7 @@ function carryOverAll() {
     })
     added = true
   }
-  if (added) persistItems('next', items)
+  if (added) persistItems('current', items)
 }
 
 // 놓친 루틴 이름 목록 (중복 제거)
@@ -641,23 +619,14 @@ onMounted(async () => {
       prevSchedule.value = s
       if (s) reviewNote.value = s.reviewNote ?? ''
     }
-    // 첫 주(직전 주 없음)면 이번 주 schedule 도 편집 가능하게 로드
-    if (draftPlan.planId && !prevRange.value && currentRange.value) {
+    // 이번 주 schedule — 첫 주든 회고 모드든 항상 로드 (편집 + 이월 대상)
+    if (draftPlan.planId && currentRange.value) {
       currentSchedule.value = await ensureWeekSchedule(
         draftPlan.planId,
         { projects: draftPlan.projects, routines: draftPlan.routines },
         draftTimeline.value,
         currentRange.value.weekStart,
         currentRange.value.weekEnd,
-      )
-    }
-    if (draftPlan.planId && nextRange.value) {
-      nextSchedule.value = await ensureWeekSchedule(
-        draftPlan.planId,
-        { projects: draftPlan.projects, routines: draftPlan.routines },
-        draftTimeline.value,
-        nextRange.value.weekStart,
-        nextRange.value.weekEnd,
       )
     }
   } finally {
