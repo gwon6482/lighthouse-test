@@ -51,6 +51,54 @@
           </div>
         </div>
 
+        <!-- 놓친 프로젝트 → 같은 요일로 다음 주 이월 -->
+        <div v-if="missedProjects.length" class="wr__missed-proj">
+          <div class="wr__missed-proj-head">
+            <span class="wr__missed-proj-label">
+              놓친 프로젝트
+              <strong>{{ missedProjects.length }}</strong>건
+              <span v-if="remainingMissedCount < missedProjects.length" class="wr__missed-proj-sub">
+                ({{ missedProjects.length - remainingMissedCount }} 이월됨)
+              </span>
+            </span>
+            <button
+              v-if="remainingMissedCount > 0"
+              class="wr__missed-proj-all"
+              type="button"
+              @click="carryOverAll"
+            >전부 다음 주로 이월 →</button>
+          </div>
+          <ul class="wr__missed-proj-list">
+            <li
+              v-for="m in missedProjects"
+              :key="m.scheduleItemId"
+              class="wr__missed-proj-row"
+              :class="{ 'wr__missed-proj-row--carried': isCarriedOver(m) }"
+              :style="{ '--cat-color': m.color } as any"
+            >
+              <span
+                class="wr__missed-proj-cat"
+                :style="{ color: m.color, background: `color-mix(in srgb, ${m.color} 14%, white)` }"
+              >{{ m.categoryLabel }}</span>
+              <div class="wr__missed-proj-body">
+                <span class="wr__missed-proj-name">{{ m.name }}</span>
+                <span class="wr__missed-proj-flow">
+                  <span class="wr__missed-proj-orig">{{ m.origLabel }}</span>
+                  <span class="wr__missed-proj-arrow">→</span>
+                  <span class="wr__missed-proj-target">{{ m.targetLabel }}</span>
+                </span>
+              </div>
+              <button
+                v-if="!isCarriedOver(m)"
+                class="wr__missed-proj-btn"
+                type="button"
+                @click="carryOver(m)"
+              >이월</button>
+              <span v-else class="wr__missed-proj-done">✓ 이월됨</span>
+            </li>
+          </ul>
+        </div>
+
         <div v-if="missedRoutineNames.length" class="wr__missed">
           <span class="wr__missed-label">놓친 루틴</span>
           <div class="wr__missed-chips">
@@ -449,6 +497,101 @@ function buildDayCards(
 const currentDays = computed<DayCard[]>(() => buildDayCards(currentRange.value, currentSchedule.value))
 const nextDays    = computed<DayCard[]>(() => buildDayCards(nextRange.value,    nextSchedule.value))
 
+// 지난 주 놓친 프로젝트 항목 — 같은 요일로 다음 주로 이월 가능
+interface MissedProject {
+  scheduleItemId: string       // prevSchedule.items[].id (원본 식별)
+  itemId: string               // master Project.id
+  origDate: string             // 지난 주 원래 날짜
+  origLabel: string            // '5/26 (월)'
+  targetDate: string           // 다음 주 같은 요일 날짜
+  targetLabel: string          // '6/2 (월)'
+  name: string
+  categoryLabel: string
+  color: string
+}
+
+const missedProjects = computed<MissedProject[]>(() => {
+  if (!prevSchedule.value || !nextRange.value) return []
+  const nextStart = parseDateKey(nextRange.value.weekStart)
+  if (!nextStart) return []
+
+  const out: MissedProject[] = []
+  for (const it of prevSchedule.value.items) {
+    if (it.itemType !== 'project') continue
+    if (isProjectDone(it.itemId, it.date)) continue
+    const p = draftPlan.projects.find(x => x.id === it.itemId)
+    if (!p) continue
+    const od = parseDateKey(it.date)
+    if (!od) continue
+
+    // 같은 요일의 다음 주 날짜 = od + 7 일
+    const td = new Date(od)
+    td.setDate(td.getDate() + 7)
+    const targetDate = toDateKey(td)
+
+    out.push({
+      scheduleItemId: it.id,
+      itemId: it.itemId,
+      origDate:    it.date,
+      origLabel:   fmtDateLabel(it.date),
+      targetDate,
+      targetLabel: fmtDateLabel(targetDate),
+      name:        p.name,
+      categoryLabel: CAT_LABEL[p.category] ?? '',
+      color:         CAT_COLOR[p.category] ?? '#888',
+    })
+  }
+  return out
+})
+
+// 다음 주 schedule 에 이미 동일 (itemId, targetDate) 가 있는지 — 이월 완료 여부 판단
+function isCarriedOver(m: MissedProject): boolean {
+  const items = nextSchedule.value?.items ?? []
+  return items.some(it =>
+    it.itemType === 'project' &&
+    it.itemId === m.itemId &&
+    it.date === m.targetDate
+  )
+}
+
+const remainingMissedCount = computed(() =>
+  missedProjects.value.filter(m => !isCarriedOver(m)).length,
+)
+
+// 단일 이월
+function carryOver(m: MissedProject) {
+  if (!nextSchedule.value || isCarriedOver(m)) return
+  const newItem = {
+    id: crypto.randomUUID(),
+    itemType: 'project' as const,
+    itemId: m.itemId,
+    date: m.targetDate,
+    curriculumWeek: null,
+    note: '',
+  }
+  persistItems('next', [...nextSchedule.value.items, newItem])
+}
+
+// 일괄 이월 — single PUT 로 한 번에 추가
+function carryOverAll() {
+  if (!nextSchedule.value) return
+  const items = [...nextSchedule.value.items]
+  let added = false
+  for (const m of missedProjects.value) {
+    if (isCarriedOver(m)) continue
+    items.push({
+      id: crypto.randomUUID(),
+      itemType: 'project',
+      itemId: m.itemId,
+      date: m.targetDate,
+      curriculumWeek: null,
+      note: '',
+    })
+    added = true
+  }
+  if (added) persistItems('next', items)
+}
+
 // 놓친 루틴 이름 목록 (중복 제거)
 const missedRoutineNames = computed<string[]>(() => {
   const items = prevSchedule.value?.items ?? []
@@ -793,6 +936,142 @@ onMounted(async () => {
     border: 1px solid #FFCCC8;
     padding: 3px 8px;
     border-radius: 999px;
+  }
+
+  /* 놓친 프로젝트 — 이월 가능 */
+  &__missed-proj {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 12px 12px;
+    background: #FFF7EE;
+    border: 1px solid #FFE0BD;
+    border-radius: 12px;
+  }
+
+  &__missed-proj-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__missed-proj-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #B05D00;
+
+    strong {
+      font-size: 14px;
+      font-weight: 900;
+      color: #B05D00;
+      margin: 0 1px;
+    }
+  }
+
+  &__missed-proj-sub {
+    margin-left: 4px;
+    font-size: 11px;
+    color: #aa8a55;
+    font-weight: 600;
+  }
+
+  &__missed-proj-all {
+    flex-shrink: 0;
+    background: #fff;
+    color: #B05D00;
+    border: 1px solid #FFCC88;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.12s;
+
+    &:hover { background: #FFF1DD; }
+  }
+
+  &__missed-proj-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__missed-proj-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #fff;
+    border-radius: 8px;
+    border-left: 3px solid var(--cat-color, #FFC700);
+
+    &--carried { opacity: 0.55; }
+  }
+
+  &__missed-proj-cat {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+
+  &__missed-proj-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__missed-proj-name {
+    font-size: 13px;
+    font-weight: 800;
+    color: #222;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__missed-proj-flow {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+  }
+
+  &__missed-proj-orig { text-decoration: line-through; color: #aaa; }
+  &__missed-proj-arrow { color: #B05D00; font-weight: 800; }
+  &__missed-proj-target { color: #B05D00; font-weight: 800; }
+
+  &__missed-proj-btn {
+    flex-shrink: 0;
+    background: #FFC700;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: opacity 0.12s;
+
+    &:active { opacity: 0.85; }
+  }
+
+  &__missed-proj-done {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 800;
+    color: #1DB95A;
+    padding: 6px 12px;
   }
 
   &__label {
