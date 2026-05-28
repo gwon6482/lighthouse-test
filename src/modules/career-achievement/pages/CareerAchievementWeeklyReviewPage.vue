@@ -83,10 +83,49 @@
         </p>
       </section>
 
-      <!-- 다음 주 일정 (Phase 4b/4c 에서 채워짐) -->
-      <section class="wr__section wr__section--placeholder">
-        <h2 class="wr__section-title">다음 주 일정</h2>
-        <p class="wr__placeholder-text">다음 주 일정 보기/편집은 곧 추가됩니다.</p>
+      <!-- 다음 주 일정 -->
+      <section v-if="nextRange" class="wr__section">
+        <div class="wr__section-head">
+          <h2 class="wr__section-title">다음 주 일정</h2>
+          <span class="wr__range">{{ fmtRange(nextRange) }}</span>
+        </div>
+
+        <p class="wr__next-hint">아래 일정은 자동으로 디폴트가 잡혀 있어요. 편집 기능은 곧 추가됩니다.</p>
+
+        <div v-if="nextDays.length" class="wr__days">
+          <div
+            v-for="day in nextDays"
+            :key="day.date"
+            class="wr__day"
+            :class="{ 'wr__day--empty': !day.items.length }"
+          >
+            <div class="wr__day-head">
+              <span class="wr__day-dow">{{ day.dow }}</span>
+              <span class="wr__day-date">{{ day.dateLabel }}</span>
+              <span v-if="day.items.length" class="wr__day-count">{{ day.items.length }}</span>
+            </div>
+            <ul v-if="day.items.length" class="wr__day-items">
+              <li
+                v-for="it in day.items"
+                :key="it.id"
+                class="wr__day-item"
+                :class="`wr__day-item--${it.itemType}`"
+                :style="it.color ? { '--cat-color': it.color } as any : undefined"
+              >
+                <span
+                  v-if="it.itemType === 'project'"
+                  class="wr__day-item-cat"
+                  :style="{ color: it.color, background: `color-mix(in srgb, ${it.color} 14%, white)` }"
+                >{{ it.categoryLabel }}</span>
+                <span v-else class="wr__day-item-cat wr__day-item-cat--routine">루틴</span>
+                <span class="wr__day-item-name">{{ it.name }}</span>
+                <span class="wr__day-item-meta">{{ it.duration }}분</span>
+              </li>
+            </ul>
+            <p v-else class="wr__day-empty">예정된 일정 없음</p>
+          </div>
+        </div>
+        <p v-else class="wr__placeholder-text">다음 주에 잡힌 일정이 없어요.</p>
       </section>
     </template>
   </div>
@@ -102,16 +141,31 @@ import {
 import type { WeeklySchedule } from '../composables/useWeeklySchedule'
 import { useAchievement } from '../composables/useAchievement'
 import { getToday } from '@/shared/utils/dev-date'
+import type { ProjectCategory } from '@/modules/career-design/types/career-design'
 
 const router = useRouter()
-const { draftPlan, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
-const { fetchScheduleByWeek, updateSchedule } = useWeeklySchedule()
+const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
+const { fetchScheduleByWeek, updateSchedule, ensureWeekSchedule } = useWeeklySchedule()
 const { isProjectDone, isRoutineDone } = useAchievement()
 
 const loading       = ref(true)
 const saving        = ref(false)
 const prevSchedule  = ref<WeeklySchedule | null>(null)
+const nextSchedule  = ref<WeeklySchedule | null>(null)
 const reviewNote    = ref('')
+
+const CAT_COLOR: Record<ProjectCategory, string> = {
+  qualification: '#1DB95A',
+  knowledge:     '#F47820',
+  skill:         '#A855F7',
+  portfolio:     '#4480F5',
+}
+const CAT_LABEL: Record<ProjectCategory, string> = {
+  qualification: '자격요건',
+  knowledge:     '분야지식',
+  skill:         '직무기술',
+  portfolio:     '포트폴리오',
+}
 
 // 오늘 기준 "직전 주" 범위 계산. 현재 주가 첫 주(직전 주가 plan.startDate 이전)면 null.
 const prevRange = computed<{ weekStart: string; weekEnd: string } | null>(() => {
@@ -148,6 +202,91 @@ const summary = computed(() => {
     }
   }
   return { routinePlanned: rp, routineDone: rd, projectPlanned: pp, projectDone: pd }
+})
+
+// 다음 주 범위: 현재 주 다음 날부터 +6 일 (next reviewDay)
+const nextRange = computed<{ weekStart: string; weekEnd: string } | null>(() => {
+  if (!draftPlan.startDate || !draftPlan.reviewDay) return null
+  const cur = computeWeekRangeContaining(getToday(), draftPlan.startDate, draftPlan.reviewDay)
+  if (!cur) return null
+  const curEnd = parseDateKey(cur.weekEnd)
+  if (!curEnd) return null
+  const ns = new Date(curEnd); ns.setDate(ns.getDate() + 1)
+  const ne = new Date(ns);     ne.setDate(ne.getDate() + 6)
+  return { weekStart: toDateKey(ns), weekEnd: toDateKey(ne) }
+})
+
+// 다음 주 요일별 카드 데이터 (UI 렌더링 편의)
+interface NextDayItem {
+  id: string
+  itemType: 'project' | 'routine'
+  itemId: string
+  name: string
+  duration: number
+  categoryLabel: string
+  color: string
+}
+interface NextDay {
+  date: string
+  dateLabel: string
+  dow: string
+  items: NextDayItem[]
+}
+
+const nextDays = computed<NextDay[]>(() => {
+  if (!nextRange.value || !nextSchedule.value) return []
+  const sd = parseDateKey(nextRange.value.weekStart)
+  const ed = parseDateKey(nextRange.value.weekEnd)
+  if (!sd || !ed) return []
+
+  const itemsByDate: Record<string, typeof nextSchedule.value.items> = {}
+  for (const it of nextSchedule.value.items) {
+    ;(itemsByDate[it.date] ??= []).push(it)
+  }
+
+  const DOW = ['일', '월', '화', '수', '목', '금', '토']
+  const out: NextDay[] = []
+  const cursor = new Date(sd)
+  while (cursor.getTime() <= ed.getTime()) {
+    const key = toDateKey(cursor)
+    const rawItems = itemsByDate[key] ?? []
+    const items: NextDayItem[] = []
+    for (const it of rawItems) {
+      if (it.itemType === 'project') {
+        const p = draftPlan.projects.find(x => x.id === it.itemId)
+        if (!p) continue
+        items.push({
+          id: it.id,
+          itemType: 'project',
+          itemId: it.itemId,
+          name: p.name,
+          duration: p.duration ?? 0,
+          categoryLabel: CAT_LABEL[p.category] ?? '',
+          color: CAT_COLOR[p.category] ?? '#888',
+        })
+      } else {
+        const r = draftPlan.routines.find(x => x.id === it.itemId)
+        if (!r) continue
+        items.push({
+          id: it.id,
+          itemType: 'routine',
+          itemId: it.itemId,
+          name: r.name,
+          duration: r.duration ?? 0,
+          categoryLabel: '',
+          color: '#CC9D00',
+        })
+      }
+    }
+    out.push({
+      date: key,
+      dateLabel: `${cursor.getMonth() + 1}/${cursor.getDate()}`,
+      dow: DOW[cursor.getDay()]!,
+      items,
+    })
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return out
 })
 
 // 놓친 루틴 이름 목록 (중복 제거)
@@ -213,6 +352,15 @@ onMounted(async () => {
       const s = await fetchScheduleByWeek(draftPlan.planId, prevRange.value.weekStart)
       prevSchedule.value = s
       if (s) reviewNote.value = s.reviewNote ?? ''
+    }
+    if (draftPlan.planId && nextRange.value) {
+      nextSchedule.value = await ensureWeekSchedule(
+        draftPlan.planId,
+        { projects: draftPlan.projects, routines: draftPlan.routines },
+        draftTimeline.value,
+        nextRange.value.weekStart,
+        nextRange.value.weekEnd,
+      )
     }
   } finally {
     loading.value = false
@@ -492,6 +640,133 @@ onMounted(async () => {
     font-size: 13px;
     color: #888;
     margin: 0;
+  }
+
+  /* ── 다음 주 일정 ───────────────────── */
+  &__next-hint {
+    font-size: 12px;
+    color: #888;
+    margin: -4px 0 2px;
+    line-height: 1.5;
+  }
+
+  &__days {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__day {
+    border: 1px solid #EEEEE8;
+    border-radius: 12px;
+    padding: 12px 14px 10px;
+    background: #fff;
+
+    &--empty {
+      background: #FAFAF7;
+      border-style: dashed;
+    }
+  }
+
+  &__day-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  &__day-dow {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #FFF5E0;
+    color: #B07800;
+    font-size: 11px;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__day-date {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 800;
+    color: #222;
+  }
+
+  &__day-count {
+    font-size: 11px;
+    font-weight: 800;
+    color: #888;
+    background: #F0F0F0;
+    border-radius: 999px;
+    padding: 2px 8px;
+  }
+
+  &__day-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__day-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #FAFAF7;
+    border-radius: 8px;
+    border-left: 3px solid var(--cat-color, #FFC700);
+
+    &--routine {
+      border-left-color: #FFD84D;
+    }
+  }
+
+  &__day-item-cat {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 8px;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+
+    &--routine {
+      color: #B07800;
+      background: #FFFBEC;
+    }
+  }
+
+  &__day-item-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #222;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__day-item-meta {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+  }
+
+  &__day-empty {
+    font-size: 12px;
+    color: #bbb;
+    margin: 0;
+    text-align: center;
+    padding: 4px 0;
   }
 }
 </style>
