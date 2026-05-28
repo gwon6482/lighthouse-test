@@ -3,11 +3,21 @@
     <AppHeader />
 
     <section class="wr__hero">
-      <div class="wr__hero-icon">📝</div>
+      <div class="wr__hero-icon">{{ isFirstSetup ? '🚀' : '📝' }}</div>
       <div class="wr__hero-body">
-        <span class="wr__hero-eyebrow">WEEKLY REVIEW</span>
-        <h1 class="wr__hero-title">한 주를 돌아보고<br />다음 한 주를 그려요</h1>
-        <p class="wr__hero-desc">계획대로 흘러가지 않아도 괜찮아요 — 매주 다시 다듬어 나가요.</p>
+        <span class="wr__hero-eyebrow">{{ isFirstSetup ? 'FIRST WEEK SETUP' : 'WEEKLY REVIEW' }}</span>
+        <h1 v-if="isFirstSetup" class="wr__hero-title">
+          이번 주 일정을<br />직접 그려보세요
+        </h1>
+        <h1 v-else class="wr__hero-title">
+          한 주를 돌아보고<br />다음 한 주를 그려요
+        </h1>
+        <p v-if="isFirstSetup" class="wr__hero-desc">
+          어떤 요일에 무엇을 할지 미리 배치해 두면 매일이 한결 편해요.
+        </p>
+        <p v-else class="wr__hero-desc">
+          계획대로 흘러가지 않아도 괜찮아요 — 매주 다시 다듬어 나가요.
+        </p>
       </div>
     </section>
 
@@ -127,23 +137,29 @@
         </p>
       </section>
 
-      <!-- 첫 주용 안내 (회고할 직전 주가 없을 때) -->
+      <!-- 첫 진입 안내 (회고할 직전 주가 없을 때) -->
       <section v-else class="wr__section wr__section--info">
-        <span class="wr__info-icon">🌱</span>
+        <span class="wr__info-icon">🚀</span>
         <div class="wr__info-body">
-          <h3 class="wr__info-title">첫 주를 시작했어요</h3>
-          <p class="wr__info-text">아직 회고할 한 주가 없어요. 아래에서 첫 주와 다음 주 일정을 미리 다듬어 보세요.</p>
+          <h3 class="wr__info-title">프로젝트를 시작해 보세요</h3>
+          <p class="wr__info-text">
+            첫 주와 다음 주 일정을 미리 그려두면 매일이 가벼워져요.
+            기본 배치를 그대로 두거나, 원하는 요일로 자유롭게 옮겨도 좋아요.
+          </p>
+          <button class="wr__info-cta" type="button" @click="router.push('/career-achievement')">
+            데일리 화면으로 가기 →
+          </button>
         </div>
       </section>
 
-      <!-- 첫 주 일정 (직전 주 없는 경우에만 노출) — 사용자가 시작 직후에도 첫 주 일정을 다듬을 수 있도록 -->
+      <!-- 이번 주 일정 (직전 주 없는 첫 주에만 노출) — 사용자가 시작 직후에도 일정을 직접 그릴 수 있도록 -->
       <section v-if="!prevRange && currentRange" class="wr__section">
         <div class="wr__section-head">
-          <h2 class="wr__section-title">이번 주 일정</h2>
+          <h2 class="wr__section-title">{{ isFirstSetup ? '이번 주 일정 그리기' : '이번 주 일정' }}</h2>
           <span class="wr__range">{{ fmtRange(currentRange) }}</span>
         </div>
         <p class="wr__next-hint">
-          첫 주는 미리 잡힌 디폴트가 있어요. 필요하면 조정해 주세요. 변경은 자동 저장돼요.
+          기본 배치가 미리 깔려있어요. 요일·항목을 자유롭게 조정해 보세요. 변경은 자동 저장돼요.
           <span v-if="currentSaving" class="wr__autosave">저장 중...</span>
         </p>
         <div v-if="currentDays.length" class="wr__days">
@@ -389,6 +405,9 @@ const CAT_LABEL: Record<ProjectCategory, string> = {
   skill:         '직무기술',
   portfolio:     '포트폴리오',
 }
+
+// 첫 진입(회고할 직전 주가 없는 상태) — hero / 섹션 카피를 setup 모드로 전환
+const isFirstSetup = computed(() => draftPlan.planId !== null && !prevRange.value)
 
 // 오늘 기준 "직전 주" 범위 계산. 현재 주가 첫 주(직전 주가 plan.startDate 이전)면 null.
 const prevRange = computed<{ weekStart: string; weekEnd: string } | null>(() => {
@@ -791,6 +810,22 @@ onMounted(async () => {
   &__info-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
   &__info-title { font-size: 14px; font-weight: 800; color: #B07800; margin: 0; }
   &__info-text  { font-size: 12.5px; color: #888; margin: 0; line-height: 1.5; }
+
+  &__info-cta {
+    align-self: flex-start;
+    margin-top: 8px;
+    background: #fff;
+    color: #B07800;
+    border: 1px solid #FFCC88;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.12s;
+
+    &:hover { background: #FFFBEC; }
+  }
 
   &__loading {
     padding: 60px 20px;
