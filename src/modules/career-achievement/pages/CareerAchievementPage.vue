@@ -253,10 +253,49 @@ const {
   weekDates, getDayOfWeek,
 } = useAchievement()
 const { isItemDone, weekItemsDoneCount } = useCurriculumCompletion()
-const { ensureWeekSchedule } = useWeeklySchedule()
+const { ensureWeekSchedule, fetchSchedules } = useWeeklySchedule()
 
 // 이번 주의 확정된 일정 — Phase 3: WeeklySchedule 우선, 없으면 Project.days fallback
 const currentSchedule = ref<WeeklySchedule | null>(null)
+// 전체 plan 의 모든 schedule — streak / week 집계가 schedule 우선 사용 (Gap 2)
+const allSchedules = ref<WeeklySchedule[]>([])
+
+// date 가 속한 schedule 1건 (없으면 null)
+function findScheduleForDate(date: Date): WeeklySchedule | null {
+  const key = toDateKey(date)
+  for (const s of allSchedules.value) {
+    if (s.weekStart <= key && key <= s.weekEnd) return s
+  }
+  return null
+}
+
+// 그 날 schedule 의 items 수 — schedule 없으면 Project.days 기반 fallback
+function effectivePlannedCount(date: Date): number {
+  const s = findScheduleForDate(date)
+  if (s) {
+    const k = toDateKey(date)
+    return s.items.filter(it => it.date === k).length
+  }
+  return plannedCount(date, draftPlan.projects, draftPlan.routines, timelineForCalc.value, draftPlan.startDate, draftPlan.endDate)
+}
+
+// 그 날 schedule items 중 done 마킹된 것 수 — schedule 없으면 isProject/Routine Done 합 fallback
+function effectiveDoneCount(date: Date): number {
+  const s = findScheduleForDate(date)
+  if (s) {
+    const k = toDateKey(date)
+    let n = 0
+    for (const it of s.items) {
+      if (it.date !== k) continue
+      const ok = it.itemType === 'project'
+        ? isProjectDone(it.itemId, k)
+        : isRoutineDone(it.itemId, k)
+      if (ok) n++
+    }
+    return n
+  }
+  return doneCount(date)
+}
 
 const loading = ref(true)
 
@@ -337,11 +376,8 @@ const achievementStreak = computed<number>(() => {
   let streak = 0
   let isToday = true
   while (cursor.getTime() >= start.getTime()) {
-    const planned = plannedCount(
-      cursor, draftPlan.projects, draftPlan.routines,
-      timelineForCalc.value, draftPlan.startDate, draftPlan.endDate,
-    )
-    const done = doneCount(cursor)
+    const planned = effectivePlannedCount(cursor)
+    const done    = effectiveDoneCount(cursor)
     if (planned === 0) {
       // 휴식일 — 스킵
     } else if (done >= planned) {
@@ -427,8 +463,8 @@ const weekNodes = computed<WeekNode[]>(() => {
     let done = 0
     const d = new Date(wStart)
     while (d <= wEnd) {
-      planned += plannedCount(d, draftPlan.projects, draftPlan.routines, timelineForCalc.value, draftPlan.startDate, draftPlan.endDate)
-      done    += doneCount(d)
+      planned += effectivePlannedCount(d)
+      done    += effectiveDoneCount(d)
       d.setDate(d.getDate() + 1)
     }
 
@@ -626,6 +662,8 @@ onMounted(async () => {
           )
         }
       }
+      // 전체 schedule 로드 → streak / week 집계가 schedule 우선 사용 (Gap 2)
+      allSchedules.value = await fetchSchedules(draftPlan.planId!)
     }
   } finally {
     loading.value = false
