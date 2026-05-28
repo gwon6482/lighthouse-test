@@ -54,12 +54,12 @@
       </div>
     </section>
 
-    <!-- 랜딩페이지 진입 -->
-    <RouterLink to="/landing" class="landing-link">
+    <!-- 랜딩페이지 진입 — 별도 프로젝트(lighthouse_landing, Nuxt)로 운영, 외부 도메인 -->
+    <a href="https://www.lighthouse.career" target="_blank" rel="noopener" class="landing-link">
       <span class="landing-link__icon">🌟</span>
       <span class="landing-link__text">랜딩페이지</span>
-      <span class="landing-link__arrow">›</span>
-    </RouterLink>
+      <span class="landing-link__arrow">↗</span>
+    </a>
 
     <HomeButtonContainer :menus="menus" />
     <button @click="lastPage" style="display: none;">마지막 페이지</button>
