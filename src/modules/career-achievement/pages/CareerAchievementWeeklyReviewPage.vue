@@ -287,7 +287,7 @@ import type { ProjectCategory } from '@/modules/career-design/types/career-desig
 const router = useRouter()
 const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
 const { fetchScheduleByWeek, updateSchedule, ensureWeekSchedule } = useWeeklySchedule()
-const { isProjectDone, isRoutineDone } = useAchievement()
+const { isProjectDone, isRoutineDone, toggleProject, toggleRoutine } = useAchievement()
 
 type EditTarget = 'current' | 'next'
 
@@ -344,6 +344,18 @@ async function persistItems(target: EditTarget, newItems: WeeklySchedule['items'
 function removeItem(itemId: string, target: EditTarget) {
   const sched = scheduleRefFor(target)
   if (!sched.value) return
+
+  // 정합성 (Gap 3): localStorage 의 done 마킹이 남아있으면 함께 해제
+  // — 같은 itemId 가 나중에 다시 추가될 때 stale "완료" 로 보이지 않도록
+  const target_it = sched.value.items.find(it => it.id === itemId)
+  if (target_it) {
+    if (target_it.itemType === 'project' && isProjectDone(target_it.itemId, target_it.date)) {
+      toggleProject(target_it.itemId, target_it.date)
+    } else if (target_it.itemType === 'routine' && isRoutineDone(target_it.itemId, target_it.date)) {
+      toggleRoutine(target_it.itemId, target_it.date)
+    }
+  }
+
   const next = sched.value.items.filter(it => it.id !== itemId)
   persistItems(target, next)
 }
