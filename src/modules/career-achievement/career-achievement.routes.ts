@@ -19,4 +19,9 @@ export default [
     name: 'Career Achievement Weekly Review',
     component: () => import('./pages/CareerAchievementWeeklyReviewPage.vue'),
   },
+  {
+    path: '/career-achievement/weekly-schedule',
+    name: 'Career Achievement Weekly Schedule',
+    component: () => import('./pages/CareerAchievementSchedulePage.vue'),
+  },
 ]

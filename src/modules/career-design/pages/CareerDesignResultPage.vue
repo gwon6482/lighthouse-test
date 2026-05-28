@@ -179,7 +179,7 @@
       <button class="cd-result__btn-secondary" @click="router.push('/career-design/complete')">
         계획 수정하기
       </button>
-      <button class="cd-result__btn-primary" @click="router.push('/career-achievement/weekly-review')">
+      <button class="cd-result__btn-primary" @click="router.push('/career-achievement/weekly-schedule')">
         주간 일정 배치하기
       </button>
     </div>

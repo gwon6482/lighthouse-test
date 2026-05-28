@@ -2,22 +2,12 @@
   <div class="wr">
     <AppHeader />
 
-    <section class="wr__hero">
-      <div class="wr__hero-icon">{{ isFirstSetup ? '🚀' : '📝' }}</div>
+<section class="wr__hero">
+      <div class="wr__hero-icon">📝</div>
       <div class="wr__hero-body">
-        <span class="wr__hero-eyebrow">{{ isFirstSetup ? 'FIRST WEEK SETUP' : 'WEEKLY REVIEW' }}</span>
-        <h1 v-if="isFirstSetup" class="wr__hero-title">
-          이번 주 일정을<br />직접 그려보세요
-        </h1>
-        <h1 v-else class="wr__hero-title">
-          한 주를 돌아보고<br />다음 한 주를 그려요
-        </h1>
-        <p v-if="isFirstSetup" class="wr__hero-desc">
-          어떤 요일에 무엇을 할지 미리 배치해 두면 매일이 한결 편해요.
-        </p>
-        <p v-else class="wr__hero-desc">
-          계획대로 흘러가지 않아도 괜찮아요 — 매주 다시 다듬어 나가요.
-        </p>
+        <span class="wr__hero-eyebrow">WEEKLY REVIEW</span>
+        <h1 class="wr__hero-title">지난 한 주를<br />돌아봐요</h1>
+        <p class="wr__hero-desc">계획대로 흘러가지 않아도 괜찮아요 — 매주 다시 다듬어 나가요.</p>
       </div>
     </section>
 
@@ -126,109 +116,15 @@
         </p>
       </section>
 
-      <!-- 첫 진입 안내 (회고할 직전 주가 없을 때) -->
-      <section v-else class="wr__section wr__section--info">
-        <span class="wr__info-icon">🚀</span>
-        <div class="wr__info-body">
-          <h3 class="wr__info-title">프로젝트를 시작해 보세요</h3>
-          <p class="wr__info-text">
-            첫 주 일정을 미리 그려두면 매일이 가벼워져요.
-            기본 배치를 그대로 두거나, 원하는 요일로 자유롭게 옮겨도 좋아요.
-          </p>
-        </div>
-      </section>
-
-      <!-- 이번 주 일정 — 첫 주든 회고 모드든 항상 노출 -->
-      <section v-if="currentRange" class="wr__section">
-        <div class="wr__section-head">
-          <h2 class="wr__section-title">{{ isFirstSetup ? '이번 주 일정 그리기' : '이번 주 일정' }}</h2>
-          <span class="wr__range">{{ fmtRange(currentRange) }}</span>
-        </div>
-        <p class="wr__next-hint">
-          {{ isFirstSetup
-            ? '기본 배치가 미리 깔려있어요. 요일·항목을 자유롭게 조정해 보세요. 변경은 자동 저장돼요.'
-            : '이번 한 주의 일정을 보고 조정하세요. 놓친 항목을 이월하거나 새로 추가할 수 있어요.'
-          }}
-          <span v-if="currentSaving" class="wr__autosave">저장 중...</span>
-        </p>
-        <div v-if="currentDays.length" class="wr__days">
-          <div
-            v-for="day in currentDays"
-            :key="day.date"
-            class="wr__day"
-            :class="{ 'wr__day--empty': !day.items.length }"
-          >
-            <div class="wr__day-head">
-              <span class="wr__day-dow">{{ day.dow }}</span>
-              <span class="wr__day-date">{{ day.dateLabel }}</span>
-              <span v-if="day.items.length" class="wr__day-count">{{ day.items.length }}</span>
-              <button class="wr__day-add" @click="openAddSheet(day.date, 'current')" type="button">+ 추가</button>
-            </div>
-            <ul v-if="day.items.length" class="wr__day-items">
-              <li
-                v-for="it in day.items"
-                :key="it.id"
-                class="wr__day-item wr__day-item--project"
-                :style="{ '--cat-color': it.color } as any"
-              >
-                <span
-                  class="wr__day-item-cat"
-                  :style="{ color: it.color, background: `color-mix(in srgb, ${it.color} 14%, white)` }"
-                >{{ it.categoryLabel }}</span>
-                <span class="wr__day-item-name">{{ it.name }}</span>
-                <span class="wr__day-item-meta">{{ it.duration }}분</span>
-                <button class="wr__day-item-remove" @click="removeItem(it.id, 'current')" type="button" aria-label="삭제">✕</button>
-              </li>
-            </ul>
-            <p v-else class="wr__day-empty">예정된 프로젝트 없음</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- 마무리 CTA: 오늘 데일리로 이동 -->
+      <!-- 마무리 CTA: 이번 주 일정 조정 페이지로 이동 -->
       <div class="wr__footer">
-        <button class="wr__start" type="button" @click="router.push('/career-achievement')">
-          {{ isFirstSetup ? '시작하기' : '오늘 시작하기' }}
+        <button class="wr__start" type="button" @click="goToSchedule">
+          이번 주 일정 조정하기 →
         </button>
       </div>
 
     </template>
 
-    <!-- 항목 추가 bottom sheet — 프로젝트만 추가 가능 (루틴은 마스터 days 로 자동 배치) -->
-    <Teleport to="body">
-      <Transition name="wr-sheet">
-        <div v-if="addSheetOpen" class="wr-sheet" @click.self="closeAddSheet">
-          <div class="wr-sheet__panel">
-            <div class="wr-sheet__handle" />
-            <div class="wr-sheet__head">
-              <h3 class="wr-sheet__title">{{ addSheetDateLabel }} 에 프로젝트 추가</h3>
-              <button class="wr-sheet__close" @click="closeAddSheet" type="button">✕</button>
-            </div>
-
-            <div class="wr-sheet__list">
-              <button
-                v-for="p in draftPlan.projects"
-                :key="p.id"
-                class="wr-sheet__row"
-                @click="addItem(p.id)"
-                type="button"
-              >
-                <span
-                  class="wr-sheet__row-dot"
-                  :style="{ background: CAT_COLOR[p.category] }"
-                />
-                <div class="wr-sheet__row-body">
-                  <span class="wr-sheet__row-name">{{ p.name }}</span>
-                  <span class="wr-sheet__row-meta">{{ CAT_LABEL[p.category] }} · {{ p.duration }}분</span>
-                </div>
-                <span class="wr-sheet__row-plus">＋</span>
-              </button>
-              <p v-if="!draftPlan.projects.length" class="wr-sheet__empty">등록된 프로젝트가 없어요.</p>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
   </div>
 </template>
 
@@ -565,6 +461,10 @@ async function saveReview() {
   }
 }
 
+function goToSchedule() {
+  router.push('/career-achievement/weekly-schedule')
+}
+
 onMounted(async () => {
   try {
     if (!draftPlan.planId) {
@@ -572,12 +472,19 @@ onMounted(async () => {
       const target = plans.find((p: any) => p.status === 'active') ?? plans[0]
       if (target?.planId) await loadPlanFromApi(target.planId)
     }
+
+    // 첫 진입(직전 주 없음)이면 회고할 게 없음 → 이번 주 일정 페이지로 바로 이동
+    if (draftPlan.planId && !prevRange.value) {
+      router.replace('/career-achievement/weekly-schedule')
+      return
+    }
+
     if (draftPlan.planId && prevRange.value) {
       const s = await fetchScheduleByWeek(draftPlan.planId, prevRange.value.weekStart)
       prevSchedule.value = s
       if (s) reviewNote.value = s.reviewNote ?? ''
     }
-    // 이번 주 schedule — 첫 주든 회고 모드든 항상 로드 (편집 + 이월 대상)
+    // 이번 주 schedule — 자동 이월 대상으로 로드
     if (draftPlan.planId && currentRange.value) {
       currentSchedule.value = await ensureWeekSchedule(
         draftPlan.planId,
