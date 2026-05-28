@@ -1,6 +1,6 @@
 <template>
   <div class="cd-result">
-    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" back-to="/career-design/complete" />
+    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" back-to="/career-design/plan/review-day" />
 
     <div class="cd-result__body">
       <!-- 완성 축하 -->
@@ -25,6 +25,12 @@
         <div class="cd-result__period-row">
           <span class="cd-result__period">{{ periodLabel }}</span>
           <span class="cd-result__stats">프로젝트 {{ placedCount }}개 배치</span>
+        </div>
+        <div v-if="draftPlan.reviewDay" class="cd-result__review-row">
+          <span class="cd-result__review-icon">🔄</span>
+          <span class="cd-result__review-text">
+            매주 <strong>{{ draftPlan.reviewDay }}요일</strong>에 한 주를 돌아보고 다음 주를 계획해요
+          </span>
         </div>
       </div>
 
@@ -378,6 +384,32 @@ const periodLabel = computed(() => {
     background: #FFFBEC;
     padding: 3px 10px;
     border-radius: 20px;
+  }
+
+  &__review-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px dashed #EEEEE8;
+    font-size: 12.5px;
+    color: #666;
+    line-height: 1.4;
+
+    strong {
+      color: #B07800;
+      font-weight: 800;
+      background: #FFFBEC;
+      padding: 1px 6px;
+      border-radius: 6px;
+      margin: 0 2px;
+    }
+  }
+
+  &__review-icon {
+    font-size: 14px;
+    flex-shrink: 0;
   }
 
   /* 섹션 공통 */

@@ -45,6 +45,11 @@ export default [
     component: () => import('./pages/CareerDesignRoutineWritePage.vue'),
   },
   {
+    path: '/career-design/plan/review-day',
+    name: 'Career Design Review Day',
+    component: () => import('./pages/CareerDesignReviewDayPage.vue'),
+  },
+  {
     path: '/career-design/result',
     name: 'Career Design Result',
     component: () => import('./pages/CareerDesignResultPage.vue'),

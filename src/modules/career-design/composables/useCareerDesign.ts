@@ -1271,6 +1271,7 @@ const draftPlan = reactive<DraftPlan>({
   routines: [],
   startDate: '',
   endDate: '',
+  reviewDay: '',
   timeline: [],
 })
 
@@ -1332,6 +1333,7 @@ export function useCareerDesign() {
     draftPlan.routines = []
     draftPlan.startDate = ''
     draftPlan.endDate = ''
+    draftPlan.reviewDay = ''
     draftPlan.timeline = []
     draftTimeline.value = []
   }
@@ -1486,6 +1488,17 @@ export function useCareerDesign() {
     }
   }
 
+  // 주간리뷰 요일 저장 — 진로계획 마지막 단계에서 사용자가 선택
+  async function syncPlanReviewDay(): Promise<boolean> {
+    if (!draftPlan.planId) return false
+    try {
+      await req.put(`/api/career-plan/${draftPlan.planId}`, { reviewDay: draftPlan.reviewDay })
+      return true
+    } catch {
+      return false
+    }
+  }
+
   // 마이페이지 등에서 저장된 계획 불러오기
   async function loadPlanFromApi(planId: string): Promise<boolean> {
     try {
@@ -1496,6 +1509,7 @@ export function useCareerDesign() {
       draftPlan.targetJob = plan.targetJob ?? ''
       draftPlan.startDate = plan.startDate ?? ''
       draftPlan.endDate   = plan.endDate   ?? ''
+      draftPlan.reviewDay = plan.reviewDay ?? ''
       draftPlan.projects  = plan.projects  ?? []
       draftPlan.routines  = plan.routines  ?? []
       draftTimeline.value = plan.timeline  ?? []
@@ -1550,6 +1564,7 @@ export function useCareerDesign() {
     syncUpdateRoutine,
     syncDeleteRoutine,
     syncTimeline,
+    syncPlanReviewDay,
     loadPlanFromApi,
     fetchMyPlans,
     fetchPublicPlans,

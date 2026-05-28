@@ -53,7 +53,8 @@
 
     <!-- 하단 버튼 -->
     <div class="cd-plan-write__footer">
-      <button class="cd-plan-write__cta" @click="goNext">다음으로</button>
+      <button class="cd-plan-write__btn-secondary" @click="goPrev">이전으로</button>
+      <button class="cd-plan-write__btn-primary" @click="goNext">다음으로</button>
     </div>
   </div>
 </template>
@@ -78,6 +79,10 @@ function toDateKey(d: Date): string {
 }
 const todayKey = computed(() => toDateKey(getToday()))
 const endMin   = computed(() => draftPlan.startDate || todayKey.value)
+
+function goPrev() {
+  router.push('/career-design')
+}
 
 async function goNext() {
   await syncPlanStep1()
@@ -289,10 +294,26 @@ async function goNext() {
 
   &__footer {
     padding: 16px 20px 32px;
+    display: flex;
+    gap: 10px;
   }
 
-  &__cta {
-    width: 100%;
+  &__btn-secondary {
+    flex: 1;
+    padding: 18px;
+    background: #fff;
+    border: 1.5px solid #ddd;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #666;
+    cursor: pointer;
+
+    &:active { opacity: 0.85; }
+  }
+
+  &__btn-primary {
+    flex: 2;
     padding: 18px;
     background: #FFC700;
     border: none;
@@ -303,6 +324,12 @@ async function goNext() {
     cursor: pointer;
 
     &:active { opacity: 0.85; }
+
+    &:disabled {
+      background: #e8e8e8;
+      color: #aaa;
+      cursor: not-allowed;
+    }
   }
 }
 </style>

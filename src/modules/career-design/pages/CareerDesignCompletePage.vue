@@ -211,12 +211,8 @@
 
     <!-- 하단 버튼 -->
     <div class="cd-complete__footer">
-      <button class="cd-complete__btn-secondary" @click="router.push('/career-design/plan/new')">
-        계획 수정하기
-      </button>
-      <button class="cd-complete__btn-primary" @click="goComplete">
-        완료
-      </button>
+      <button class="cd-complete__btn-secondary" @click="goPrev">이전으로</button>
+      <button class="cd-complete__btn-primary" @click="goNext">다음으로</button>
     </div>
   </div>
 </template>
@@ -231,7 +227,11 @@ import type { Project, ProjectCategory } from '../types/career-design'
 const router = useRouter()
 const { draftPlan, draftTimeline, syncTimeline } = useCareerDesign()
 
-async function goComplete() {
+function goPrev() {
+  router.push('/career-design/plan/projects')
+}
+
+async function goNext() {
   await syncTimeline()
   router.push('/career-design/plan/routines')
 }
@@ -749,26 +749,25 @@ function addNextMonth() {
   &__footer {
     padding: 16px 20px 32px;
     display: flex;
-    flex-direction: column;
     gap: 10px;
   }
 
   &__btn-secondary {
-    width: 100%;
-    padding: 16px;
+    flex: 1;
+    padding: 18px;
     background: #fff;
-    border: 2px solid #FFC700;
+    border: 1.5px solid #ddd;
     border-radius: 16px;
-    font-size: 16px;
-    font-weight: 600;
-    color: #CC9D00;
+    font-size: 15px;
+    font-weight: 700;
+    color: #666;
     cursor: pointer;
 
     &:active { opacity: 0.85; }
   }
 
   &__btn-primary {
-    width: 100%;
+    flex: 2;
     padding: 18px;
     background: #FFC700;
     border: none;
@@ -779,6 +778,12 @@ function addNextMonth() {
     cursor: pointer;
 
     &:active { opacity: 0.85; }
+
+    &:disabled {
+      background: #e8e8e8;
+      color: #aaa;
+      cursor: not-allowed;
+    }
   }
 }
 

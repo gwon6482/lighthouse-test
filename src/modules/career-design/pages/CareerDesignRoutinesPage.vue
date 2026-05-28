@@ -41,7 +41,8 @@
     </div>
 
     <div class="cd-routines__footer">
-      <button class="cd-routines__cta" @click="goNext">완료</button>
+      <button class="cd-routines__btn-secondary" @click="goPrev">이전으로</button>
+      <button class="cd-routines__btn-primary" @click="goNext">다음으로</button>
     </div>
   </div>
 </template>
@@ -85,8 +86,12 @@ async function deleteRoutine(routineId: string) {
   }
 }
 
+function goPrev() {
+  router.push('/career-design/complete')
+}
+
 function goNext() {
-  router.push('/career-design/result')
+  router.push('/career-design/plan/review-day')
 }
 </script>
 
@@ -205,10 +210,26 @@ function goNext() {
 
   &__footer {
     padding: 16px 20px 32px;
+    display: flex;
+    gap: 10px;
   }
 
-  &__cta {
-    width: 100%;
+  &__btn-secondary {
+    flex: 1;
+    padding: 18px;
+    background: #fff;
+    border: 1.5px solid #ddd;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #666;
+    cursor: pointer;
+
+    &:active { opacity: 0.85; }
+  }
+
+  &__btn-primary {
+    flex: 2;
     padding: 18px;
     background: #FFC700;
     border: none;
@@ -219,6 +240,12 @@ function goNext() {
     cursor: pointer;
 
     &:active { opacity: 0.85; }
+
+    &:disabled {
+      background: #e8e8e8;
+      color: #aaa;
+      cursor: not-allowed;
+    }
   }
 }
 </style>

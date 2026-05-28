@@ -81,5 +81,6 @@ export interface DraftPlan {
   routines: Routine[]
   startDate: string
   endDate: string
+  reviewDay: DayOfWeek | ''  // 주간리뷰 요일. 일주일의 끝이자 시작. 미설정이면 ''
   timeline: TimelineMonth[]
 }

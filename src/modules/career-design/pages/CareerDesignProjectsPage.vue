@@ -78,8 +78,13 @@
     </div>
 
     <div class="cd-projects__footer">
-      <button class="cd-projects__cta" :disabled="!draftPlan.projects.length" @click="goNext">
-        타임라인 배치하기
+      <button class="cd-projects__btn-secondary" @click="goPrev">이전으로</button>
+      <button
+        class="cd-projects__btn-primary"
+        :disabled="!draftPlan.projects.length"
+        @click="goNext"
+      >
+        다음으로
       </button>
     </div>
   </div>
@@ -149,6 +154,10 @@ async function deleteProject(projectId: string) {
     draftPlan.projects.splice(idx, 1)
     await syncDeleteProject(projectId)
   }
+}
+
+function goPrev() {
+  router.push('/career-design/plan/new')
 }
 
 function goNext() {
@@ -325,10 +334,26 @@ function goNext() {
 
   &__footer {
     padding: 16px 20px 32px;
+    display: flex;
+    gap: 10px;
   }
 
-  &__cta {
-    width: 100%;
+  &__btn-secondary {
+    flex: 1;
+    padding: 18px;
+    background: #fff;
+    border: 1.5px solid #ddd;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #666;
+    cursor: pointer;
+
+    &:active { opacity: 0.85; }
+  }
+
+  &__btn-primary {
+    flex: 2;
     padding: 18px;
     background: #FFC700;
     border: none;
@@ -340,7 +365,8 @@ function goNext() {
     transition: opacity 0.15s;
 
     &:disabled {
-      opacity: 0.4;
+      background: #e8e8e8;
+      color: #aaa;
       cursor: not-allowed;
     }
 
