@@ -239,7 +239,9 @@ import CelebrationModal from '../components/CelebrationModal.vue'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 import { useAchievement } from '../composables/useAchievement'
 import { useCurriculumCompletion } from '../composables/useCurriculumCompletion'
-import type { Project, ProjectCategory, WeekCurriculum } from '@/modules/career-design/types/career-design'
+import { useWeeklySchedule, computeWeekRangeContaining } from '../composables/useWeeklySchedule'
+import type { WeeklySchedule } from '../composables/useWeeklySchedule'
+import type { Project, ProjectCategory, Routine, WeekCurriculum } from '@/modules/career-design/types/career-design'
 
 
 const router = useRouter()
@@ -251,6 +253,10 @@ const {
   weekDates, getDayOfWeek,
 } = useAchievement()
 const { isItemDone, weekItemsDoneCount } = useCurriculumCompletion()
+const { ensureWeekSchedule } = useWeeklySchedule()
+
+// 이번 주의 확정된 일정 — Phase 3: WeeklySchedule 우선, 없으면 Project.days fallback
+const currentSchedule = ref<WeeklySchedule | null>(null)
 
 const loading = ref(true)
 
@@ -351,15 +357,42 @@ const achievementStreak = computed<number>(() => {
 
 const hasPlan = computed(() => !!draftPlan.planId)
 
-const todayRoutinesList = computed(() => todayRoutines(draftPlan.routines))
-
 const timelineForCalc = computed(() =>
   draftTimeline.value.map(s => ({ month: s.month, projects: s.projects.map(p => ({ id: p.id })) }))
 )
 
-const todayProjectsList = computed(() =>
-  todayProjects(draftPlan.projects, timelineForCalc.value, draftPlan.startDate, draftPlan.endDate)
-)
+// 오늘 schedule items (있을 때만). 없으면 fallback 로직 사용.
+const todayScheduleItems = computed(() => {
+  if (!currentSchedule.value) return null
+  return currentSchedule.value.items.filter(it => it.date === todayKey.value)
+})
+
+const todayProjectsList = computed<Project[]>(() => {
+  if (todayScheduleItems.value) {
+    const out: Project[] = []
+    for (const it of todayScheduleItems.value) {
+      if (it.itemType !== 'project') continue
+      const p = draftPlan.projects.find(x => x.id === it.itemId)
+      if (p) out.push(p)
+    }
+    return out
+  }
+  // fallback — schedule 없으면 기존 Project.days × timeline 계산
+  return todayProjects(draftPlan.projects, timelineForCalc.value, draftPlan.startDate, draftPlan.endDate)
+})
+
+const todayRoutinesList = computed<Routine[]>(() => {
+  if (todayScheduleItems.value) {
+    const out: Routine[] = []
+    for (const it of todayScheduleItems.value) {
+      if (it.itemType !== 'routine') continue
+      const r = draftPlan.routines.find(x => x.id === it.itemId)
+      if (r) out.push(r)
+    }
+    return out
+  }
+  return todayRoutines(draftPlan.routines)
+})
 
 const month = computed(() => monthProgress(timelineForCalc.value))
 
@@ -572,13 +605,27 @@ watch(allTodayDone, (now) => {
   }
 })
 
-// 초기 로드: 가장 최근 활성 진로계획 1건 로드
+// 초기 로드: 가장 최근 활성 진로계획 1건 로드 + 이번 주 WeeklySchedule 로드/생성
 onMounted(async () => {
   try {
     const plans = await fetchMyPlans()
     const target = plans.find((p: any) => p.status === 'active') ?? plans[0]
     if (target?.planId) {
       await loadPlanFromApi(target.planId)
+
+      // 이번 주 schedule — 없으면 디폴트로 자동 생성, 실패 시 fallback 로직 사용
+      if (draftPlan.startDate && draftPlan.reviewDay) {
+        const range = computeWeekRangeContaining(today.value, draftPlan.startDate, draftPlan.reviewDay)
+        if (range) {
+          currentSchedule.value = await ensureWeekSchedule(
+            draftPlan.planId!,
+            { projects: draftPlan.projects, routines: draftPlan.routines },
+            draftTimeline.value,
+            range.weekStart,
+            range.weekEnd,
+          )
+        }
+      }
     }
   } finally {
     loading.value = false

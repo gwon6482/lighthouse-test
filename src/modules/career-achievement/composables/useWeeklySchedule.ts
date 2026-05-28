@@ -84,6 +84,32 @@ export function computeFirstWeekRange(
   return { weekStart: startDate, weekEnd: toDateKey(cursor) }
 }
 
+// 임의 날짜 date 가 속한 주의 [weekStart, weekEnd] 계산.
+// 첫 주부터 forward 로 이동하며 date 가 weekEnd 이내에 들어올 때까지 진행.
+// date < startDate 면 null (계획 시작 전).
+export function computeWeekRangeContaining(
+  date: Date, startDate: string, reviewDay: DayOfWeek,
+): { weekStart: string; weekEnd: string } | null {
+  const first = computeFirstWeekRange(startDate, reviewDay)
+  if (!first) return null
+  const dateKey = toDateKey(date)
+  if (dateKey < first.weekStart) return null
+
+  let weekStart = first.weekStart
+  let weekEnd   = first.weekEnd
+  // 안전 가드 — 무한루프 방지 (10년치)
+  for (let i = 0; i < 600; i++) {
+    if (dateKey <= weekEnd) return { weekStart, weekEnd }
+    const ed = parseDateKey(weekEnd)
+    if (!ed) return null
+    const ns = new Date(ed); ns.setDate(ns.getDate() + 1)
+    const ne = new Date(ns); ne.setDate(ne.getDate() + 6)
+    weekStart = toDateKey(ns)
+    weekEnd   = toDateKey(ne)
+  }
+  return null
+}
+
 // 어떤 주(weekStart~weekEnd) 안의 어떤 날짜에 어떤 프로젝트/루틴이 잡힐지 디폴트 생성.
 // 마스터 데이터의 Project.days / Routine.days / timeline 을 그대로 곱해서 만든다.
 // Phase 4 의 주간리뷰 단계에서 사용자가 자유롭게 수정 가능.
@@ -236,8 +262,26 @@ export function useWeeklySchedule() {
     return map
   }
 
-  // 첫 주 schedule 이 없으면 자동 생성 (있으면 그대로 반환). idempotent.
-  // 진로계획 완성 시점(Result 진입)에 호출해서 진로달성 메인이 즉시 표시할 데이터 확보.
+  // 임의 주의 schedule 이 없으면 디폴트로 자동 생성 (있으면 그대로 반환). idempotent.
+  async function ensureWeekSchedule(
+    planId: string,
+    plan: { projects: Project[]; routines: Routine[] },
+    timeline: TimelineSlot[],
+    weekStart: string,
+    weekEnd: string,
+  ): Promise<WeeklySchedule | null> {
+    const existing = await fetchScheduleByWeek(planId, weekStart)
+    if (existing) return existing
+    const items = generateItemsForWeek(
+      { projects: plan.projects, routines: plan.routines },
+      timeline,
+      weekStart,
+      weekEnd,
+    )
+    return await createSchedule(planId, weekStart, weekEnd, items)
+  }
+
+  // 첫 주 schedule 자동 생성 (진로계획 완성 직후 Result 페이지에서 호출).
   async function ensureFirstWeekSchedule(
     planId: string,
     plan: { startDate: string; reviewDay: DayOfWeek | ''; projects: Project[]; routines: Routine[] },
@@ -246,17 +290,7 @@ export function useWeeklySchedule() {
     if (!plan.startDate || !plan.reviewDay) return null
     const range = computeFirstWeekRange(plan.startDate, plan.reviewDay)
     if (!range) return null
-
-    const existing = await fetchScheduleByWeek(planId, range.weekStart)
-    if (existing) return existing
-
-    const items = generateItemsForWeek(
-      { projects: plan.projects, routines: plan.routines },
-      timeline,
-      range.weekStart,
-      range.weekEnd,
-    )
-    return await createSchedule(planId, range.weekStart, range.weekEnd, items)
+    return ensureWeekSchedule(planId, plan, timeline, range.weekStart, range.weekEnd)
   }
 
   return {
@@ -267,6 +301,7 @@ export function useWeeklySchedule() {
     updateSchedule,
     deleteSchedule,
     itemsByDate,
+    ensureWeekSchedule,
     ensureFirstWeekSchedule,
   }
 }
