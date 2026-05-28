@@ -57,21 +57,44 @@
     <HomeButtonContainer :menus="menus" />
     <button @click="lastPage" style="display: none;">마지막 페이지</button>
 
-    <!-- 개발 도구: 오늘 날짜 시뮬레이션 -->
+    <!-- 개발자 기능 -->
     <section class="dev-tools">
       <div class="dev-tools__head">
         <span class="dev-tools__badge">DEV</span>
-        <h2 class="dev-tools__title">오늘 날짜 시뮬레이션</h2>
+        <h2 class="dev-tools__title">개발자 기능</h2>
       </div>
-      <p class="dev-tools__desc">
-        진로달성 페이지가 "오늘"을 인식하는 날짜를 임의로 바꿔서 테스트할 수 있어요.
-        <strong v-if="devDate">현재 시뮬레이션: {{ devDate }}</strong>
-        <strong v-else>현재: 실제 오늘 사용 중</strong>
-      </p>
-      <div class="dev-tools__row">
-        <input v-model="devDateInput" type="date" class="dev-tools__input" />
-        <button class="dev-tools__btn dev-tools__btn--primary" @click="applyDevDate">적용</button>
-        <button class="dev-tools__btn" @click="clearDevDate">실제 오늘로</button>
+
+      <!-- 오늘 날짜 시뮬레이션 -->
+      <div class="dev-tools__group">
+        <h3 class="dev-tools__group-title">오늘 날짜 시뮬레이션</h3>
+        <p class="dev-tools__desc">
+          진로달성 페이지가 "오늘"을 인식하는 날짜를 임의로 바꿔서 테스트할 수 있어요.
+          <strong v-if="devDate">현재: {{ devDate }}</strong>
+          <strong v-else>현재: 실제 오늘 사용 중</strong>
+        </p>
+        <div class="dev-tools__row">
+          <input v-model="devDateInput" type="date" class="dev-tools__input" />
+          <button class="dev-tools__btn dev-tools__btn--primary" @click="applyDevDate">적용</button>
+          <button class="dev-tools__btn" @click="clearDevDate">실제 오늘로</button>
+        </div>
+      </div>
+
+      <!-- 진행상황 초기화 -->
+      <div class="dev-tools__group">
+        <h3 class="dev-tools__group-title">진행상황 초기화</h3>
+        <p class="dev-tools__desc">
+          완료 마킹, 기록, 축하 상태, 주간 일정(WeeklySchedule)을 모두 지웁니다.
+          진로계획·프로젝트·루틴 같은 마스터 데이터는 유지돼요.
+        </p>
+        <div class="dev-tools__row">
+          <button
+            class="dev-tools__btn dev-tools__btn--danger"
+            :disabled="resetting"
+            @click="resetProgress"
+          >
+            {{ resetting ? '초기화 중...' : '진행상황 초기화' }}
+          </button>
+        </div>
       </div>
     </section>
 
@@ -113,6 +136,8 @@ import SignUpModal from '../components/SignUpModal.vue'
 import { useSurvey } from '../composables/useSurvey'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useDevDate } from '@/shared/utils/dev-date'
+import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
+import { useWeeklySchedule } from '@/modules/career-achievement/composables/useWeeklySchedule'
 
 const router = useRouter()
 const { currentPageIndex, totalPages } = useSurvey()
@@ -190,6 +215,64 @@ function clearDevDate() {
   devDateInput.value = ''
   setDevDate(null)
 }
+
+// ── 진행상황 초기화 ───────────────────────────────
+// localStorage 의 완료 마킹·기록·축하 + 모든 WeeklySchedule 을 삭제.
+// 진로계획·프로젝트·루틴 같은 마스터 데이터는 그대로 유지.
+const resetting = ref(false)
+const { fetchMyPlans } = useCareerDesign()
+const { fetchSchedules, deleteSchedule } = useWeeklySchedule()
+
+async function resetProgress() {
+  const ok = confirm(
+    '진행상황을 초기화할까요?\n\n' +
+    '· 완료 마킹·기록·축하 상태 (localStorage)\n' +
+    '· 모든 주간 일정(WeeklySchedule)\n' +
+    '· 오늘 날짜 시뮬레이션\n\n' +
+    '진로계획·프로젝트·루틴 등 마스터 데이터는 유지됩니다.'
+  )
+  if (!ok) return
+
+  resetting.value = true
+  try {
+    // 1) localStorage 진행상황 키 클리어
+    const fixedKeys = [
+      'lh_achievement_v1',
+      'lh_curriculum_items_v1',
+      'lh_achievement_entries_v1',
+    ]
+    for (const k of fixedKeys) localStorage.removeItem(k)
+    // lh_celebration_YYYY-MM-DD 들
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i)
+      if (k && k.startsWith('lh_celebration_')) localStorage.removeItem(k)
+    }
+
+    // 2) BE WeeklySchedule 전부 삭제 (모든 plan 의 모든 weekStart)
+    try {
+      const plans = await fetchMyPlans()
+      for (const plan of plans) {
+        if (!plan?.planId) continue
+        const schedules = await fetchSchedules(plan.planId)
+        for (const s of schedules) {
+          await deleteSchedule(plan.planId, s.weekStart)
+        }
+      }
+    } catch (err) {
+      // BE 실패해도 localStorage 는 이미 초기화됨 — 사용자에 알리고 계속 진행
+      console.warn('[resetProgress] BE WeeklySchedule 삭제 일부 실패', err)
+    }
+
+    // 3) dev-date 초기화
+    setDevDate(null)
+    devDateInput.value = ''
+
+    // 4) 새로고침으로 모든 상태 클린 로드
+    location.reload()
+  } finally {
+    resetting.value = false
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -222,6 +305,24 @@ function clearDevDate() {
   &__title {
     font-size: 14px;
     font-weight: 700;
+    margin: 0;
+  }
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 0 4px;
+    border-top: 1px solid #2a2a2a;
+
+    &:first-of-type { padding-top: 4px; border-top: none; }
+  }
+
+  &__group-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: #FFC700;
+    letter-spacing: 0.4px;
     margin: 0;
   }
 
@@ -275,6 +376,20 @@ function clearDevDate() {
       font-weight: 800;
 
       &:hover { background: #FFB300; }
+    }
+
+    &--danger {
+      background: #3a1f1f;
+      color: #FF7A6B;
+      border-color: #5a2a2a;
+      font-weight: 800;
+
+      &:hover { background: #5a2a2a; color: #fff; }
+      &:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        background: #2a1818;
+      }
     }
   }
 }
