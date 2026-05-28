@@ -40,13 +40,15 @@
             :key="cell.key"
             class="cd-dp__cell"
             :class="{
-              'cd-dp__cell--out':      !cell.inMonth,
-              'cd-dp__cell--selected': cell.isSelected,
-              'cd-dp__cell--today':    cell.isToday && !cell.isSelected,
-              'cd-dp__cell--sun':      cell.isSun && cell.inMonth,
-              'cd-dp__cell--sat':      cell.isSat && cell.inMonth,
+              'cd-dp__cell--out':       !cell.inMonth,
+              'cd-dp__cell--selected':  cell.isSelected,
+              'cd-dp__cell--today':     cell.isToday && !cell.isSelected,
+              'cd-dp__cell--sun':       cell.isSun && cell.inMonth,
+              'cd-dp__cell--sat':       cell.isSat && cell.inMonth,
+              'cd-dp__cell--disabled':  cell.isDisabled,
             }"
-            @click="pick(cell.dateStr)"
+            :disabled="cell.isDisabled"
+            @click="pick(cell.dateStr, cell.isDisabled)"
           >
             {{ cell.day }}
           </button>
@@ -66,7 +68,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 
-const props = defineProps<{ modelValue: string; placeholder?: string }>()
+const props = defineProps<{ modelValue: string; placeholder?: string; min?: string }>()
 const emit  = defineEmits<{ (e: 'update:modelValue', v: string): void }>()
 
 const rootRef = ref<HTMLElement | null>(null)
@@ -131,7 +133,7 @@ const weekdays = [
   { label: '토', cls: 'cd-dp__wd--sat' },
 ]
 
-interface Cell { key: string; day: number; dateStr: string; inMonth: boolean; isSelected: boolean; isToday: boolean; isSun: boolean; isSat: boolean }
+interface Cell { key: string; day: number; dateStr: string; inMonth: boolean; isSelected: boolean; isToday: boolean; isSun: boolean; isSat: boolean; isDisabled: boolean }
 
 const cells = computed<Cell[]>(() => {
   const y = viewYear.value
@@ -140,6 +142,7 @@ const cells = computed<Cell[]>(() => {
   const daysInMonth = new Date(y, m + 1, 0).getDate()
   const daysInPrev  = new Date(y, m, 0).getDate()
   const todayStr = fmt(today)
+  const min = props.min ?? ''
   const result: Cell[] = []
 
   for (let i = 0; i < firstDow; i++) {
@@ -147,7 +150,7 @@ const cells = computed<Cell[]>(() => {
     const pm = m === 0 ? 11 : m - 1
     const py = m === 0 ? y - 1 : y
     const ds = fmt(new Date(py, pm, day))
-    result.push({ key: ds, day, dateStr: ds, inMonth: false, isSelected: false, isToday: false, isSun: i === 0, isSat: i === 6 })
+    result.push({ key: ds, day, dateStr: ds, inMonth: false, isSelected: false, isToday: false, isSun: i === 0, isSat: i === 6, isDisabled: !!min && ds < min })
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
@@ -159,6 +162,7 @@ const cells = computed<Cell[]>(() => {
       isToday:    ds === todayStr,
       isSun: dow === 0,
       isSat: dow === 6,
+      isDisabled: !!min && ds < min,
     })
   }
 
@@ -168,7 +172,7 @@ const cells = computed<Cell[]>(() => {
     const ny = m === 11 ? y + 1 : y
     const ds = fmt(new Date(ny, nm, d))
     const dow = new Date(ny, nm, d).getDay()
-    result.push({ key: ds, day: d, dateStr: ds, inMonth: false, isSelected: false, isToday: false, isSun: dow === 0, isSat: dow === 6 })
+    result.push({ key: ds, day: d, dateStr: ds, inMonth: false, isSelected: false, isToday: false, isSun: dow === 0, isSat: dow === 6, isDisabled: !!min && ds < min })
   }
 
   return result
@@ -186,14 +190,19 @@ function fmtDisplay(dateStr: string): string {
   return `${y}.${m}.${d}`
 }
 
-function pick(dateStr: string) {
+function pick(dateStr: string, disabled = false) {
+  if (disabled) return
   emit('update:modelValue', dateStr)
   viewYear.value  = +dateStr.slice(0, 4)
   viewMonth.value = +dateStr.slice(5, 7) - 1
   closePanel()
 }
 
-function pickToday() { pick(fmt(today)) }
+function pickToday() {
+  const todayStr = fmt(today)
+  if (props.min && todayStr < props.min) return
+  pick(todayStr)
+}
 
 function clear() {
   emit('update:modelValue', '')
@@ -346,6 +355,15 @@ onBeforeUnmount(() => {
     &--out     { color: #ddd; cursor: default; }
     &--sun     { color: #FF6B6B; }
     &--sat     { color: #5B9CF6; }
+
+    &--disabled,
+    &--disabled:hover {
+      color: #d6d6d6 !important;
+      background: none !important;
+      cursor: not-allowed;
+      text-decoration: line-through;
+      opacity: 0.55;
+    }
 
     &--today::after {
       content: '';

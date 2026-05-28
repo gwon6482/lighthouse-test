@@ -38,9 +38,9 @@
           <div class="cd-plan-write__prow">
             <span class="cd-plan-write__plabel">기간</span>
             <div class="cd-plan-write__date-row">
-              <CdDatePicker v-model="draftPlan.startDate" placeholder="시작일" />
+              <CdDatePicker v-model="draftPlan.startDate" :min="todayKey" placeholder="시작일" />
               <span class="cd-plan-write__date-tilde">~</span>
-              <CdDatePicker v-model="draftPlan.endDate" placeholder="종료일" />
+              <CdDatePicker v-model="draftPlan.endDate" :min="endMin" placeholder="종료일" />
             </div>
           </div>
         </div>
@@ -59,13 +59,25 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import CdDatePicker from '../components/CdDatePicker.vue'
+import { getToday } from '@/shared/utils/dev-date'
 
 const router = useRouter()
 const { draftPlan, syncPlanStep1 } = useCareerDesign()
+
+// 시작일은 오늘 이후로만 허용. 종료일은 시작일(또는 오늘) 이후로만 허용.
+function toDateKey(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
+const todayKey = computed(() => toDateKey(getToday()))
+const endMin   = computed(() => draftPlan.startDate || todayKey.value)
 
 async function goNext() {
   await syncPlanStep1()

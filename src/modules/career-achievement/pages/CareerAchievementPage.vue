@@ -13,10 +13,39 @@
       <!-- 진로계획 hero (N일차 + 전체 진행률 + 이번 주 path) -->
       <div class="ca__plan-hero">
         <span class="ca__plan-date">{{ todayLabel }}</span>
+
         <div class="ca__plan-counter">
           <span class="ca__plan-counter-label">진로계획</span>
-          <span class="ca__plan-counter-num">{{ daysSinceStart ?? 1 }}</span>
-          <span class="ca__plan-counter-unit">일차</span>
+          <div class="ca__plan-counter-row">
+            <span class="ca__plan-counter-num">{{ daysSinceStart ?? 1 }}</span>
+            <span class="ca__plan-counter-unit">일차</span>
+          </div>
+        </div>
+
+        <div class="ca__chips">
+          <div v-if="achievementStreak > 0" class="ca__streak">
+            <span class="ca__streak-icon">🔥</span>
+            <span class="ca__streak-text">
+              연속 달성 <strong>{{ achievementStreak }}</strong>일차
+            </span>
+          </div>
+        </div>
+
+        <!-- 이번 주 루틴 달성률 -->
+        <div v-if="weeklyRoutineStat.planned > 0" class="ca__rstat">
+          <div class="ca__rstat-head">
+            <span class="ca__rstat-label">🎯 이번 주 루틴 달성</span>
+            <span class="ca__rstat-pct"><strong>{{ weeklyRoutineStat.percent }}</strong>%</span>
+          </div>
+          <div class="ca__rstat-bar">
+            <div class="ca__rstat-bar-fill" :style="{ width: `${weeklyRoutineStat.percent}%` }" />
+          </div>
+          <div class="ca__rstat-meta">
+            <span v-if="weeklyRoutineStat.missed > 0">
+              놓친 루틴 <strong>{{ weeklyRoutineStat.missed }}</strong> / {{ weeklyRoutineStat.planned }}
+            </span>
+            <span v-else>아직 놓친 루틴이 없어요</span>
+          </div>
         </div>
 
         <template v-if="month">
@@ -107,7 +136,6 @@
                       :key="idx"
                       class="ca__pgoal-item"
                       :class="{ 'ca__pgoal-item--done': isItemDone(bar.project.id, bar.curriculumWeek.week, idx) }"
-                      @click="toggleItem(bar.project.id, bar.curriculumWeek.week, idx)"
                     >
                       <span class="ca__pgoal-check" :class="{ 'ca__pgoal-check--done': isItemDone(bar.project.id, bar.curriculumWeek.week, idx) }">
                         <span v-if="isItemDone(bar.project.id, bar.curriculumWeek.week, idx)">✓</span>
@@ -139,14 +167,7 @@
                 class="ca__pcard-cat"
                 :style="{ color: categoryColor(p.category), background: `color-mix(in srgb, ${categoryColor(p.category)} 14%, white)` }"
               >{{ categoryLabel(p.category) }}</span>
-              <button
-                class="ca__pcard-check"
-                :class="{ 'ca__pcard-check--done': isProjectDone(p.id) }"
-                @click="toggleProject(p.id)"
-                :aria-label="isProjectDone(p.id) ? '완료 취소' : '완료 표시'"
-              >
-                <span v-if="isProjectDone(p.id)">✓</span>
-              </button>
+              <span v-if="isProjectDone(p.id)" class="ca__pcard-done-badge">✓ 완료</span>
             </div>
             <h4 class="ca__pcard-name">{{ p.name }}</h4>
             <p
@@ -225,10 +246,11 @@ const router = useRouter()
 const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
 const {
   today, todayKey, todayRoutines, todayProjects, dateProjects, parseMonthLabel,
-  isProjectDone, isRoutineDone, toggleProject, toggleRoutine,
+  isProjectDone, isRoutineDone, toggleRoutine,
   plannedCount, doneCount, monthProgress, toDateKey,
+  weekDates, getDayOfWeek,
 } = useAchievement()
-const { isItemDone, toggleItem, weekItemsDoneCount } = useCurriculumCompletion()
+const { isItemDone, weekItemsDoneCount } = useCurriculumCompletion()
 
 const loading = ref(true)
 
@@ -238,16 +260,93 @@ const todayLabel = computed(() => {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${dow})`
 })
 
+// startDate를 Date 0시 기준으로 파싱. 'YYYY-MM-DD' / 'YYYY-MM' / 'YYYY.MM' / 'YYYY년 M월' 등 허용.
+// day가 없는 포맷은 해당 월 1일로 간주.
+function parseStartDate(s: string): Date | null {
+  if (!s) return null
+  const ymd = s.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/)
+  if (ymd) {
+    const dt = new Date(+ymd[1]!, +ymd[2]! - 1, +ymd[3]!)
+    dt.setHours(0, 0, 0, 0)
+    return dt
+  }
+  const ym = s.match(/^(\d{4})[-./](\d{1,2})/) ?? s.match(/(\d{4})\s*년\s*(\d{1,2})\s*월/)
+  if (ym) {
+    const dt = new Date(+ym[1]!, +ym[2]! - 1, 1)
+    dt.setHours(0, 0, 0, 0)
+    return dt
+  }
+  return null
+}
+
 const daysSinceStart = computed<number | null>(() => {
-  if (!draftPlan.startDate) return null
-  const [y, m, d] = draftPlan.startDate.split('-').map(Number)
-  if (!y || !m || !d) return null
-  const start = new Date(y, m - 1, d)
-  start.setHours(0, 0, 0, 0)
+  const start = parseStartDate(draftPlan.startDate)
+  if (!start) return null
   const now = new Date(today.value)
   now.setHours(0, 0, 0, 0)
   const diff = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
   return diff < 1 ? null : diff
+})
+
+// 연속 달성 일차: 오늘부터 역행하며 planned>0 ∧ done>=planned 인 날을 카운트.
+// 휴식일(planned===0)은 스킵하여 streak를 끊지 않음. 오늘이 아직 미완료여도
+// break 하지 않고 어제부터 계산을 시작 (오늘에 대한 그레이스).
+// 이번 주(월~일) 루틴 달성률.
+// 기본 100%로 시작하여, 과거(오늘 이전) 날짜의 미완료 루틴마다 차감.
+// 오늘·미래 날짜는 아직 판정하지 않음 (사용자가 채울 수 있음).
+const weeklyRoutineStat = computed<{ planned: number; missed: number; percent: number }>(() => {
+  const todayNorm = new Date(today.value)
+  todayNorm.setHours(0, 0, 0, 0)
+
+  let planned = 0
+  let missed  = 0
+
+  for (const d of weekDates.value) {
+    const dow = getDayOfWeek(d)
+    const routinesForDay = draftPlan.routines.filter(r => r.days.includes(dow))
+    planned += routinesForDay.length
+
+    const dNorm = new Date(d)
+    dNorm.setHours(0, 0, 0, 0)
+    if (dNorm.getTime() < todayNorm.getTime()) {
+      const key = toDateKey(d)
+      for (const r of routinesForDay) {
+        if (!isRoutineDone(r.id, key)) missed++
+      }
+    }
+  }
+
+  if (planned === 0) return { planned: 0, missed: 0, percent: 100 }
+  const percent = Math.round(((planned - missed) / planned) * 100)
+  return { planned, missed, percent }
+})
+
+const achievementStreak = computed<number>(() => {
+  const start = parseStartDate(draftPlan.startDate)
+  if (!start) return 0
+
+  const cursor = new Date(today.value)
+  cursor.setHours(0, 0, 0, 0)
+
+  let streak = 0
+  let isToday = true
+  while (cursor.getTime() >= start.getTime()) {
+    const planned = plannedCount(
+      cursor, draftPlan.projects, draftPlan.routines,
+      timelineForCalc.value, draftPlan.startDate, draftPlan.endDate,
+    )
+    const done = doneCount(cursor)
+    if (planned === 0) {
+      // 휴식일 — 스킵
+    } else if (done >= planned) {
+      streak++
+    } else if (!isToday) {
+      break
+    }
+    isToday = false
+    cursor.setDate(cursor.getDate() - 1)
+  }
+  return streak
 })
 
 const hasPlan = computed(() => !!draftPlan.planId)
@@ -518,28 +617,134 @@ onMounted(async () => {
 
   &__plan-counter {
     display: flex;
-    align-items: baseline;
-    gap: 6px;
+    flex-direction: column;
+    gap: 2px;
     margin-top: -2px;
   }
 
   &__plan-counter-label {
-    font-size: 16px;
-    font-weight: 700;
-    opacity: 0.95;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+
+  &__plan-counter-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
   }
 
   &__plan-counter-num {
-    font-size: 44px;
+    font-size: 92px;
     font-weight: 900;
-    line-height: 1;
-    letter-spacing: -0.5px;
+    line-height: 0.92;
+    letter-spacing: -3px;
+    color: #fff;
+    text-shadow:
+      0 4px 0 rgba(0, 0, 0, 0.10),
+      0 8px 24px rgba(180, 100, 0, 0.35);
+    font-feature-settings: 'tnum' 1;
   }
 
   &__plan-counter-unit {
-    font-size: 18px;
+    font-size: 26px;
+    font-weight: 900;
+    opacity: 0.95;
+    letter-spacing: -0.5px;
+  }
+
+  /* 칩 라인 — 연속 달성 등 */
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+
+    &:empty { display: none; }
+  }
+
+  /* 연속 달성 streak 칩 */
+  &__streak {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.96);
+    color: #FF6A00;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.10);
+  }
+
+  &__streak-icon { font-size: 14px; line-height: 1; }
+
+  &__streak-text strong {
+    font-size: 15px;
+    font-weight: 900;
+    margin: 0 1px;
+  }
+
+  /* 이번 주 루틴 달성률 */
+  &__rstat {
+    margin-top: 6px;
+    padding: 12px 14px 11px;
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 14px;
+    backdrop-filter: blur(2px);
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  &__rstat-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  &__rstat-label {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    opacity: 0.96;
+  }
+
+  &__rstat-pct {
+    font-size: 12px;
     font-weight: 700;
     opacity: 0.95;
+
+    strong {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      margin-right: 1px;
+    }
+  }
+
+  &__rstat-bar {
+    height: 7px;
+    background: rgba(255, 255, 255, 0.32);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  &__rstat-bar-fill {
+    height: 100%;
+    background: #fff;
+    border-radius: 4px;
+    transition: width 0.35s ease;
+  }
+
+  &__rstat-meta {
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0.85;
+
+    strong { font-weight: 900; opacity: 1; }
   }
 
   &__plan-stage {
@@ -888,10 +1093,6 @@ onMounted(async () => {
     border-radius: 8px;
     font-size: 13px;
     color: #444;
-    cursor: pointer;
-    transition: background 0.12s;
-
-    &:hover { background: #fafafa; }
 
     &--done {
       color: #888;
@@ -1004,26 +1205,18 @@ onMounted(async () => {
     white-space: nowrap;
   }
 
-  &__pcard-check {
+  &__pcard-done-badge {
     flex-shrink: 0;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    border: 2px solid #ddd;
-    background: #fff;
-    cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #1DB95A;
     color: #fff;
-    font-size: 14px;
-    padding: 0;
-    transition: background 0.15s, border-color 0.15s;
-
-    &--done {
-      background: #1DB95A;
-      border-color: #1DB95A;
-    }
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
   }
 
   &__pcard-name {

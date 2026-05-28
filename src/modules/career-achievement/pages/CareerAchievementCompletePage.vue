@@ -96,13 +96,15 @@ import { ref, computed, onMounted, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 import { useAchievement } from '../composables/useAchievement'
+import { useCurriculumCompletion } from '../composables/useCurriculumCompletion'
 import { useAchievementEntries, type AchievementEntry } from '../composables/useAchievementEntries'
 import type { Project, Routine, ProjectCategory } from '@/modules/career-design/types/career-design'
 
 const route = useRoute()
 const router = useRouter()
-const { draftPlan, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
-const { isProjectDone, isRoutineDone, toggleProject, toggleRoutine } = useAchievement()
+const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
+const { isProjectDone, isRoutineDone, toggleProject, toggleRoutine, parseMonthLabel } = useAchievement()
+const { isItemDone, toggleItem } = useCurriculumCompletion()
 const { saveEntry, getEntry } = useAchievementEntries()
 
 const itemType = computed<'project' | 'routine'>(() => (route.params.type === 'routine' ? 'routine' : 'project'))
@@ -206,6 +208,41 @@ function resizeToDataUrl(file: File, maxWidth: number): Promise<string> {
   })
 }
 
+// dateKey가 속한 프로젝트의 curriculum 주차에서 첫 미완료 item 1개를 done 처리.
+// 진로달성 메인의 스플릿 progress bar를 1칸 전진시키는 트리거.
+function advanceProjectCurriculum(project: Project, dateKey: string) {
+  if (!project.curriculum?.length) return
+
+  // 프로젝트가 timeline에 처음 배치된 월의 1일 (1주차 시작일)
+  let best: { year: number; month: number } | null = null
+  for (const slot of draftTimeline.value) {
+    if (!slot.projects.some((p: { id: string }) => p.id === project.id)) continue
+    const parsed = parseMonthLabel(slot.month)
+    if (!parsed) continue
+    if (!best || parsed.year < best.year || (parsed.year === best.year && parsed.month < best.month)) {
+      best = parsed
+    }
+  }
+  if (!best) return
+  const firstDay = new Date(best.year, best.month - 1, 1)
+  firstDay.setHours(0, 0, 0, 0)
+
+  const [y, m, d] = dateKey.split('-').map(Number)
+  if (!y || !m || !d) return
+  const target = new Date(y, m - 1, d)
+  target.setHours(0, 0, 0, 0)
+
+  const days = Math.floor((target.getTime() - firstDay.getTime()) / (1000 * 60 * 60 * 24))
+  if (days < 0) return
+  const wIdx = Math.floor(days / 7) + 1
+
+  const cw = project.curriculum.find(c => c.week === wIdx)
+  if (!cw || !cw.items?.length) return
+
+  const undoneIdx = cw.items.findIndex((_, k) => !isItemDone(project.id, cw.week, k))
+  if (undoneIdx !== -1) toggleItem(project.id, cw.week, undoneIdx)
+}
+
 function save() {
   if (!item.value) return
   saving.value = true
@@ -231,8 +268,12 @@ function save() {
       ? isProjectDone(itemId.value, dateKey.value)
       : isRoutineDone(itemId.value, dateKey.value)
     if (!alreadyDone) {
-      if (itemType.value === 'project') toggleProject(itemId.value, dateKey.value)
-      else toggleRoutine(itemId.value, dateKey.value)
+      if (itemType.value === 'project') {
+        toggleProject(itemId.value, dateKey.value)
+        advanceProjectCurriculum(item.value as Project, dateKey.value)
+      } else {
+        toggleRoutine(itemId.value, dateKey.value)
+      }
     }
 
     router.replace('/career-achievement')
