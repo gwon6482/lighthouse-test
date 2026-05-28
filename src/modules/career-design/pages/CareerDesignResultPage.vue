@@ -187,9 +187,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
+import { useWeeklySchedule } from '@/modules/career-achievement/composables/useWeeklySchedule'
 import { useAuthStore } from '@/shared/stores/auth'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { Project, ProjectCategory, DayOfWeek } from '../types/career-design'
@@ -197,6 +198,23 @@ import type { Project, ProjectCategory, DayOfWeek } from '../types/career-design
 const router = useRouter()
 const authStore = useAuthStore()
 const { draftPlan, draftTimeline } = useCareerDesign()
+const { ensureFirstWeekSchedule } = useWeeklySchedule()
+
+// 진로계획이 완성된 시점에 첫 주 WeeklySchedule 을 자동 생성 (이미 있으면 no-op).
+// 진로달성 메인이 즉시 표시할 데이터 확보.
+onMounted(async () => {
+  if (!draftPlan.planId || !draftPlan.startDate || !draftPlan.reviewDay) return
+  await ensureFirstWeekSchedule(
+    draftPlan.planId,
+    {
+      startDate: draftPlan.startDate,
+      reviewDay: draftPlan.reviewDay,
+      projects: draftPlan.projects,
+      routines: draftPlan.routines,
+    },
+    draftTimeline.value,
+  )
+})
 
 const userName = computed(() => authStore.user?.name ?? authStore.user?.email?.split('@')[0] ?? '회원')
 
