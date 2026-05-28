@@ -90,7 +90,10 @@
           <span class="wr__range">{{ fmtRange(nextRange) }}</span>
         </div>
 
-        <p class="wr__next-hint">아래 일정은 자동으로 디폴트가 잡혀 있어요. 편집 기능은 곧 추가됩니다.</p>
+        <p class="wr__next-hint">
+          다음 주 일정을 미리 보고 조정해 주세요. 변경사항은 자동으로 저장돼요.
+          <span v-if="nextSaving" class="wr__autosave">저장 중...</span>
+        </p>
 
         <div v-if="nextDays.length" class="wr__days">
           <div
@@ -103,6 +106,7 @@
               <span class="wr__day-dow">{{ day.dow }}</span>
               <span class="wr__day-date">{{ day.dateLabel }}</span>
               <span v-if="day.items.length" class="wr__day-count">{{ day.items.length }}</span>
+              <button class="wr__day-add" @click="openAddSheet(day.date)" type="button">+ 추가</button>
             </div>
             <ul v-if="day.items.length" class="wr__day-items">
               <li
@@ -120,6 +124,12 @@
                 <span v-else class="wr__day-item-cat wr__day-item-cat--routine">루틴</span>
                 <span class="wr__day-item-name">{{ it.name }}</span>
                 <span class="wr__day-item-meta">{{ it.duration }}분</span>
+                <button
+                  class="wr__day-item-remove"
+                  @click="removeItem(it.id)"
+                  type="button"
+                  aria-label="삭제"
+                >✕</button>
               </li>
             </ul>
             <p v-else class="wr__day-empty">예정된 일정 없음</p>
@@ -128,6 +138,77 @@
         <p v-else class="wr__placeholder-text">다음 주에 잡힌 일정이 없어요.</p>
       </section>
     </template>
+
+    <!-- 항목 추가 bottom sheet -->
+    <Teleport to="body">
+      <Transition name="wr-sheet">
+        <div v-if="addSheetOpen" class="wr-sheet" @click.self="closeAddSheet">
+          <div class="wr-sheet__panel">
+            <div class="wr-sheet__handle" />
+            <div class="wr-sheet__head">
+              <h3 class="wr-sheet__title">{{ addSheetDateLabel }} 에 추가</h3>
+              <button class="wr-sheet__close" @click="closeAddSheet" type="button">✕</button>
+            </div>
+
+            <div class="wr-sheet__tabs">
+              <button
+                class="wr-sheet__tab"
+                :class="{ 'wr-sheet__tab--active': addTab === 'project' }"
+                @click="addTab = 'project'"
+                type="button"
+              >프로젝트 ({{ draftPlan.projects.length }})</button>
+              <button
+                class="wr-sheet__tab"
+                :class="{ 'wr-sheet__tab--active': addTab === 'routine' }"
+                @click="addTab = 'routine'"
+                type="button"
+              >루틴 ({{ draftPlan.routines.length }})</button>
+            </div>
+
+            <div class="wr-sheet__list">
+              <template v-if="addTab === 'project'">
+                <button
+                  v-for="p in draftPlan.projects"
+                  :key="p.id"
+                  class="wr-sheet__row"
+                  @click="addItem('project', p.id)"
+                  type="button"
+                >
+                  <span
+                    class="wr-sheet__row-dot"
+                    :style="{ background: CAT_COLOR[p.category] }"
+                  />
+                  <div class="wr-sheet__row-body">
+                    <span class="wr-sheet__row-name">{{ p.name }}</span>
+                    <span class="wr-sheet__row-meta">{{ CAT_LABEL[p.category] }} · {{ p.duration }}분</span>
+                  </div>
+                  <span class="wr-sheet__row-plus">＋</span>
+                </button>
+                <p v-if="!draftPlan.projects.length" class="wr-sheet__empty">등록된 프로젝트가 없어요.</p>
+              </template>
+
+              <template v-else>
+                <button
+                  v-for="r in draftPlan.routines"
+                  :key="r.id"
+                  class="wr-sheet__row"
+                  @click="addItem('routine', r.id)"
+                  type="button"
+                >
+                  <span class="wr-sheet__row-dot" :style="{ background: '#FFD84D' }" />
+                  <div class="wr-sheet__row-body">
+                    <span class="wr-sheet__row-name">{{ r.name }}</span>
+                    <span class="wr-sheet__row-meta">루틴 · {{ r.duration }}분</span>
+                  </div>
+                  <span class="wr-sheet__row-plus">＋</span>
+                </button>
+                <p v-if="!draftPlan.routines.length" class="wr-sheet__empty">등록된 루틴이 없어요.</p>
+              </template>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -150,9 +231,64 @@ const { isProjectDone, isRoutineDone } = useAchievement()
 
 const loading       = ref(true)
 const saving        = ref(false)
+const nextSaving    = ref(false)
 const prevSchedule  = ref<WeeklySchedule | null>(null)
 const nextSchedule  = ref<WeeklySchedule | null>(null)
 const reviewNote    = ref('')
+
+// 항목 추가 bottom sheet
+const addSheetOpen = ref(false)
+const addSheetDate = ref('')
+const addTab       = ref<'project' | 'routine'>('project')
+
+const addSheetDateLabel = computed(() => addSheetDate.value ? fmtDateLabel(addSheetDate.value) : '')
+
+function openAddSheet(date: string) {
+  addSheetDate.value = date
+  addTab.value = 'project'
+  addSheetOpen.value = true
+}
+function closeAddSheet() {
+  addSheetOpen.value = false
+}
+
+// 다음 주 schedule 의 items 를 변경하고 즉시 BE 동기화 (autosave).
+// nextSchedule.value 는 미리 local 업데이트해서 UI 가 즉각 반영되도록 함.
+async function persistNextItems(newItems: WeeklySchedule['items']) {
+  if (!draftPlan.planId || !nextSchedule.value) return
+  const planId = draftPlan.planId
+  const weekStart = nextSchedule.value.weekStart
+  // optimistic
+  nextSchedule.value = { ...nextSchedule.value, items: newItems }
+  nextSaving.value = true
+  try {
+    const updated = await updateSchedule(planId, weekStart, { items: newItems })
+    if (updated) nextSchedule.value = updated
+  } finally {
+    nextSaving.value = false
+  }
+}
+
+function removeItem(itemId: string) {
+  if (!nextSchedule.value) return
+  const next = nextSchedule.value.items.filter(it => it.id !== itemId)
+  persistNextItems(next)
+}
+
+function addItem(itemType: 'project' | 'routine', itemId: string) {
+  if (!nextSchedule.value || !addSheetDate.value) return
+  const newItem = {
+    id: crypto.randomUUID(),
+    itemType,
+    itemId,
+    date: addSheetDate.value,
+    curriculumWeek: null,
+    note: '',
+  }
+  const next = [...nextSchedule.value.items, newItem]
+  persistNextItems(next)
+  closeAddSheet()
+}
 
 const CAT_COLOR: Record<ProjectCategory, string> = {
   qualification: '#1DB95A',
@@ -768,5 +904,209 @@ onMounted(async () => {
     text-align: center;
     padding: 4px 0;
   }
+
+  &__day-add {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px dashed #DDD;
+    color: #888;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: border-color 0.12s, color 0.12s, background 0.12s;
+
+    &:hover {
+      border-color: #FFC700;
+      color: #B07800;
+      background: #FFFBEC;
+    }
+  }
+
+  &__day-item-remove {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: #bbb;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+
+    &:hover {
+      background: #FFE8E8;
+      color: #C5443A;
+    }
+  }
+
+  &__autosave {
+    margin-left: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #B07800;
+  }
+}
+
+/* ── 항목 추가 bottom sheet (Teleport 대상이라 scoped 외부) ────────── */
+.wr-sheet {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+
+  &__panel {
+    width: 100%;
+    max-width: 480px;
+    max-height: 70vh;
+    background: #fff;
+    border-radius: 22px 22px 0 0;
+    padding: 14px 16px 20px;
+    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__handle {
+    width: 44px;
+    height: 4px;
+    border-radius: 2px;
+    background: #DDD;
+    align-self: center;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: 900;
+    color: #222;
+    margin: 0;
+  }
+
+  &__close {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 14px;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+
+    &:hover { background: #F0F0F0; }
+  }
+
+  &__tabs {
+    display: flex;
+    gap: 6px;
+    padding: 2px 0 4px;
+  }
+
+  &__tab {
+    flex: 1;
+    background: #FAFAF7;
+    border: 1px solid #EEEEE8;
+    border-radius: 10px;
+    padding: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #888;
+    cursor: pointer;
+
+    &--active {
+      background: #FFFBEC;
+      border-color: #FFE99A;
+      color: #B07800;
+    }
+  }
+
+  &__list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-bottom: 4px;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #FAFAF7;
+    border: 1px solid #EEEEE8;
+    border-radius: 10px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s;
+
+    &:hover { background: #FFFBEC; border-color: #FFE99A; }
+  }
+
+  &__row-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &__row-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__row-name {
+    font-size: 13px;
+    font-weight: 800;
+    color: #222;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__row-meta {
+    font-size: 11px;
+    color: #888;
+    font-weight: 600;
+  }
+
+  &__row-plus {
+    font-size: 18px;
+    color: #B07800;
+    font-weight: 900;
+    flex-shrink: 0;
+  }
+
+  &__empty {
+    font-size: 12px;
+    color: #aaa;
+    text-align: center;
+    padding: 20px 0;
+    margin: 0;
+  }
+}
+
+.wr-sheet-enter-active, .wr-sheet-leave-active {
+  transition: opacity 0.18s ease;
+  .wr-sheet__panel { transition: transform 0.22s cubic-bezier(.2,.8,.2,1); }
+}
+.wr-sheet-enter-from, .wr-sheet-leave-to {
+  opacity: 0;
+  .wr-sheet__panel { transform: translateY(40px); }
 }
 </style>
