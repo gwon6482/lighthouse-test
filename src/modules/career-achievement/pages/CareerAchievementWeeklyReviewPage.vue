@@ -143,12 +143,9 @@
         <div class="wr__info-body">
           <h3 class="wr__info-title">프로젝트를 시작해 보세요</h3>
           <p class="wr__info-text">
-            첫 주와 다음 주 일정을 미리 그려두면 매일이 가벼워져요.
+            첫 주 일정을 미리 그려두면 매일이 가벼워져요.
             기본 배치를 그대로 두거나, 원하는 요일로 자유롭게 옮겨도 좋아요.
           </p>
-          <button class="wr__info-cta" type="button" @click="router.push('/career-achievement')">
-            데일리 화면으로 가기 →
-          </button>
         </div>
       </section>
 
@@ -195,6 +192,13 @@
           </div>
         </div>
       </section>
+
+      <!-- 마무리 CTA: 오늘 데일리로 이동 -->
+      <div class="wr__footer">
+        <button class="wr__start" type="button" @click="router.push('/career-achievement')">
+          {{ isFirstSetup ? '시작하기' : '오늘 시작하기' }}
+        </button>
+      </div>
 
     </template>
 
@@ -761,20 +765,26 @@ onMounted(async () => {
   &__info-title { font-size: 14px; font-weight: 800; color: #B07800; margin: 0; }
   &__info-text  { font-size: 12.5px; color: #888; margin: 0; line-height: 1.5; }
 
-  &__info-cta {
-    align-self: flex-start;
-    margin-top: 8px;
-    background: #fff;
-    color: #B07800;
-    border: 1px solid #FFCC88;
-    border-radius: 999px;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 800;
-    cursor: pointer;
-    transition: background 0.12s;
+  /* 마무리 CTA */
+  &__footer {
+    padding: 16px 20px 32px;
+  }
 
-    &:hover { background: #FFFBEC; }
+  &__start {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, #FFC700 0%, #FFB300 100%);
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    font-size: 17px;
+    font-weight: 900;
+    letter-spacing: -0.2px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(255, 199, 0, 0.32);
+    transition: transform 0.08s, opacity 0.12s;
+
+    &:active { transform: scale(0.985); opacity: 0.9; }
   }
 
   &__loading {
