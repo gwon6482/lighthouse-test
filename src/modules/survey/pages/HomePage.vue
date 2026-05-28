@@ -54,6 +54,13 @@
       </div>
     </section>
 
+    <!-- 랜딩페이지 진입 -->
+    <RouterLink to="/landing" class="landing-link">
+      <span class="landing-link__icon">🌟</span>
+      <span class="landing-link__text">랜딩페이지</span>
+      <span class="landing-link__arrow">›</span>
+    </RouterLink>
+
     <HomeButtonContainer :menus="menus" />
     <button @click="lastPage" style="display: none;">마지막 페이지</button>
 
@@ -276,6 +283,57 @@ async function resetProgress() {
 </script>
 
 <style scoped lang="scss">
+/* 랜딩페이지 진입 — 넓은 단일 버튼 */
+.landing-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 16px 16px 0;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #FFFBEC 0%, #FFF1D6 100%);
+  border: 1px solid #FFE99A;
+  border-radius: 16px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 3px 12px rgba(255, 199, 0, 0.10);
+  transition: transform 0.08s, box-shadow 0.15s, border-color 0.15s;
+
+  &:hover {
+    border-color: #FFC700;
+    box-shadow: 0 5px 18px rgba(255, 199, 0, 0.20);
+  }
+
+  &:active { transform: scale(0.985); }
+
+  &__icon {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 2px 6px rgba(255, 199, 0, 0.18);
+  }
+
+  &__text {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 800;
+    color: #222;
+    letter-spacing: -0.2px;
+  }
+
+  &__arrow {
+    flex-shrink: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #B07800;
+  }
+}
+
 .dev-tools {
   margin: 20px 16px 24px;
   background: #1a1a1a;
