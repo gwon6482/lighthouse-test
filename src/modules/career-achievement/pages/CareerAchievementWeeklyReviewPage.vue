@@ -196,57 +196,6 @@
         </div>
       </section>
 
-      <!-- 다음 주 일정 -->
-      <section v-if="nextRange" class="wr__section">
-        <div class="wr__section-head">
-          <h2 class="wr__section-title">다음 주 일정</h2>
-          <span class="wr__range">{{ fmtRange(nextRange) }}</span>
-        </div>
-
-        <p class="wr__next-hint">
-          다음 주 프로젝트 일정을 미리 보고 조정해 주세요. 루틴은 정해진 요일에 따라 자동 배치돼요. 변경은 자동 저장돼요.
-          <span v-if="nextSaving" class="wr__autosave">저장 중...</span>
-        </p>
-
-        <div v-if="nextDays.length" class="wr__days">
-          <div
-            v-for="day in nextDays"
-            :key="day.date"
-            class="wr__day"
-            :class="{ 'wr__day--empty': !day.items.length }"
-          >
-            <div class="wr__day-head">
-              <span class="wr__day-dow">{{ day.dow }}</span>
-              <span class="wr__day-date">{{ day.dateLabel }}</span>
-              <span v-if="day.items.length" class="wr__day-count">{{ day.items.length }}</span>
-              <button class="wr__day-add" @click="openAddSheet(day.date, 'next')" type="button">+ 추가</button>
-            </div>
-            <ul v-if="day.items.length" class="wr__day-items">
-              <li
-                v-for="it in day.items"
-                :key="it.id"
-                class="wr__day-item wr__day-item--project"
-                :style="{ '--cat-color': it.color } as any"
-              >
-                <span
-                  class="wr__day-item-cat"
-                  :style="{ color: it.color, background: `color-mix(in srgb, ${it.color} 14%, white)` }"
-                >{{ it.categoryLabel }}</span>
-                <span class="wr__day-item-name">{{ it.name }}</span>
-                <span class="wr__day-item-meta">{{ it.duration }}분</span>
-                <button
-                  class="wr__day-item-remove"
-                  @click="removeItem(it.id, 'next')"
-                  type="button"
-                  aria-label="삭제"
-                >✕</button>
-              </li>
-            </ul>
-            <p v-else class="wr__day-empty">예정된 프로젝트 없음</p>
-          </div>
-        </div>
-        <p v-else class="wr__placeholder-text">다음 주에 잡힌 프로젝트가 없어요.</p>
-      </section>
     </template>
 
     <!-- 항목 추가 bottom sheet — 프로젝트만 추가 가능 (루틴은 마스터 days 로 자동 배치) -->
@@ -526,7 +475,8 @@ function buildDayCards(
 }
 
 const currentDays = computed<DayCard[]>(() => buildDayCards(currentRange.value, currentSchedule.value))
-const nextDays    = computed<DayCard[]>(() => buildDayCards(nextRange.value,    nextSchedule.value))
+// nextDays 는 더 이상 UI 노출 안 함 — 이월(carryOver) 만 nextSchedule 을 사용
+// (다음 주 일정 편집 섹션 제거됨, BE 자동 ensure 는 유지)
 
 // 지난 주 놓친 프로젝트 항목 — 같은 요일로 다음 주로 이월 가능
 interface MissedProject {
