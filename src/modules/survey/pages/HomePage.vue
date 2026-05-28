@@ -84,6 +84,10 @@
           <button class="dev-tools__btn dev-tools__btn--primary" @click="applyDevDate">적용</button>
           <button class="dev-tools__btn" @click="clearDevDate">실제 오늘로</button>
         </div>
+        <div class="dev-tools__row dev-tools__row--step">
+          <button class="dev-tools__btn dev-tools__btn--step" @click="shiftDevDate(-1)">‹ 이전날</button>
+          <button class="dev-tools__btn dev-tools__btn--step" @click="shiftDevDate(1)">다음날 ›</button>
+        </div>
       </div>
 
       <!-- 진행상황 초기화 -->
@@ -223,6 +227,21 @@ function clearDevDate() {
   setDevDate(null)
 }
 
+// 이전/다음 날로 한 칸 이동. 현재 devDate 가 있으면 그 기준, 없으면 실제 오늘 기준.
+function shiftDevDate(delta: number) {
+  const base = devDate.value
+    ? new Date(devDate.value + 'T00:00:00')
+    : new Date()
+  base.setHours(0, 0, 0, 0)
+  base.setDate(base.getDate() + delta)
+  const y = base.getFullYear()
+  const m = String(base.getMonth() + 1).padStart(2, '0')
+  const d = String(base.getDate()).padStart(2, '0')
+  const next = `${y}-${m}-${d}`
+  devDateInput.value = next
+  setDevDate(next)
+}
+
 // ── 진행상황 초기화 ───────────────────────────────
 // localStorage 의 완료 마킹·기록·축하 + 모든 WeeklySchedule 을 삭제.
 // 진로계획·프로젝트·루틴 같은 마스터 데이터는 그대로 유지.
@@ -342,14 +361,21 @@ async function resetProgress() {
 }
 
 .dev-tools {
-  margin: 20px 16px 24px;
+  width: 100%;
+  max-width: 400px;
+  margin-top: 1.5rem;
   background: #1a1a1a;
   color: #fff;
-  border-radius: 14px;
+  border-radius: 1rem;
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  box-sizing: border-box;
+
+  @media (min-width: 768px) {
+    max-width: 480px;
+  }
 
   &__head {
     display: flex;
@@ -404,6 +430,10 @@ async function resetProgress() {
     display: flex;
     gap: 8px;
     margin-top: 4px;
+
+    &--step {
+      margin-top: 6px;
+    }
   }
 
   &__input {
@@ -441,6 +471,16 @@ async function resetProgress() {
       font-weight: 800;
 
       &:hover { background: #FFB300; }
+    }
+
+    &--step {
+      flex: 1;
+      background: #2a2a2a;
+      color: #FFD84D;
+      border-color: #3a3a3a;
+      font-weight: 800;
+
+      &:hover { background: #3a3a3a; color: #FFE99A; }
     }
 
     &--danger {
