@@ -51,9 +51,4 @@ export default [
     name: 'MyPage',
     component: () => import('./pages/MyPage.vue'),
   },
-  {
-    path: '/landing',
-    name: 'Landing',
-    component: () => import('./pages/LandingPage.vue'),
-  },
 ]

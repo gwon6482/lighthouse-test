@@ -1,0 +1,17 @@
+@import './base';
+
+.section2 {
+  width: 100%;
+  height: 1080px;
+  @include flex-center;
+
+  .section2_description {
+    @include flex-center;
+    flex-direction: column;
+    font-size: 58px;
+    font-weight: 600;
+    color: $font-main-black;
+    text-align: center;
+    gap: 72px;
+  }
+}

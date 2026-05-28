@@ -1,0 +1,37 @@
+@import './base';
+
+.section5 {
+  width: 100%;
+  height: 1080px;
+  @include flex-center;
+
+  .inner {
+    width: 1460px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .section5_text {
+      width: 565px;
+
+      .section5_label {
+        @include label1;
+        display: block;
+        margin-bottom: 17px;
+      }
+      .section5_title {
+        @include header3;
+        margin-bottom: 42px;
+        @include highlight-text;
+      }
+      .section5_description {
+        @include paragraph2;
+      }
+    }
+
+    .section5_image {
+      width: 830px;
+      transform: translateY(50px);
+    }
+  }
+}
