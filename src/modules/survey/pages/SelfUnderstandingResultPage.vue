@@ -332,7 +332,8 @@
       </section>
 
       <!-- ─── 섹션 5: 버튼 섹션 ─────────────────────────────── -->
-      <section class="m-sec result-cta-section">
+      <!-- /main/before(회원가입 온보딩)에서 진입한 경우엔 숨김 -->
+      <section v-if="!returnTo" class="m-sec result-cta-section">
         <!-- 비로그인: 가입 유도 -->
         <template v-if="!authStore.isLoggedIn">
           <h2 class="result-cta-title">결과를 저장하고<br>진로를 이어가봐</h2>
@@ -357,6 +358,11 @@
       </section>
 
       <SignUpModal v-model="showSignUp" @registered="onRegistered" />
+
+      <!-- /main/before 스테퍼에서 검사를 시작한 경우: 맨 아래 '다음으로' -->
+      <section v-if="returnTo" class="m-sec result-next-section">
+        <button class="result-next-btn" @click="goNext">다음으로</button>
+      </section>
 
     </template>
   </div>
@@ -549,6 +555,15 @@ const authStore = useAuthStore()
 const surveyId = route.params.survey_id as string
 
 const showSignUp = ref(false)
+
+// /main/before 스테퍼에서 검사를 시작했으면 복귀 경로가 심어져 있음
+const RETURN_KEY = 'lh_survey_return'
+const returnTo = ref<string | null>(sessionStorage.getItem(RETURN_KEY))
+function goNext() {
+  const to = returnTo.value || '/main/before'
+  sessionStorage.removeItem(RETURN_KEY)
+  router.push(to)
+}
 
 async function onRegistered(token: string, user: any) {
   authStore.setAuth(token, user)
@@ -760,6 +775,27 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* /main/before 복귀 '다음으로' */
+.result-next-section {
+  padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
+}
+
+.result-next-btn {
+  width: 100%;
+  padding: 1.0625rem 0;
+  background: #FFD100;
+  color: #1a1a1a;
+  border: none;
+  border-radius: 0.875rem;
+  font-size: 1rem;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.08s;
+}
+.result-next-btn:hover { background: #F0C400; }
+.result-next-btn:active { transform: scale(0.98); }
+
 .env-block {
   border-radius: 12px;
   padding: 1rem 1.125rem;

@@ -179,7 +179,16 @@
       <button class="cd-result__btn-secondary" @click="router.push('/career-design/complete')">
         계획 수정하기
       </button>
-      <button class="cd-result__btn-primary" @click="router.push('/career-achievement/weekly-schedule')">
+      <!-- /main/before 스테퍼(3단계)에서 진입한 경우: 설계 완료 → 복귀 -->
+      <button
+        v-if="fromMainBefore"
+        class="cd-result__btn-primary"
+        :disabled="finishing"
+        @click="finishDesign"
+      >
+        {{ finishing ? '이동 중...' : '다음으로' }}
+      </button>
+      <button v-else class="cd-result__btn-primary" @click="router.push('/career-achievement/weekly-schedule')">
         주간 일정 배치하기
       </button>
     </div>
@@ -189,6 +198,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { req } from '@/shared/api'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { useWeeklySchedule } from '@/modules/career-achievement/composables/useWeeklySchedule'
 import { useAuthStore } from '@/shared/stores/auth'
@@ -217,6 +227,24 @@ onMounted(async () => {
 })
 
 const userName = computed(() => authStore.user?.name ?? authStore.user?.email?.split('@')[0] ?? '회원')
+
+// /main/before 스테퍼(3단계)에서 진입했는지
+const fromMainBefore = ref(!!sessionStorage.getItem('lh_plan_return'))
+const finishing = ref(false)
+
+async function finishDesign() {
+  finishing.value = true
+  try {
+    // 설계 완료 시점에 계획을 active 로 전환 (진로달성 진입 가능 상태)
+    if (draftPlan.planId) {
+      await req.put(`/api/career-plan/${draftPlan.planId}`, { status: 'active' })
+    }
+  } catch { /* 활성화 실패해도 복귀는 진행 */ } finally {
+    finishing.value = false
+  }
+  sessionStorage.removeItem('lh_plan_return')
+  router.push('/main/before')
+}
 
 const ALL_DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
 function daysSummary(days: DayOfWeek[]): string {

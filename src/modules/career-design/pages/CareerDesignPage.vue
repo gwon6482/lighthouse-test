@@ -180,7 +180,6 @@
 
     <!-- 하단 버튼 -->
     <div class="cd-main__footer">
-      <button class="cd-main__cta-target" @click="openPopup">목표 진로 설정하기</button>
       <button class="cd-main__cta" @click="startPlan">진로계획 시작하기</button>
       <button class="cd-main__cta-secondary" @click="goToExplore">진로계획 탐색하기</button>
     </div>

@@ -74,7 +74,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useEncyclopedia } from '../composables/useEncyclopedia'
 import { useAuthStore } from '@/shared/stores/auth'
 import { fetchTargetCareer, updateTargetCareer } from '../encyclopedia.api'
@@ -86,6 +86,7 @@ import PreparationTab from '../components/page/job-detail/tabs/PreparationTab.vu
 import RecruitmentTab from '../components/page/job-detail/tabs/RecruitmentTab.vue'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const {
   selectedJob,
@@ -126,6 +127,11 @@ const showSetTargetBtn = computed(() =>
 
 async function handleSetTarget() {
   if (!selectedJob.value) return
+
+  // /main/before 스테퍼(2단계)에서 진입했으면 확인 후 설정 → 복귀
+  const returnTo = sessionStorage.getItem('lh_target_return')
+  if (returnTo && !confirm('목표진로로 설정하시겠습니까?')) return
+
   settingTarget.value = true
   try {
     const { data } = await updateTargetCareer({
@@ -134,6 +140,11 @@ async function handleSetTarget() {
     })
     if (data.success) {
       hasNoTarget.value = false
+      if (returnTo) {
+        sessionStorage.removeItem('lh_target_return')
+        router.push(returnTo)
+        return
+      }
       targetJustSet.value = true
       setTimeout(() => { targetJustSet.value = false }, 2200)
     }

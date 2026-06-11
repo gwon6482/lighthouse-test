@@ -13,8 +13,7 @@ export default [
   {
     path: '/main/before',
     name: 'Main Before Design',
-    component: () => import('./pages/MainPage.vue'),
-    meta: { mainState: 'before' },
+    component: () => import('./pages/MainBeforePage.vue'),
   },
   {
     path: '/self-understanding',
