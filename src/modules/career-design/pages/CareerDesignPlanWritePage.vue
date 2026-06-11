@@ -34,11 +34,14 @@
             />
           </div>
 
-          <!-- 준비 기간 -->
+          <!-- 준비 기간 — 시작일은 오늘로 고정 -->
           <div class="cd-plan-write__prow">
             <span class="cd-plan-write__plabel">기간</span>
             <div class="cd-plan-write__date-row">
-              <CdDatePicker v-model="draftPlan.startDate" :min="todayKey" placeholder="시작일" />
+              <div class="cd-plan-write__date-fixed" aria-readonly="true">
+                <span class="cd-plan-write__date-fixed-label">오늘</span>
+                <span class="cd-plan-write__date-fixed-value">{{ todayLabel }}</span>
+              </div>
               <span class="cd-plan-write__date-tilde">~</span>
               <CdDatePicker v-model="draftPlan.endDate" :min="endMin" placeholder="종료일" />
             </div>
@@ -60,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
@@ -70,7 +73,7 @@ import { getToday } from '@/shared/utils/dev-date'
 const router = useRouter()
 const { draftPlan, syncPlanStep1 } = useCareerDesign()
 
-// 시작일은 오늘 이후로만 허용. 종료일은 시작일(또는 오늘) 이후로만 허용.
+// 시작일은 사용자 기준 "오늘"로 고정 (미래 시작일로 인한 빈 주간일정 방지).
 function toDateKey(d: Date): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -79,6 +82,17 @@ function toDateKey(d: Date): string {
 }
 const todayKey = computed(() => toDateKey(getToday()))
 const endMin   = computed(() => draftPlan.startDate || todayKey.value)
+
+const todayLabel = computed(() => {
+  const d = getToday()
+  const DOW = ['일', '월', '화', '수', '목', '금', '토']
+  return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()} (${DOW[d.getDay()]})`
+})
+
+// 신규 계획 진입 시 시작일을 오늘로 고정
+onMounted(() => {
+  draftPlan.startDate = todayKey.value
+})
 
 function goPrev() {
   router.push('/career-design')
@@ -202,6 +216,38 @@ async function goNext() {
     font-size: 13px;
     color: #bbb;
     flex-shrink: 0;
+  }
+
+  /* 시작일 고정(오늘) 표시 — 읽기전용 */
+  &__date-fixed {
+    flex: 1;
+    min-width: 0;
+    background: #FFF9E0;
+    border: 1px solid #FFE99A;
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &-label {
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 800;
+      color: #B07800;
+      background: #FFE99A;
+      border-radius: 6px;
+      padding: 2px 7px;
+    }
+
+    &-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: #222;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   }
 
   &__categories {

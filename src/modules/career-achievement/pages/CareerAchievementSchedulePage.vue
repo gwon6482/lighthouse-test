@@ -79,6 +79,26 @@
       </div>
     </template>
 
+    <!-- 계획은 있으나 이번 주 범위를 못 구한 경우(시작 전 / 데이터 미비) — 빈 화면 방지 -->
+    <template v-else>
+      <div class="ws__empty">
+        <span class="ws__empty-icon">🗓️</span>
+        <h2 class="ws__empty-title">
+          {{ notStarted ? '아직 시작 전이에요' : '이번 주 일정을 만들 수 없어요' }}
+        </h2>
+        <p class="ws__empty-text">
+          <template v-if="notStarted">
+            이 진로계획은 {{ fmtDateLabel(draftPlan.startDate) }}에 시작해요.<br />
+            시작일이 되면 이번 주 일정이 자동으로 만들어져요.
+          </template>
+          <template v-else>
+            계획의 시작일 정보가 없어 일정을 만들 수 없어요. 계획을 다시 확인해 주세요.
+          </template>
+        </p>
+        <button class="ws__empty-btn" @click="router.push('/career-achievement')">진로달성으로 가기</button>
+      </div>
+    </template>
+
     <!-- 항목 추가 bottom sheet — 프로젝트만 추가 가능 -->
     <Teleport to="body">
       <Transition name="ws-sheet">
@@ -127,7 +147,7 @@ import {
 import type { WeeklySchedule } from '../composables/useWeeklySchedule'
 import { useAchievement } from '../composables/useAchievement'
 import { getToday } from '@/shared/utils/dev-date'
-import type { ProjectCategory } from '@/modules/career-design/types/career-design'
+import type { ProjectCategory, DayOfWeek } from '@/modules/career-design/types/career-design'
 
 const router = useRouter()
 const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
@@ -154,9 +174,16 @@ const currentSchedule = ref<WeeklySchedule | null>(null)
 const addSheetOpen = ref(false)
 const addSheetDate = ref('')
 
+// reviewDay 는 주차 계산에 쓰이지 않으므로(=헬퍼에서 무시됨) startDate 만 있으면 계산.
 const currentRange = computed<{ weekStart: string; weekEnd: string } | null>(() => {
-  if (!draftPlan.startDate || !draftPlan.reviewDay) return null
-  return computeWeekRangeContaining(getToday(), draftPlan.startDate, draftPlan.reviewDay)
+  if (!draftPlan.startDate) return null
+  return computeWeekRangeContaining(getToday(), draftPlan.startDate, (draftPlan.reviewDay || '월') as DayOfWeek)
+})
+
+// 계획 시작일이 오늘보다 미래여서 "이번 주"가 아직 없는 경우
+const notStarted = computed(() => {
+  if (!draftPlan.startDate) return false
+  return toDateKey(getToday()) < draftPlan.startDate
 })
 
 interface DayCardItem {

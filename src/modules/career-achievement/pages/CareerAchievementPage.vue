@@ -241,7 +241,7 @@ import { useAchievement } from '../composables/useAchievement'
 import { useCurriculumCompletion } from '../composables/useCurriculumCompletion'
 import { useWeeklySchedule, computeWeekRangeContaining } from '../composables/useWeeklySchedule'
 import type { WeeklySchedule } from '../composables/useWeeklySchedule'
-import type { Project, ProjectCategory, Routine, WeekCurriculum } from '@/modules/career-design/types/career-design'
+import type { Project, ProjectCategory, Routine, WeekCurriculum, DayOfWeek } from '@/modules/career-design/types/career-design'
 
 
 const router = useRouter()
@@ -650,8 +650,9 @@ onMounted(async () => {
       await loadPlanFromApi(target.planId)
 
       // 이번 주 schedule — 없으면 디폴트로 자동 생성, 실패 시 fallback 로직 사용
-      if (draftPlan.startDate && draftPlan.reviewDay) {
-        const range = computeWeekRangeContaining(today.value, draftPlan.startDate, draftPlan.reviewDay)
+      // (reviewDay 는 주차 계산에 쓰이지 않으므로 startDate 만 있으면 진행)
+      if (draftPlan.startDate) {
+        const range = computeWeekRangeContaining(today.value, draftPlan.startDate, (draftPlan.reviewDay || '월') as DayOfWeek)
         if (range) {
           currentSchedule.value = await ensureWeekSchedule(
             draftPlan.planId!,

@@ -139,7 +139,7 @@ import {
 import type { WeeklySchedule } from '../composables/useWeeklySchedule'
 import { useAchievement } from '../composables/useAchievement'
 import { getToday } from '@/shared/utils/dev-date'
-import type { ProjectCategory } from '@/modules/career-design/types/career-design'
+import type { ProjectCategory, DayOfWeek } from '@/modules/career-design/types/career-design'
 
 const router = useRouter()
 const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
@@ -241,8 +241,8 @@ const isFirstSetup = computed(() => draftPlan.planId !== null && !prevRange.valu
 
 // 오늘 기준 "직전 주" 범위 계산. 현재 주가 첫 주(직전 주가 plan.startDate 이전)면 null.
 const prevRange = computed<{ weekStart: string; weekEnd: string } | null>(() => {
-  if (!draftPlan.startDate || !draftPlan.reviewDay) return null
-  const cur = computeWeekRangeContaining(getToday(), draftPlan.startDate, draftPlan.reviewDay)
+  if (!draftPlan.startDate) return null
+  const cur = computeWeekRangeContaining(getToday(), draftPlan.startDate, (draftPlan.reviewDay || '월') as DayOfWeek)
   if (!cur) return null
   const curStart = parseDateKey(cur.weekStart)
   const planStart = parseDateKey(draftPlan.startDate)
@@ -278,8 +278,8 @@ const summary = computed(() => {
 
 // 이번 주 범위 (첫 주 일정 편집용)
 const currentRange = computed<{ weekStart: string; weekEnd: string } | null>(() => {
-  if (!draftPlan.startDate || !draftPlan.reviewDay) return null
-  return computeWeekRangeContaining(getToday(), draftPlan.startDate, draftPlan.reviewDay)
+  if (!draftPlan.startDate) return null
+  return computeWeekRangeContaining(getToday(), draftPlan.startDate, (draftPlan.reviewDay || '월') as DayOfWeek)
 })
 
 // 요일별 카드 데이터 (project 만 — 루틴은 days 로 자동 배치, 주간 조정 UI 에 노출 안 함)
