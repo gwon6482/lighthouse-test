@@ -3,6 +3,7 @@ export default [
     path: '/career-achievement',
     name: 'Career Achievement',
     component: () => import('./pages/CareerAchievementPage.vue'),
+    meta: { showBottomNav: true },
   },
   {
     path: '/career-achievement/start/:type/:id',
@@ -23,5 +24,6 @@ export default [
     path: '/career-achievement/weekly-schedule',
     name: 'Career Achievement Weekly Schedule',
     component: () => import('./pages/CareerAchievementSchedulePage.vue'),
+    meta: { showBottomNav: true },
   },
 ]

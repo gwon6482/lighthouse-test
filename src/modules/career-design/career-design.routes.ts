@@ -15,6 +15,11 @@ export default [
     component: () => import('./pages/CareerDesignPlanWritePage.vue'),
   },
   {
+    path: '/career-design/plan/:planId',
+    name: 'Career Design Plan Detail',
+    component: () => import('./pages/CareerDesignPlanDetailPage.vue'),
+  },
+  {
     path: '/career-design/plan/projects',
     name: 'Career Design Projects',
     component: () => import('./pages/CareerDesignProjectsPage.vue'),

@@ -8,6 +8,13 @@ export default [
     path: '/main',
     name: 'Main',
     component: () => import('./pages/MainPage.vue'),
+    meta: { showBottomNav: true, mainState: 'after' },
+  },
+  {
+    path: '/main/before',
+    name: 'Main Before Design',
+    component: () => import('./pages/MainPage.vue'),
+    meta: { mainState: 'before' },
   },
   {
     path: '/self-understanding',
@@ -50,5 +57,6 @@ export default [
     path: '/mypage',
     name: 'MyPage',
     component: () => import('./pages/MyPage.vue'),
+    meta: { showBottomNav: true },
   },
 ]

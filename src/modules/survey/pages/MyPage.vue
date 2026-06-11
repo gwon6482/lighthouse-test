@@ -141,7 +141,7 @@ import { useCareerDesign } from '@/modules/career-design/composables/useCareerDe
 
 const router = useRouter()
 const authStore = useAuthStore()
-const { fetchMyPlans, loadPlanFromApi } = useCareerDesign()
+const { fetchMyPlans } = useCareerDesign()
 const user = computed(() => authStore.user)
 
 const avatarLetter = computed(() => {
@@ -168,9 +168,8 @@ const statusLabel = (status: string) => {
   return '초안'
 }
 
-async function openPlan(planId: string) {
-  const ok = await loadPlanFromApi(planId)
-  if (ok) router.push('/career-design/result')
+function openPlan(planId: string) {
+  router.push(`/career-design/plan/${planId}`)
 }
 
 async function deletePlan(planId: string) {

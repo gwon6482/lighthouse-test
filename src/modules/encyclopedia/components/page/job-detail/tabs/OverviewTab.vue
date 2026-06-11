@@ -19,7 +19,18 @@
 
     <!-- 개인요소 / 업무요소 -->
     <section v-for="section in detailSections" :key="section.title" class="overview-section">
-      <h3 class="overview-section__title">{{ section.title }}</h3>
+      <div class="overview-section__header">
+        <h3 class="overview-section__title">{{ section.title }}</h3>
+        <button
+          type="button"
+          class="compare-toggle"
+          :class="{ 'compare-toggle--on': showInter[section.title] }"
+          @click="showInter[section.title] = !showInter[section.title]"
+        >
+          {{ showInter[section.title] ? '직업간 비교 숨기기' : '직업간 비교 보기' }}
+        </button>
+      </div>
+
       <div class="factor-group">
         <div v-for="catKey in section.keys" :key="catKey" class="factor-card">
           <h4 class="factor-card__title">{{ catKey }}</h4>
@@ -27,7 +38,7 @@
           <div v-for="dimKey in dimensionsOf(catKey)" :key="dimKey" class="factor-dim">
             <span class="factor-dim__badge">{{ dimKey }}</span>
 
-            <!-- 직업 내 -->
+            <!-- 직업 내 (기본 노출, 상위 3개) -->
             <div class="factor-block">
               <span class="factor-block__label factor-block__label--inner">직업 내</span>
               <ul class="rank-list">
@@ -43,8 +54,8 @@
               </ul>
             </div>
 
-            <!-- 직업 간 -->
-            <div class="factor-block">
+            <!-- 직업 간 (토글 시 노출, 상위 3개) -->
+            <div v-if="showInter[section.title]" class="factor-block">
               <span class="factor-block__label factor-block__label--inter">직업 간</span>
               <ul class="rank-list">
                 <li v-for="item in getItems(catKey, dimKey, '직업간')" :key="item.name" class="rank-item">
@@ -114,6 +125,7 @@
 </template>
 
 <script setup lang="ts">
+import { reactive } from 'vue'
 import type { Job, JobDetails, CategoryRankings, RankItem } from '../../../../types/encyclopedia'
 
 const props = defineProps<{ job: Job }>()
@@ -122,10 +134,17 @@ type FactorKey = keyof JobDetails
 type DimKey = '중요도' | '수준'
 type CompareKey = '직업내' | '직업간'
 
+const TOP_N = 3
+
 const detailSections: Array<{ title: string; keys: FactorKey[] }> = [
   { title: '개인요소', keys: ['성격', '지식', '흥미', '가치관'] },
   { title: '업무요소', keys: ['업무수행능력', '업무활동', '업무환경'] },
 ]
+
+const showInter = reactive<Record<string, boolean>>({
+  개인요소: false,
+  업무요소: false,
+})
 
 function dimensionsOf(catKey: FactorKey): DimKey[] {
   const cat = props.job.details[catKey] as CategoryRankings
@@ -133,7 +152,8 @@ function dimensionsOf(catKey: FactorKey): DimKey[] {
 }
 
 function getItems(catKey: FactorKey, dimKey: DimKey, compareKey: CompareKey): RankItem[] {
-  return (props.job.details[catKey] as CategoryRankings)[dimKey]?.[compareKey] ?? []
+  const items = (props.job.details[catKey] as CategoryRankings)[dimKey]?.[compareKey] ?? []
+  return [...items].sort((a, b) => b.score - a.score).slice(0, TOP_N)
 }
 
 function pct(score: number, max: number): string {
@@ -159,6 +179,15 @@ function pct(score: number, max: number): string {
   padding: 30px;
   border-radius: 20px;
 
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1.5px solid #eee;
+  }
+
   &__title {
     font-size: 17px;
     font-weight: 700;
@@ -167,10 +196,42 @@ function pct(score: number, max: number): string {
     border-bottom: 1.5px solid #eee;
   }
 
+  &__header &__title {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
   &__text {
     font-size: 14px;
     color: #555;
     line-height: 1.7;
+  }
+}
+
+/* 직업간 비교 토글 */
+.compare-toggle {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a7fc1;
+  background-color: #fff;
+  border: 1px solid #4a7fc1;
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    background-color: #eef3fb;
+  }
+
+  &--on {
+    background-color: #4a7fc1;
+    color: #fff;
+
+    &:hover {
+      background-color: #3d6cab;
+    }
   }
 }
 
