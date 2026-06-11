@@ -43,7 +43,7 @@ let timer: ReturnType<typeof setTimeout> | undefined
 
 onMounted(() => {
   timer = setTimeout(() => {
-    router.replace('/onboarding/intro')
+    router.replace('/onboarding/auth')
   }, HOLD_MS)
 })
 

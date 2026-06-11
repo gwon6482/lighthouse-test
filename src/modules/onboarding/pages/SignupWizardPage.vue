@@ -264,7 +264,7 @@ async function submit() {
       JSON.stringify({ q1: form.q1, q2: form.q2, q3: form.q3, at: new Date().toISOString() }),
     )
 
-    router.replace('/onboarding/welcome')
+    router.replace('/onboarding/intro')
   } catch (e: any) {
     error.value = e.response?.data?.error ?? '회원가입 중 오류가 발생했어요.'
   } finally {

@@ -25,10 +25,9 @@ const onboardingRoutes: RouteRecordRaw[] = [
     component: () => import('./pages/SignupWizardPage.vue'),
   },
   {
-    // step 4 에서 WelcomePage.vue 로 교체 예정 (임시 placeholder)
     path: '/onboarding/welcome',
     name: 'Onboarding Welcome',
-    component: () => import('./pages/SignupWizardPage.vue'),
+    component: () => import('./pages/WelcomePage.vue'),
   },
 ]
 

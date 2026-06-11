@@ -32,7 +32,7 @@
       </div>
 
       <button class="intro__cta" @click="next">
-        {{ isLast ? '시작하기' : '다음' }}
+        {{ isLast ? '확인했어요' : '다음' }}
       </button>
     </div>
   </div>
@@ -74,7 +74,7 @@ function next() {
 }
 
 function finish() {
-  router.replace('/onboarding/auth')
+  router.replace('/onboarding/welcome')
 }
 
 // ── 스와이프 ──
