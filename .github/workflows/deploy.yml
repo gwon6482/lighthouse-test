@@ -35,7 +35,9 @@ jobs:
           aws-region: ap-northeast-2
 
       - name: Sync to S3
-        run: aws s3 sync dist/ s3://lighthouse-career-fe --delete
+        # uploads/ 는 사용자 인증사진(진로달성) 저장 prefix — 같은 버킷이므로
+        # --delete 대상에서 제외하지 않으면 FE 배포 때마다 사진이 전부 삭제됨
+        run: aws s3 sync dist/ s3://lighthouse-career-fe --delete --exclude "uploads/*"
 
       - name: Invalidate CloudFront cache
         run: |

@@ -1,6 +1,9 @@
 import { ref, computed, watch } from 'vue'
 import type { Project, Routine, DayOfWeek } from '@/modules/career-design/types/career-design'
 import { getToday } from '@/shared/utils/dev-date'
+import {
+  fetchAchievements, upsertAchievement, deleteAchievement,
+} from '@/modules/career-achievement/achievement.api'
 
 const STORAGE_KEY = 'lh_achievement_v1'
 
@@ -18,9 +21,40 @@ function loadFromStorage(): CompletionMap {
 
 const completion = ref<CompletionMap>(loadFromStorage())
 
+// localStorage 는 오프라인 캐시로 유지 (서버가 source of truth)
 watch(completion, (v) => {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(v)) } catch { /* quota */ }
 }, { deep: true })
+
+// 서버 동기화 대상 planId. loadFromServer 호출 시 세팅. null 이면 로컬 전용(레거시).
+const activePlanId = ref<string | null>(null)
+
+// 서버 달성 기록 → completion 맵 재구성 (done=true 인 항목만)
+async function loadFromServer(planId: string): Promise<void> {
+  activePlanId.value = planId
+  try {
+    const records = await fetchAchievements(planId)
+    const next: CompletionMap = {}
+    for (const r of records) {
+      if (!r.done) continue
+      const day = (next[r.date] ??= { projects: [], routines: [] })
+      if (r.itemType === 'project') day.projects.push(r.itemId)
+      else day.routines.push(r.itemId)
+    }
+    completion.value = next
+  } catch { /* 네트워크 실패 시 로컬 캐시 유지 */ }
+}
+
+// 토글 결과를 서버에 반영 (fire-and-forget). done 이면 upsert, 아니면 delete.
+function syncToggle(date: string, itemType: 'project' | 'routine', itemId: string, done: boolean) {
+  const planId = activePlanId.value
+  if (!planId) return
+  if (done) {
+    upsertAchievement(planId, date, itemType, itemId, { done: true }).catch(() => {})
+  } else {
+    deleteAchievement(planId, date, itemType, itemId).catch(() => {})
+  }
+}
 
 // ── 헬퍼 ───────────────────────────────────────────
 const DOW: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토']
@@ -152,18 +186,22 @@ export function useAchievement() {
     const key = dateKey ?? todayKey.value
     const day = getDay(key)
     const idx = day.projects.indexOf(projectId)
+    const nowDone = idx < 0
     if (idx >= 0) day.projects.splice(idx, 1)
     else day.projects.push(projectId)
     completion.value = { ...completion.value, [key]: { ...day } }
+    syncToggle(key, 'project', projectId, nowDone)
   }
 
   function toggleRoutine(routineId: string, dateKey?: string) {
     const key = dateKey ?? todayKey.value
     const day = getDay(key)
     const idx = day.routines.indexOf(routineId)
+    const nowDone = idx < 0
     if (idx >= 0) day.routines.splice(idx, 1)
     else day.routines.push(routineId)
     completion.value = { ...completion.value, [key]: { ...day } }
+    syncToggle(key, 'routine', routineId, nowDone)
   }
 
   // ── 일별 예정/완료 수 ─────────────────────────────
@@ -239,5 +277,6 @@ export function useAchievement() {
     monthProgress,
     toDateKey,
     getDayOfWeek,
+    loadFromServer,
   }
 }

@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { req } from '@/shared/api'
 import { useAchievement } from '@/modules/career-achievement/composables/useAchievement'
+import { useAchievementEntries } from '@/modules/career-achievement/composables/useAchievementEntries'
+import { useCurriculumCompletion } from '@/modules/career-achievement/composables/useCurriculumCompletion'
 import type { Project, Routine, DayOfWeek } from '@/modules/career-design/types/career-design'
 
 interface TimelineSlot {
@@ -70,6 +72,12 @@ export const useAchievementStore = defineStore('achievement', () => {
         routines:  p.routines  ?? [],
         timeline:  p.timeline  ?? [],
       }
+      // 달성 기록·커리큘럼 완료 상태를 서버에서 로드 (localStorage → DB 전환)
+      await Promise.all([
+        useAchievement().loadFromServer(p.planId),
+        useAchievementEntries().loadFromServer(p.planId),
+        useCurriculumCompletion().loadFromServer(p.planId),
+      ])
     } catch {
       plan.value = null
     } finally {

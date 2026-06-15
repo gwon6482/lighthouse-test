@@ -175,6 +175,9 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { useDevDate } from '@/shared/utils/dev-date'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 import { useWeeklySchedule } from '@/modules/career-achievement/composables/useWeeklySchedule'
+import {
+  fetchAchievements, deleteAchievement, fetchCurriculum, upsertCurriculum,
+} from '@/modules/career-achievement/achievement.api'
 
 const router = useRouter()
 const { currentPageIndex, totalPages } = useSurvey()
@@ -286,7 +289,8 @@ const { fetchSchedules, deleteSchedule } = useWeeklySchedule()
 async function resetProgress() {
   const ok = confirm(
     '진행상황을 초기화할까요?\n\n' +
-    '· 완료 마킹·기록·축하 상태 (localStorage)\n' +
+    '· 완료 마킹·기록·축하 상태 (localStorage + 서버)\n' +
+    '· 달성 기록·커리큘럼 완료 (서버)\n' +
     '· 모든 주간 일정(WeeklySchedule)\n' +
     '· 오늘 날짜 시뮬레이션\n\n' +
     '진로계획·프로젝트·루틴 등 마스터 데이터는 유지됩니다.'
@@ -308,7 +312,7 @@ async function resetProgress() {
       if (k && k.startsWith('lh_celebration_')) localStorage.removeItem(k)
     }
 
-    // 2) BE WeeklySchedule 전부 삭제 (모든 plan 의 모든 weekStart)
+    // 2) BE 진행상황 전부 삭제 (모든 plan 의 WeeklySchedule + 달성기록 + 커리큘럼)
     try {
       const plans = await fetchMyPlans()
       for (const plan of plans) {
@@ -317,10 +321,18 @@ async function resetProgress() {
         for (const s of schedules) {
           await deleteSchedule(plan.planId, s.weekStart)
         }
+        const records = await fetchAchievements(plan.planId)
+        for (const r of records) {
+          await deleteAchievement(plan.planId, r.date, r.itemType, r.itemId)
+        }
+        const curriculum = await fetchCurriculum(plan.planId)
+        for (const c of curriculum) {
+          await upsertCurriculum(plan.planId, c.projectId, c.week, c.idx, false)
+        }
       }
     } catch (err) {
       // BE 실패해도 localStorage 는 이미 초기화됨 — 사용자에 알리고 계속 진행
-      console.warn('[resetProgress] BE WeeklySchedule 삭제 일부 실패', err)
+      console.warn('[resetProgress] BE 진행상황 삭제 일부 실패', err)
     }
 
     // 3) dev-date 초기화
