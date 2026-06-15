@@ -98,6 +98,7 @@ import { useCareerDesign } from '@/modules/career-design/composables/useCareerDe
 import { useAchievement } from '../composables/useAchievement'
 import { useCurriculumCompletion } from '../composables/useCurriculumCompletion'
 import { useAchievementEntries, type AchievementEntry } from '../composables/useAchievementEntries'
+import { uploadPhoto } from '../achievement.api'
 import type { Project, Routine, ProjectCategory } from '@/modules/career-design/types/career-design'
 
 const route = useRoute()
@@ -183,6 +184,16 @@ async function onPhotoChange(e: Event) {
   }
 }
 
+// 'data:image/...;base64,...' dataURL → Blob (S3 업로드용)
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [head, body] = dataUrl.split(',')
+  const mime = head.match(/data:([^;]+)/)?.[1] ?? 'image/jpeg'
+  const bin = atob(body)
+  const arr = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
+  return new Blob([arr], { type: mime })
+}
+
 function resizeToDataUrl(file: File, maxWidth: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -243,10 +254,21 @@ function advanceProjectCurriculum(project: Project, dateKey: string) {
   if (undoneIdx !== -1) toggleItem(project.id, cw.week, undoneIdx)
 }
 
-function save() {
+async function save() {
   if (!item.value) return
   saving.value = true
   try {
+    // 사진이 새로 선택된 dataURL 이면 S3 업로드 후 URL 로 교체. 기존 http URL 이면 그대로.
+    let photoUrl: string | undefined = photo.value || undefined
+    if (photoUrl?.startsWith('data:')) {
+      try {
+        photoUrl = await uploadPhoto(dataUrlToBlob(photoUrl), 'image/jpeg')
+      } catch {
+        alert('사진 업로드에 실패했어요. 사진 없이 저장합니다.')
+        photoUrl = undefined
+      }
+    }
+
     const entry: AchievementEntry = {
       date: dateKey.value,
       itemType: itemType.value,
@@ -256,7 +278,7 @@ function save() {
       duration: item.value.duration,
       elapsedSec: elapsedSec.value,
       doneAt: new Date().toISOString(),
-      photo: photo.value || undefined,
+      photoUrl,
       difficulty: difficulty.value,
       note: note.value.trim(),
       planId: draftPlan.planId ?? undefined,
@@ -296,7 +318,7 @@ onMounted(async () => {
     // 이미 작성한 entry가 있으면 prefill (수정용)
     const existing = getEntry(dateKey.value, itemType.value, itemId.value)
     if (existing) {
-      photo.value = existing.photo ?? ''
+      photo.value = existing.photoUrl ?? ''
       difficulty.value = existing.difficulty
       note.value = existing.note
     }
