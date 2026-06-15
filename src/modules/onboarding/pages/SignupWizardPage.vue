@@ -8,7 +8,7 @@
         </svg>
       </button>
       <div class="wiz__progress">
-        <div class="wiz__progress-fill" :style="{ width: `${((step + 1) / TOTAL) * 100}%` }" />
+        <div class="wiz__progress-fill" :style="{ width: `${Math.max(10, (step / TOTAL) * 100)}%` }" />
       </div>
     </header>
 
@@ -153,26 +153,26 @@ const form = reactive({
 })
 
 const Q1 = [
-  { value: 1, label: '중·고등학생이에요' },
-  { value: 2, label: '대학생(휴학 포함)이에요' },
-  { value: 3, label: '취업을 준비하고 있어요' },
-  { value: 4, label: '일하고 있지만 진로를 다시 고민 중이에요' },
+  { value: 1, label: '중·고등학생이에요.' },
+  { value: 2, label: '대학생(휴학 포함)이에요.' },
+  { value: 3, label: '취업을 준비하고 있어요.' },
+  { value: 4, label: '일하고 있지만 진로를 다시 고민 중이에요.' },
 ]
 
 const Q2 = [
-  { value: 1, label: '내가 무엇을 좋아하고 잘하는지 모르겠어요' },
-  { value: 2, label: '내가 선택할 수 있는 진로 분야에 어떤 것들이 있는지 잘 모르겠어요' },
-  { value: 3, label: '관심 있는 분야는 있지만, 진로로 정해도 될지 모르겠어요' },
-  { value: 4, label: '목표하는 진로는 있지만, 무엇부터 준비해야 할지 모르겠어요' },
-  { value: 5, label: '목표를 향해 노력 중이지만, 맞는 방법인지 확신이 없어요' },
-  { value: 6, label: '아직 잘 모르겠어요' },
+  { value: 1, label: '내가 무엇을 좋아하고 잘하는지 모르겠어요.' },
+  { value: 2, label: '내가 선택할 수 있는 진로 분야에 어떤 것들이 있는지 잘 모르겠어요.' },
+  { value: 3, label: '관심 있는 분야는 있지만, 진로로 정해도 될지 모르겠어요.' },
+  { value: 4, label: '목표하는 진로는 있지만, 무엇부터 준비해야 할지 모르겠어요.' },
+  { value: 5, label: '목표를 향해 노력 중이지만, 맞는 방법인지 확신이 없어요.' },
+  { value: 6, label: '아직 잘 모르겠어요.' },
 ]
 const Q2_NONE = 6   // "아직 잘 모르겠어요" — 단독 선택
 
 const Q3 = [
-  { value: 1, label: '내가 무엇을 잘하고 좋아하는지 잘 알고 있어요' },
-  { value: 2, label: '조금 알고 있어요' },
-  { value: 3, label: '거의 모르는 것 같아요' },
+  { value: 1, label: '내가 무엇을 잘하고 좋아하는지 잘 알고 있어요.' },
+  { value: 2, label: '조금 알고 있어요.' },
+  { value: 3, label: '거의 모르는 것 같아요.' },
 ]
 
 function toggleQ2(value: number) {
@@ -272,231 +272,3 @@ async function submit() {
   }
 }
 </script>
-
-<style scoped lang="scss">
-.wiz {
-  position: fixed;
-  inset: 0;
-  background: #FFFFFF;
-  display: flex;
-  flex-direction: column;
-  z-index: 1400;
-}
-
-/* ── 헤더 ── */
-.wiz__header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: max(12px, env(safe-area-inset-top)) 18px 12px;
-}
-
-.wiz__back {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  margin-left: -8px;
-}
-
-.wiz__progress {
-  flex: 1;
-  height: 6px;
-  background: #EFEFEF;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.wiz__progress-fill {
-  height: 100%;
-  background: #FFD100;
-  border-radius: 999px;
-  transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-/* ── 본문 ── */
-.wiz__body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 18px 24px 8px;
-}
-
-.wiz__step {
-  display: flex;
-  flex-direction: column;
-}
-
-.wiz__title {
-  font-size: 23px;
-  font-weight: 900;
-  line-height: 1.35;
-  letter-spacing: -0.5px;
-  color: #1A1A1A;
-  margin: 8px 0 10px;
-}
-
-.wiz__desc {
-  font-size: 14px;
-  font-weight: 500;
-  color: #888;
-  margin: 0 0 28px;
-}
-
-/* 입력 필드 */
-.wiz__field {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  margin-bottom: 18px;
-}
-
-.wiz__label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1A1A1A;
-}
-
-.wiz__input {
-  width: 100%;
-  padding: 14px;
-  font-size: 15px;
-  font-family: inherit;
-  border: 1px solid #EAEAEA;
-  border-radius: 12px;
-  background: #FAFAF8;
-  color: #1A1A1A;
-  outline: none;
-  box-sizing: border-box;
-  transition: border-color 0.15s, box-shadow 0.15s;
-
-  &::placeholder { color: #CCC; }
-  &:focus {
-    border-color: #FFD100;
-    box-shadow: 0 0 0 3px rgba(255, 209, 0, 0.15);
-  }
-}
-
-.wiz__gender {
-  display: flex;
-  gap: 10px;
-}
-
-.wiz__gender-btn {
-  flex: 1;
-  padding: 14px 0;
-  font-size: 15px;
-  font-weight: 700;
-  font-family: inherit;
-  border: 1px solid #EAEAEA;
-  border-radius: 12px;
-  background: #FAFAF8;
-  color: #888;
-  cursor: pointer;
-  transition: all 0.15s;
-
-  &--active {
-    border-color: #FFD100;
-    background: #FFF9D6;
-    color: #1A1A1A;
-  }
-}
-
-/* 선택지 (Q1~Q3) */
-.wiz__options {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.wiz__option {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 16px 18px;
-  font-size: 15px;
-  font-weight: 600;
-  font-family: inherit;
-  line-height: 1.4;
-  text-align: left;
-  color: #333;
-  border: 1.5px solid #EAEAEA;
-  border-radius: 14px;
-  background: #fff;
-  cursor: pointer;
-  transition: border-color 0.12s, background 0.12s, transform 0.08s;
-
-  &:active { transform: scale(0.99); }
-
-  &--active {
-    border-color: #FFD100;
-    background: #FFFBEC;
-    color: #1A1A1A;
-  }
-}
-
-/* 중복선택 체크 표시 */
-.wiz__check {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  border: 1.5px solid #DADADA;
-  background: #fff;
-  position: relative;
-  transition: all 0.12s;
-}
-
-.wiz__option--active .wiz__check {
-  border-color: #FFD100;
-  background: #FFD100;
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 6px;
-    top: 2px;
-    width: 5px;
-    height: 10px;
-    border: solid #1A1A1A;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-  }
-}
-
-.wiz__error {
-  font-size: 13px;
-  font-weight: 600;
-  color: #E53E3E;
-  margin: 16px 0 0;
-}
-
-/* ── 푸터 ── */
-.wiz__footer {
-  padding: 12px 24px calc(24px + env(safe-area-inset-bottom));
-}
-
-.wiz__next {
-  width: 100%;
-  padding: 16px;
-  font-size: 16px;
-  font-weight: 800;
-  font-family: inherit;
-  letter-spacing: -0.2px;
-  color: #1A1A1A;
-  background: #FFD100;
-  border: none;
-  border-radius: 14px;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.08s;
-
-  &:hover:not(:disabled) { background: #F0C400; }
-  &:active:not(:disabled) { transform: scale(0.98); }
-  &:disabled { opacity: 0.45; cursor: not-allowed; }
-}
-</style>

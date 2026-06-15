@@ -1,11 +1,23 @@
-@use './modules/shared/journey-intro.scss';
-@use './modules/survey/SelfUnderstandingIntro.scss';
-@use './modules/survey/Home.scss';
-@use './modules/survey/SelfUnderstandingTest.scss';
-@use './modules/survey/SelfUnderstandingSelect.scss';
-@use './modules/survey/SUQuestions.scss';
-@use './modules/survey/SelfUnderstandingResult.scss';
-@use './modules/survey/SelfUnderstandingComplete.scss';
+@import 'variables';
+
+// Survey
+@import './modules/shared/journey-intro.scss';
+@import './modules/survey/SelfUnderstandingIntro.scss';
+@import './modules/survey/Home.scss';
+@import './modules/survey/SelfUnderstandingTest.scss';
+@import './modules/survey/SelfUnderstandingSelect.scss';
+@import './modules/survey/SUQuestions.scss';
+@import './modules/survey/SelfUnderstandingResult.scss';
+@import './modules/survey/SelfUnderstandingComplete.scss';
+
+// OnBoarding
+@import './modules/onboarding/SplashPage.scss';
+@import './modules/onboarding/AuthPage.scss';
+@import './modules/onboarding/SignupWizardPage.scss';
+@import './modules/onboarding/IntroSlidesPage.scss';
+@import './modules/onboarding/WelcomePage.scss';
+
+
 
 * {
   margin: 0;

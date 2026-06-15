@@ -1,0 +1,128 @@
+.intro {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: #FFFFFF;
+  z-index: 1500;
+
+  &__skip {
+    position: absolute;
+    top: max(16px, env(safe-area-inset-top));
+    right: 18px;
+    z-index: 2;
+    border: none;
+    background: transparent;
+    color: #999;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    padding: 6px 4px;
+    cursor: pointer;
+
+    &:hover { color: #555; }
+  }
+
+  // 슬라이드
+  &__viewport {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  &__track {
+    display: flex;
+    height: 100%;
+    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  &__slide {
+    flex: 0 0 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 0 32px;
+    box-sizing: border-box;
+    text-align: center;
+  }
+
+  &__art {
+    width: 200px;
+    height: 200px;
+    border-radius: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.08);
+  }
+
+  &__emoji {
+    font-size: 88px;
+    line-height: 1;
+  }
+
+  &__title {
+    font-size: 25px;
+    font-weight: 900;
+    line-height: 1.35;
+    letter-spacing: -0.5px;
+    color: #1A1A1A;
+    margin: 0;
+  }
+
+  &__body {
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.6;
+    color: #777;
+    margin: 0;
+  }
+
+  // 하단
+  &__footer {
+    padding: 0 24px calc(28px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+  }
+
+  &__dots {
+    display: flex;
+    gap: 8px;
+  }
+
+  &__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #E2E2E2;
+    transition: width 0.3s, background 0.3s;
+
+    &--active {
+      width: 22px;
+      background: #FFD100;
+    }
+  }
+
+  &__cta {
+    width: 100%;
+    max-width: 420px;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 800;
+    font-family: inherit;
+    letter-spacing: -0.2px;
+    color: #1A1A1A;
+    background: #FFD100;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.08s;
+
+    &:hover { background: #F0C400; }
+    &:active { transform: scale(0.98); }
+  }
+}

@@ -43,4 +43,21 @@ const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
 })
 
+export function resetViewportZoom() {
+  const meta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null
+  if (!meta) return
+  const content = meta.content
+  meta.content = content + ', maximum-scale=1.0'
+  // rAF는 iOS가 줌 복원 전에 실행됨 → setTimeout으로 충분한 여유를 줌
+  setTimeout(() => { meta.content = content }, 300)
+}
+
+// 라우트 이동 시 줌 초기화
+router.afterEach(() => {
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur()
+  }
+  resetViewportZoom()
+})
+
 export default router

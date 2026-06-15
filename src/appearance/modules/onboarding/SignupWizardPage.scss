@@ -1,0 +1,227 @@
+.wiz {
+  position: fixed;
+  inset: 0;
+  background: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  z-index: 1400;
+
+  // 헤더
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: max(24px, env(safe-area-inset-top)) 24px 0px 20px;
+  }
+
+  &__back {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: -8px;
+  }
+
+  &__progress {
+    flex: 1;
+    height: 6px;
+    background: #EFEFEF;
+    border-radius: 999px;
+    overflow: hidden;
+
+    &-fill {
+      height: 100%;
+      background: #FFD100;
+      border-radius: 999px;
+      transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+  }
+
+  // 본문
+  &__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 24px 8px;
+  }
+
+  &__step {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__title {
+    font-size: $fs-title;
+    font-weight: 900;
+    line-height: 1.35;
+    letter-spacing: -0.5px;
+    color: #1A1A1A;
+    margin: 8px 0 10px;
+  }
+
+  &__desc {
+    font-size: $fs-desc;
+    font-weight: 500;
+    color: #888;
+    margin: 0 0 28px;
+  }
+
+  // 입력 필드
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 18px;
+  }
+
+  &__label {
+    font-size: $fs-label;
+    font-weight: 600;
+    color: #1A1A1A;
+    padding: 0 0 0 1px;
+  }
+
+  &__input {
+    width: 100%;
+    padding: 14px;
+    font-size: $fs-input;
+    font-family: inherit;
+    border: 1px solid #EAEAEA;
+    border-radius: 12px;
+    background: #FAFAF8;
+    color: #1A1A1A;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s, box-shadow 0.15s;
+
+    &::placeholder { color: #CCC; }
+
+    &:focus {
+      border-color: #FFD100;
+      box-shadow: 0 0 0 3px rgba(255, 209, 0, 0.15);
+    }
+  }
+
+  &__gender {
+    display: flex;
+    gap: 10px;
+
+    &-btn {
+      flex: 1;
+      padding: 14px 0;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      border: 1px solid #EAEAEA;
+      border-radius: 12px;
+      background: #FAFAF8;
+      color: #888;
+      cursor: pointer;
+      transition: all 0.15s;
+
+      &--active {
+        border-color: #FFD100;
+        background: #FFF9D6;
+        color: #1A1A1A;
+      }
+    }
+  }
+
+  // 선택지 (Q1~Q3)
+  &__options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 16px 18px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    line-height: 1.4;
+    text-align: left;
+    color: #333;
+    border: 1.5px solid #EAEAEA;
+    border-radius: 14px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s, transform 0.08s;
+
+    &:active { transform: scale(0.99); }
+
+    &--active {
+      border-color: #FFD100;
+      background: #FFFBEC;
+      color: #1A1A1A;
+
+      .wiz__check {
+        border-color: #FFD100;
+        background: #FFD100;
+
+        &::after {
+          content: '';
+          position: absolute;
+          left: 6px;
+          top: 2px;
+          width: 5px;
+          height: 10px;
+          border: solid #1A1A1A;
+          border-width: 0 2px 2px 0;
+          transform: rotate(45deg);
+        }
+      }
+    }
+  }
+
+  // 중복선택 체크 박스
+  &__check {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    border: 1.5px solid #DADADA;
+    background: #fff;
+    position: relative;
+    transition: all 0.12s;
+  }
+
+  &__error {
+    font-size: 13px;
+    font-weight: 600;
+    color: #E53E3E;
+    margin: 16px 0 0;
+  }
+
+  // 푸터
+  &__footer {
+    padding: 12px 24px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  &__next {
+    width: 100%;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 800;
+    font-family: inherit;
+    letter-spacing: -0.2px;
+    color: #1A1A1A;
+    background: #FFD100;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.08s;
+
+    &:hover:not(:disabled) { background: #F0C400; }
+    &:active:not(:disabled) { transform: scale(0.98); }
+    &:disabled { opacity: 0.45; cursor: not-allowed; }
+  }
+}
