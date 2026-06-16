@@ -1,0 +1,104 @@
+// ============================================================
+// Shared component mixins
+// Built on top of the tokens in _variables.scss. A mixin's name
+// is the semantic role — components should reach for these
+// before writing a new one-off rule.
+// ============================================================
+
+// Fullscreen step in the onboarding flow (Splash / Auth / Wizard / Welcome / Intro)
+@mixin fullscreen-page($z: $z-overlay) {
+  position: fixed;
+  inset: 0;
+  background: $color-surface;
+  display: flex;
+  flex-direction: column;
+  z-index: $z;
+}
+
+// Screen heading (Auth headline, Wizard/Welcome/Intro title)
+@mixin heading {
+  font-size: $fs-lg;
+  font-weight: $fw-black;
+  line-height: $lh-heading;
+  letter-spacing: $ls-heading;
+  color: $color-text;
+  margin: 0;
+}
+
+// Secondary/body copy under a heading (desc, sub, tag, body)
+@mixin text-secondary {
+  font-size: $fs-md;
+  font-weight: $fw-regular;
+  line-height: $lh-body;
+  color: $color-text-secondary;
+  margin: 0;
+}
+
+// Full-width primary action button
+@mixin btn-primary {
+  width: 100%;
+  padding: $space-lg;
+  font-size: $fs-base;
+  font-weight: $fw-bold;
+  font-family: inherit;
+  letter-spacing: $ls-tight;
+  color: $color-text;
+  background: $color-primary;
+  border: none;
+  border-radius: $radius-lg;
+  cursor: pointer;
+  transition: background $transition-base, transform $transition-fast;
+
+  &:hover:not(:disabled) { background: $color-primary-hover; }
+  &:active:not(:disabled) { transform: scale(0.98); }
+  &:disabled { opacity: $opacity-disabled; cursor: not-allowed; }
+}
+
+// Text input field (Auth login form, Wizard step fields)
+@mixin input-field {
+  width: 100%;
+  padding: $space-md $space-lg;
+  font-size: $fs-base;
+  font-family: inherit;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-surface-alt;
+  color: $color-text;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color $transition-base, box-shadow $transition-base;
+
+  &::placeholder { color: $color-text-placeholder; }
+
+  &:focus {
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px $color-focus-ring;
+  }
+}
+
+// Label above an input field
+@mixin field-label {
+  font-size: $fs-sm;
+  font-weight: $fw-medium;
+  color: $color-text;
+}
+
+// Inline form error message
+@mixin error-text {
+  font-size: $fs-xs;
+  font-weight: $fw-medium;
+  color: $color-text-error;
+  margin: 0;
+}
+
+// Footer pinned above the home-indicator safe area
+@mixin safe-area-footer($top: $space-md, $sides: $space-xl, $bottom: $space-xl) {
+  padding: $top $sides calc(#{$bottom} + env(safe-area-inset-bottom));
+}
+
+// Shared by Splash and Welcome entrance animations — defined once so
+// the two screens don't each carry their own copy of the same keyframes.
+@keyframes fade-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}

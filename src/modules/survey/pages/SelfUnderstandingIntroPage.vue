@@ -478,23 +478,3 @@ const stats = [
   { num: '1:1',   label: '맞춤 프로젝트 설계', bg: 'cs', color: 's' },
 ]
 </script>
-
-<style scoped>
-.dev-skip-btn {
-  display: block;
-  margin: 8px auto 0;
-  padding: 4px 10px;
-  font-size: 11px;
-  color: #999;
-  background: transparent;
-  border: 1px dashed #ccc;
-  border-radius: 6px;
-  cursor: pointer;
-  opacity: 0.6;
-}
-.dev-skip-btn:hover {
-  opacity: 1;
-  color: #e65c00;
-  border-color: #e65c00;
-}
-</style>

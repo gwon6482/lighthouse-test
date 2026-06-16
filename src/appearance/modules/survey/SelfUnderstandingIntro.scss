@@ -1296,5 +1296,24 @@
         font-size: 0.8125rem;
       }
     }
+
+    .dev-skip-btn {
+      display: block;
+      margin: 8px auto 0;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: #999;
+      background: transparent;
+      border: 1px dashed #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      opacity: 0.6;
+
+      &:hover {
+        opacity: 1;
+        color: #e65c00;
+        border-color: #e65c00;
+      }
+    }
   }
 }

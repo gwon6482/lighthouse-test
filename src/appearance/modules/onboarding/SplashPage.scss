@@ -1,14 +1,9 @@
 .splash {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
+  @include fullscreen-page($z-splash);
   align-items: center;
   justify-content: center;
   gap: 30px;
-  background: #FFFFFF;
   overflow: hidden;
-  z-index: 2000;
 
   &__stage {
     display: flex;
@@ -17,7 +12,7 @@
   }
 
   &__logo {
-    filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.12));
+    filter: drop-shadow($shadow-logo);
 
     path {
       fill-opacity: 0;
@@ -41,32 +36,32 @@
   }
 
   &__name {
-    font-size: 30px;
-    font-weight: 900;
-    letter-spacing: -0.4px;
-    color: #1A1A1A;
-    animation: splash-fade 0.6s ease 1.6s both;
+    font-size: $fs-xl;
+    font-weight: $fw-black;
+    letter-spacing: $ls-display;
+    color: $color-text;
+    animation: fade-up 0.6s ease 1.6s both;
   }
 
   &__tag {
-    font-size: $fs-desc;
-    font-weight: 600;
+    font-size: $fs-md;
+    font-weight: $fw-medium;
     letter-spacing: 0.2px;
-    color: #888;
-    animation: splash-fade 0.6s ease 2.0s both;
+    color: $color-text-secondary;
+    animation: fade-up 0.6s ease 2.0s both;
   }
 
   &__dots {
     display: flex;
     gap: 7px;
     opacity: 0;
-    animation: splash-fade 0.5s ease 2.4s both;
+    animation: fade-up 0.5s ease 2.4s both;
 
     span {
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: #FFD100;
+      background: $color-primary;
       animation: splash-bounce 1.2s ease-in-out infinite;
 
       &:nth-child(2) { animation-delay: 0.15s; }
@@ -89,11 +84,6 @@
 @keyframes splash-bounce {
   0%, 100% { transform: translateY(0); opacity: 0.4; }
   50%      { transform: translateY(-7px); opacity: 1; }
-}
-
-@keyframes splash-fade {
-  from { transform: translateY(8px); opacity: 0; }
-  to   { transform: translateY(0); opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

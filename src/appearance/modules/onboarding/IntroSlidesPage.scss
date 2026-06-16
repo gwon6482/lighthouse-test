@@ -1,10 +1,5 @@
 .intro {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  background: #FFFFFF;
-  z-index: 1500;
+  @include fullscreen-page($z-overlay-high);
 
   &__skip {
     position: absolute;
@@ -13,14 +8,14 @@
     z-index: 2;
     border: none;
     background: transparent;
-    color: #999;
-    font-size: 14px;
-    font-weight: 600;
+    color: $color-text-tertiary;
+    font-size: $fs-sm;
+    font-weight: $fw-medium;
     font-family: inherit;
     padding: 6px 4px;
     cursor: pointer;
 
-    &:hover { color: #555; }
+    &:hover { color: $color-text-hover; }
   }
 
   // 슬라이드
@@ -32,7 +27,7 @@
   &__track {
     display: flex;
     height: 100%;
-    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: transform $transition-slow $ease-standard;
   }
 
   &__slide {
@@ -51,11 +46,11 @@
   &__art {
     width: 200px;
     height: 200px;
-    border-radius: 36px;
+    border-radius: $radius-xl;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.08);
+    box-shadow: $shadow-card;
   }
 
   &__emoji {
@@ -64,20 +59,11 @@
   }
 
   &__title {
-    font-size: 25px;
-    font-weight: 900;
-    line-height: 1.35;
-    letter-spacing: -0.5px;
-    color: #1A1A1A;
-    margin: 0;
+    @include heading;
   }
 
   &__body {
-    font-size: 15px;
-    font-weight: 500;
-    line-height: 1.6;
-    color: #777;
-    margin: 0;
+    @include text-secondary;
   }
 
   // 하단
@@ -97,32 +83,18 @@
   &__dot {
     width: 7px;
     height: 7px;
-    border-radius: 999px;
-    background: #E2E2E2;
+    border-radius: $radius-pill;
+    background: $color-border;
     transition: width 0.3s, background 0.3s;
 
     &--active {
       width: 22px;
-      background: #FFD100;
+      background: $color-primary;
     }
   }
 
   &__cta {
-    width: 100%;
+    @include btn-primary;
     max-width: 420px;
-    padding: 16px;
-    font-size: 16px;
-    font-weight: 800;
-    font-family: inherit;
-    letter-spacing: -0.2px;
-    color: #1A1A1A;
-    background: #FFD100;
-    border: none;
-    border-radius: 14px;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.08s;
-
-    &:hover { background: #F0C400; }
-    &:active { transform: scale(0.98); }
   }
 }

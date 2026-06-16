@@ -1,16 +1,119 @@
-// Typography
-$fs-title: 24px;
-$fs-desc: 15px;
-$fs-label: 14px;
-$fs-input: 16px;
+// ============================================================
+// Design Tokens
+// 1) Primitive scale — raw values, no meaning attached
+// 2) Semantic tokens — named by role, built from primitives
+// Components should only reference semantic tokens (or mixins),
+// never the primitive scale directly.
+// ============================================================
 
-$fs-body: 15px;
-$fs-small: 13px;
+// ---- Primitive: color ----
+$gray-white: #FFFFFF;
+$gray-black: #000000;
+$gray-50:    #FAFAF8;
+$gray-100:   #EAEAEA;
+$gray-200:   #DADADA;
+$gray-300:   #CCCCCC;
+$gray-400:   #999999;
+$gray-500:   #888888;
+$gray-600:   #555555;
+$gray-900:   #1A1A1A;
 
-// Colors
-$color-primary: #FFD100;
-$color-text: #1A1A1A;
-$color-text-muted: #888;
-$color-border: #EAEAEA;
-$color-bg: #FAFAF8;
-$color-error: #E53E3E;
+$yellow-500: #FFD100; // brand primary
+$yellow-600: #F0C400; // brand primary, pressed/hover
+$yellow-100: #FFF9D6; // brand primary, tint (selected state)
+
+$red-500: #E53E3E;
+
+// External brand colors (fixed by each platform's guideline, not part of our palette)
+$brand-kakao:  #FEE500;
+$brand-google: #4285F4;
+
+// ---- Primitive: type scale ----
+$fs-2xs: 12px; // caption
+$fs-xs:  13px; // small / error
+$fs-sm:  14px; // label / nav text
+$fs-md:  15px; // body copy
+$fs-base:16px; // input value / button label
+$fs-lg:  24px; // screen heading
+$fs-xl:  30px; // display wordmark (splash only)
+
+$fw-regular:  500;
+$fw-medium:   600;
+$fw-semibold: 700;
+$fw-bold:     800;
+$fw-black:    900;
+
+$lh-heading: 1.35;
+$lh-body:    1.6;
+
+$ls-tight:   -0.2px; // buttons
+$ls-heading: -0.5px; // page headings
+$ls-display: -0.4px; // splash wordmark
+
+// ---- Primitive: spacing (used for shared, repeated layout values only —
+// one-off component-internal gaps stay local to their own block) ----
+$space-sm: 8px;
+$space-md: 12px;
+$space-lg: 16px;
+$space-xl: 24px;
+
+// ---- Primitive: radius ----
+$radius-sm:   6px;   // checkbox
+$radius-md:   12px;  // input, secondary/social button
+$radius-lg:   14px;  // primary CTA button, selection card
+$radius-xl:   36px;  // large decorative tile
+$radius-pill: 999px; // progress track, dots, ring
+
+// ---- Primitive: motion ----
+$ease-standard:    cubic-bezier(0.2, 0.8, 0.2, 1);
+$transition-fast:  0.08s; // press/active scale
+$transition-base:  0.15s; // hover/focus color & background
+$transition-slow:  0.35s; // progress fill / slide transform
+
+// ---- Primitive: elevation ----
+$shadow-logo: 0 8px 18px rgba(0, 0, 0, 0.12);
+$shadow-card: 0 14px 36px rgba(0, 0, 0, 0.08);
+
+// ---- Primitive: z-index ----
+// Onboarding is a fullscreen, app-boot-time flow; layers below reflect
+// the order screens can stack on top of one another during that flow.
+$z-overlay:      1400; // Auth / SignupWizard / Welcome
+$z-overlay-high: 1500; // IntroSlides (shown above the base overlay)
+$z-splash:       2000; // Splash (always topmost, app boot loader)
+
+// ============================================================
+// Semantic tokens
+// ============================================================
+
+// Color — text
+$color-text:             $gray-900; // headings, primary labels, selected option text
+$color-text-secondary:   $gray-500; // desc / body / sub copy
+$color-text-tertiary:    $gray-400; // captions, mode-switch links
+$color-text-placeholder: $gray-300;
+$color-text-hover:       $gray-600;
+$color-text-error:       $red-500;
+
+// Color — surface & border
+$color-surface:     $gray-white; // page background
+$color-surface-alt: $gray-50;    // input / secondary control background
+$color-border:      $gray-100;   // input border, divider line, track background
+$color-border-strong: $gray-200; // checkbox border
+
+// Color — brand
+$color-primary:        $yellow-500;
+$color-primary-hover:  $yellow-600;
+$color-primary-tint:   $yellow-100; // selected-state background
+$color-focus-ring:     rgba($color-primary, 0.15);
+
+$opacity-disabled: 0.5;
+
+// Legacy aliases kept temporarily so nothing outside onboarding breaks
+// while the rest of the app migrates to the token names above.
+$fs-title: $fs-lg;
+$fs-desc:  $fs-md;
+$fs-label: $fs-sm;
+$fs-input: $fs-base;
+$fs-body:  $fs-md;
+$fs-small: $fs-xs;
+$color-bg: $color-surface-alt;
+$color-error: $color-text-error;

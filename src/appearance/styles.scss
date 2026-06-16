@@ -1,14 +1,20 @@
 @import 'variables';
+@import 'mixins';
 
 // Survey
 @import './modules/shared/journey-intro.scss';
+@import './modules/survey/MainBeforePage.scss';
+@import './modules/survey/MainPage.scss';
 @import './modules/survey/SelfUnderstandingIntro.scss';
+@import './modules/survey/SelfUnderstandingGuidePage.scss';
 @import './modules/survey/Home.scss';
+@import './modules/survey/MyPage.scss';
 @import './modules/survey/SelfUnderstandingTest.scss';
 @import './modules/survey/SelfUnderstandingSelect.scss';
 @import './modules/survey/SUQuestions.scss';
 @import './modules/survey/SelfUnderstandingResult.scss';
 @import './modules/survey/SelfUnderstandingComplete.scss';
+@import './modules/survey/SelfUnderstandingMainPage.scss';
 
 // OnBoarding
 @import './modules/onboarding/SplashPage.scss';

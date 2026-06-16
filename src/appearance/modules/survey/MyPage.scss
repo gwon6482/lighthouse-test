@@ -1,0 +1,351 @@
+.mypage {
+  min-height: 100vh;
+  background: #F5F5F5;
+
+  &__header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 1rem;
+    height: 56px;
+    background: #fff;
+    border-bottom: 1px solid #EEEEE8;
+  }
+
+  &__back {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background 0.15s;
+    &:hover { background: #F5F5F5; }
+  }
+
+  &__header-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+
+  &__body {
+    padding: 1.25rem 1rem 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  &__section {
+    background: #fff;
+    border-radius: 1rem;
+    border: 1px solid #EEEEE8;
+    overflow: hidden;
+  }
+
+  &__section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.125rem 0.75rem;
+    border-bottom: 1px solid #F5F5F5;
+
+    .mypage__section-title { padding: 0; border-bottom: none; }
+  }
+
+  &__section-title {
+    font-size: 0.9375rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    padding: 1rem 1.125rem 0.75rem;
+    border-bottom: 1px solid #F5F5F5;
+    margin: 0;
+  }
+
+  &__section-add {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #FFC700;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  &__loading,
+  &__empty {
+    padding: 1.5rem 1.125rem;
+    font-size: 0.875rem;
+    color: #aaa;
+    text-align: center;
+  }
+
+  &__coming-soon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2rem 1rem;
+
+    &-icon { font-size: 1.75rem; }
+
+    p {
+      font-size: 0.875rem;
+      color: #bbb;
+      margin: 0;
+    }
+  }
+}
+
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #fff;
+  border: 1px solid #EEEEE8;
+  border-radius: 1rem;
+  padding: 1.25rem;
+
+  &__avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #FFD100;
+    color: #1a1a1a;
+    font-size: 1.25rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__info { flex: 1; min-width: 0; }
+
+  &__name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__email {
+    font-size: 0.8125rem;
+    color: #888;
+    margin: 0.125rem 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__tags {
+    display: flex;
+    gap: 0.375rem;
+    margin-top: 0.5rem;
+  }
+
+  &__tag {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: #888;
+    background: #F5F5F5;
+    border-radius: 0.375rem;
+    padding: 0.1875rem 0.5rem;
+  }
+}
+
+.result-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1.125rem;
+    cursor: pointer;
+    transition: background 0.12s;
+    border-bottom: 1px solid #F5F5F5;
+
+    &:last-child { border-bottom: none; }
+    &:hover { background: #FAFAF8; }
+    &:active { background: #F5F5F5; }
+  }
+
+  &__left { flex: 1; min-width: 0; }
+
+  &__top-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  &__id {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__type-badge {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #CC8800;
+    background: #FFF8DC;
+    border-radius: 0.375rem;
+    padding: 0.125rem 0.4375rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  &__date {
+    font-size: 0.75rem;
+    color: #aaa;
+    margin: 0.125rem 0 0;
+  }
+
+  &__arrow { flex-shrink: 0; margin-left: 0.5rem; }
+}
+
+.job-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1.125rem;
+    cursor: pointer;
+    transition: background 0.12s;
+    border-bottom: 1px solid #F5F5F5;
+
+    &:last-child { border-bottom: none; }
+    &:hover { background: #FAFAF8; }
+    &:active { background: #F5F5F5; }
+  }
+
+  &__left { flex: 1; min-width: 0; }
+
+  &__title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__sub {
+    font-size: 0.75rem;
+    color: #aaa;
+    margin: 0.125rem 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__arrow { flex-shrink: 0; margin-left: 0.5rem; }
+}
+
+.plan-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #F5F5F5;
+    &:last-child { border-bottom: none; }
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+    padding: 0.875rem 0 0.875rem 1.125rem;
+    cursor: pointer;
+    transition: background 0.12s;
+    &:hover { background: #FAFAF8; }
+    &:active { background: #F5F5F5; }
+  }
+
+  &__top-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__job {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__status {
+    font-size: 0.625rem;
+    font-weight: 700;
+    padding: 0.125rem 0.4375rem;
+    border-radius: 0.375rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    &--draft     { color: #888;    background: #F0F0F0; }
+    &--active    { color: #F47820; background: #FFF2E8; }
+    &--completed { color: #1DB95A; background: #E8F9EF; }
+  }
+
+  &__name {
+    font-size: 0.8125rem;
+    color: #555;
+    margin: 0.125rem 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__meta {
+    font-size: 0.75rem;
+    color: #aaa;
+    margin: 0.125rem 0 0;
+  }
+
+  &__delete {
+    flex-shrink: 0;
+    width: 44px;
+    height: 100%;
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.15s;
+
+    &:hover { color: #FF4D4F; }
+    &:active { color: #CF1322; }
+  }
+}
