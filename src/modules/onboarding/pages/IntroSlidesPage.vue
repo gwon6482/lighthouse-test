@@ -80,10 +80,10 @@ function finish() {
 // ── 스와이프 ──
 let startX = 0
 function onTouchStart(e: TouchEvent) {
-  startX = e.changedTouches[0].clientX
+  startX = e.changedTouches[0]?.clientX ?? 0
 }
 function onTouchEnd(e: TouchEvent) {
-  const dx = e.changedTouches[0].clientX - startX
+  const dx = (e.changedTouches[0]?.clientX ?? 0) - startX
   if (Math.abs(dx) < 50) return
   if (dx < 0 && !isLast.value) index.value++       // 왼쪽으로 → 다음
   else if (dx > 0 && index.value > 0) index.value-- // 오른쪽으로 → 이전

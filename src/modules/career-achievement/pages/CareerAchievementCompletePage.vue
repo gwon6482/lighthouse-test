@@ -186,7 +186,7 @@ async function onPhotoChange(e: Event) {
 
 // 'data:image/...;base64,...' dataURL → Blob (S3 업로드용)
 function dataUrlToBlob(dataUrl: string): Blob {
-  const [head, body] = dataUrl.split(',')
+  const [head = '', body = ''] = dataUrl.split(',')
   const mime = head.match(/data:([^;]+)/)?.[1] ?? 'image/jpeg'
   const bin = atob(body)
   const arr = new Uint8Array(bin.length)
