@@ -51,6 +51,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // t3_img 일부 PNG가 2MiB 초과 → precache 제외(런타임 서빙은 정상). 빌드 실패 방지.
+        globIgnores: ['**/t3_img/**'],
       },
     }),
   ],
