@@ -15,6 +15,7 @@
 @import './modules/survey/SelfUnderstandingResult.scss';
 @import './modules/survey/SelfUnderstandingComplete.scss';
 @import './modules/survey/SelfUnderstandingMainPage.scss';
+@import './modules/survey/SurveyPartIntro.scss';
 
 // OnBoarding
 @import './modules/onboarding/SplashPage.scss';
@@ -40,6 +41,7 @@ body {
 #app {
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 a {

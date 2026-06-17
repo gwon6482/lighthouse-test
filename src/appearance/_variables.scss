@@ -107,6 +107,26 @@ $color-focus-ring:     rgba($color-primary, 0.15);
 
 $opacity-disabled: 0.5;
 
+// Color — success (완료 상태)
+$color-success:      #1DB95A;
+$color-success-tint: #E4F8EC;
+
+// Color — amber (뱃지 등 경고/강조 계열)
+$amber-700: #B07800;
+$amber-100: #FFF1C2;
+
+// Color — surface variants
+$color-surface-page: #F5F5F5; // 페이지 배경 (앱 배경보다 살짝 어두운 회색)
+$color-surface-done: #F0F1F2; // 완료 항목 배경
+
+// Radius — card
+$radius-card: 18px; // 스텝 카드, 콘텐츠 카드
+
+// Color — info (결과 시각화 하늘색 팔레트)
+$color-info:      #5BB8F5;
+$color-info-dark: #2E8FCC;
+$color-info-tint: #E8F4FE;
+
 // Legacy aliases kept temporarily so nothing outside onboarding breaks
 // while the rest of the app migrates to the token names above.
 $fs-title: $fs-lg;

@@ -1,6 +1,6 @@
 .mypage {
-  min-height: 100vh;
-  background: #F5F5F5;
+  min-height: 100dvh;
+  background: $color-surface-page;
 
   &__header {
     position: sticky;
@@ -8,11 +8,11 @@
     z-index: 10;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0 1rem;
+    gap: $space-sm;
+    padding: 0 $space-lg;
     height: 56px;
-    background: #fff;
-    border-bottom: 1px solid #EEEEE8;
+    background: $color-surface;
+    border-bottom: 1px solid $color-border;
   }
 
   &__back {
@@ -25,29 +25,30 @@
     background: none;
     cursor: pointer;
     border-radius: 50%;
-    transition: background 0.15s;
-    &:hover { background: #F5F5F5; }
+    transition: background $transition-base;
+
+    &:hover { background: $color-surface-page; }
   }
 
   &__header-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #1a1a1a;
+    font-size: $fs-base;
+    font-weight: $fw-semibold;
+    color: $color-text;
   }
 
   &__body {
-    padding: 1.25rem 1rem 3rem;
+    padding: 20px $space-lg 48px;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 20px;
     max-width: 480px;
     margin: 0 auto;
   }
 
   &__section {
-    background: #fff;
-    border-radius: 1rem;
-    border: 1px solid #EEEEE8;
+    background: $color-surface;
+    border-radius: $radius-card;
+    border: 1px solid $color-border;
     overflow: hidden;
   }
 
@@ -55,25 +56,25 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 1.125rem 0.75rem;
-    border-bottom: 1px solid #F5F5F5;
+    padding: $space-lg 18px $space-md;
+    border-bottom: 1px solid $color-surface-page;
 
     .mypage__section-title { padding: 0; border-bottom: none; }
   }
 
   &__section-title {
-    font-size: 0.9375rem;
-    font-weight: 800;
-    color: #1a1a1a;
-    padding: 1rem 1.125rem 0.75rem;
-    border-bottom: 1px solid #F5F5F5;
+    font-size: $fs-md;
+    font-weight: $fw-bold;
+    color: $color-text;
+    padding: $space-lg 18px $space-md;
+    border-bottom: 1px solid $color-surface-page;
     margin: 0;
   }
 
   &__section-add {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: #FFC700;
+    font-size: $fs-xs;
+    font-weight: $fw-medium;
+    color: $color-primary;
     background: none;
     border: none;
     cursor: pointer;
@@ -82,9 +83,9 @@
 
   &__loading,
   &__empty {
-    padding: 1.5rem 1.125rem;
-    font-size: 0.875rem;
-    color: #aaa;
+    padding: $space-xl 18px;
+    font-size: $fs-sm;
+    color: $color-text-tertiary;
     text-align: center;
   }
 
@@ -92,14 +93,14 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
-    padding: 2rem 1rem;
+    gap: $space-sm;
+    padding: 32px $space-lg;
 
-    &-icon { font-size: 1.75rem; }
+    &-icon { font-size: 28px; }
 
     p {
-      font-size: 0.875rem;
-      color: #bbb;
+      font-size: $fs-sm;
+      color: $color-text-tertiary;
       margin: 0;
     }
   }
@@ -108,20 +109,20 @@
 .profile-card {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  background: #fff;
-  border: 1px solid #EEEEE8;
-  border-radius: 1rem;
-  padding: 1.25rem;
+  gap: $space-lg;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-card;
+  padding: 20px;
 
   &__avatar {
     width: 52px;
     height: 52px;
     border-radius: 50%;
-    background: #FFD100;
-    color: #1a1a1a;
-    font-size: 1.25rem;
-    font-weight: 800;
+    background: $color-primary;
+    color: $color-text;
+    font-size: 20px;
+    font-weight: $fw-bold;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -131,9 +132,9 @@
   &__info { flex: 1; min-width: 0; }
 
   &__name {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #1a1a1a;
+    font-size: $fs-base;
+    font-weight: $fw-semibold;
+    color: $color-text;
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
@@ -141,9 +142,9 @@
   }
 
   &__email {
-    font-size: 0.8125rem;
-    color: #888;
-    margin: 0.125rem 0 0;
+    font-size: $fs-xs;
+    color: $color-text-secondary;
+    margin: 2px 0 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -151,17 +152,17 @@
 
   &__tags {
     display: flex;
-    gap: 0.375rem;
-    margin-top: 0.5rem;
+    gap: 6px;
+    margin-top: $space-sm;
   }
 
   &__tag {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    color: #888;
-    background: #F5F5F5;
-    border-radius: 0.375rem;
-    padding: 0.1875rem 0.5rem;
+    font-size: 11px;
+    font-weight: $fw-medium;
+    color: $color-text-secondary;
+    background: $color-surface-page;
+    border-radius: $radius-sm;
+    padding: 3px $space-sm;
   }
 }
 
@@ -174,14 +175,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.875rem 1.125rem;
+    padding: 14px 18px;
     cursor: pointer;
-    transition: background 0.12s;
-    border-bottom: 1px solid #F5F5F5;
+    transition: background $transition-base;
+    border-bottom: 1px solid $color-surface-page;
 
     &:last-child { border-bottom: none; }
-    &:hover { background: #FAFAF8; }
-    &:active { background: #F5F5F5; }
+    &:hover { background: $color-surface-alt; }
+    &:active { background: $color-surface-page; }
   }
 
   &__left { flex: 1; min-width: 0; }
@@ -189,14 +190,14 @@
   &__top-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: $space-sm;
     flex-wrap: wrap;
   }
 
   &__id {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: #1a1a1a;
+    font-size: $fs-xs;
+    font-weight: $fw-medium;
+    color: $color-text;
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
@@ -204,23 +205,23 @@
   }
 
   &__type-badge {
-    font-size: 0.6875rem;
-    font-weight: 700;
-    color: #CC8800;
-    background: #FFF8DC;
-    border-radius: 0.375rem;
-    padding: 0.125rem 0.4375rem;
+    font-size: 11px;
+    font-weight: $fw-semibold;
+    color: $amber-700;
+    background: $amber-100;
+    border-radius: $radius-sm;
+    padding: 2px 7px;
     white-space: nowrap;
     flex-shrink: 0;
   }
 
   &__date {
-    font-size: 0.75rem;
-    color: #aaa;
-    margin: 0.125rem 0 0;
+    font-size: $fs-2xs;
+    color: $color-text-tertiary;
+    margin: 2px 0 0;
   }
 
-  &__arrow { flex-shrink: 0; margin-left: 0.5rem; }
+  &__arrow { flex-shrink: 0; margin-left: $space-sm; }
 }
 
 .job-list {
@@ -232,22 +233,22 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.875rem 1.125rem;
+    padding: 14px 18px;
     cursor: pointer;
-    transition: background 0.12s;
-    border-bottom: 1px solid #F5F5F5;
+    transition: background $transition-base;
+    border-bottom: 1px solid $color-surface-page;
 
     &:last-child { border-bottom: none; }
-    &:hover { background: #FAFAF8; }
-    &:active { background: #F5F5F5; }
+    &:hover { background: $color-surface-alt; }
+    &:active { background: $color-surface-page; }
   }
 
   &__left { flex: 1; min-width: 0; }
 
   &__title {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #1a1a1a;
+    font-size: $fs-sm;
+    font-weight: $fw-medium;
+    color: $color-text;
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
@@ -255,15 +256,15 @@
   }
 
   &__sub {
-    font-size: 0.75rem;
-    color: #aaa;
-    margin: 0.125rem 0 0;
+    font-size: $fs-2xs;
+    color: $color-text-tertiary;
+    margin: 2px 0 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  &__arrow { flex-shrink: 0; margin-left: 0.5rem; }
+  &__arrow { flex-shrink: 0; margin-left: $space-sm; }
 }
 
 .plan-list {
@@ -274,61 +275,63 @@
   &__item {
     display: flex;
     align-items: center;
-    border-bottom: 1px solid #F5F5F5;
+    border-bottom: 1px solid $color-surface-page;
+
     &:last-child { border-bottom: none; }
   }
 
   &__body {
     flex: 1;
     min-width: 0;
-    padding: 0.875rem 0 0.875rem 1.125rem;
+    padding: 14px 0 14px 18px;
     cursor: pointer;
-    transition: background 0.12s;
-    &:hover { background: #FAFAF8; }
-    &:active { background: #F5F5F5; }
+    transition: background $transition-base;
+
+    &:hover { background: $color-surface-alt; }
+    &:active { background: $color-surface-page; }
   }
 
   &__top-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: $space-sm;
   }
 
   &__job {
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: #1a1a1a;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    color: $color-text;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   &__status {
-    font-size: 0.625rem;
-    font-weight: 700;
-    padding: 0.125rem 0.4375rem;
-    border-radius: 0.375rem;
+    font-size: 10px;
+    font-weight: $fw-semibold;
+    padding: 2px 7px;
+    border-radius: $radius-sm;
     white-space: nowrap;
     flex-shrink: 0;
 
-    &--draft     { color: #888;    background: #F0F0F0; }
-    &--active    { color: #F47820; background: #FFF2E8; }
-    &--completed { color: #1DB95A; background: #E8F9EF; }
+    &--draft     { color: $color-text-secondary; background: $color-surface-done; }
+    &--active    { color: #F47820;               background: #FFF2E8; }
+    &--completed { color: $color-success;         background: $color-success-tint; }
   }
 
   &__name {
-    font-size: 0.8125rem;
-    color: #555;
-    margin: 0.125rem 0 0;
+    font-size: $fs-xs;
+    color: $color-text-hover;
+    margin: 2px 0 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   &__meta {
-    font-size: 0.75rem;
-    color: #aaa;
-    margin: 0.125rem 0 0;
+    font-size: $fs-2xs;
+    color: $color-text-tertiary;
+    margin: 2px 0 0;
   }
 
   &__delete {
@@ -341,9 +344,9 @@
     justify-content: center;
     background: none;
     border: none;
-    color: #ccc;
+    color: $color-border-strong;
     cursor: pointer;
-    transition: color 0.15s;
+    transition: color $transition-base;
 
     &:hover { color: #FF4D4F; }
     &:active { color: #CF1322; }

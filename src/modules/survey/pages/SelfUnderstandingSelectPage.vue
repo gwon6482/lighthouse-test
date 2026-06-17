@@ -15,13 +15,13 @@
           <span class="select-button__time">⏱ 5분</span>
         </div>
         <div class="select-button__preview">
-          <p class="sq-sample-text">나는 새로운 환경에 잘 적응한다</p>
+          <p class="sq-sample-text">나는 새로운 환경에 잘 적응한다.</p>
           <div class="sq2-options">
             <span class="sq2-btn sq2-btn--x">X</span>
             <span class="sq2-btn sq2-btn--o">O</span>
           </div>
         </div>
-        <p class="select-button__description">빠르게 검사하고 싶어요</p>
+        <p class="select-button__description">빠르게 검사하고 싶어요.</p>
       </button>
 
       <!-- 베이직: 5단계 원형 -->
@@ -31,7 +31,7 @@
           <span class="select-button__time">⏱ 10분</span>
         </div>
         <div class="select-button__preview">
-          <p class="sq-sample-text">나는 계획적으로 행동하는 편이다</p>
+          <p class="sq-sample-text">나는 계획적으로 행동하는 편이다.</p>
           <div class="sq5-options">
             <span class="sq5-dot sq5-dot--1" />
             <span class="sq5-dot sq5-dot--2" />
@@ -44,7 +44,7 @@
             <span>매우 그렇다</span>
           </div>
         </div>
-        <p class="select-button__description">일반적인 검사 방식이에요</p>
+        <p class="select-button__description">일반적인 검사 방식이에요.</p>
       </button>
 
       <!-- 디테일: 1~10 그리드 -->
@@ -54,12 +54,12 @@
           <span class="select-button__time">⏱ 15분</span>
         </div>
         <div class="select-button__preview">
-          <p class="sq-sample-text">나는 창의적인 방식으로 문제를 푼다</p>
+          <p class="sq-sample-text">나는 창의적인 방식으로 문제를 푼다.</p>
           <div class="sq10-options">
             <span v-for="n in 10" :key="n" class="sq10-btn">{{ n }}</span>
           </div>
         </div>
-        <p class="select-button__description">자세히 검사할 수 있어요</p>
+        <p class="select-button__description">자세히 검사할 수 있어요.</p>
       </button>
     </div>
   </div>

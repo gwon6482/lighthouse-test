@@ -1,48 +1,52 @@
 .su-main {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  background: #F5F5F5;
+  min-height: 100dvh;
+  background: $color-surface-page;
 
   &__hero {
-    padding: 32px 20px 16px;
+    padding: 32px $space-lg $space-xl;
     text-align: center;
   }
 
   &__title {
     font-size: 28px;
-    font-weight: 800;
-    color: #222;
-    margin-bottom: 8px;
+    font-weight: $fw-black;
+    color: $color-text;
+    margin-bottom: $space-sm;
+
   }
 
   &__subtitle {
-    font-size: 14px;
-    color: #888;
+    font-size: $fs-sm;
+    color: $color-text-secondary;
+
   }
 
   &__intro {
-    margin: 0 20px 20px;
+    margin: 0 $space-lg 20px;
   }
 
   &__section {
-    padding: 0 20px;
+    padding: 0 $space-lg;
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
 
   &__section-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #222;
+    font-size: $fs-base;
+    font-weight: $fw-semibold;
+    color: $color-text;
     margin-bottom: 0;
+    margin-left: 1px;
   }
 
   &__section-sub {
-    font-size: 12px;
-    color: #aaa;
+    font-size: $fs-2xs;
+    color: $color-text-tertiary;
     margin-top: -4px;
+    margin-left: 1px;
   }
 
   &__parts {
@@ -52,8 +56,9 @@
   }
 
   &__part-card {
-    background: #fff;
-    border-radius: 16px;
+    background: $color-surface;
+    border-radius: $radius-card;
+    border: 1px solid $color-border;
     padding: 18px;
     display: flex;
     flex-direction: column;
@@ -74,14 +79,14 @@
 
   &__part-label {
     font-size: 11px;
-    font-weight: 700;
+    font-weight: $fw-semibold;
     letter-spacing: 0.05em;
   }
 
   &__part-title {
     font-size: 18px;
-    font-weight: 700;
-    color: #222;
+    font-weight: $fw-semibold;
+    color: $color-text;
   }
 
   &__part-emoji {
@@ -90,9 +95,9 @@
   }
 
   &__part-desc {
-    font-size: 13px;
-    color: #888;
-    line-height: 1.6;
+    font-size: $fs-xs;
+    color: $color-text-secondary;
+    line-height: $lh-body;
   }
 
   &__part-pills {
@@ -101,26 +106,27 @@
   }
 
   &__pill {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: $fs-2xs;
+    font-weight: $fw-medium;
     padding: 3px 10px;
-    border-radius: 99px;
-    border: 1px solid #eee;
-    color: #888;
-    background: #F8F8F8;
+    border-radius: $radius-pill;
+    border: 1px solid $color-border;
+    color: $color-text-secondary;
+    background: $color-surface-alt;
   }
 
   &__tips {
-    background: #fff;
-    border-radius: 16px;
-    padding: 16px 18px;
+    background: $color-surface;
+    border-radius: $radius-card;
+    border: 1px solid $color-border;
+    padding: $space-lg 18px;
   }
 
   &__tips-title {
-    font-size: 13px;
-    font-weight: 700;
-    color: #222;
-    margin-bottom: 12px;
+    font-size: $fs-xs;
+    font-weight: $fw-semibold;
+    color: $color-text;
+    margin-bottom: $space-md;
   }
 
   &__tip-list {
@@ -135,9 +141,9 @@
   &__tip-item {
     display: flex;
     gap: 10px;
-    font-size: 13px;
-    color: #666;
-    line-height: 1.5;
+    font-size: $fs-xs;
+    color: $color-text-hover;
+    line-height: $lh-body;
   }
 
   &__tip-icon {
@@ -145,21 +151,14 @@
   }
 
   &__footer {
-    padding: 24px 20px 40px;
+    padding: 30px $space-lg 40px;
     margin-top: auto;
   }
 
   &__cta {
-    width: 100%;
-    padding: 18px;
-    background: #FFC700;
-    border: none;
-    border-radius: 16px;
+    @include btn-primary;
     font-size: 17px;
-    font-weight: 700;
-    color: #fff;
-    cursor: pointer;
-
-    &:active { opacity: 0.85; }
+    border-radius: $radius-card;
+    padding: 18px 0;
   }
 }

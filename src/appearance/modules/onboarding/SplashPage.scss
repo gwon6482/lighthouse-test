@@ -12,7 +12,8 @@
   }
 
   &__logo {
-    filter: drop-shadow($shadow-logo);
+    overflow: visible;
+    // filter: drop-shadow($shadow-logo);
 
     path {
       fill-opacity: 0;

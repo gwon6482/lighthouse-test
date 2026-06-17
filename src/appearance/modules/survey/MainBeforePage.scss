@@ -1,15 +1,15 @@
 .mb {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  background: #F5F5F5;
+  min-height: 100dvh;
+  background: $color-surface-page;
 
   &__body {
     flex: 1;
     width: 100%;
     max-width: 480px;
     margin: 0 auto;
-    padding: 24px 20px calc(40px + env(safe-area-inset-bottom));
+    @include safe-area-footer($top: $space-xl, $sides: $space-lg, $bottom: $space-xl);
     box-sizing: border-box;
   }
 
@@ -20,30 +20,30 @@
 
   &__badge {
     display: inline-block;
-    font-size: 12px;
-    font-weight: 800;
-    color: #B07800;
-    background: #FFF1C2;
+    font-size: $fs-2xs;
+    font-weight: $fw-bold;
+    color: $amber-700;
+    background: $amber-100;
     padding: 5px 12px;
-    border-radius: 999px;
+    border-radius: $radius-pill;
     margin-bottom: 14px;
   }
 
   &__headline {
-    font-size: 25px;
-    font-weight: 900;
-    line-height: 1.35;
-    letter-spacing: -0.5px;
-    color: #1A1A1A;
+    font-size: $fs-lg;
+    font-weight: $fw-black;
+    line-height: $lh-heading;
+    letter-spacing: $ls-heading;
+    color: $color-text;
     margin: 0 0 10px;
   }
 
   &__sub {
-    font-size: 14px;
-    font-weight: 500;
-    color: #888;
+    font-size: $fs-sm;
+    font-weight: $fw-regular;
+    color: $color-text-secondary;
     margin: 0 0 20px;
-    line-height: 1.55;
+    line-height: $lh-body;
   }
 
   &__progress {
@@ -55,29 +55,29 @@
   &__progress-bar {
     flex: 1;
     height: 8px;
-    background: #E7E7E7;
-    border-radius: 999px;
+    background: $color-border;
+    border-radius: $radius-pill;
     overflow: hidden;
   }
 
   &__progress-fill {
     height: 100%;
-    background: #FFD100;
-    border-radius: 999px;
-    transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    background: $color-primary;
+    border-radius: $radius-pill;
+    transition: width $transition-slow $ease-standard;
   }
 
   &__progress-text {
-    font-size: 13px;
-    font-weight: 700;
-    color: #1A1A1A;
+    font-size: $fs-xs;
+    font-weight: $fw-semibold;
+    color: $color-text;
     white-space: nowrap;
   }
 
   &__loading {
     text-align: center;
-    color: #aaa;
-    font-size: 14px;
+    color: $color-text-secondary;
+    font-size: $fs-sm;
     padding: 40px 0;
   }
 
@@ -94,43 +94,43 @@
     gap: 16px;
     width: 100%;
     padding: 20px 18px;
-    border-radius: 18px;
+    border-radius: $radius-card;
     border: 1.5px solid transparent;
-    background: #fff;
+    background: $color-surface;
     font-family: inherit;
     text-align: left;
     cursor: pointer;
-    transition: border-color 0.15s, box-shadow 0.15s, transform 0.08s, opacity 0.15s;
+    transition: border-color $transition-base, box-shadow $transition-base, transform $transition-fast, opacity $transition-base;
 
     // 활성: 강조
     &--active {
-      border-color: #FFD100;
-      box-shadow: 0 6px 20px rgba(255, 199, 0, 0.18);
+      border-color: $color-primary;
+      box-shadow: 0 6px 20px rgba($yellow-500, 0.18);
 
       &:active { transform: scale(0.99); }
 
       .mb__step-mark {
-        background: #FFD100;
-        color: #1A1A1A;
+        background: $color-primary;
+        color: $color-text;
       }
     }
 
     // 완료: 비활성 + 회색
     &--done {
-      background: #F0F1F2;
+      background: $color-surface-done;
       cursor: default;
 
-      .mb__step-mark { background: #1DB95A; }
-      .mb__step-title { color: #888; }
+      .mb__step-mark { background: $color-success; }
+      .mb__step-title { color: $color-text-secondary; }
     }
 
     // 잠김: 흐리게
     &--locked {
-      background: #fff;
-      opacity: 0.55;
+      background: $color-surface;
+      opacity: $opacity-disabled;
       cursor: not-allowed;
 
-      .mb__step-mark { background: #EEE; }
+      .mb__step-mark { background: $color-border; }
     }
   }
 
@@ -143,11 +143,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 900;
+    font-weight: $fw-black;
   }
 
   &__step-no {
-    font-size: 17px;
+    font-size: $fs-base;
   }
 
   // 가운데 텍스트
@@ -160,17 +160,17 @@
   }
 
   &__step-title {
-    font-size: 16px;
-    font-weight: 800;
-    color: #1A1A1A;
-    letter-spacing: -0.3px;
+    font-size: $fs-base;
+    font-weight: $fw-bold;
+    color: $color-text;
+    letter-spacing: $ls-tight;
   }
 
   &__step-desc {
-    font-size: 13px;
-    font-weight: 500;
-    color: #999;
-    line-height: 1.45;
+    font-size: $fs-xs;
+    font-weight: $fw-regular;
+    color: $color-text-secondary;
+    line-height: $lh-body;
   }
 
   // 우측
@@ -181,32 +181,17 @@
   }
 
   &__step-tag {
-    font-size: 12px;
-    font-weight: 800;
-    color: #1DB95A;
-    background: #E4F8EC;
+    font-size: $fs-2xs;
+    font-weight: $fw-bold;
+    color: $color-success;
+    background: $color-success-tint;
     padding: 5px 11px;
-    border-radius: 999px;
+    border-radius: $radius-pill;
   }
 
   // 전체 완료 CTA
   &__finish {
-    width: 100%;
-    margin-top: 24px;
-    padding: 17px;
-    font-size: 16px;
-    font-weight: 800;
-    font-family: inherit;
-    letter-spacing: -0.2px;
-    color: #1A1A1A;
-    background: #FFD100;
-    border: none;
-    border-radius: 16px;
-    cursor: pointer;
-    box-shadow: 0 8px 22px rgba(255, 199, 0, 0.28);
-    transition: background 0.15s, transform 0.08s;
-
-    &:hover { background: #F0C400; }
-    &:active { transform: scale(0.99); }
+    @include btn-primary;
+    margin-top: $space-xl;
   }
 }
