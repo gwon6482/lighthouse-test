@@ -8,6 +8,7 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
+    "dev": "pnpm --filter @lighthouse/test-app dev",
     "dev:test": "pnpm --filter @lighthouse/test-app dev",
     "dev:app": "pnpm --filter @lighthouse/prod-app dev",
     "build:test": "pnpm --filter @lighthouse/test-app build",

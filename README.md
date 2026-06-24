@@ -1,6 +1,35 @@
-# Lighthouse Vue - 자기이해 설문 시스템
+# Lighthouse FE (모노레포)
 
-Vue 3 + TypeScript + Vite로 구축된 라이트하우스 자기이해 설문 조사 프론트엔드
+Vue 3 + TypeScript + Vite. **2026-06-24부터 pnpm 모노레포**로 전환되었습니다.
+
+> ⚠️ **기존 개발자 필독 — 바뀐 점**
+>
+> - **패키지 매니저: npm/yarn → pnpm** (corepack). `npm install`/`yarn` 쓰지 마세요. → `pnpm install`
+> - **루트에서 직접 `vite`/`npm run dev` 안 됨.** 코드가 `packages/core`로, 엔트리가 `apps/*`로 이동.
+> - **실행 명령**:
+>   - `pnpm dev` 또는 `pnpm dev:test` → 워크벤치(전체 기능) @ test.lighthouse.career 와 동일
+>   - `pnpm dev:app` → 프로덕션 셸(진입 가드 + 완성 기능만)
+>   - `pnpm build:test` / `pnpm build:app` (산출물: `apps/test/dist`, `apps/app/dist`)
+>
+> **구조**
+> ```
+> packages/core/src   기능 모듈(survey/encyclopedia/career-*/onboarding) + shared(stores/api/ui)
+> apps/test           워크벤치 셸 — 전체 라우트(@/shared/router). '/' = 개발 허브
+> apps/app            프로덕션 셸 — @/shared/router/app. 진입 가드 + 승격 게이트
+> ```
+> - `@` alias = `packages/core/src` (기존 `@/...` import 그대로).
+> - **새 기능 개발**: 코드는 `packages/core`에 추가 → test 셸에서 즉시 보임.
+> - **프로덕션 노출(승격)**: `packages/core/src/shared/router/app.ts`에 해당 모듈 라우트 import 추가.
+> - **app 진입 가드**(app.ts): 토큰 없음→`/onboarding`, 진로계획 전→`/main/before`, 후→`/main`.
+>
+> **배포**
+> - test(스테이징): `main` push → GitHub Actions `deploy-test` → test.lighthouse.career
+> - app(프로덕션): `v*` 태그 push → `deploy-app` → app.lighthouse.career
+> - 작업 흐름: `dev`에서 작업 → `main` 머지(test 확인) → `v0.x.x` 태그(app 배포)
+
+---
+
+## (구) 자기이해 설문 시스템 설명
 
 ## 주요 기능
 
