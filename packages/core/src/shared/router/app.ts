@@ -4,7 +4,8 @@
 //    import 하느냐"로 결정된다. 미완성 모듈은 아래에서 빼면 app 번들에 코드 자체가
 //    들어가지 않는다(트리셰이킹). 완성되면 한 줄 추가 → 다음 배포에 반영.
 //
-// TODO(승격 목록 확정): 현재는 전체 포함(스캐폴드). 완성 검증된 모듈만 남기고 정리할 것.
+// 현 정책(2026-06-24 확정): v1 은 전체 모듈 노출(=test 와 동일 구성). 진입 가드/로그인
+//   뒤라 무방. 특정 모듈만 프로덕션에서 제외하려면 그 모듈 import 를 여기서 빼면 된다.
 import surveyRoutes from '@/modules/survey/survey.routes'
 import encyclopediaRoutes from '@/modules/encyclopedia/encyclopedia.routes'
 import careerDesignRoutes from '@/modules/career-design/career-design.routes'
