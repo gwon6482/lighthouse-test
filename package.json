@@ -1,5 +1,5 @@
 {
-  "name": "vue3-project",
+  "name": "lighthouse-monorepo",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,20 +7,13 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
-    "dev": "vite --host",
-    "build": "run-p type-check \"build-only {@}\" --",
-    "preview": "vite preview",
-    "test:unit": "vitest",
-    "build-only": "vite build",
-    "type-check": "vue-tsc --build",
+    "dev:test": "pnpm --filter @lighthouse/test-app dev",
+    "dev:app": "pnpm --filter @lighthouse/prod-app dev",
+    "build:test": "pnpm --filter @lighthouse/test-app build",
+    "build:app": "pnpm --filter @lighthouse/prod-app build",
+    "build": "pnpm -r build",
     "lint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/",
-    "cap:sync": "npx cap sync",
-    "cap:open:ios": "npx cap open ios",
-    "cap:open:android": "npx cap open android",
-    "app:build": "npm run build && npm run cap:sync",
-    "app:ios": "npm run app:build && npm run cap:open:ios",
-    "app:android": "npm run app:build && npm run cap:open:android"
+    "type-check": "vue-tsc --build"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.1",

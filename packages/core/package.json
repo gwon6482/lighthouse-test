@@ -1,0 +1,7 @@
+{
+  "name": "@lighthouse/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lighthouse 공통 코어 — 기능 모듈(survey/encyclopedia/career-*)과 shared(stores/api/ui). test/app 셸이 공유한다."
+}

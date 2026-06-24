@@ -1,0 +1,15 @@
+{
+  "name": "@lighthouse/prod-app",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "build:check": "vue-tsc --build && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@lighthouse/core": "workspace:*"
+  }
+}
