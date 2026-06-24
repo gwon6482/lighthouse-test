@@ -3,7 +3,8 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.vue3.app',
   appName: 'Vue3 App',
-  webDir: 'dist',
+  // 모노레포 전환: 모바일 패키징은 프로덕션(app) 빌드를 사용
+  webDir: 'apps/app/dist',
 
   // 프로덕션 웹서버 URL (배포 후 실제 URL로 변경)
   server: {
