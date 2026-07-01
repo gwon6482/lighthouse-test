@@ -1,3 +1,6 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
 .auth {
   @include fullscreen-page;
   align-items: center;

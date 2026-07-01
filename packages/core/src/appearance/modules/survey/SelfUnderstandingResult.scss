@@ -1,3 +1,6 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
 .result-page {
 
   /* ─── 성격 유형 히어로 카드 (밝은 배경 오버라이드) */

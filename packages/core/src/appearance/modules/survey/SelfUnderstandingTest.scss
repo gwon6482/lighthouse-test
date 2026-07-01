@@ -1,3 +1,6 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
 .survey-test {
   min-height: 100dvh;
   display: flex;

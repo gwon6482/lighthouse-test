@@ -1,3 +1,6 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
 .intro {
   @include fullscreen-page($z-overlay-high);
 

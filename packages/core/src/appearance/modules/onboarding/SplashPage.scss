@@ -1,3 +1,6 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
 .splash {
   @include fullscreen-page($z-splash);
   align-items: center;

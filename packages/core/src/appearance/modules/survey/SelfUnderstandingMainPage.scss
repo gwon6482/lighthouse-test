@@ -1,3 +1,6 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
 .su-main {
   display: flex;
   flex-direction: column;

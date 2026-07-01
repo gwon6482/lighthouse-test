@@ -1,3 +1,6 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
 .mypage {
   min-height: 100dvh;
   background: $color-surface-page;

@@ -1,3 +1,6 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
 .pi-wrap {
   max-width: 420px;
   margin: 0 auto;
