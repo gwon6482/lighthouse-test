@@ -11,28 +11,84 @@
  *
  * 싱글톤 패턴으로 구현되어 상태가 전역적으로 공유됨
  */
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, watch, onMounted } from 'vue'
 import { fetchSurveyForm, submitSurveyResponse } from '../survey.api'
 import type { SurveyFormResponse, SurveyAnswers, T3Answers, SurveyQuestion, PageInfo, PartIntroData } from '../types/survey'
+
+// ============================================================
+// 진행상황 로컬 저장 (새로고침/HMR 후 자동 복원)
+// answers · currentPageIndex · scaleType 만 저장. surveyData 는 매번 서버에서 재로드.
+// ============================================================
+const STORAGE_KEY = 'lh_survey_progress_v1'
+
+interface PersistedProgress {
+  answers?: Partial<SurveyAnswers>
+  currentPageIndex?: number
+  scaleType?: 2 | 5 | 10
+}
+
+function defaultAnswers(): SurveyAnswers {
+  return {
+    T1: {},
+    T21: {},
+    T22: { checked: [] },
+    T23: { priority_1: '', priority_2: '', priority_3: '', no_priority: [] },
+    T3: { T3_PHY: 0, T3_PEO: 0, T3_COM: 0, T3_RES: 0, T3_STR: 0, T3_FLX: 0 },
+  }
+}
+
+function loadPersisted(): PersistedProgress {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+// 저장된 답변을 기본 형태에 병합 (구/부분 데이터 방어)
+function mergeAnswers(saved?: Partial<SurveyAnswers>): SurveyAnswers {
+  const base = defaultAnswers()
+  if (!saved) return base
+  return {
+    T1: { ...base.T1, ...saved.T1 },
+    T21: { ...base.T21, ...saved.T21 },
+    T22: { ...base.T22, ...saved.T22 },
+    T23: { ...base.T23, ...saved.T23 },
+    T3: { ...base.T3, ...saved.T3 },
+  }
+}
+
+const persisted = loadPersisted()
 
 // 모듈 레벨에서 상태 정의 (모든 인스턴스가 공유)
 const surveyId = ref<string>('')
 const surveyData = ref<SurveyFormResponse | null>(null)
 const isLoading = ref(false)
 const error = ref<string | null>(null)
-const scaleType = ref<2 | 5 | 10>(5) // 확장용: 2지선다, 5지선다, 10지선다
+const scaleType = ref<2 | 5 | 10>(persisted.scaleType ?? 5) // 확장용: 2지선다, 5지선다, 10지선다
 
-// 답변 저장
-const answers = reactive<SurveyAnswers>({
-  T1: {},
-  T21: {},
-  T22: { checked: [] },
-  T23: { priority_1: '', priority_2: '', priority_3: '', no_priority: [] },
-  T3: { T3_PHY: 0, T3_PEO: 0, T3_COM: 0, T3_RES: 0, T3_STR: 0, T3_FLX: 0 },
-})
+// 답변 저장 (저장된 진행상황이 있으면 복원)
+const answers = reactive<SurveyAnswers>(mergeAnswers(persisted.answers))
 
-// 현재 페이지 인덱스
-const currentPageIndex = ref(0)
+// 현재 페이지 인덱스 (저장된 위치 복원, loadSurvey 에서 범위 클램프)
+const currentPageIndex = ref(persisted.currentPageIndex ?? 0)
+
+// 상태 변경 시마다 로컬에 저장 / 완료 시 정리
+function persistProgress() {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ answers, currentPageIndex: currentPageIndex.value, scaleType: scaleType.value }),
+    )
+  } catch { /* quota */ }
+}
+function clearPersistedProgress() {
+  try { localStorage.removeItem(STORAGE_KEY) } catch { /* noop */ }
+}
+watch(answers, persistProgress, { deep: true })
+watch(currentPageIndex, persistProgress)
+watch(scaleType, persistProgress)
 
 export function useSurvey() {
   // 모든 페이지 목록 생성
@@ -210,7 +266,10 @@ export function useSurvey() {
       if (status === 200) {
         surveyData.value = data
         surveyId.value = data.survey_id
-        currentPageIndex.value = 0
+        // 저장된 진행 위치가 페이지 범위를 벗어나면 클램프 (복원값 유지, 없으면 0)
+        const lastIndex = allPages.value.length - 1
+        if (currentPageIndex.value > lastIndex) currentPageIndex.value = lastIndex < 0 ? 0 : lastIndex
+        else if (currentPageIndex.value < 0) currentPageIndex.value = 0
       } else {
         throw new Error('설문지를 불러오는데 실패했습니다.')
       }
@@ -316,6 +375,9 @@ export function useSurvey() {
         throw new Error(data.error?.message || '제출에 실패했습니다.')
       }
 
+      // 제출 완료 → 저장된 진행상황 정리 (완료된 설문 재복원 방지)
+      clearPersistedProgress()
+
       return data
     } catch (e) {
       error.value = e instanceof Error ? e.message : '제출에 실패했습니다.'
@@ -365,5 +427,6 @@ export function useSurvey() {
     goToNextPage,
     goToPrevPage,
     submitSurvey,
+    clearPersistedProgress,
   }
 }
