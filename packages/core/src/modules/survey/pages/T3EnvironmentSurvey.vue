@@ -39,7 +39,7 @@ import { ref } from 'vue'
 
 const parts = [
   {
-    label: '파트 1  ·  근무환경 강도',
+    label: '파트 1  ·  업무환경 강도',
     question: '근무 환경의 물리적 강도는 어느 정도까지 괜찮으신가요?',
     levels: [
       '실내, 쾌적한 환경, 신체활동 거의 없음',

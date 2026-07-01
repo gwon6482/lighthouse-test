@@ -1,8 +1,8 @@
 <template>
-  <header class="survey-header">
-    <div class="part-info">
+  <header class="survey-header" :class="{ 'survey-header--geunmu': currentPartInfo.name === '업무환경' }">
+    <div class="part-info" :class="{ 'part-info--geunmu': currentPartInfo.name === '업무환경' }">
       <span class="part-number">파트 {{ currentPartInfo.number }}</span>
-      <span class="part-name">{{ currentPartInfo.name }}</span>
+      <span class="part-name" v-html="formatPartName(currentPartInfo.name)"></span>
     </div>
 
     <p class="survey-header__greeting">
@@ -22,4 +22,8 @@ defineProps<{
   currentPartPageInfo: { current: number; total: number }
   userName?: string
 }>()
+
+function formatPartName(name: string): string {
+  return name.replace('업무환경', '업무<br>환경')
+}
 </script>

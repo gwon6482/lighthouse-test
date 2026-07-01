@@ -80,7 +80,7 @@ export interface ThreeChoiceItem {
 
 
 export interface T3Answers {
-  T3_PHY: number  // 근무환경 강도
+  T3_PHY: number  // 업무환경 강도
   T3_PEO: number  // 대인접촉 강도
   T3_COM: number  // 커뮤니케이션 강도
   T3_RES: number  // 책임·권한 강도

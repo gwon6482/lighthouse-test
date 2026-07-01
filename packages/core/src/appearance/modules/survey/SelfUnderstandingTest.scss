@@ -59,6 +59,10 @@
     background: $color-surface;
     border-bottom: 1px solid $color-border;
 
+    &--geunmu {
+      padding: 12px 20px;
+    }
+
     .part-info {
       display: flex;
       align-items: center;
@@ -77,6 +81,14 @@
         font-size: 18px;
         font-weight: $fw-medium;
         color: $color-text;
+      }
+
+      &--geunmu {
+        gap: 14px;
+
+        .part-name {
+          font-size: 16px;
+        }
       }
     }
 
@@ -125,7 +137,8 @@
   /* 질문 영역 */
   .question-area {
     flex: 1;
-    padding: $space-lg 20px $space-sm;
+    // padding: $space-lg 20px $space-sm;
+    padding: 0 20px;
     background: $color-surface;
     margin: 0;
     overflow-y: auto;

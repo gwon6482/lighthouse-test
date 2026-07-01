@@ -78,8 +78,8 @@ export function useSurvey() {
         questionCount: '6개 항목',
         // estimatedMinutes 없음 — T3는 예상 시간 미표시
         highlights: [
-          '좋아하는 일을 해도 직업 환경의 리스크를 미리 파악 못 하면 적응하지 못하는 경우가 생겨',
-          '라이트하우스는 이 검사를 통해 너의 진로 리스크를 먼저 파악하고, 진로 추천에 반영해',
+          '좋아하는 일을 해도 직업 환경의 리스크를 미리 파악 못 하면 적응하지 못하는 경우가 생겨.',
+          '라이트하우스는 이 검사를 통해 너의 진로 리스크를 먼저 파악하고, 진로 추천에 반영해.',
         ],
       },
     }
@@ -168,7 +168,7 @@ export function useSurvey() {
       T21: { number: 2, name: '재능' },
       T22: { number: 2, name: '흥미' },
       T23: { number: 2, name: '가치관' },
-      T3: { number: 3, name: '근무환경' },
+      T3: { number: 3, name: '업무환경' },
     }
 
     return partLabels[page.part] || null
