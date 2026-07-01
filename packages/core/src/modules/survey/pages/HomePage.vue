@@ -305,6 +305,7 @@ async function resetProgress() {
       'lh_curriculum_items_v1',
       'lh_achievement_entries_v1',
       'lh_survey_progress_v1',
+      'lh_survey_form_v1',
     ]
     for (const k of fixedKeys) localStorage.removeItem(k)
     // lh_celebration_YYYY-MM-DD 들

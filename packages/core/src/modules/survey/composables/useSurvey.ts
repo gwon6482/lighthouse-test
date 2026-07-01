@@ -17,14 +17,23 @@ import type { SurveyFormResponse, SurveyAnswers, T3Answers, SurveyQuestion, Page
 
 // ============================================================
 // 진행상황 로컬 저장 (새로고침/HMR 후 자동 복원)
-// answers · currentPageIndex · scaleType 만 저장. surveyData 는 매번 서버에서 재로드.
+// - progress: answers · currentPageIndex · scaleType
+// - form: surveyData · surveyId (설문 구조/문항 순서)
+//   ※ 서버가 매 요청마다 문항 순서를 랜덤화하므로, 진행 중에는 캐시된 구조를 재사용해야
+//     페이지 위치·답변이 어긋나지 않는다. 제출/초기화 시 캐시를 비워 다음엔 새로 받는다.
 // ============================================================
 const STORAGE_KEY = 'lh_survey_progress_v1'
+const FORM_KEY = 'lh_survey_form_v1'
 
 interface PersistedProgress {
   answers?: Partial<SurveyAnswers>
   currentPageIndex?: number
   scaleType?: 2 | 5 | 10
+}
+
+interface PersistedForm {
+  surveyId?: string
+  surveyData?: SurveyFormResponse | null
 }
 
 function defaultAnswers(): SurveyAnswers {
@@ -46,6 +55,15 @@ function loadPersisted(): PersistedProgress {
   }
 }
 
+function loadPersistedForm(): PersistedForm {
+  try {
+    const raw = localStorage.getItem(FORM_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
 // 저장된 답변을 기본 형태에 병합 (구/부분 데이터 방어)
 function mergeAnswers(saved?: Partial<SurveyAnswers>): SurveyAnswers {
   const base = defaultAnswers()
@@ -60,10 +78,12 @@ function mergeAnswers(saved?: Partial<SurveyAnswers>): SurveyAnswers {
 }
 
 const persisted = loadPersisted()
+const persistedForm = loadPersistedForm()
 
 // 모듈 레벨에서 상태 정의 (모든 인스턴스가 공유)
-const surveyId = ref<string>('')
-const surveyData = ref<SurveyFormResponse | null>(null)
+// 캐시된 설문 구조가 있으면 복원 → onMounted 에서 재요청(재랜덤화) 스킵
+const surveyId = ref<string>(persistedForm.surveyId ?? '')
+const surveyData = ref<SurveyFormResponse | null>(persistedForm.surveyData ?? null)
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 const scaleType = ref<2 | 5 | 10>(persisted.scaleType ?? 5) // 확장용: 2지선다, 5지선다, 10지선다
@@ -83,8 +103,16 @@ function persistProgress() {
     )
   } catch { /* quota */ }
 }
+function persistForm() {
+  try {
+    localStorage.setItem(FORM_KEY, JSON.stringify({ surveyId: surveyId.value, surveyData: surveyData.value }))
+  } catch { /* quota */ }
+}
 function clearPersistedProgress() {
-  try { localStorage.removeItem(STORAGE_KEY) } catch { /* noop */ }
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(FORM_KEY)
+  } catch { /* noop */ }
 }
 watch(answers, persistProgress, { deep: true })
 watch(currentPageIndex, persistProgress)
@@ -266,6 +294,8 @@ export function useSurvey() {
       if (status === 200) {
         surveyData.value = data
         surveyId.value = data.survey_id
+        // 새로 받은 설문 구조(문항 순서) 캐시 → 새로고침 시 동일 순서 재사용
+        persistForm()
         // 저장된 진행 위치가 페이지 범위를 벗어나면 클램프 (복원값 유지, 없으면 0)
         const lastIndex = allPages.value.length - 1
         if (currentPageIndex.value > lastIndex) currentPageIndex.value = lastIndex < 0 ? 0 : lastIndex
