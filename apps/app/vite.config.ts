@@ -24,7 +24,7 @@ export default defineConfig({
         name: 'Lighthouse',
         short_name: 'Lighthouse',
         description: 'Lighthouse — 나의 진로를 비추는 빛',
-        theme_color: '#42b883',
+        theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
         icons: [

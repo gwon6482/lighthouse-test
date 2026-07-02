@@ -24,7 +24,7 @@ export default defineConfig({
         name: 'Lighthouse (Test)',
         short_name: 'Lighthouse Test',
         description: 'Lighthouse 개발/테스트 워크벤치',
-        theme_color: '#42b883',
+        theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
         icons: [
