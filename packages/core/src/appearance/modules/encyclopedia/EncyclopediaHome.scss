@@ -1,0 +1,98 @@
+.enc-home {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #F5F5F5;
+
+  &__hero {
+    padding: 32px 20px 16px;
+    text-align: center;
+  }
+
+  &__title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #222;
+    margin-bottom: 8px;
+  }
+
+  &__subtitle {
+    font-size: 14px;
+    color: #888;
+  }
+
+  &__intro {
+    margin: 0 20px 20px;
+  }
+
+  &__search-wrap {
+    padding: 0 0 8px;
+  }
+
+  &__section {
+    padding: 12px 20px;
+  }
+
+  &__section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 12px;
+  }
+
+  &__card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__menu-btn {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    padding: 20px;
+    border: none;
+    border-radius: 16px;
+    background: #fff;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+
+    &:active { background: #f0f0f0; }
+
+    @media (hover: hover) {
+      &:hover { background: #f0f0f0; }
+    }
+  }
+
+  &__menu-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+
+  &__menu-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+
+  &__menu-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #222;
+  }
+
+  &__menu-desc {
+    font-size: 13px;
+    color: #888;
+    line-height: 1.4;
+  }
+
+  &__menu-arrow {
+    font-size: 22px;
+    color: #bbb;
+    flex-shrink: 0;
+  }
+}

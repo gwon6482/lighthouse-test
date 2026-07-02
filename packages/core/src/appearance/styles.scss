@@ -14,6 +14,20 @@
 @use './modules/survey/SelfUnderstandingMainPage.scss';
 @use './modules/survey/SurveyPartIntro.scss';
 
+// Encyclopedia
+@use './modules/encyclopedia/EncyclopediaHome.scss';
+@use './modules/encyclopedia/EncyclopediaJobDetail.scss';
+@use './modules/encyclopedia/EncyclopediaRecommended.scss';
+@use './modules/encyclopedia/RecommendedJobCard.scss';
+@use './modules/encyclopedia/SearchBar.scss';
+@use './modules/encyclopedia/SearchResult.scss';
+@use './modules/encyclopedia/SearchResultCard.scss';
+@use './modules/encyclopedia/JobDetailHeader.scss';
+@use './modules/encyclopedia/JobDetailTabs.scss';
+@use './modules/encyclopedia/OverviewTab.scss';
+@use './modules/encyclopedia/EmptyTab.scss';
+@use './modules/encyclopedia/ReviewTab.scss';
+
 // OnBoarding
 @use './modules/onboarding/SplashPage.scss';
 @use './modules/onboarding/AuthPage.scss';

@@ -9,17 +9,3 @@ defineProps<{
   jobCode: string
 }>()
 </script>
-
-<style scoped lang="scss">
-.empty-tab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-
-  &__text {
-    font-size: 14px;
-    color: #bbb;
-  }
-}
-</style>

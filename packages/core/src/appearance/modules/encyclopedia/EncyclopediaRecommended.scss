@@ -1,0 +1,278 @@
+.rec-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #F4F4F0;
+  padding-bottom: 40px;
+}
+
+/* ── 검사 없음 상태 ── */
+.rec-no-survey {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 80px 32px 40px;
+  text-align: center;
+}
+
+.rec-no-survey__icon {
+  font-size: 48px;
+  margin-bottom: 4px;
+}
+
+.rec-no-survey__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #222;
+  margin: 0;
+}
+
+.rec-no-survey__desc {
+  font-size: 14px;
+  color: #888;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.rec-no-survey__cta {
+  margin-top: 8px;
+  padding: 14px 28px;
+  background: #4A6CF7;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: -0.2px;
+}
+
+/* ── 히어로 헤더 ── */
+.rec-hero {
+  padding: 28px 22px 24px;
+  background: linear-gradient(145deg, #EEF2FF 0%, #F0F4FF 60%, #EAF5FF 100%);
+  border-bottom: 1px solid #E0E8FF;
+}
+
+.rec-hero__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6366F1;
+  letter-spacing: 0.3px;
+  margin: 0 0 8px;
+}
+
+.rec-hero__title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1A1A2E;
+  margin: 0 0 8px;
+  letter-spacing: -0.5px;
+}
+
+.rec-hero__sub {
+  font-size: 13.5px;
+  color: #5A5A7A;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ── 섹션 공통 ── */
+.rec-section {
+  padding: 24px 0 4px;
+}
+
+.rec-section__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  margin-bottom: 4px;
+}
+
+.rec-section__title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1A1A2E;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.rec-section__badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+
+.rec-section__badge--blue {
+  background: #EEF2FF;
+  color: #4F46E5;
+}
+
+.rec-section__badge--green {
+  background: #ECFDF5;
+  color: #059669;
+}
+
+.rec-section__desc {
+  font-size: 12.5px;
+  color: #888;
+  margin: 0 0 14px;
+  padding: 0 20px;
+  line-height: 1.5;
+}
+
+/* ── 종합 추천 섹션 ── */
+.rec-section--comprehensive {
+  margin: 0 0 8px;
+}
+
+.rec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0 16px;
+}
+
+/* ── 공통 빈 상태 ── */
+.rec-empty {
+  font-size: 13px;
+  color: #aaa;
+  text-align: center;
+  padding: 24px 0;
+  margin: 0;
+}
+
+/* ── T2 카드 ── */
+.rec-t2rec-list {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 20px 12px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.rec-t2rec-list::-webkit-scrollbar { display: none; }
+
+.rec-t2rec-card {
+  flex-shrink: 0;
+  width: 210px;
+  background: #fff;
+  border: 1px solid #E8E8EC;
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.1s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.rec-t2rec-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.09);
+}
+
+.rec-t2rec-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.rec-t2rec-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111;
+  line-height: 1.3;
+}
+
+.rec-t2rec-score {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #4F46E5, #6366F1);
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+
+.rec-t2rec-class {
+  font-size: 11.5px;
+  color: #999;
+  margin: 0;
+}
+
+.rec-t2rec-label {
+  font-size: 12px;
+  color: #555;
+  line-height: 2;
+  margin: 4px 0 0;
+}
+
+.rec-t2rec-pill {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+  border: 1px solid transparent;
+}
+
+.rec-t2rec-pill--interest { background: #E8F6F6; color: #2E8585; border-color: #B8E0E0; }
+.rec-t2rec-pill--talent   { background: #EBF2FF; color: #3D7FE8; border-color: #B8CFFF; }
+.rec-t2rec-pill--value    { background: #F3EEFF; color: #7C50CC; border-color: #CEB8F5; }
+
+.rec-t2rec-meta {
+  font-size: 11.5px;
+  color: #999;
+  margin: 0;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid #F0F0EC;
+}
+
+/* ── T2 스켈레톤 ── */
+.rec-t2rec-skeleton-list {
+  display: flex;
+  gap: 10px;
+  padding: 4px 20px 12px;
+  overflow: hidden;
+}
+
+.rec-t2rec-skeleton {
+  flex-shrink: 0;
+  width: 210px;
+  height: 160px;
+  background: linear-gradient(90deg, #ebebeb 25%, #e0e0e0 50%, #ebebeb 75%);
+  background-size: 200% 100%;
+  animation: rec-shimmer 1.4s infinite;
+  border-radius: 16px;
+}
+
+/* ── 종합 추천 스켈레톤 ── */
+.comp-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px;
+}
+
+.comp-skeleton {
+  width: 100%;
+  height: 76px;
+  background: linear-gradient(90deg, #ebebeb 25%, #e0e0e0 50%, #ebebeb 75%);
+  background-size: 200% 100%;
+  animation: rec-shimmer 1.4s infinite;
+  border-radius: 16px;
+}
+
+@keyframes rec-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
