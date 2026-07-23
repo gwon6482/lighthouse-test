@@ -4,23 +4,6 @@
 .intro {
   @include fullscreen-page($z-overlay-high);
 
-  &__skip {
-    position: absolute;
-    top: max(16px, env(safe-area-inset-top));
-    right: 18px;
-    z-index: 2;
-    border: none;
-    background: transparent;
-    color: $color-text-tertiary;
-    font-size: $fs-sm;
-    font-weight: $fw-medium;
-    font-family: inherit;
-    padding: 6px 4px;
-    cursor: pointer;
-
-    &:hover { color: $color-text-hover; }
-  }
-
   // 슬라이드
   &__viewport {
     flex: 1;

@@ -81,7 +81,7 @@
 
       <!-- 네비게이션 -->
       <footer class="survey-footer">
-        <SurveyNavBtnPrev :disabled="!canGoPrev" @goToPrevPage="goToPrevPage" />
+        <SurveyNavBtnPrev @goToPrevPage="handlePrev" />
 
         <SurveyNavCurrentPage :currentPageIndex="currentPageIndex" :totalPages="totalPages" />
 
@@ -113,7 +113,7 @@
  *
  * 라우트: /self-understanding/test
  */
-import { useRouter } from 'vue-router'
+import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { computed } from 'vue'
 import { useSurvey } from '../composables/useSurvey'
 import { useAuthStore } from '@/shared/stores/auth'
@@ -151,7 +151,6 @@ const {
   currentPartInfo,
   currentPartPageInfo,
   progress,
-  canGoPrev,
   isLastPage,
   isCurrentPageComplete,
   loadSurvey,
@@ -159,7 +158,11 @@ const {
   goToNextPage,
   goToPrevPage,
   submitSurvey,
+  resetSurvey,
 } = useSurvey()
+
+// 정상 전진(제출 등)일 때 이탈 가드를 통과시키는 플래그
+let bypassLeave = false
 
 // 응답제출
 async function handleSubmit() {
@@ -174,11 +177,37 @@ async function handleSubmit() {
       linkSurveyToUser(surveyId.value).catch((e) => console.warn('[linkSurvey]', e?.response?.data ?? e))
     }
 
+    bypassLeave = true
     router.push('/self-understanding/complete')
   } catch {
     // 에러는 useSurvey에서 처리됨
   }
 }
+
+// 검사 시작 이후 뒤로가기 처리
+// - 진행 중 페이지(>0)에서 뒤로 → 이전 문항으로 (라우트 이탈 취소)
+// - 첫 페이지에서 한 번 더 뒤로 → 초기화 확인 → 동의 시 리셋 후 답변방식 선택으로
+function handlePrev() {
+  if (currentPageIndex.value > 0) goToPrevPage()
+  else router.push('/self-understanding/select') // 가드가 초기화 확인을 처리
+}
+
+onBeforeRouteLeave((to) => {
+  if (bypassLeave) return true
+  // 아직 로딩/에러 등 검사 시작 전이면 그냥 이탈
+  if (isLoading.value || !currentPage.value) return true
+  // 진행 중: 라우트 이탈 대신 이전 문항으로
+  if (currentPageIndex.value > 0) {
+    goToPrevPage()
+    return false
+  }
+  // 첫 페이지에서 뒤로 → 초기화 확인
+  if (confirm('지금까지의 검사를 초기화하고 답변방식을 바꾸시겠습니까?')) {
+    resetSurvey()
+    return to.path === '/self-understanding/select' ? true : '/self-understanding/select'
+  }
+  return false
+})
 
 function handleScaleAnswer(questionId: string, value: string) {
   if (currentPage.value) {

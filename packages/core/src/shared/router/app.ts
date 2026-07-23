@@ -31,9 +31,19 @@ const router = makeRouter([
 //   2) 자동로그인 + 진로계획 전(plan 無) → /main/before
 //   3) 자동로그인 + 진로계획 후(plan 有) → /main
 router.beforeEach(async (to) => {
+  const auth = useAuthStore()
+
+  // 로그인 상태에서 로그인 페이지(최초 진입)로 되돌아가려 하면 = 사실상 로그아웃.
+  // '이전' 버튼·하드웨어 백·브라우저 백 등 경로와 무관하게 여기서 한 번 확인한다.
+  // (가입 위저드 뒤로가기는 아직 토큰이 없어 걸리지 않는다 → 조용히 통과)
+  if (to.path === '/onboarding/auth' && auth.token) {
+    if (!confirm('로그인 화면으로 돌아가면 로그아웃돼요.\n정말 로그아웃하시겠어요?')) return false
+    auth.logout()
+    return true
+  }
+
   if (to.path !== '/') return true
 
-  const auth = useAuthStore()
   // 토큰 없음 = 한 번도 로그인 안 함(또는 로그아웃) → 온보딩
   if (!auth.token) return '/onboarding'
 

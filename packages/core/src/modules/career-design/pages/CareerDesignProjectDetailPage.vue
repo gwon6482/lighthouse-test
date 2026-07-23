@@ -2,7 +2,7 @@
   <div v-if="project" class="cd-proj-detail">
     <!-- 노란 헤더 -->
     <div class="cd-proj-detail__top">
-      <button class="cd-proj-detail__back" @click="router.back()">‹</button>
+      <button class="cd-proj-detail__back" @click="safeBack(router, '/career-design/plan/projects')">‹</button>
       <div class="cd-proj-detail__top-info">
         <CdCategoryIcon :category="project.category" />
         <div>
@@ -51,7 +51,7 @@
 
     <!-- 하단 버튼 -->
     <div class="cd-proj-detail__footer">
-      <button class="cd-proj-detail__btn-secondary" @click="router.back()">돌아가기</button>
+      <button class="cd-proj-detail__btn-secondary" @click="safeBack(router, '/career-design/plan/projects')">돌아가기</button>
       <button
         class="cd-proj-detail__btn-primary"
         :class="{ 'cd-proj-detail__btn-primary--done': pasted }"
@@ -67,7 +67,7 @@
   </div>
 
   <div v-else class="cd-proj-detail cd-proj-detail--empty">
-    <button @click="router.back()">‹ 돌아가기</button>
+    <button @click="safeBack(router, '/career-design/plan/projects')">‹ 돌아가기</button>
     <p>프로젝트를 찾을 수 없어요</p>
   </div>
 </template>
@@ -75,6 +75,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { safeBack } from '@/shared/utils/navigation'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import CdCategoryIcon from '../components/CdCategoryIcon.vue'
 import type { ProjectCategory, Project } from '../types/career-design'

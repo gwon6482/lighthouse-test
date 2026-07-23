@@ -66,6 +66,7 @@
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
+import { useUnsavedGuard } from '@/shared/composables/useUnsavedGuard'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import CdDatePicker from '../components/CdDatePicker.vue'
 import { getToday } from '@/shared/utils/dev-date'
@@ -94,11 +95,21 @@ onMounted(() => {
   draftPlan.startDate = todayKey.value
 })
 
+// 미저장 이탈 가드 (R2) — 개요 입력(이름/목표직업/기간) 변경 시 이탈 경고.
+// 시작일 자동 고정 이후에 기준선을 잡도록 onMounted 등록 뒤에 호출.
+const { bypass } = useUnsavedGuard(() => JSON.stringify({
+  name: draftPlan.name,
+  targetJob: draftPlan.targetJob,
+  startDate: draftPlan.startDate,
+  endDate: draftPlan.endDate,
+}))
+
 function goPrev() {
   router.push('/career-design')
 }
 
 async function goNext() {
+  bypass()
   await syncPlanStep1()
   router.push('/career-design/plan/projects')
 }

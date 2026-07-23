@@ -1,6 +1,6 @@
 <template>
   <header class="job-detail-header">
-    <button class="job-detail-header__back" @click="router.back()">‹</button>
+    <button class="job-detail-header__back" @click="safeBack(router, '/career-encyclopedia')">‹</button>
 
     <div class="job-detail-header__info">
       <div class="job-detail-header__classifications">
@@ -38,6 +38,7 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { safeBack } from '@/shared/utils/navigation'
 import type { JobClassification } from '../../../types/encyclopedia'
 
 defineProps<{
