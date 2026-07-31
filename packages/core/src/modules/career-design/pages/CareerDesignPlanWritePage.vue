@@ -57,7 +57,7 @@
     <!-- 하단 버튼 -->
     <div class="cd-plan-write__footer">
       <button class="cd-plan-write__btn-secondary" @click="goPrev">이전으로</button>
-      <button class="cd-plan-write__btn-primary" @click="goNext">다음으로</button>
+      <button class="cd-plan-write__btn-primary" :disabled="!canProceed" @click="goNext">다음으로</button>
     </div>
   </div>
 </template>
@@ -84,6 +84,9 @@ function toDateKey(d: Date): string {
 const todayKey = computed(() => toDateKey(getToday()))
 const endMin   = computed(() => draftPlan.startDate || todayKey.value)
 
+// 완료(종료)날짜를 지정해야 다음 단계로 진행 가능
+const canProceed = computed(() => !!draftPlan.endDate)
+
 const todayLabel = computed(() => {
   const d = getToday()
   const DOW = ['일', '월', '화', '수', '목', '금', '토']
@@ -109,6 +112,7 @@ function goPrev() {
 }
 
 async function goNext() {
+  if (!canProceed.value) return
   bypass()
   await syncPlanStep1()
   router.push('/career-design/plan/projects')
