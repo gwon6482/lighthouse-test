@@ -1,0 +1,152 @@
+.recruit-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 50px 40px;
+  background-color: #f9fafb;
+}
+
+.recruit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 20px;
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-bottom: 8px;
+    border-bottom: 1.5px solid #eee;
+  }
+
+  &__title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #333;
+  }
+
+  &__desc {
+    font-size: 13px;
+    color: #999;
+  }
+}
+
+.recruit-empty {
+  text-align: center;
+  padding: 40px 0;
+  font-size: 14px;
+  color: #bbb;
+}
+
+.recruit-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.recruit-card {
+  background-color: #f8f9fa;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__company {
+    font-size: 13px;
+    font-weight: 600;
+    color: #888;
+  }
+
+  &__dday {
+    font-size: 12px;
+    font-weight: 700;
+    color: #4a7fc1;
+    background-color: #e8edf8;
+    border-radius: 20px;
+    padding: 3px 10px;
+    flex-shrink: 0;
+
+    &--urgent { color: #e0603a; background-color: #fdece7; }
+    &--closed { color: #aaa; background-color: #ececec; }
+    &--always { color: #3a9a3a; background-color: #e8f4e8; }
+  }
+
+  &__position {
+    font-size: 16px;
+    font-weight: 700;
+    color: #222;
+    line-height: 1.4;
+  }
+
+  &__type {
+    align-self: flex-start;
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+    background-color: #ececec;
+    border-radius: 20px;
+    padding: 3px 10px;
+  }
+
+  &__bottom {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 2px;
+  }
+
+  &__deadline {
+    font-size: 12px;
+    color: #aaa;
+    font-weight: 500;
+  }
+}
+
+.recruit-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+
+  &__label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #4a7fc1;
+
+    &--pref { color: #3a9a3a; }
+  }
+
+  &__list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__item {
+    position: relative;
+    font-size: 13px;
+    color: #555;
+    line-height: 1.55;
+    padding-left: 12px;
+
+    &::before {
+      content: '·';
+      position: absolute;
+      left: 2px;
+      color: #bbb;
+    }
+  }
+}

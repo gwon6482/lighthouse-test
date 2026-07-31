@@ -51,8 +51,18 @@
 
     <!-- 하단 버튼 -->
     <div class="cd-proj-detail__footer">
-      <button class="cd-proj-detail__btn-secondary">강의 홈페이지</button>
-      <button class="cd-proj-detail__btn-primary" @click="router.back()">내 계획에 붙여넣기</button>
+      <button class="cd-proj-detail__btn-secondary" @click="router.back()">돌아가기</button>
+      <button
+        class="cd-proj-detail__btn-primary"
+        :class="{ 'cd-proj-detail__btn-primary--done': pasted }"
+        :disabled="pasting"
+        @click="pasteToMyPlan"
+      >
+        <template v-if="pasted">✓ 내 계획에 담았어요</template>
+        <template v-else-if="pasting">담는 중...</template>
+        <template v-else-if="alreadyInPlan">이미 담긴 프로젝트예요</template>
+        <template v-else>내 계획에 붙여넣기</template>
+      </button>
     </div>
   </div>
 
@@ -63,15 +73,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import CdCategoryIcon from '../components/CdCategoryIcon.vue'
-import type { ProjectCategory } from '../types/career-design'
+import type { ProjectCategory, Project } from '../types/career-design'
 
 const router = useRouter()
 const route = useRoute()
-const { getProjectById } = useCareerDesign()
+const { getProjectById, draftPlan, syncAddProject } = useCareerDesign()
 
 const project = computed(() => getProjectById(route.params.id as string))
 
@@ -85,6 +95,42 @@ const categoryLabelMap: Record<ProjectCategory, string> = {
 const categoryLabel = computed(() =>
   project.value ? categoryLabelMap[project.value.category] : ''
 )
+
+// 내 계획에 붙여넣기 — 템플릿 프로젝트를 내 계획(draftPlan)에 복제 추가
+const pasting = ref(false)
+const pasted = ref(false)
+
+const alreadyInPlan = computed(() =>
+  !!project.value && draftPlan.projects.some(p => p.name === project.value!.name)
+)
+
+async function pasteToMyPlan() {
+  if (!project.value || pasting.value || pasted.value) return
+
+  // 이미 담긴 프로젝트면 중복 추가 없이 구성 화면으로 이동
+  if (alreadyInPlan.value) {
+    pasted.value = true
+    setTimeout(() => router.push('/career-design/plan/projects'), 700)
+    return
+  }
+
+  pasting.value = true
+  const src = project.value
+  const cloned: Project = {
+    ...(src as Project),
+    id: `tpl-${Date.now()}`,
+    days: [...(src.days ?? [])],
+    tags: src.tags ? [...src.tags] : [],
+    curriculum: src.curriculum?.map(w => ({ ...w, items: [...w.items] })) ?? [],
+  }
+  draftPlan.projects.push(cloned)
+  // 진행 중인 계획(planId)이 있으면 서버 반영, 없으면 로컬 드래프트에만 담김
+  await syncAddProject(cloned)
+
+  pasting.value = false
+  pasted.value = true
+  setTimeout(() => router.push('/career-design/plan/projects'), 800)
+}
 </script>
 
 <style lang="scss">
@@ -269,6 +315,13 @@ const categoryLabel = computed(() =>
     cursor: pointer;
 
     &:active { opacity: 0.85; }
+
+    &:disabled { opacity: 0.7; cursor: default; }
+
+    &--done {
+      background: #4CAF72;
+      color: #fff;
+    }
   }
 
   &--empty {
