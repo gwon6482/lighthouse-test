@@ -170,7 +170,7 @@ const iconMap = {
     margin: 0;
     padding: 0;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     height: 60px;
   }
 
