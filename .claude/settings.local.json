@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(awk '/^_STYLE_BLOCK_START_$/{exit} {print}' packages/core/src/modules/encyclopedia/components/page/job-detail/tabs/PreparationTab.vue)",
+      "Read(//tmp/**)",
+      "Bash(cp /tmp/prep_resolved.vue packages/core/src/modules/encyclopedia/components/page/job-detail/tabs/PreparationTab.vue && cat -A packages/core/src/modules/encyclopedia/components/page/job-detail/tabs/PreparationTab.vue | tail -3)",
+      "Bash(awk '/^_STYLE_BLOCK_START_$/{exit} {print}' packages/core/src/modules/encyclopedia/components/page/job-detail/tabs/RecruitmentTab.vue)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ],
+    "additionalDirectories": [
+      "/private/tmp"
+    ]
+  }
+}
