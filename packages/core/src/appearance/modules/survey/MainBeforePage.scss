@@ -176,6 +176,17 @@
     line-height: $lh-body;
   }
 
+  // 완료 단계 결과 한 줄 (유형/목표진로/프로젝트명)
+  &__step-result {
+    font-size: $fs-xs;
+    font-weight: $fw-semibold;
+    color: $color-text;
+    line-height: $lh-body;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   // 우측
   &__step-right {
     flex-shrink: 0;

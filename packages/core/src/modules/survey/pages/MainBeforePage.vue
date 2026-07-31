@@ -41,10 +41,11 @@
             <span v-else class="mb__step-no">{{ step.no }}</span>
           </span>
 
-          <!-- 가운데: 제목 + 설명 -->
+          <!-- 가운데: 제목 + (완료 시 결과 / 미완료 시 설명) -->
           <span class="mb__step-text">
             <span class="mb__step-title">{{ step.title }}</span>
-            <span class="mb__step-desc">{{ step.desc }}</span>
+            <span v-if="step.status === 'done' && step.result" class="mb__step-result">{{ step.result }}</span>
+            <span v-else class="mb__step-desc">{{ step.desc }}</span>
           </span>
 
           <!-- 우측: 상태 라벨 / 화살표 -->
@@ -84,6 +85,11 @@ const surveyDone = ref(false)
 const targetDone = ref(false)
 const planDone = ref(false)
 
+// 완료 단계별 한 줄 결과
+const surveyType = ref('')  // 진로 검사 결과 유형
+const targetName = ref('')  // 목표진로 이름
+const planName = ref('')    // 프로젝트(진로계획) 명
+
 type StepStatus = 'done' | 'active' | 'locked'
 interface Step {
   key: string
@@ -93,6 +99,7 @@ interface Step {
   route: string
   done: boolean
   status: StepStatus
+  result?: string
 }
 
 const steps = computed<Step[]>(() => {
@@ -104,6 +111,7 @@ const steps = computed<Step[]>(() => {
       desc: '5가지 검사로 나의 성격·재능·흥미·가치관을 파악해요.',
       route: '/self-understanding',
       done: surveyDone.value,
+      result: surveyType.value,
     },
     {
       key: 'target',
@@ -112,6 +120,7 @@ const steps = computed<Step[]>(() => {
       desc: '추천 직업을 살펴보고 목표 진로를 정해요.',
       route: '/career-encyclopedia',
       done: targetDone.value,
+      result: targetName.value,
     },
     {
       key: 'plan',
@@ -120,6 +129,7 @@ const steps = computed<Step[]>(() => {
       desc: '목표까지 가는 나만의 프로젝트 계획을 세워요.',
       route: '/career-design',
       done: planDone.value,
+      result: planName.value,
     },
   ]
   return raw.map((s, i) => {
@@ -158,10 +168,25 @@ async function load() {
       fetchUserSurveyResults().catch(() => null),
       fetchTargetCareer().catch(() => null),
     ])
-    surveyDone.value = (sr?.data.surveyResults?.length ?? 0) > 0
-    targetDone.value = !!tc?.data.targetCareer
+
+    // 1) 자기이해 검사 — 최신 결과의 유형
+    const results = sr?.data.surveyResults ?? []
+    surveyDone.value = results.length > 0
+    const latest = [...results].sort(
+      (a: any, b: any) => new Date(b.submitted_at ?? 0).getTime() - new Date(a.submitted_at ?? 0).getTime(),
+    )[0]
+    surveyType.value = (latest as any)?.T1_result?.full_name ?? ''
+
+    // 2) 목표 진로 — 이름
+    const target = tc?.data.targetCareer
+    targetDone.value = !!target
+    targetName.value = target ? (target.title ?? target.ref ?? '') : ''
+
+    // 3) 진로 프로젝트 설계 — 진로계획/프로젝트 명
     await achievementStore.loadActivePlan(true)
     planDone.value = achievementStore.hasActivePlan
+    const p = achievementStore.plan
+    planName.value = p ? (p.name || p.projects?.[0]?.name || p.targetJob || '') : ''
   } finally {
     loading.value = false
   }

@@ -53,6 +53,12 @@ export default [
     component: () => import('./pages/SelfUnderstandingResultPage.vue'),
   },
   {
+    // 최초검사(회원가입 온보딩) 전용 결과 페이지 — 추천 직업은 진로백과 이동 대신 개요 팝업
+    path: '/self-understanding/onboarding-result/:survey_id',
+    name: 'Self Understanding Onboarding Result',
+    component: () => import('./pages/OnboardingSurveyResultPage.vue'),
+  },
+  {
     path: '/mypage',
     name: 'MyPage',
     component: () => import('./pages/MyPage.vue'),

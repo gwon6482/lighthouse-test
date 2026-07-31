@@ -114,6 +114,17 @@ function clearPersistedProgress() {
     localStorage.removeItem(FORM_KEY)
   } catch { /* noop */ }
 }
+// 검사 전체 초기화 — 답변·진행위치·저장본 리셋 (답변방식 변경 등)
+function resetSurvey() {
+  const def = defaultAnswers()
+  answers.T1 = def.T1
+  answers.T21 = def.T21
+  answers.T22 = def.T22
+  answers.T23 = def.T23
+  answers.T3 = def.T3
+  currentPageIndex.value = 0
+  clearPersistedProgress()
+}
 watch(answers, persistProgress, { deep: true })
 watch(currentPageIndex, persistProgress)
 watch(scaleType, persistProgress)
@@ -458,5 +469,6 @@ export function useSurvey() {
     goToPrevPage,
     submitSurvey,
     clearPersistedProgress,
+    resetSurvey,
   }
 }

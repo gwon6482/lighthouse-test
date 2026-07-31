@@ -1,4 +1,4 @@
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import type { CareerPlan, Project, Routine, DraftPlan, TimelineSlot } from '../types/career-design'
 import { req } from '@/shared/api'
 
@@ -1263,6 +1263,28 @@ const DUMMY_PLANS: CareerPlan[] = [
   },
 ]
 
+// ── 작성 중 draft 자동저장/복원 (R3) ──
+// 진로계획 작성(플랜/프로젝트/루틴/타임라인)은 메모리 전용이라 새로고침·앱종료 시 전부 유실됐다.
+// 설문 useSurvey.persistProgress 패턴처럼 localStorage 에 스냅샷을 저장/복원한다.
+const DRAFT_KEY = 'lh_cd_draft'
+interface PersistedDraft {
+  draftPlan?: Partial<DraftPlan>
+  draftRoutine?: Partial<Routine>
+  draftProject?: Partial<Project>
+  draftTimeline?: TimelineSlot[]
+  editingProjectId?: string | null
+  editingRoutineId?: string | null
+}
+function loadDraft(): PersistedDraft {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+const savedDraft = loadDraft()
+
 const draftPlan = reactive<DraftPlan>({
   planId: null,
   name: '',
@@ -1273,6 +1295,7 @@ const draftPlan = reactive<DraftPlan>({
   endDate: '',
   reviewDay: '',
   timeline: [],
+  ...savedDraft.draftPlan,
 })
 
 const draftRoutine = reactive<Partial<Routine>>({
@@ -1282,9 +1305,10 @@ const draftRoutine = reactive<Partial<Routine>>({
   notificationTime: '09:00',
   notification: false,
   memo: '',
+  ...savedDraft.draftRoutine,
 })
 
-const editingRoutineId = ref<string | null>(null)
+const editingRoutineId = ref<string | null>(savedDraft.editingRoutineId ?? null)
 
 const draftProject = reactive<Partial<Project>>({
   category: 'knowledge',
@@ -1298,11 +1322,32 @@ const draftProject = reactive<Partial<Project>>({
   notificationTime: '09:00',
   memo: '',
   curriculum: [],
+  ...savedDraft.draftProject,
 })
 
-const editingProjectId = ref<string | null>(null)
-const draftTimeline = ref<TimelineSlot[]>([])
+const editingProjectId = ref<string | null>(savedDraft.editingProjectId ?? null)
+const draftTimeline = ref<TimelineSlot[]>(savedDraft.draftTimeline ?? [])
 const plans = ref<CareerPlan[]>([])
+
+// 변경 시마다 draft 스냅샷 저장(deep). 신규 시작(startPlan→resetDraftPlan)이나 완료 시에도
+// reset 이 draft 를 비우면 watch 가 빈 상태로 갱신하므로 이전 draft 가 되살아나지 않는다.
+function persistDraft() {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      draftPlan,
+      draftRoutine,
+      draftProject,
+      draftTimeline: draftTimeline.value,
+      editingProjectId: editingProjectId.value,
+      editingRoutineId: editingRoutineId.value,
+    }))
+  } catch { /* quota */ }
+}
+watch(
+  [draftPlan, draftRoutine, draftProject, draftTimeline, editingProjectId, editingRoutineId],
+  persistDraft,
+  { deep: true },
+)
 
 async function fetchPublicPlans(q?: string): Promise<void> {
   try {

@@ -18,7 +18,7 @@
     <div class="complete-cta-wrap">
       <RouterLink
         class="complete-cta-result"
-        :to="`/self-understanding/result/${surveyId}`"
+        :to="resultPath"
       >
         결과 보고서 보기
       </RouterLink>
@@ -31,9 +31,18 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useSurvey } from '../composables/useSurvey'
 
 const { surveyId } = useSurvey()
+
+// 온보딩(/main/before) 흐름에서 검사를 시작했으면 온보딩 전용 결과 페이지로 분기
+const isOnboarding = !!sessionStorage.getItem('lh_survey_return')
+const resultPath = computed(() =>
+  isOnboarding
+    ? `/self-understanding/onboarding-result/${surveyId.value}`
+    : `/self-understanding/result/${surveyId.value}`,
+)
 
 const parts = [
   { emoji: '🧠', name: '성격 & 기질' },

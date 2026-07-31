@@ -216,6 +216,8 @@
 <script setup lang="ts">
 import { computed, onMounted, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { safeBack } from '@/shared/utils/navigation'
+import { useUnsavedGuard } from '@/shared/composables/useUnsavedGuard'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { DayOfWeek, Priority, ProjectCategory } from '../types/career-design'
@@ -229,6 +231,9 @@ onMounted(() => {
   window.scrollTo(0, 0)
   weekItemInputs.value = (draftProject.curriculum ?? []).map(() => '')
 })
+
+// 미저장 이탈 가드 (R2)
+const { bypass } = useUnsavedGuard(() => JSON.stringify(draftProject))
 
 const categories: { value: ProjectCategory; label: string }[] = [
   { value: 'qualification', label: '자격요건' },
@@ -319,7 +324,8 @@ async function addProject() {
     await syncAddProject(newProject)
   }
 
-  router.back()
+  bypass()
+  safeBack(router, '/career-design/plan/projects')
 }
 </script>
 

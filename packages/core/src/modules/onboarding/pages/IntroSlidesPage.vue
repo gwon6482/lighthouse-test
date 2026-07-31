@@ -1,8 +1,5 @@
 <template>
   <div class="intro">
-    <!-- 건너뛰기 -->
-    <button class="intro__skip" @click="finish">건너뛰기</button>
-
     <!-- 슬라이드 뷰포트 -->
     <div
       class="intro__viewport"

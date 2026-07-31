@@ -3,7 +3,7 @@
 
     <!-- 헤더 -->
     <header class="mypage__header">
-      <button class="mypage__back" @click="router.back()">
+      <button class="mypage__back" @click="safeBack(router, '/')">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
           <path d="M12.5 15L7.5 10L12.5 5" stroke="#1a1a1a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -135,6 +135,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { safeBack } from '@/shared/utils/navigation'
 import { useAuthStore } from '@/shared/stores/auth'
 import { req } from '@/shared/api'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'

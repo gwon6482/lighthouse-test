@@ -99,6 +99,8 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { safeBack } from '@/shared/utils/navigation'
+import { useUnsavedGuard } from '@/shared/composables/useUnsavedGuard'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { DayOfWeek } from '../types/career-design'
@@ -109,6 +111,9 @@ const { draftPlan, draftRoutine, editingRoutineId, syncAddRoutine, syncUpdateRou
 const allDays: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
 
 onMounted(() => window.scrollTo(0, 0))
+
+// 미저장 이탈 가드 (R2)
+const { bypass } = useUnsavedGuard(() => JSON.stringify(draftRoutine))
 
 function toggleDay(day: DayOfWeek) {
   if (!draftRoutine.days) draftRoutine.days = []
@@ -147,7 +152,8 @@ async function saveRoutine() {
     await syncAddRoutine(newRoutine)
   }
 
-  router.back()
+  bypass()
+  safeBack(router, '/career-design/plan/routines')
 }
 </script>
 
