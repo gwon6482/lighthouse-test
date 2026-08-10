@@ -28,7 +28,10 @@
           <div class="recruit-block">
             <span class="recruit-block__label">주요업무</span>
             <ul class="recruit-block__list">
-              <li v-for="d in post.duties" :key="d" class="recruit-block__item">{{ d }}</li>
+              <li v-for="d in post.duties" :key="d" class="recruit-block__item">
+                <span class="list-dot" />
+                {{ d }}
+              </li>
             </ul>
           </div>
 
@@ -36,7 +39,10 @@
           <div class="recruit-block">
             <span class="recruit-block__label">자격요건</span>
             <ul class="recruit-block__list">
-              <li v-for="r in post.requirements" :key="r" class="recruit-block__item">{{ r }}</li>
+              <li v-for="r in post.requirements" :key="r" class="recruit-block__item">
+                <span class="list-dot" />
+                {{ r }}
+              </li>
             </ul>
           </div>
 
@@ -44,7 +50,10 @@
           <div class="recruit-block">
             <span class="recruit-block__label recruit-block__label--pref">우대사항</span>
             <ul class="recruit-block__list">
-              <li v-for="p in post.preferred" :key="p" class="recruit-block__item">{{ p }}</li>
+              <li v-for="p in post.preferred" :key="p" class="recruit-block__item">
+                <span class="list-dot" />
+                {{ p }}
+              </li>
             </ul>
           </div>
 

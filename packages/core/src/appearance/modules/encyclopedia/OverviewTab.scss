@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 28px;
-  padding: 50px 40px;
+  padding: 40px 30px;
   background-color: #f9fafb;
 }
 
@@ -12,8 +12,12 @@
   flex-direction: column;
   gap: 12px;
   background-color: #fff;
-  padding: 30px;
+  padding: 15px 25px;
   border-radius: 20px;
+
+  // &--cards {
+  //   padding: 15px 20px;
+  // }
 
   &__header {
     display: flex;
@@ -79,131 +83,108 @@
   gap: 8px;
 
   &__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
     font-size: 14px;
     color: #555;
     line-height: 1.6;
-    padding-left: 14px;
-    position: relative;
 
-    &::before {
-      content: '•';
-      position: absolute;
-      left: 0;
-      color: #bbb;
+    .list-dot {
+      // 첫 줄(line-height 14px * 1.6) 세로 중앙에 점을 고정 — 문장이 두 줄 이상으로 넘어가도 위치 유지
+      margin-top: calc((14px * 1.6 - 3px) / 2);
     }
   }
 }
 
-/* 개인요소 / 업무요소 그룹 */
-.factor-group {
+/* 개인요소 / 업무요소 카드 그리드 */
+.pf-cards {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
 /* 카테고리 카드 */
-.factor-card {
+.pf-card {
   background-color: #f8f9fa;
   border-radius: 12px;
-  padding: 16px;
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-
-  &__title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #333;
-  }
 }
 
-/* 중요도 / 수준 구분 */
-.factor-dim {
+.pf-card-head {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
 
-  &__badge {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 600;
-    color: #666;
-    background-color: #e9ecef;
-    border-radius: 6px;
-    padding: 3px 8px;
-    align-self: flex-start;
-  }
+.pf-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #333;
+}
+
+.pf-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  background-color: #e9ecef;
+  border-radius: 6px;
+  padding: 3px 8px;
 }
 
 /* 직업내 / 직업간 블록 */
-.factor-block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 4px;
-
-  &:last-child { margin-bottom: 8px; }
-
-  &__label {
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-
-    &--inner { color: #4a7fc1; }
-    &--inter  { color: #e0a030; }
+.pf-block {
+  & + & {
+    margin-top: 16px;
   }
 }
 
-/* 순위 리스트 */
-.rank-list {
+.pf-block-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: #888;
+  margin: 0 0 9px;
+}
+
+.pf-icon {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+
+  &--within { stroke: #185fa5; }
+  &--between { stroke: #ba7517; }
+}
+
+.pf-chips {
   list-style: none;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
-.rank-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.pf-chip {
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 20px;
 
-  &__row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  &--within {
+    background-color: #e6f1fb;
+    color: #0c447c;
   }
 
-  &__name {
-    font-size: 13px;
-    color: #444;
-    flex: 1;
-    margin-right: 8px;
-    line-height: 1.4;
+  &--between {
+    background-color: #faeeda;
+    color: #633806;
   }
-
-  &__score {
-    font-size: 12px;
-    font-weight: 600;
-    color: #3365E3;
-    flex-shrink: 0;
-  }
-}
-
-.rank-bar-bg {
-  width: 100%;
-  height: 5px;
-  background-color: #e4e4e4;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.rank-bar-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.4s ease;
-
-  &--inner { background-color: #4a7fc1; }
-  &--inter  { background-color: #e0a030; }
 }
 
 /* 직업 현황 */

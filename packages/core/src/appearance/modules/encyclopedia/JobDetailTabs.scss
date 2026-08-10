@@ -2,8 +2,9 @@
   display: flex;
   width: 100%;
   border-bottom: 1.5px solid #eee;
-  padding: 0 55px;
-  gap: 4px;
+  // padding: 0 55px;
+  justify-content: center;
+  gap: 20px;
 
   &__btn {
     padding: 10px 16px;

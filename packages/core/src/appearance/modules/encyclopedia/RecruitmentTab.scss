@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 50px 40px;
+  padding: 40px 30px;
   background-color: #f9fafb;
 }
 
@@ -11,7 +11,7 @@
   flex-direction: column;
   gap: 16px;
   background-color: #fff;
-  padding: 30px;
+  padding: 15px 25px;
   border-radius: 20px;
 
   &__head {
@@ -45,7 +45,7 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .recruit-card {
@@ -136,17 +136,16 @@
   }
 
   &__item {
-    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
     font-size: 13px;
     color: #555;
     line-height: 1.55;
-    padding-left: 12px;
 
-    &::before {
-      content: '·';
-      position: absolute;
-      left: 2px;
-      color: #bbb;
+    .list-dot {
+      // 첫 줄(line-height 13px * 1.55) 세로 중앙에 점을 고정 — 문장이 두 줄 이상으로 넘어가도 위치 유지
+      margin-top: calc((13px * 1.55 - 3px) / 2);
     }
   }
 }

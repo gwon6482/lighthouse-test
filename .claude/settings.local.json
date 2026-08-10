@@ -6,7 +6,18 @@
       "Bash(cp /tmp/prep_resolved.vue packages/core/src/modules/encyclopedia/components/page/job-detail/tabs/PreparationTab.vue && cat -A packages/core/src/modules/encyclopedia/components/page/job-detail/tabs/PreparationTab.vue | tail -3)",
       "Bash(awk '/^_STYLE_BLOCK_START_$/{exit} {print}' packages/core/src/modules/encyclopedia/components/page/job-detail/tabs/RecruitmentTab.vue)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(pnpm ls *)",
+      "Bash(pnpm install *)",
+      "Bash(curl -sf http://localhost:5173)",
+      "Bash(break)",
+      "Read(//private/tmp/**)",
+      "Bash(chromium-cli --session lh_prepcard)",
+      "Bash(command -v npx)",
+      "Bash(npm ls *)",
+      "Read(//Users/junhyunglee/Library/Caches/**)",
+      "Bash(npm init *)",
+      "Bash(npm install *)"
     ],
     "additionalDirectories": [
       "/private/tmp"

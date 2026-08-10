@@ -3,7 +3,7 @@
     <section class="prep-section">
       <div class="prep-section__head">
         <h3 class="prep-section__title">현직자들의 준비과정 ({{ journeys.length }})</h3>
-        <p class="prep-section__desc">이 직업에 도달한 사람들이 쌓아온 프로젝트와 루틴이에요.</p>
+        <p class="prep-section__desc">이 직업에 도달한 사람들이 쌓아온 준비과정과 루틴이에요.</p>
       </div>
 
       <div v-if="journeys.length === 0" class="prep-empty">
@@ -26,15 +26,22 @@
 
           <p class="prep-card__headline">“{{ journey.headline }}”</p>
 
-          <!-- 프로젝트 -->
+          <!-- 준비과정 -->
           <div class="prep-block">
-            <span class="prep-block__label">프로젝트 {{ journey.projects.length }}</span>
-            <ul class="prep-block__list">
-              <li v-for="item in journey.projects" :key="item.name" class="prep-block__item">
-                <span class="prep-block__dot" :style="{ background: categoryMeta[item.category].color }" />
-                {{ item.name }}
-              </li>
-            </ul>
+            <span class="prep-block__label">준비과정 {{ journey.projects.length }}</span>
+            <div class="prep-block__groups">
+              <div v-for="group in groupedProjects(journey)" :key="group.category" class="prep-block__group">
+                <p class="prep-block__group-head" :style="{ color: categoryMeta[group.category].color }">
+                  {{ categoryMeta[group.category].label }} {{ group.items.length }}
+                </p>
+                <ul class="prep-block__list">
+                  <li v-for="item in group.items" :key="item" class="prep-block__item">
+                    <span class="list-dot" />
+                    {{ item }}
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
 
           <!-- 루틴 (프로젝트와 별개) -->
@@ -49,7 +56,7 @@
           </div>
 
           <!-- 요약 푸터 -->
-          <div class="prep-card__footer">
+          <!-- <div class="prep-card__footer">
             <span
               v-for="cat in categoryOrder"
               v-show="categoryCount(journey, cat)"
@@ -57,7 +64,7 @@
               class="prep-card__cat"
               :style="{ background: categoryMeta[cat].bg, color: categoryMeta[cat].color }"
             >{{ categoryMeta[cat].label }} {{ categoryCount(journey, cat) }}</span>
-          </div>
+          </div> -->
         </li>
       </ul>
     </section>
@@ -168,5 +175,17 @@ const journeys = computed<PreparationJourney[]>(() => SAMPLE_JOURNEYS_BY_JOB[pro
 
 function categoryCount(j: PreparationJourney, cat: ProjectCategory): number {
   return j.projects.filter(i => i.category === cat).length
+}
+
+// 준비 활동을 카테고리별로 묶고, 항목 많은 그룹부터 노출
+function groupedProjects(journey: PreparationJourney): { category: ProjectCategory; items: string[] }[] {
+  const groups = new Map<ProjectCategory, string[]>()
+  for (const item of journey.projects) {
+    if (!groups.has(item.category)) groups.set(item.category, [])
+    groups.get(item.category)!.push(item.name)
+  }
+  return [...groups.entries()]
+    .map(([category, items]) => ({ category, items }))
+    .sort((a, b) => b.items.length - a.items.length)
 }
 </script>

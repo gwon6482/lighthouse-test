@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 50px 40px;
+  padding: 40px 30px;
   background-color: #f9fafb;
 }
 
@@ -11,7 +11,7 @@
   flex-direction: column;
   gap: 16px;
   background-color: #fff;
-  padding: 30px;
+  padding: 15px 25px;
   border-radius: 20px;
 
   &__head {
@@ -45,7 +45,7 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .prep-card {
@@ -132,18 +132,35 @@
 .prep-block {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   padding-top: 12px;
   border-top: 1px solid #eee;
 
   &__label {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
     color: #666;
   }
 
-  &--routine &__label {
-    color: #4a7fc1;
+  // &--routine &__label {
+  //   color: #4a7fc1;
+  // }
+
+  &__groups {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__group-head {
+    font-size: 12px;
+    font-weight: 700;
   }
 
   &__list {
@@ -155,17 +172,16 @@
 
   &__item {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     font-size: 13px;
     color: #555;
-  }
+    line-height: 1.5;
 
-  &__dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
+    .list-dot {
+      // 첫 줄(line-height 13px * 1.5) 세로 중앙에 점을 고정 — 문장이 두 줄 이상으로 넘어가도 위치 유지
+      margin-top: calc((13px * 1.5 - 3px) / 2);
+    }
   }
 }
 

@@ -12,13 +12,14 @@
       <h3 class="overview-section__title">수행직무</h3>
       <ul class="overview-duties">
         <li v-for="(duty, i) in job.duties" :key="i" class="overview-duties__item">
+          <span class="list-dot" />
           {{ duty }}
         </li>
       </ul>
     </section>
 
     <!-- 개인요소 / 업무요소 -->
-    <section v-for="section in detailSections" :key="section.title" class="overview-section">
+    <section v-for="section in detailSections" :key="section.title" class="overview-section overview-section--cards">
       <div class="overview-section__header">
         <h3 class="overview-section__title">{{ section.title }}</h3>
         <button
@@ -31,51 +32,50 @@
         </button>
       </div>
 
-      <div class="factor-group">
-        <div v-for="catKey in section.keys" :key="catKey" class="factor-card">
-          <h4 class="factor-card__title">{{ catKey }}</h4>
-
-          <div v-for="dimKey in dimensionsOf(catKey)" :key="dimKey" class="factor-dim">
-            <span class="factor-dim__badge">{{ dimKey }}</span>
-
-            <!-- 직업 내 (기본 노출, 상위 3개) -->
-            <div class="factor-block">
-              <span class="factor-block__label factor-block__label--inner">직업 내</span>
-              <ul class="rank-list">
-                <li v-for="item in getItems(catKey, dimKey, '직업내')" :key="item.name" class="rank-item">
-                  <div class="rank-item__row">
-                    <span class="rank-item__name">{{ item.name }}</span>
-                    <span class="rank-item__score">{{ item.score }}</span>
-                  </div>
-                  <div class="rank-bar-bg">
-                    <div class="rank-bar-fill rank-bar-fill--inner" :style="{ width: pct(item.score, 7) }" />
-                  </div>
-                </li>
-              </ul>
-            </div>
-
-            <!-- 직업 간 (토글 시 노출, 상위 3개) -->
-            <div v-if="showInter[section.title]" class="factor-block">
-              <span class="factor-block__label factor-block__label--inter">직업 간</span>
-              <ul class="rank-list">
-                <li v-for="item in getItems(catKey, dimKey, '직업간')" :key="item.name" class="rank-item">
-                  <div class="rank-item__row">
-                    <span class="rank-item__name">{{ item.name }}</span>
-                    <span class="rank-item__score">{{ item.score }}</span>
-                  </div>
-                  <div class="rank-bar-bg">
-                    <div class="rank-bar-fill rank-bar-fill--inter" :style="{ width: pct(item.score, 100) }" />
-                  </div>
-                </li>
-              </ul>
-            </div>
+      <div class="pf-cards">
+        <article v-for="cat in cardsFor(section)" :key="`${cat.catKey}-${cat.dimKey}`" class="pf-card">
+          <div class="pf-card-head">
+            <span class="pf-card-title">{{ cat.catKey }}</span>
+            <span class="pf-badge">{{ cat.dimKey }}</span>
           </div>
-        </div>
+
+          <!-- 직업 내 (기본 노출, 상위 3개) -->
+          <div class="pf-block">
+            <p class="pf-block-label">
+              <svg class="pf-icon pf-icon--within" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="12" cy="12" r="5" />
+                <circle cx="12" cy="12" r="1" />
+              </svg>
+              이 직업에서 특히 중요해요
+            </p>
+            <ul class="pf-chips">
+              <li v-for="item in cat.within" :key="item.name" class="pf-chip pf-chip--within">{{ item.name }}</li>
+            </ul>
+          </div>
+
+          <!-- 직업 간 (토글 시 노출, 상위 3개) -->
+          <div v-show="showInter[section.title]" class="pf-block">
+            <p class="pf-block-label">
+              <svg class="pf-icon pf-icon--between" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M18.9 7a8 8 0 0 1 1.1 5v1a6 6 0 0 0 .8 3" />
+                <path d="M8 11a4 4 0 0 1 8 0v1a10 10 0 0 0 2 6" />
+                <path d="M12 11v2a14 14 0 0 0 2.5 8" />
+                <path d="M8 15a18 18 0 0 0 1.8 6" />
+                <path d="M4.9 19a22 22 0 0 1 -.9 -7v-1a8 8 0 0 1 12 -6.95" />
+              </svg>
+              다른 직업과 뚜렷이 구별돼요
+            </p>
+            <ul class="pf-chips">
+              <li v-for="item in cat.between" :key="item.name" class="pf-chip pf-chip--between">{{ item.name }}</li>
+            </ul>
+          </div>
+        </article>
       </div>
     </section>
 
     <!-- 직업 현황 -->
-    <section v-if="job.jobSatisfaction != null || job.salary" class="overview-section">
+    <section v-if="job.jobSatisfaction != null || job.salary" class="overview-section overview-section--cards">
       <h3 class="overview-section__title">직업 현황</h3>
       <div class="overview-stats">
 
@@ -156,7 +156,21 @@ function getItems(catKey: FactorKey, dimKey: DimKey, compareKey: CompareKey): Ra
   return [...items].sort((a, b) => b.score - a.score).slice(0, TOP_N)
 }
 
-function pct(score: number, max: number): string {
-  return `${Math.min((score / max) * 100, 100).toFixed(1)}%`
+interface FactorCard {
+  catKey: FactorKey
+  dimKey: DimKey
+  within: RankItem[]
+  between: RankItem[]
+}
+
+function cardsFor(section: { keys: FactorKey[] }): FactorCard[] {
+  return section.keys.flatMap(catKey =>
+    dimensionsOf(catKey).map(dimKey => ({
+      catKey,
+      dimKey,
+      within: getItems(catKey, dimKey, '직업내'),
+      between: getItems(catKey, dimKey, '직업간'),
+    })),
+  )
 }
 </script>
