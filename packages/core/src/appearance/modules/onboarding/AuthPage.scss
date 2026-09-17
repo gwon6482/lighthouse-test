@@ -157,4 +157,21 @@
   &__error {
     @include error-text;
   }
+
+  // 로그인 실패 후 뜨는 보조 안내(카카오 계정 가능성). 에러가 아니므로 빨강이 아니다 —
+  // 사용자가 무엇을 잘못한 게 아니라 다른 문을 알려주는 것이다.
+  &__hint {
+    margin: -4px 0 0;
+    padding: 10px 12px;
+    border-radius: $radius-sm;
+    background: $color-surface-alt;
+    color: $color-text-secondary;
+    font-size: $fs-xs;
+    line-height: 1.5;
+
+    strong {
+      color: $color-text;
+      font-weight: $fw-semibold;
+    }
+  }
 }
