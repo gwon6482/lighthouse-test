@@ -232,10 +232,16 @@ const canNext = computed(() => {
 
 function back() {
   error.value = ''
-  // social 은 첫 화면이 step 1 이다. 첫 화면에서 더 뒤로 가면 로그인 화면인데,
-  // 토큰이 있으므로 전역 가드(R5)가 '로그아웃할까요?' 를 물어준다 — 여기서 따로 처리하지 않는다.
-  if (step.value > FIRST_STEP) step.value--
-  else router.replace('/onboarding/auth')
+  if (step.value > FIRST_STEP) {
+    step.value--
+    return
+  }
+  // 첫 화면에서 더 뒤로 = 가입을 그만두겠다는 뜻.
+  // social 은 **계정이 이미 만들어진 상태**라 그냥 나가면 로그인된 채 로그인 화면에 서게 된다.
+  // 그래서 `logout=1` 을 달아 "이건 의도적인 이탈"이라고 전역 가드에 알린다
+  // (가드는 이 표시가 없으면 브라우저 뒤로가기로 본다 — 2026-09-17 R5 수정).
+  // 이메일 가입은 아직 토큰이 없어 가드가 걸리지 않으므로 표시가 필요 없다.
+  router.replace(isSocial ? { path: '/onboarding/auth', query: { logout: '1' } } : '/onboarding/auth')
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

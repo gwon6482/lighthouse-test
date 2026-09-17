@@ -15,6 +15,7 @@ import stubRoutes from './stubRoutes'
 import { makeRouter } from './createRouter'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useAchievementStore } from '@/shared/stores/achievement'
+import { authBoundaryAction } from './authBoundary'
 
 const router = makeRouter([
   ...onboardingRoutes,
@@ -33,13 +34,18 @@ const router = makeRouter([
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
-  // 로그인 상태에서 로그인 페이지(최초 진입)로 되돌아가려 하면 = 사실상 로그아웃.
-  // '이전' 버튼·하드웨어 백·브라우저 백 등 경로와 무관하게 여기서 한 번 확인한다.
-  // (가입 위저드 뒤로가기는 아직 토큰이 없어 걸리지 않는다 → 조용히 통과)
-  if (to.path === '/onboarding/auth' && auth.token) {
-    if (!confirm('로그인 화면으로 돌아가면 로그아웃돼요.\n정말 로그아웃하시겠어요?')) return false
-    auth.logout()
-    return true
+  // R5(인증 경계). 판정은 authBoundary.ts 의 순수 함수에 있다(왜 바뀌었는지도 거기 적혀 있다).
+  //   bounce         → 로그아웃하지 않고 앱 안('/')으로 되돌린다. 아래 루트 가드가
+  //                    상태에 맞는 자리로 보내므로, 위저드를 안 끝낸 소셜 계정은 위저드로 복귀한다.
+  //   confirm-logout → 의도적 이탈(위저드 첫 화면의 '이전' 이 ?logout=1 을 달아 준다)
+  if (to.path === '/onboarding/auth') {
+    const action = authBoundaryAction(!!auth.token, to.query.logout === '1')
+    if (action === 'bounce') return '/'
+    if (action === 'confirm-logout') {
+      if (!confirm('로그인 화면으로 돌아가면 로그아웃돼요.\n정말 로그아웃하시겠어요?')) return false
+      auth.logout()
+      return true
+    }
   }
 
   if (to.path !== '/') return true
