@@ -21,7 +21,7 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { useAchievementStore } from '@/shared/stores/achievement'
 
 // 소셜 로그인 복귀 지점.
-// API 가 카카오 콜백을 처리한 뒤 이 경로로 302 를 보낸다.
+// API 가 제공자 콜백(카카오·구글)을 처리한 뒤 이 경로로 302 를 보낸다.
 //   성공: /onboarding/oauth#token=<JWT>
 //   실패: /onboarding/oauth?error=<코드>
 //
@@ -37,11 +37,15 @@ const errorMessage = ref('')
 
 // API 가 내려주는 실패 코드 → 사용자 문구.
 // 코드를 그대로 보여주면 아무도 못 알아본다.
+//
+// ⚠️ 문구에 제공자 이름을 박지 않는다. 이 페이지는 어느 제공자로 시작했는지 모르고
+//    (API 는 error 코드만 내려준다), 박아두면 구글로 실패했는데 '카카오'라고 뜬다.
+//    2026-09-17 에 AuthPage 는 제공자 일반화했지만 이 파일은 빠져 있었다.
 const ERROR_TEXT: Record<string, string> = {
-  cancelled: '카카오 로그인을 취소했어요.',
+  cancelled: '로그인을 취소했어요.',
   invalid_state: '로그인 요청이 만료됐어요. 다시 시도해 주세요.',
-  token_failed: '카카오 인증에 실패했어요. 잠시 후 다시 시도해 주세요.',
-  profile_failed: '카카오 계정 정보를 가져오지 못했어요.',
+  token_failed: '인증에 실패했어요. 잠시 후 다시 시도해 주세요.',
+  profile_failed: '계정 정보를 가져오지 못했어요.',
   // 같은 이메일의 이메일가입 계정이 이미 있는 경우.
   // 이메일이 같다고 자동으로 이어붙이지 않는 건 계정 탈취를 막기 위한 의도적 설계다.
   email_taken: '같은 이메일로 가입된 계정이 있어요. 이메일로 로그인해 주세요.',
@@ -79,7 +83,7 @@ onMounted(async () => {
 
   // ⚠️ 소셜 로그인은 콜백에서 **계정이 이미 만들어진다.** 그래서 여기서 곧장 메인으로 보내면
   //    가입 위저드(이름·나이·성별·진로답변 Q1~Q3)를 통째로 건너뛰게 된다 —
-  //    카카오가 주는 건 이메일·닉네임·나이뿐이고 나머지는 비어 있다.
+  //    제공자가 주는 건 이메일·이름뿐이고 나머지는 비어 있다.
   //    가입을 아직 안 마친 계정이면 위저드로 보낸다. 이후 경로는 이메일 가입과 동일하다.
   if (!authStore.user?.onboarding?.answeredAt) {
     router.replace({ path: '/onboarding/signup', query: { social: '1' } })
