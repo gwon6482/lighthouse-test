@@ -11,7 +11,7 @@ export interface PartIntroData {
   title: string            // 예: '성격 & 기질'
   description: string      // 한 줄 부제
   emoji: string
-  questionCount: string    // 예: '43문항', '총 107문항', '6개 항목'
+  questionCount: string    // 예: '43문항', '총 103문항', '6개 항목'
   estimatedMinutes?: number // T3는 undefined (시간 표시 없음)
   highlights: string[]     // 핵심 안내 문구 목록
 }

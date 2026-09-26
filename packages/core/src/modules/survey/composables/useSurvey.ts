@@ -137,7 +137,9 @@ export function useSurvey() {
     const pages: PageInfo[] = []
 
     // 파트별 인트로 데이터 (하드코딩, SURVEY_FLOW_UPDATE.md 참고)
-    // 문항 수: T1=43, T21=61, T22=33, T23=13, T3=6개 항목
+    // 문항 수: T1=43, T21=61, T22=33, T23=9, T3=6개 항목
+    // ⚠️ 이 숫자는 하드코딩이다. 문항을 DB 에서 더하거나 빼면 여기도 같이 고쳐야 한다.
+    //    T23 은 2026-09-26 에 13→9 로 줄었다(고용24 가치관 체계 개편 반영).
     const partIntros: Record<string, PartIntroData> = {
       T1: {
         partLabel: '파트 1',
@@ -157,7 +159,7 @@ export function useSurvey() {
         title: '좋아하는 일',
         description: '라이트하우스 검사의 핵심',
         emoji: '✨',
-        questionCount: '총 107문항',  // T21(61) + T22(33) + T23(13)
+        questionCount: '총 103문항',  // T21(61) + T22(33) + T23(9)
         estimatedMinutes: 5,
         highlights: [
           '좋아하는 일 = 흥미있는 분야에서 잘하는 것(재능)을 하며, 가치있는 것(가치관)을 쫓는 것.',

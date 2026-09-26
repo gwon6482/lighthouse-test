@@ -81,7 +81,7 @@ const parts = [
     title: '좋아하는 일',
     desc: '재능 · 흥미 · 가치관, 3개 파트로 나눠 내가 좋아하는 일을 구체적으로 찾아요.',
     emoji: '✨',
-    questionCount: '총 107문항',
+    questionCount: '총 103문항',
     minutes: 5,
     accent: 'accent-s',
   },
