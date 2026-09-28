@@ -1,6 +1,14 @@
 <template>
   <div class="overview-tab">
 
+    <!-- 상위 직업군 데이터 안내.
+         work24-shared = 고용24가 이 직업을 상위 직업으로 통합해 둔 경우(예: 전문의 13종 → '전문의사').
+         표시하지 않으면 "소아과와 성형외과 임금이 왜 같지?" 를 오류로 오해한다. -->
+    <p v-if="job.dataSource === 'work24-shared' && job.work24?.jobNm" class="overview-notice">
+      아래 정보는 <strong>{{ job.work24.jobNm }}</strong> 기준이에요.
+      비슷한 직업을 묶어 조사한 자료라 세부 직업별로 다를 수 있어요.
+    </p>
+
     <!-- 주요업무 -->
     <section class="overview-section">
       <h3 class="overview-section__title">주요업무</h3>
@@ -16,6 +24,53 @@
           {{ duty }}
         </li>
       </ul>
+    </section>
+
+    <!-- 되는 길 -->
+    <section v-if="job.work24?.way" class="overview-section">
+      <h3 class="overview-section__title">되는 길</h3>
+      <p class="overview-section__text overview-section__text--pre">{{ job.work24.way }}</p>
+    </section>
+
+    <!-- 학력 · 전공 -->
+    <section v-if="hasEducationInfo" class="overview-section">
+      <h3 class="overview-section__title">이 일을 하는 사람들</h3>
+
+      <div v-if="job.work24?.education?.length" class="overview-ratio">
+        <span class="overview-ratio__caption">학력</span>
+        <div v-for="e in job.work24.education" :key="e.key" class="overview-ratio__row">
+          <span class="overview-ratio__label">{{ e.label }}</span>
+          <div class="overview-ratio__bar-bg">
+            <div class="overview-ratio__bar-fill" :style="{ width: e.ratio + '%' }" />
+          </div>
+          <span class="overview-ratio__value">{{ e.ratio }}%</span>
+        </div>
+      </div>
+
+      <div v-if="job.work24?.schoolDepartments?.length" class="overview-ratio">
+        <span class="overview-ratio__caption">전공 계열</span>
+        <div v-for="s in job.work24.schoolDepartments" :key="s.key" class="overview-ratio__row">
+          <span class="overview-ratio__label">{{ s.label }}</span>
+          <div class="overview-ratio__bar-bg">
+            <div class="overview-ratio__bar-fill overview-ratio__bar-fill--alt" :style="{ width: s.ratio + '%' }" />
+          </div>
+          <span class="overview-ratio__value">{{ s.ratio }}%</span>
+        </div>
+      </div>
+
+      <div v-if="job.relatedMajors?.length" class="overview-chips">
+        <span class="overview-ratio__caption">관련 학과</span>
+        <ul class="overview-chips__list">
+          <li v-for="m in job.relatedMajors" :key="m.name" class="overview-chips__item">{{ m.name }}</li>
+        </ul>
+      </div>
+
+      <div v-if="job.relatedCertifications?.length" class="overview-chips">
+        <span class="overview-ratio__caption">관련 자격</span>
+        <ul class="overview-chips__list">
+          <li v-for="c in job.relatedCertifications" :key="c" class="overview-chips__item overview-chips__item--cert">{{ c }}</li>
+        </ul>
+      </div>
     </section>
 
     <!-- 개인요소 / 업무요소 -->
@@ -121,11 +176,45 @@
       </div>
     </section>
 
+    <!-- 일자리 전망 -->
+    <section v-if="job.work24?.prospect?.text || job.work24?.prospect?.distribution?.length" class="overview-section">
+      <h3 class="overview-section__title">
+        일자리 전망
+        <span v-if="prospectYear" class="overview-section__sub">{{ prospectYear }}년 조사</span>
+      </h3>
+
+      <div v-if="job.work24?.prospect?.distribution?.length" class="overview-prospect">
+        <div v-for="b in job.work24.prospect.distribution" :key="b.name" class="overview-prospect__row">
+          <span class="overview-prospect__label">{{ b.name }}</span>
+          <div class="overview-prospect__bar-bg">
+            <div
+              class="overview-prospect__bar-fill"
+              :class="prospectToneOf(b.name)"
+              :style="{ width: b.ratio + '%' }"
+            />
+          </div>
+          <span class="overview-prospect__value">{{ b.ratio }}%</span>
+        </div>
+      </div>
+
+      <p v-if="job.work24?.prospect?.text" class="overview-section__text overview-section__text--pre">
+        {{ job.work24.prospect.text }}
+      </p>
+    </section>
+
+    <!-- 관련 직업 -->
+    <section v-if="job.work24?.relatedJobs?.length" class="overview-section">
+      <h3 class="overview-section__title">관련 직업</h3>
+      <ul class="overview-chips__list">
+        <li v-for="r in job.work24.relatedJobs" :key="r.jobNm" class="overview-chips__item">{{ r.jobNm }}</li>
+      </ul>
+    </section>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { computed, reactive } from 'vue'
 import type { Job, JobDetails, CategoryRankings, RankItem } from '../../../../types/encyclopedia'
 
 const props = defineProps<{ job: Job }>()
@@ -161,6 +250,27 @@ interface FactorCard {
   dimKey: DimKey
   within: RankItem[]
   between: RankItem[]
+}
+
+const hasEducationInfo = computed(() =>
+  !!(props.job.work24?.education?.length
+    || props.job.work24?.schoolDepartments?.length
+    || props.job.relatedMajors?.length
+    || props.job.relatedCertifications?.length),
+)
+
+// 임금·전망 모두 같은 조사년도를 쓴다. 어느 쪽이든 있으면 표시한다.
+const prospectYear = computed(() =>
+  props.job.work24?.prospect?.distribution?.find(b => b.year)?.year
+    ?? props.job.work24?.salarySurveyYear
+    ?? null,
+)
+
+// 전망 막대 색. 증가 계열/감소 계열만 구분하고 나머지는 기본색.
+function prospectToneOf(name: string): string {
+  if (name.includes('증가')) return 'overview-prospect__bar-fill--up'
+  if (name.includes('감소')) return 'overview-prospect__bar-fill--down'
+  return ''
 }
 
 function cardsFor(section: { keys: FactorKey[] }): FactorCard[] {

@@ -41,6 +41,46 @@ export interface JobSalary {
   upper: number   // 상위 25% 임금 (만원)
 }
 
+/** 관련 학과 — 고용24 가 코드+이름으로 준다 */
+export interface RelatedMajor {
+  code: string | null
+  name: string
+}
+
+/** 비율 항목 (학력 분포·전공계열 분포). ratio 는 % */
+export interface RatioItem {
+  key: string
+  label: string
+  ratio: number
+}
+
+/** 일자리 전망 구간 (증가/다소증가/유지/다소감소/감소) */
+export interface ProspectBucket {
+  name: string
+  ratio: number
+  year: number | null
+}
+
+/**
+ * 고용24 공식 API 에서 온 정보.
+ * 2026-09-27 전환으로 신설. 크롤링본 시절엔 없던 필드들이다.
+ * ⚠️ `dataSource: 'crawled'` 인 직업에는 이 객체가 없다(현재 경기심판 1건).
+ */
+export interface JobWork24 {
+  jobCd: string
+  jobNm: string | null
+  classification: { large: string | null; middle: string | null; small: string | null }
+  keco: { code: string | null; name: string | null } | null
+  way: string | null                      // 되는길
+  education: RatioItem[]                  // 학력 분포
+  schoolDepartments: RatioItem[]          // 전공 계열 분포
+  prospect: { text: string | null; distribution: ProspectBucket[] }
+  jobStatus: string | null
+  relatedJobs: { jobCd: string | null; jobNm: string }[]
+  salarySurveyYear: number | null
+  collectedAt: string | null
+}
+
 /** 직업 데이터 */
 export interface Job {
   _id: string
@@ -49,12 +89,19 @@ export interface Job {
   title: string
   overview: string               // 직업 개요
   duties: string[]               // 수행직무 목록
-  relatedMajors: string[]        // 관련학과
+  relatedMajors: RelatedMajor[]  // 관련학과 (고용24 는 코드+이름)
   relatedCertifications: string[] // 관련자격
   details: JobDetails            // 능력/지식/환경, 성격/흥미/가치관, 업무활동
   lastUpdated: string
   jobSatisfaction?: number       // 직업 만족도 (백점 기준)
   salary?: JobSalary             // 임금 정보 (만원)
+
+  // ── 2026-09-27 고용24 전환으로 추가 ──
+  work24?: JobWork24
+  /** work24: 1:1 매핑 / work24-shared: 상위 직업 데이터 공유 / crawled: 전환 전 데이터 */
+  dataSource?: 'work24' | 'work24-shared' | 'crawled'
+  /** work24-shared 일 때 같은 원본을 쓰는 다른 직업들 */
+  sharedWith?: string[]
 }
 
 /** GET /api/job/:jobCode 응답 */
