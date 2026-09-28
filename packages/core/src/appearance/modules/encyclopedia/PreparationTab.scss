@@ -207,3 +207,30 @@
     color: #555;
   }
 }
+
+
+/* '예시' 배지 — 2026-09-28 추가.
+   이 탭의 준비 여정은 실제 인물이 아니라 구성한 예시다.
+   표시가 없으면 사용자가 실제 사례로 믿고 진로를 정하게 된다. */
+.prep-section {
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background-color: #eef0f3;
+    color: #5f6368;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  &__desc strong {
+    font-weight: 700;
+    color: #3c4043;
+  }
+}
