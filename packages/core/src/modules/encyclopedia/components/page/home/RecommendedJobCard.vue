@@ -7,7 +7,12 @@
 
     <!-- 직업 정보 -->
     <div class="rjc__body">
-      <p class="rjc__title">{{ job.title }}</p>
+      <p class="rjc__title">
+        {{ job.title }}
+        <!-- 묶음 직업: 고용24가 여러 직업을 한 직업으로 묶어 조사해 점수가 같은 경우
+             추천 목록이 한 자리로 접힌다. 몇 개가 묶였는지 알려준다. -->
+        <span v-if="(job.members?.length ?? 1) > 1" class="rjc__group">유사 {{ job.members!.length }}개</span>
+      </p>
       <div class="rjc__tags">
         <span class="rjc__tag rjc__tag--primary">{{ job.classification.primary }}</span>
         <span class="rjc__sep">›</span>
@@ -25,10 +30,10 @@
 </template>
 
 <script setup lang="ts">
-import type { JobSummary } from '../../../types/encyclopedia'
+import type { JobRecommendItem } from '../../../types/encyclopedia'
 
 defineProps<{
-  job: JobSummary
+  job: JobRecommendItem
   rank?: number
 }>()
 

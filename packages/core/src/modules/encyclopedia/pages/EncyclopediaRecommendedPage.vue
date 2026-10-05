@@ -43,10 +43,11 @@
             v-for="job in t2Jobs"
             :key="job.jobCode"
             class="rec-t2rec-card"
-            @click="router.push(`/career-encyclopedia/job/${job.jobCode}`)"
+            @click="openJob(job)"
           >
             <div class="rec-t2rec-card-top">
               <span class="rec-t2rec-title">{{ job.title }}</span>
+              <span v-if="groupSize(job) > 1" class="rec-group-badge">유사 {{ groupSize(job) }}개</span>
               <span class="rec-t2rec-score">{{ Math.round(job.t2_match_score * 100) }}%</span>
             </div>
             <p class="rec-t2rec-class">{{ job.classification.primary }} › {{ job.classification.secondary }}</p>
@@ -89,12 +90,21 @@
             :key="job.jobCode"
             :job="job"
             :rank="i + 1"
-            @click="router.push(`/career-encyclopedia/job/${job.jobCode}`)"
+            @click="openJob(job)"
           />
         </div>
       </section>
 
     </template>
+
+    <!-- 묶음 직업 선택. 접힌 그룹을 탭하면 어느 세부 직업을 볼지 고른다.
+         ⚠️ 이게 없으면 목록에서 누른 이름과 열린 화면 제목이 달라진다. -->
+    <JobGroupPicker
+      v-model="pickerOpen"
+      :group-title="pickerTitle"
+      :members="pickerMembers"
+      @select="goJob"
+    />
   </div>
 </template>
 
@@ -107,8 +117,35 @@ import { fetchT2Recommend, fetchSurveyAnalysis } from '@/modules/survey/survey.a
 import type { T2RecommendJob, SurveyAnalysisResponse } from '@/modules/survey/types/survey'
 import RecommendedJobCard from '../components/page/home/RecommendedJobCard.vue'
 import AppHeader from '@/shared/components/AppHeader.vue'
+import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
 
 const router = useRouter()
+
+// ── 묶음 직업 ─────────────────────────────────────────────────────────────
+// 고용24가 여러 직업을 한 직업으로 묶어 조사한 경우(전문의 13종 등) 점수가 **완전히 같아서**
+// 서버가 추천 목록을 한 자리로 접어 보낸다(`title` = 그룹명, `members` = 세부 직업).
+// 바로 `jobCode` 로 넘기면 **누른 이름과 열린 제목이 달라지므로** 구성원을 고르게 한다.
+type WithMembers = { jobCode: string; title: string; members?: { jobCode: string; title: string }[] }
+
+const pickerOpen = ref(false)
+const pickerTitle = ref('')
+const pickerMembers = ref<{ jobCode: string; title: string }[]>([])
+
+const groupSize = (job: WithMembers) => job.members?.length ?? 1
+
+function openJob(job: WithMembers) {
+  if (groupSize(job) > 1) {
+    pickerTitle.value = job.title
+    pickerMembers.value = job.members ?? []
+    pickerOpen.value = true
+    return
+  }
+  goJob(job.jobCode)
+}
+
+function goJob(jobCode: string) {
+  router.push(`/career-encyclopedia/job/${jobCode}`)
+}
 const { recommendedJobs, isLoading, error, loadRecommendedJobs } = useEncyclopedia()
 
 // ── survey ID 해결 ──

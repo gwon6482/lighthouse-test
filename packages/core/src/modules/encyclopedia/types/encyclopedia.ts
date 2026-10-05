@@ -130,7 +130,17 @@ export interface JobSearchResponse {
 /** GET /api/job/recommend 응답 */
 export interface JobRecommendResponse {
   success: boolean
-  data: JobSummary[]
+  data: JobRecommendItem[]
+}
+
+/**
+ * 추천 목록 항목. `JobSummary` 에 **묶음 정보**가 붙는다.
+ * 고용24가 한 직업으로 묶어 조사한 그룹(전문의 13종 등)은 점수가 완전히 같아서
+ * 서버가 한 자리로 접고 `title` 에 그룹 대표명, `members` 에 세부 직업을 담아 준다.
+ * ⚠️ `members` 가 2개 이상이면 **고르게 해야 한다** — 안 그러면 누른 이름과 열린 제목이 달라진다.
+ */
+export interface JobRecommendItem extends JobSummary {
+  members?: { jobCode: string; title: string }[]
 }
 
 // ────────────────────────────────────────────────────────────────────────────

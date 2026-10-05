@@ -81,6 +81,19 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  /* 묶음 직업 배지 — 여러 직업이 한 자리로 접혔음을 알린다 */
+  .rjc__group {
+    margin-left: 6px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: #eef2ff;
+    font-size: 11px;
+    font-weight: 600;
+    color: #4759a8;
+    vertical-align: 2px;
+    white-space: nowrap;
+  }
 }
 
 .rjc__tags {

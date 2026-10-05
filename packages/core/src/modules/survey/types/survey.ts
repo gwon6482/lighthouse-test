@@ -197,6 +197,22 @@ export interface SurveyAnalysisResponse {
   }
 }
 
+/**
+ * 고용24가 여러 직업을 한 직업으로 묶어 조사한 그룹의 구성원.
+ *
+ * 묶음 구성원은 상세·임금·만족도가 **전부 동일**해서 매칭 점수가 완전히 같다.
+ * 그래서 서버가 추천 목록에서 **한 자리로 접고**(`title` = 그룹 대표명) 세부 직업을 여기 담아 준다.
+ * 접지 않으면 전문의 13종이 TOP5 다섯 자리를 독식한다.
+ *
+ * ⚠️ `members` 가 2개 이상이면 **사용자에게 고르게 해야 한다.** 그냥 `jobCode` 로 넘기면
+ *    목록에서 누른 이름("초·중·고등학교 교장 및 교감")과 열린 화면 제목("초등학교 교장 및 교감")이
+ *    달라진다.
+ */
+export interface JobGroupMember {
+  jobCode: string
+  title: string
+}
+
 export interface T2RecommendJob {
   jobCode: string
   title: string
@@ -205,6 +221,8 @@ export interface T2RecommendJob {
   jobSatisfaction: number | null
   t2_match_score: number
   t2_match_detail: { T21: number; T22: number; T23: number }
+  /** 묶음일 때만 존재. 2개 이상이면 사용자가 고르게 한다. */
+  members?: JobGroupMember[]
 }
 
 export interface T2RecommendResponse {
@@ -228,6 +246,8 @@ export interface ComprehensiveRecommendJob {
   }
   salary: { lower: number; median: number; upper: number } | null
   jobSatisfaction: number | null
+  /** 묶음일 때만 존재. 2개 이상이면 사용자가 고르게 한다. */
+  members?: JobGroupMember[]
 }
 
 export interface ComprehensiveRecommendResponse {
