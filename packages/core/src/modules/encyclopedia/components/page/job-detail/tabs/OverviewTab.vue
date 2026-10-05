@@ -109,8 +109,21 @@
               이 직업에서 특히 중요해요
             </p>
             <ul class="pf-chips">
-              <li v-for="item in cat.within" :key="item.name" class="pf-chip pf-chip--within">{{ item.name }}</li>
+              <li v-for="item in cat.within" :key="item.code">
+                <button
+                  type="button"
+                  class="pf-chip pf-chip--within"
+                  :class="{ 'pf-chip--open': openCode === item.code }"
+                  :aria-expanded="openCode === item.code"
+                  @click="toggleDef(item.code)"
+                >
+                  {{ item.name }}
+                  <span v-if="definitionOf(item.code)" class="pf-chip__more" aria-hidden="true">?</span>
+                </button>
+              </li>
             </ul>
+            <!-- 항목 설명. 칩을 누르면 펼쳐진다. 설명이 없으면 칩이 눌리지 않는다. -->
+            <p v-if="openDefFor(cat.within)" class="pf-def">{{ openDefFor(cat.within) }}</p>
           </div>
 
           <!-- 직업 간 (토글 시 노출, 상위 3개) -->
@@ -126,8 +139,20 @@
               다른 직업과 뚜렷이 구별돼요
             </p>
             <ul class="pf-chips">
-              <li v-for="item in cat.between" :key="item.name" class="pf-chip pf-chip--between">{{ item.name }}</li>
+              <li v-for="item in cat.between" :key="item.code">
+                <button
+                  type="button"
+                  class="pf-chip pf-chip--between"
+                  :class="{ 'pf-chip--open': openCode === item.code }"
+                  :aria-expanded="openCode === item.code"
+                  @click="toggleDef(item.code)"
+                >
+                  {{ item.name }}
+                  <span v-if="definitionOf(item.code)" class="pf-chip__more" aria-hidden="true">?</span>
+                </button>
+              </li>
             </ul>
+            <p v-if="openDefFor(cat.between)" class="pf-def">{{ openDefFor(cat.between) }}</p>
           </div>
         </article>
       </div>
@@ -218,8 +243,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref, onMounted } from 'vue'
 import type { Job, JobDetails, CategoryRankings, RankItem } from '../../../../types/encyclopedia'
+
+import { useCareerAttributes } from '@/shared/composables/useCareerAttributes'
 
 const props = defineProps<{ job: Job }>()
 
@@ -284,6 +311,30 @@ function prospectToneOf(name: string): string {
   if (name.includes('증가')) return 'overview-prospect__bar-fill--up'
   if (name.includes('감소')) return 'overview-prospect__bar-fill--down'
   return ''
+}
+
+// ── 항목 설명문 ───────────────────────────────────────────────────────────
+// 칩을 누르면 그 항목의 설명이 아래에 펼쳐진다. 한 번에 하나만 열린다.
+//
+// ⚠️ 설명문은 직업 상세 응답에 **없다**(code·name 만 온다). 직업과 무관한 마스터
+//    데이터(202건)라 `useCareerAttributes` 가 따로 한 번 받아 캐시한다.
+// ⚠️ 설명이 없는 항목은 **눌려도 아무 일이 없다** — 그래서 `?` 표시도 안 붙인다.
+//    로드 실패 시에도 화면은 그대로 동작해야 하므로 '설명 없음' 같은 문구를 띄우지 않는다.
+const { load: loadAttrs, definitionOf } = useCareerAttributes()
+const openCode = ref<string | null>(null)
+
+onMounted(loadAttrs)
+
+function toggleDef(code: string) {
+  if (!definitionOf(code)) return
+  openCode.value = openCode.value === code ? null : code
+}
+
+// 이 블록(직업내/직업간) 안에 열린 항목이 있을 때만 설명을 그린다.
+// 같은 코드가 두 블록에 동시에 있을 수 있어서 블록별로 판정한다.
+function openDefFor(items: { code: string }[]): string | null {
+  if (!openCode.value) return null
+  return items.some(i => i.code === openCode.value) ? definitionOf(openCode.value) : null
 }
 
 function cardsFor(section: { keys: FactorKey[] }): FactorCard[] {
