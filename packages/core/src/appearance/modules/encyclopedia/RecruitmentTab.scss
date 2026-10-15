@@ -172,3 +172,40 @@
     text-decoration: none;
   }
 }
+
+// 기업 공채 카드 — recruit-card 를 바탕으로 로고·기업구분만 더한다
+.open-card {
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .recruit-card__company {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .recruit-card__dday { margin-left: auto; }
+  }
+
+  // 공채속보 로고는 가로형(200×64)이다 — 높이만 맞추고 너비는 비율대로
+  &__logo {
+    height: 22px;
+    width: auto;
+    max-width: 72px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+
+  &__ctype {
+    font-size: 11px;
+    font-weight: 600;
+    color: #7a5cc4;
+    background-color: #f0ebfa;
+    border-radius: 20px;
+    padding: 2px 8px;
+    flex-shrink: 0;
+  }
+}

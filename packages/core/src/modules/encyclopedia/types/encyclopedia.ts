@@ -210,7 +210,8 @@ export interface RecruitmentPosting {
   salary: string
   career: string
   education: string
-  employmentType: string
+  employmentType: string  // 정규직·계약직 등(모르면 '')
+  workSchedule?: string   // 주5일근무 등
   postedAt: string        // YYYY-MM-DD
   deadline: { date: string | null; untilFilled: boolean; label: string }
   url: string
@@ -228,9 +229,35 @@ export interface RecruitmentSource {
   error?: string
 }
 
+/** 기업 공개채용(공채) — 직업이 아니라 직종 '분야'(scope) 단위 */
+export interface RecruitmentOpening {
+  id: string
+  company: string
+  companyType: string     // 대기업·공기업·공공기관·중견기업·외국계기업 (빈 값 있음)
+  title: string
+  startDate: string | null
+  endDate: string | null
+  employmentTypes: string[]
+  logoUrl: string | null
+  url: string | null      // 기업 채용 사이트
+}
+
+export interface RecruitmentOpeningGroup {
+  source: string
+  sourceName: string
+  total: number
+  scope: { code: string; name: string }
+  items: RecruitmentOpening[]
+}
+
 export interface JobRecruitmentResponse {
   success: boolean
-  data: { postings: RecruitmentPosting[]; sources: RecruitmentSource[]; cached: boolean }
+  data: {
+    postings: RecruitmentPosting[]
+    sources: RecruitmentSource[]
+    openings?: RecruitmentOpeningGroup[]
+    cached: boolean
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
