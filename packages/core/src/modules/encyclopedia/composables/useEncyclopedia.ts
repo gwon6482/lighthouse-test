@@ -16,7 +16,6 @@ import {
   fetchRecommendedJobs,
   fetchJobReviews,
   fetchJobPreparations,
-  fetchJobRecruitments,
   fetchBookmarks,
   addBookmark,
   removeBookmark,
@@ -28,7 +27,6 @@ import type {
   JobSummary,
   JobReview,
   PreparationCard,
-  RecruitmentCard,
   JobDetailTab,
 } from '../types/encyclopedia'
 
@@ -48,10 +46,6 @@ const activeTab = ref<JobDetailTab>('overview')
 // 탭별 데이터
 const reviews = ref<JobReview[]>([])
 const preparations = ref<PreparationCard[]>([])
-const recruitments = ref<RecruitmentCard[]>([])
-
-// 선택된 채용 카드 (팝업용)
-const selectedRecruitment = ref<RecruitmentCard | null>(null)
 
 // 북마크
 const bookmarkedJobCodes = ref<string[]>([])
@@ -216,35 +210,6 @@ export function useEncyclopedia() {
     }
   }
 
-  // ── 채용 탭 ──────────────────────────────────────────────────────────────
-
-  async function loadRecruitments(jobCode: string) {
-    isLoading.value = true
-    error.value = null
-    try {
-      const { data, status } = await fetchJobRecruitments(jobCode)
-      if (status === 200) {
-        recruitments.value = data.data
-      } else {
-        throw new Error('채용정보를 불러오는데 실패했습니다.')
-      }
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : '채용정보를 불러오는데 실패했습니다.'
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  /** 채용 카드 팝업 열기 */
-  function openRecruitmentPopup(recruitment: RecruitmentCard) {
-    selectedRecruitment.value = recruitment
-  }
-
-  /** 채용 카드 팝업 닫기 */
-  function closeRecruitmentPopup() {
-    selectedRecruitment.value = null
-  }
-
   // ── 북마크 ────────────────────────────────────────────────────────────────
 
   /** 북마크 목록 로드 (로그인 상태에서만 호출) */
@@ -280,8 +245,6 @@ export function useEncyclopedia() {
     activeTab,
     reviews,
     preparations,
-    recruitments,
-    selectedRecruitment,
     isLoading,
     error,
 
@@ -297,9 +260,6 @@ export function useEncyclopedia() {
     // 탭별
     loadReviews,
     loadPreparations,
-    loadRecruitments,
-    openRecruitmentPopup,
-    closeRecruitmentPopup,
 
     // 북마크
     bookmarkedJobCodes,

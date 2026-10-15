@@ -196,19 +196,41 @@ export interface JobPreparationResponse {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// 채용 (추후 API 연동 시 스펙에 맞게 수정)
+// 채용 — GET /api/job/:jobCode/recruitment
+// 출처(고용24·추후 사람인/잡코리아)를 서버가 같은 모양으로 맞춰 준다. 화면은 source 를 몰라도 그린다
 // ────────────────────────────────────────────────────────────────────────────
 
-export interface RecruitmentCard {
-  recruitmentId: string
-  companyName: string
-  position: string
-  deadline: string
+export interface RecruitmentPosting {
+  id: string              // '<source>:<공고번호>'
+  source: string          // 'work24' | 'saramin' | 'jobkorea' ...
+  sourceName: string      // '고용24'
+  title: string
+  company: string
+  region: string
+  salary: string
+  career: string
+  education: string
+  employmentType: string
+  postedAt: string        // YYYY-MM-DD
+  deadline: { date: string | null; untilFilled: boolean; label: string }
+  url: string
+  mobileUrl: string
+}
+
+export interface RecruitmentSource {
+  id: string
+  name: string
+  ok: boolean
+  total: number           // 출처 전체 공고 수(우리가 보여주는 건 일부)
+  count: number
+  moreUrl: string | null  // 출처 사이트에서 더 보기
+  skipped?: string        // 이 직업은 이 출처와 연결할 수 없음
+  error?: string
 }
 
 export interface JobRecruitmentResponse {
   success: boolean
-  data: RecruitmentCard[]
+  data: { postings: RecruitmentPosting[]; sources: RecruitmentSource[]; cached: boolean }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
