@@ -159,9 +159,16 @@ export interface JobReview {
   recommendation: string
   personalityTags: T1GroupCode[]
   status: 'pending' | 'approved' | 'rejected'
-  submittedBy: 'user' | 'admin'
-  submitterEmail: string
-  adminNote: string
+  // 'research' = 랜딩 연구 설문의 현직자 후기(2026-10-15~)
+  submittedBy: 'user' | 'admin' | 'research'
+  // 공개 응답엔 오지 않는다(API 가 뺀다) — 타입 호환용으로 선택 처리
+  submitterEmail?: string
+  adminNote?: string
+  /** 경력 연차 — 연구 설문 후기에만 있다 */
+  careerYears?: 'lt1' | '1to3' | '3to5' | '5to10' | 'gte10'
+  /** 선택 서술 — 비어 있을 수 있다 */
+  preparation?: string
+  dailyLife?: string
   createdAt: string
   updatedAt: string
 }
