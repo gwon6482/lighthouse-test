@@ -289,12 +289,15 @@
             v-for="(job, idx) in compJobs"
             :key="job.jobCode"
             class="comp-card"
-            @click="$emit('job-click', job.jobCode)"
+            @click="openJob(job)"
           >
             <div class="comp-rank" :class="`comp-rank--${idx + 1}`">{{ idx + 1 }}</div>
             <div class="comp-body">
               <div class="comp-top">
                 <span class="comp-title">{{ job.title }}</span>
+                <!-- 묶음 직업: 고용24가 여러 직업을 한 직업으로 묶어 조사해 점수가 같은 경우
+                     추천이 한 자리로 접힌다. 탭하면 세부 직업을 고르게 한다. -->
+                <span v-if="(job.members?.length ?? 1) > 1" class="comp-group">유사 {{ job.members!.length }}개</span>
                 <span class="comp-total-score">{{ Math.round(job.match_score * 100) }}%</span>
               </div>
               <p class="comp-class">
@@ -351,6 +354,14 @@
       <!-- 하단 액션(래퍼가 주입): 일반=CTA / 온보딩=다음으로 -->
       <slot />
     </template>
+
+    <!-- 묶음 직업 선택 -->
+    <JobGroupPicker
+      v-model="pickerOpen"
+      :group-title="pickerTitle"
+      :members="pickerMembers"
+      @select="(code) => emit('job-click', code)"
+    />
   </div>
 </template>
 
@@ -370,9 +381,29 @@ import type {
   ComprehensiveRecommendJob,
 } from '../types/survey'
 import PersonalityDistribution from './PersonalityDistribution.vue'
+import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
 
 const props = defineProps<{ surveyId: string }>()
-defineEmits<{ (e: 'job-click', jobCode: string): void }>()
+const emit = defineEmits<{ (e: 'job-click', jobCode: string): void }>()
+
+// ── 묶음 직업 ─────────────────────────────────────────────────────────────
+// 고용24가 여러 직업을 한 직업으로 묶어 조사한 경우(전문의 13종 등) 구성원 점수가 완전히 같아서
+// 서버가 추천을 한 자리로 접어 보낸다(`title` = 그룹명, `members` = 세부 직업).
+// 바로 jobCode 를 올리면 **누른 이름과 열린 모달 제목이 달라지므로** 여기서 고르게 한다.
+// 부모는 최종 선택된 jobCode 만 받으므로 바뀔 필요가 없다.
+const pickerOpen = ref(false)
+const pickerTitle = ref('')
+const pickerMembers = ref<{ jobCode: string; title: string }[]>([])
+
+function openJob(job: ComprehensiveRecommendJob) {
+  if ((job.members?.length ?? 1) > 1) {
+    pickerTitle.value = job.title
+    pickerMembers.value = job.members ?? []
+    pickerOpen.value = true
+    return
+  }
+  emit('job-click', job.jobCode)
+}
 
 const T1_DEFINITIONS: Record<string, string> = {
   E: '외부 세계와의 상호작용에서 활력과 긍정적인 감정을 얻는 경향',

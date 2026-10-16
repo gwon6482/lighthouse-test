@@ -3,9 +3,13 @@
 
     <!-- 상위 직업군 데이터 안내.
          work24-shared = 고용24가 이 직업을 상위 직업으로 통합해 둔 경우(예: 전문의 13종 → '전문의사').
-         표시하지 않으면 "소아과와 성형외과 임금이 왜 같지?" 를 오류로 오해한다. -->
-    <p v-if="job.dataSource === 'work24-shared' && job.work24?.jobNm" class="overview-notice">
-      아래 정보는 <strong>{{ job.work24.jobNm }}</strong> 기준이에요.
+         표시하지 않으면 "소아과와 성형외과 임금이 왜 같지?" 를 오류로 오해한다.
+
+         ⚠️ jobNm 이 이 직업 이름과 같으면 안내할 게 없다. 그런데도 dataSource 는
+            work24-shared 인 경우가 있다(간호사·항공기조종사 등 6건). 그때 이 문구를 띄우면
+            "아래 정보는 **간호사** 기준이에요" 가 되어 아무 말도 아니게 된다. -->
+    <p v-if="showSharedNotice" class="overview-notice">
+      아래 정보는 <strong>{{ job.work24?.jobNm }}</strong> 기준이에요.
       비슷한 직업을 묶어 조사한 자료라 세부 직업별로 다를 수 있어요.
     </p>
 
@@ -105,8 +109,21 @@
               이 직업에서 특히 중요해요
             </p>
             <ul class="pf-chips">
-              <li v-for="item in cat.within" :key="item.name" class="pf-chip pf-chip--within">{{ item.name }}</li>
+              <li v-for="item in cat.within" :key="item.code">
+                <button
+                  type="button"
+                  class="pf-chip pf-chip--within"
+                  :class="{ 'pf-chip--open': openCode === item.code }"
+                  :aria-expanded="openCode === item.code"
+                  @click="toggleDef(item.code)"
+                >
+                  {{ item.name }}
+                  <span v-if="definitionOf(item.code)" class="pf-chip__more" aria-hidden="true">?</span>
+                </button>
+              </li>
             </ul>
+            <!-- 항목 설명. 칩을 누르면 펼쳐진다. 설명이 없으면 칩이 눌리지 않는다. -->
+            <p v-if="openDefFor(cat.within)" class="pf-def">{{ openDefFor(cat.within) }}</p>
           </div>
 
           <!-- 직업 간 (토글 시 노출, 상위 3개) -->
@@ -122,8 +139,20 @@
               다른 직업과 뚜렷이 구별돼요
             </p>
             <ul class="pf-chips">
-              <li v-for="item in cat.between" :key="item.name" class="pf-chip pf-chip--between">{{ item.name }}</li>
+              <li v-for="item in cat.between" :key="item.code">
+                <button
+                  type="button"
+                  class="pf-chip pf-chip--between"
+                  :class="{ 'pf-chip--open': openCode === item.code }"
+                  :aria-expanded="openCode === item.code"
+                  @click="toggleDef(item.code)"
+                >
+                  {{ item.name }}
+                  <span v-if="definitionOf(item.code)" class="pf-chip__more" aria-hidden="true">?</span>
+                </button>
+              </li>
             </ul>
+            <p v-if="openDefFor(cat.between)" class="pf-def">{{ openDefFor(cat.between) }}</p>
           </div>
         </article>
       </div>
@@ -214,8 +243,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref, onMounted } from 'vue'
 import type { Job, JobDetails, CategoryRankings, RankItem } from '../../../../types/encyclopedia'
+
+import { useCareerAttributes } from '@/shared/composables/useCareerAttributes'
 
 const props = defineProps<{ job: Job }>()
 
@@ -259,6 +290,15 @@ const hasEducationInfo = computed(() =>
     || props.job.relatedCertifications?.length),
 )
 
+// 상위 직업군 안내를 띄울지. 대표 직업명이 **이 직업 이름과 다를 때만** 의미가 있다.
+// ⚠️ `dataSource === 'work24-shared'` 만으로 판정하면 안 된다 — jobNm 이 자기 이름과
+//    같은 직업이 6건 있어서(간호사·항공기조종사·회계사무원 등) "아래 정보는 간호사
+//    기준이에요" 라는 빈 문장이 뜬다.
+const showSharedNotice = computed(() => {
+  const nm = props.job.work24?.jobNm
+  return props.job.dataSource === 'work24-shared' && !!nm && nm !== props.job.title
+})
+
 // 임금·전망 모두 같은 조사년도를 쓴다. 어느 쪽이든 있으면 표시한다.
 const prospectYear = computed(() =>
   props.job.work24?.prospect?.distribution?.find(b => b.year)?.year
@@ -271,6 +311,30 @@ function prospectToneOf(name: string): string {
   if (name.includes('증가')) return 'overview-prospect__bar-fill--up'
   if (name.includes('감소')) return 'overview-prospect__bar-fill--down'
   return ''
+}
+
+// ── 항목 설명문 ───────────────────────────────────────────────────────────
+// 칩을 누르면 그 항목의 설명이 아래에 펼쳐진다. 한 번에 하나만 열린다.
+//
+// ⚠️ 설명문은 직업 상세 응답에 **없다**(code·name 만 온다). 직업과 무관한 마스터
+//    데이터(202건)라 `useCareerAttributes` 가 따로 한 번 받아 캐시한다.
+// ⚠️ 설명이 없는 항목은 **눌려도 아무 일이 없다** — 그래서 `?` 표시도 안 붙인다.
+//    로드 실패 시에도 화면은 그대로 동작해야 하므로 '설명 없음' 같은 문구를 띄우지 않는다.
+const { load: loadAttrs, definitionOf } = useCareerAttributes()
+const openCode = ref<string | null>(null)
+
+onMounted(loadAttrs)
+
+function toggleDef(code: string) {
+  if (!definitionOf(code)) return
+  openCode.value = openCode.value === code ? null : code
+}
+
+// 이 블록(직업내/직업간) 안에 열린 항목이 있을 때만 설명을 그린다.
+// 같은 코드가 두 블록에 동시에 있을 수 있어서 블록별로 판정한다.
+function openDefFor(items: { code: string }[]): string | null {
+  if (!openCode.value) return null
+  return items.some(i => i.code === openCode.value) ? definitionOf(openCode.value) : null
 }
 
 function cardsFor(section: { keys: FactorKey[] }): FactorCard[] {

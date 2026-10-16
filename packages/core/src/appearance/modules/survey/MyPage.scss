@@ -355,3 +355,24 @@
     &:active { color: #CF1322; }
   }
 }
+
+/* 계정 영역 — 탈퇴는 되돌릴 수 없으므로 **약하게** 강조한다.
+   빨간 버튼으로 눈에 띄게 만들면 오조작을 유도한다. 실제 경고는 확인 시트가 한다. */
+.mypage__danger-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: #c0392b;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.mypage__danger-note {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #8a8f98;
+}

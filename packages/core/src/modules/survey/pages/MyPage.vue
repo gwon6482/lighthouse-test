@@ -128,7 +128,21 @@
         </div>
       </section>
 
+      <!-- 계정. 🚨 탈퇴는 **되돌릴 수 없다** — 맨 아래에 두고 약하게 강조한다.
+           개인정보처리방침에 '파기'를 명시했으므로 앱에서 탈퇴할 길이 있어야 한다. -->
+      <section class="mypage__section">
+        <h2 class="mypage__section-title">계정</h2>
+        <button type="button" class="mypage__danger-link" @click="showDelete = true">
+          회원 탈퇴
+        </button>
+        <p class="mypage__danger-note">
+          탈퇴하면 검사 결과와 진로 기록이 모두 삭제되고 되돌릴 수 없어요.
+        </p>
+      </section>
+
     </div>
+
+    <AccountDeleteSheet v-model="showDelete" @deleted="onDeleted" />
   </div>
 </template>
 
@@ -139,11 +153,25 @@ import { safeBack } from '@/shared/utils/navigation'
 import { useAuthStore } from '@/shared/stores/auth'
 import { req } from '@/shared/api'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
+import AccountDeleteSheet from '../components/AccountDeleteSheet.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const { fetchMyPlans } = useCareerDesign()
 const user = computed(() => authStore.user)
+
+// ── 회원 탈퇴 ─────────────────────────────────────────────────────────────
+// 🚨 되돌릴 수 없다. 확인 절차는 AccountDeleteSheet 가 담당한다('삭제' 타이핑).
+const showDelete = ref(false)
+
+// 서버에서 계정이 지워진 뒤에만 불린다. 이제 토큰이 가리키는 계정이 없으므로
+// **반드시 로컬 인증을 정리**하고 앱 밖으로 내보낸다.
+// ⚠️ `router.push` 가 아니라 `replace` 다 — 뒤로가기로 지워진 계정 화면에 돌아오면 안 된다.
+function onDeleted() {
+  showDelete.value = false
+  authStore.logout()
+  router.replace('/onboarding')
+}
 
 const avatarLetter = computed(() => {
   const src = user.value?.name ?? user.value?.email ?? '?'

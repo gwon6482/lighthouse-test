@@ -2,8 +2,14 @@
   <div class="prep-tab">
     <section class="prep-section">
       <div class="prep-section__head">
-        <h3 class="prep-section__title">현직자들의 준비과정 ({{ journeys.length }})</h3>
-        <p class="prep-section__desc">이 직업에 도달한 사람들이 쌓아온 준비과정과 루틴이에요.</p>
+        <h3 class="prep-section__title">
+          준비과정 예시 ({{ journeys.length }})
+          <span class="prep-section__badge">예시</span>
+        </h3>
+        <p class="prep-section__desc">
+          이 직업에 도달하는 준비과정을 이해하기 쉽게 구성한 <strong>예시</strong>예요.
+          실제 인물의 사례가 아니며, 실제 경로는 사람마다 다를 수 있어요.
+        </p>
       </div>
 
       <div v-if="journeys.length === 0" class="prep-empty">
@@ -18,7 +24,7 @@
               <span class="prep-card__avatar">🧑</span>
               <div class="prep-card__who">
                 <span class="prep-card__author">{{ journey.author }}</span>
-                <span class="prep-card__role">現 {{ journey.role }}</span>
+                <span class="prep-card__role">{{ journey.role }}</span>
               </div>
             </div>
             <span class="prep-card__years">{{ journey.years }}년 준비</span>
@@ -77,7 +83,17 @@ import type { ProjectCategory } from '@/modules/career-design/types/career-desig
 
 const props = defineProps<{ jobCode: string }>()
 
-/** 한 직업인의 준비 여정 (백엔드 준비 전 하드코딩). jobCode 별로 분리 */
+/**
+ * 한 직업인의 준비 여정 (백엔드 준비 전 하드코딩). jobCode 별로 분리.
+ *
+ * ⚠️ **실제 인물이 아니라 구성한 예시다.** 화면에도 그렇게 표시해야 한다.
+ *    2026-09-28 이전에는 "현직자들의 준비과정" 이라는 제목에 `現 세종문화회관 공연기획 팀장`
+ *    처럼 **실명 기관**이 붙어 있어서, 사용자가 실제 사례로 믿고 진로를 정할 수 있었다.
+ *    기관 입장에서도 곤란하다. → 제목을 '준비과정 예시' 로 바꾸고 기관명을 업계 표기로 일반화했다.
+ *
+ * ⚠️ 실제 인터뷰 데이터로 교체할 때는 **표시 문구도 같이 되돌려야 한다.**
+ *    예시 배지를 단 채 실제 사례를 보여주면 반대로 신뢰를 잃는다.
+ */
 interface JourneyItem {
   category: ProjectCategory
   name: string
@@ -110,7 +126,7 @@ const SAMPLE_JOURNEYS_BY_JOB: Record<string, PreparationJourney[]> = {
     {
       id: 'j1',
       author: '김서연',
-      role: '세종문화회관 공연기획 팀장',
+      role: '공연장 공연기획 팀장',
       years: 3,
       headline: '무대 뒤 잡일부터 시작했어요. 공연은 결국 사람이랑 예산 싸움이더라고요.',
       projects: [
@@ -130,7 +146,7 @@ const SAMPLE_JOURNEYS_BY_JOB: Record<string, PreparationJourney[]> = {
     {
       id: 'j2',
       author: '이도현',
-      role: 'CJ ENM 방송제작 운영 매니저',
+      role: '방송제작사 운영 매니저',
       years: 4,
       headline: 'PD만 꿈꿨는데, 판을 굴러가게 하는 건 결국 운영이더라고요.',
       projects: [
@@ -151,7 +167,7 @@ const SAMPLE_JOURNEYS_BY_JOB: Record<string, PreparationJourney[]> = {
     {
       id: 'j3',
       author: '박민정',
-      role: '국립현대미술관 전시운영 파트장',
+      role: '미술관 전시운영 파트장',
       years: 5,
       headline: '도슨트로 3년, 관람객 동선 하나에도 기획이 숨어있다는 걸 배웠어요.',
       projects: [
