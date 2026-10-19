@@ -40,7 +40,7 @@
             <span class="sq5-dot sq5-dot--5" />
           </div>
           <div class="sq5-labels">
-            <span>매우 아니다</span>
+            <span>전혀 그렇지 않다</span>
             <span>매우 그렇다</span>
           </div>
         </div>

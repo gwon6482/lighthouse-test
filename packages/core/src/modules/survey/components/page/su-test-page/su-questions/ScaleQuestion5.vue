@@ -21,7 +21,7 @@
  * ScaleQuestion5 컴포넌트
  *
  * 설문 조사의 척도형 질문을 렌더링하는 컴포넌트
- * - 5지선다 (매우 아니다 ~ 매우 그렇다)
+ * - 5지선다 (전혀 그렇지 않다 ~ 매우 그렇다)
  *
  * 사용처: T1(성격), T21(재능) 파트
  */
@@ -39,8 +39,8 @@ const emit = defineEmits<{
 
 // 스케일 타입에 따른 옵션 생성
 const options = [
-  { value: 'A', label: '매우 아니다', colorClass: 'btn-bad' },
-  { value: 'B', label: '아니다', colorClass: 'btn-bad2' },
+  { value: 'A', label: '전혀 그렇지 않다', colorClass: 'btn-bad' },
+  { value: 'B', label: '그렇지 않다', colorClass: 'btn-bad2' },
   { value: 'C', label: '보통', colorClass: 'btn-mid' },
   { value: 'D', label: '그렇다', colorClass: 'btn-good2' },
   { value: 'E', label: '매우 그렇다', colorClass: 'btn-good' },
