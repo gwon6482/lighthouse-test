@@ -92,3 +92,22 @@ export interface DraftPlan {
   reviewDay: DayOfWeek | ''  // 주간리뷰 요일. 일주일의 끝이자 시작. 미설정이면 ''
   timeline: TimelineMonth[]
 }
+
+// ── 진로 설계 도우미(베타) — 채용공고·직업정보 근거로 만든 프로젝트 예시 ──
+export interface HelperExample {
+  id: string
+  name: string
+  goal: string
+  level: '입문' | '중급'
+  daysPerWeek: number
+  minutesPerSession: number
+  basis: string            // 근거 한 줄(예: "회계사무원 공고 97건 중 23%가 전산세무2급을 요구")
+  curriculum: WeekCurriculum[]
+}
+
+export interface HelperJobExamples {
+  jobCode: string
+  title: string
+  posts: number            // 분석한 채용공고 수
+  examples: Record<ProjectCategory, HelperExample[]>
+}
