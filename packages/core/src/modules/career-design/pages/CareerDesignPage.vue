@@ -364,6 +364,8 @@ function closePopup() {
 
 function goToEncyclopedia() {
   closePopup()
+  // 직업 상세에서 '목표진로로 변경하기' 후 이 화면으로 돌아오게(2026-10-20 핫픽스)
+  sessionStorage.setItem('lh_target_return', '/career-design')
   router.push('/career-encyclopedia')
 }
 
@@ -388,6 +390,8 @@ watch(popupMode, async (mode) => {
 })
 
 onMounted(() => {
+  // 진로백과에 갔다가 바꾸지 않고 돌아온 경우 복귀 표시를 지운다(남아 있으면 나중에 다른 곳에서 설정할 때 여기로 끌려온다)
+  if (sessionStorage.getItem('lh_target_return') === '/career-design') sessionStorage.removeItem('lh_target_return')
   loadTargetCareer()
   runTyping()
 })
