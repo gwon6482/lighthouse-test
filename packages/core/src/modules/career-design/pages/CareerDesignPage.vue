@@ -180,8 +180,8 @@
 
     <!-- 하단 버튼 -->
     <div class="cd-main__footer">
-      <button class="cd-main__cta" @click="startPlan">진로계획 시작하기</button>
-      <button class="cd-main__cta-secondary" @click="goToExplore">진로계획 탐색하기</button>
+      <button class="cd-main__cta" @click="openStartPopup">진로계획 세우기</button>
+      <!-- [진로계획 탐색하기]는 내렸다(2026-10-20 사용자: 데이터가 모이면 다시 만든다). 페이지(/career-design/explore)는 남겨 둠 -->
     </div>
 
     <!-- 목표 진로 설정 팝업 -->
@@ -192,8 +192,35 @@
             <div v-if="popupOpen" class="cd-popup">
               <div class="cd-popup__handle" />
 
+              <!-- 진로계획 세우기: 시작 방법 선택 -->
+              <template v-if="popupMode === 'start'">
+                <div class="cd-popup__header">
+                  <p class="cd-popup__title">진로계획 세우기</p>
+                  <button class="cd-popup__close" @click="closePopup">✕</button>
+                </div>
+                <p class="cd-popup__desc">어떻게 시작할까요?</p>
+                <div class="cd-popup__options">
+                  <button class="cd-popup__option" @click="startPlan">
+                    <span class="cd-popup__option-icon">✏️</span>
+                    <div class="cd-popup__option-text">
+                      <strong>직접 설계하기</strong>
+                      <span>빈 계획에서 프로젝트를 하나씩 만들어요</span>
+                    </div>
+                    <span class="cd-popup__option-arrow">›</span>
+                  </button>
+                  <button class="cd-popup__option" @click="goToTemplates">
+                    <span class="cd-popup__option-icon">📋</span>
+                    <div class="cd-popup__option-text">
+                      <strong>템플릿에서 수정하기 <em class="cd-popup__beta">BETA</em></strong>
+                      <span>라이트하우스가 미리 설계한 진로계획을 내게 맞게 고쳐요</span>
+                    </div>
+                    <span class="cd-popup__option-arrow">›</span>
+                  </button>
+                </div>
+              </template>
+
               <!-- 모드 선택 -->
-              <template v-if="popupMode === 'choose'">
+              <template v-else-if="popupMode === 'choose'">
                 <div class="cd-popup__header">
                   <p class="cd-popup__title">목표 진로 설정</p>
                   <button class="cd-popup__close" @click="closePopup">✕</button>
@@ -321,6 +348,7 @@ function runTyping() {
 }
 
 function startPlan() {
+  closePopup()
   resetDraftPlan()
   if (targetCareer.value) {
     draftPlan.targetJob = targetCareer.value.title ?? targetCareer.value.ref
@@ -328,8 +356,16 @@ function startPlan() {
   router.push('/career-design/plan/new')
 }
 
-function goToExplore() {
-  router.push('/career-design/explore')
+// [진로계획 세우기] → 시작 방법 선택(직접 설계 / 템플릿에서 수정)
+function openStartPopup() {
+  popupMode.value = 'start'
+  popupOpen.value = true
+}
+
+// 템플릿에서 수정하기(베타) — 목표 진로에 맞는 미리 설계된 계획을 고른다
+function goToTemplates() {
+  closePopup()
+  router.push('/career-design/templates')
 }
 
 // ── 목표 진로 ──
@@ -348,7 +384,7 @@ async function loadTargetCareer() {
 
 // ── 팝업 ──
 const popupOpen = ref(false)
-const popupMode = ref<'choose' | 'manual'>('choose')
+const popupMode = ref<'start' | 'choose' | 'manual'>('choose')
 const manualInput = ref('')
 const manualInputRef = ref<HTMLInputElement | null>(null)
 
@@ -1073,4 +1109,16 @@ onUnmounted(() => {
 .popup-slide-leave-active { transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1); }
 .popup-slide-enter-from,
 .popup-slide-leave-to     { transform: translateY(100%); }
+
+.cd-popup__beta {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  background: #222;
+  border-radius: 5px;
+  padding: 1px 5px;
+  margin-left: 4px;
+  vertical-align: 2px;
+}
 </style>

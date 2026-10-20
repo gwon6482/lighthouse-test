@@ -10,6 +10,12 @@ export default [
     component: () => import('./pages/CareerDesignExplorePage.vue'),
   },
   {
+    // 템플릿에서 수정하기(베타) — 라이트하우스가 미리 설계한 진로계획을 골라 고친다
+    path: '/career-design/templates',
+    name: 'Career Design Templates',
+    component: () => import('./pages/CareerDesignTemplatesPage.vue'),
+  },
+  {
     path: '/career-design/plan/new',
     name: 'Career Design Plan Write',
     component: () => import('./pages/CareerDesignPlanWritePage.vue'),
