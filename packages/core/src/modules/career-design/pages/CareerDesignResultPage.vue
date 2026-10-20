@@ -1,6 +1,6 @@
 <template>
   <div class="cd-result">
-    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" back-to="/career-design/plan/review-day" />
+    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" back-to="/career-design/plan/new" />
 
     <div class="cd-result__body">
       <!-- 완성 축하 -->

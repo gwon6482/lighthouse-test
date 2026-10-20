@@ -184,3 +184,22 @@ export function projectWeekIndexOn(
   if (planWeek === null || planWeek < startWeek) return null
   return planWeek - startWeek + 1
 }
+
+// ── 목표 설정이 맨 끝으로 간 뒤(2026-10-20 사용자: "프로젝트를 배치하지도 않았는데 종료일을 설정하는 게 큰 의미가 없다") ──
+// 타임라인 배치 때는 아직 종료일이 없다 → 임시 범위를 보여준다.
+//   담은 프로젝트 기간을 모두 이어 붙여도 들어갈 만큼(최소 12주, 최대 104주 = 2년)
+export const PROVISIONAL_MIN_WEEKS = 12
+export const PROVISIONAL_MAX_WEEKS = 104
+export function provisionalWeekCount(projects: Pick<Project, 'weeks' | 'curriculum'>[]): number {
+  const sum = projects.reduce((n, p) => n + projectWeeks(p), 0)
+  return Math.min(PROVISIONAL_MAX_WEEKS, Math.max(PROVISIONAL_MIN_WEEKS, sum))
+}
+
+// 마지막 목표 설정에서 추천하는 종료일 = 배치한 프로젝트 중 가장 늦게 끝나는 주의 일요일. 배치가 없으면 ''
+export function suggestedEndDate(startDate: string, timeline: TimelineSlot[], projects?: Project[]): string {
+  let last = 0
+  for (const slot of timeline) {
+    for (const p of slot.projects) last = Math.max(last, projectEndWeek(slot.week, resolveProject(p, projects)))
+  }
+  return last ? (weekDateRange(startDate, last)?.end ?? '') : ''
+}

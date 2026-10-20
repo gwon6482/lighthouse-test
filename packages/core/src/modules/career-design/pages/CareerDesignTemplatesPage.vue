@@ -86,7 +86,8 @@ import { useRouter } from 'vue-router'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { HELPER_EXAMPLE_JOBS, findHelperExamples, findHelperExamplesByCode } from '../composables/useHelperExamples'
-import { buildPlanTemplates, addMonthsKey, type PlanTemplate } from '../composables/usePlanTemplates'
+import { buildPlanTemplates, type PlanTemplate } from '../composables/usePlanTemplates'
+import { toDateKey } from '../composables/usePlanTimeline'
 import { fetchTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import { getToday } from '@/shared/utils/dev-date'
 import type { ProjectCategory } from '../types/career-design'
@@ -134,22 +135,24 @@ const countOf = (t: PlanTemplate, c: ProjectCategory) => t.projects.filter((p) =
 function startManual() {
   resetDraftPlan()
   if (targetTitle.value) draftPlan.targetJob = targetTitle.value
-  router.push('/career-design/plan/new')
+  draftPlan.startDate = toDateKey(getToday())
+  router.push('/career-design/plan/projects')
 }
 
-// 템플릿으로 임시 계획을 채우고 '목표 설정'으로 — 이름·기간을 확인·수정한 뒤 직접 설계와 같은 흐름으로 이어진다
+// 템플릿으로 임시 계획을 채우고 프로젝트 구성으로 — 고친 뒤 타임라인·루틴을 거쳐 맨 끝 목표 설정에서 이름·기간을 정한다
 function startFrom(t: PlanTemplate) {
   resetDraftPlan()
   draftPlan.name = t.name
   draftPlan.targetJob = t.jobTitle
-  draftPlan.endDate = addMonthsKey(getToday(), t.months)
+  draftPlan.startDate = toDateKey(getToday())
+  // 종료일은 비워 둔다 — 맨 끝 목표 설정에서 타임라인 기준으로 추천한다(2026-10-20)
   draftPlan.projects = t.projects.map((p) => ({
     ...p,
     id: `${p.id}-${Math.random().toString(36).slice(2, 7)}`,
     days: [...p.days],
     curriculum: p.curriculum?.map((w) => ({ ...w, items: [...w.items] })) ?? [],
   }))
-  router.push('/career-design/plan/new')
+  router.push('/career-design/plan/projects')
 }
 </script>
 

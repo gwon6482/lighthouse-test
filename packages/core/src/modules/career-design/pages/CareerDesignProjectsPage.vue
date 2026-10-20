@@ -3,7 +3,7 @@
     <CdYellowHeader
       title="진로계획 구성하기"
       :subtitle="`${draftPlan.targetJob || '목표 직업'}을 위한 프로젝트를 추가해 보세요`"
-      back-to="/career-design/plan/new"
+      back-to="/career-design/templates"
     />
 
     <div class="cd-projects__body">
@@ -164,7 +164,7 @@ async function deleteProject(projectId: string) {
 }
 
 function goPrev() {
-  router.push('/career-design/plan/new')
+  router.push('/career-design/templates')
 }
 
 function goNext() {

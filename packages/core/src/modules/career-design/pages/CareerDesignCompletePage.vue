@@ -230,7 +230,7 @@ import { weekDescriptionOf } from '../composables/useProjectCurriculum'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { Project, ProjectCategory } from '../types/career-design'
 import {
-  planWeekCount, weekRangeLabel, projectWeeks, projectEndWeek, fitsInPlan,
+  planWeekCount, provisionalWeekCount, weekRangeLabel, projectWeeks, projectEndWeek, fitsInPlan,
   weekDateRange, monthWeekOf, monthWeekLabel, weeksInMonth, parseDateKey, resolveProject,
 } from '../composables/usePlanTimeline'
 
@@ -287,7 +287,10 @@ function chipStyle(project: Project) {
 
 // ── 주차 타임라인 ─────────────────────────────────
 // 슬롯은 시작주만 들고, 점유 구간은 project.weeks 에서 파생한다.
-const totalWeeks = computed(() => planWeekCount(draftPlan.startDate, draftPlan.endDate))
+// 목표 설정(종료일)이 맨 끝이라 여기서는 보통 종료일이 없다 → 담은 프로젝트가 다 들어갈 임시 범위
+const totalWeeks = computed(() => (draftPlan.endDate
+  ? planWeekCount(draftPlan.startDate, draftPlan.endDate)
+  : provisionalWeekCount(draftPlan.projects)))
 
 type BarPos = 'only' | 'start' | 'middle' | 'end'
 interface WeekRow {

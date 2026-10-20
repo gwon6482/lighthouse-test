@@ -2,9 +2,9 @@
   <div class="cd-plan-write">
     <!-- 헤더 -->
     <CdYellowHeader
-      title="진로계획 세우기"
-      :subtitle="`${draftPlan.targetJob || '목표 직업'}을 위한 프로젝트를 만들어 보세요`"
-      back-to="/career-design"
+      title="목표 설정"
+      subtitle="마지막으로 목표 직업·계획 이름·기간을 정해요"
+      back-to="/career-design/plan/review-day"
     />
 
     <div class="cd-plan-write__body">
@@ -48,6 +48,17 @@
           </div>
         </div>
 
+        <!-- 타임라인 기준 추천 종료일 — 배치한 프로젝트가 모두 끝나는 날 -->
+        <p v-if="suggestedEnd" class="cd-plan-write__suggest">
+          <template v-if="draftPlan.endDate === suggestedEnd">
+            타임라인에 배치한 프로젝트가 모두 끝나는 날({{ fmtDate(suggestedEnd) }})로 정했어요.
+          </template>
+          <template v-else>
+            타임라인 기준으로는 {{ fmtDate(suggestedEnd) }}에 모두 끝나요.
+            <button type="button" class="cd-plan-write__suggest-btn" @click="draftPlan.endDate = suggestedEnd">이 날짜로</button>
+          </template>
+        </p>
+
         <button class="cd-plan-write__duty-link" @click="router.push('/career-encyclopedia')">
           진로백과에서 진로정보 확인하기 →
         </button>
@@ -57,22 +68,28 @@
     <!-- 하단 버튼 -->
     <div class="cd-plan-write__footer">
       <button class="cd-plan-write__btn-secondary" @click="goPrev">이전으로</button>
-      <button class="cd-plan-write__btn-primary" :disabled="!canProceed" @click="goNext">다음으로</button>
+      <button class="cd-plan-write__btn-primary" :disabled="!canProceed || saving" @click="goNext">{{ saving ? '저장 중…' : '계획 완성하기' }}</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { useUnsavedGuard } from '@/shared/composables/useUnsavedGuard'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import CdDatePicker from '../components/CdDatePicker.vue'
 import { getToday } from '@/shared/utils/dev-date'
+import { suggestedEndDate } from '../composables/usePlanTimeline'
 
 const router = useRouter()
-const { draftPlan, syncPlanStep1 } = useCareerDesign()
+const { draftPlan, draftTimeline, finalizePlan } = useCareerDesign()
+
+// ⚠️ 2026-10-20 순서 변경: 목표 설정은 진로설계의 **맨 마지막** 단계다
+//   (진로계획 세우기 → 프로젝트 구성 → 타임라인 → 루틴 → 주간 리뷰 요일 → 목표 설정 → 계획 완성).
+//   사용자: "프로젝트를 배치하지도 않았는데 종료일을 설정하는 게 큰 의미가 없다"
+//   → 종료일은 타임라인에서 가장 늦게 끝나는 프로젝트 기준으로 추천하고, 완성하면서 서버에 한 번에 올린다(finalizePlan)
 
 // 시작일은 사용자 기준 "오늘"로 고정 (미래 시작일로 인한 빈 주간일정 방지).
 function toDateKey(d: Date): string {
@@ -82,6 +99,9 @@ function toDateKey(d: Date): string {
   return `${y}-${m}-${dd}`
 }
 const todayKey = computed(() => toDateKey(getToday()))
+const suggestedEnd = computed(() => suggestedEndDate(todayKey.value, draftTimeline.value, draftPlan.projects))
+const fmtDate = (k: string) => k.replace(/-/g, '.')
+const saving = ref(false)
 const endMin   = computed(() => draftPlan.startDate || todayKey.value)
 
 // 완료(종료)날짜를 지정해야 다음 단계로 진행 가능
@@ -93,9 +113,11 @@ const todayLabel = computed(() => {
   return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()} (${DOW[d.getDay()]})`
 })
 
-// 신규 계획 진입 시 시작일을 오늘로 고정
+// 시작일은 오늘로 고정. 타임라인 슬롯은 '몇 주차'로 저장돼 있어, 시작일이 바뀌어도 배치 순서·간격은 그대로다
 onMounted(() => {
   draftPlan.startDate = todayKey.value
+  // 종료일을 아직 안 정했으면 타임라인 기준 추천값으로 채운다(바꿀 수 있다)
+  if (!draftPlan.endDate && suggestedEnd.value) draftPlan.endDate = suggestedEnd.value
 })
 
 // 미저장 이탈 가드 (R2) — 개요 입력(이름/목표직업/기간) 변경 시 이탈 경고.
@@ -108,14 +130,16 @@ const { bypass } = useUnsavedGuard(() => JSON.stringify({
 }))
 
 function goPrev() {
-  router.push('/career-design')
+  router.push('/career-design/plan/review-day')
 }
 
 async function goNext() {
-  if (!canProceed.value) return
+  if (!canProceed.value || saving.value) return
+  saving.value = true
   bypass()
-  await syncPlanStep1()
-  router.push('/career-design/plan/projects')
+  await finalizePlan() // 비로그인이면 실패해도 로컬 임시 계획으로 결과 화면은 보인다(기존과 같음)
+  saving.value = false
+  router.push('/career-design/result')
 }
 </script>
 
@@ -392,5 +416,23 @@ async function goNext() {
       cursor: not-allowed;
     }
   }
+}
+
+.cd-plan-write__suggest {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #777;
+  line-height: 1.5;
+}
+.cd-plan-write__suggest-btn {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #B07D00;
+  background: #FFF6D6;
+  border: none;
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
 }
 </style>

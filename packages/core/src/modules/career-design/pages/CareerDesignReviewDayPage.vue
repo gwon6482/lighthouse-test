@@ -72,8 +72,8 @@ async function goNext() {
   if (!draftPlan.reviewDay) return
   saving.value = true
   try {
-    await syncPlanReviewDay()
-    router.push('/career-design/result')
+    await syncPlanReviewDay() // 계획 ID 가 생기기 전이면 서버로 안 간다 — 목표 설정에서 한꺼번에 올린다
+    router.push('/career-design/plan/new')
   } finally {
     saving.value = false
   }

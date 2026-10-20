@@ -65,10 +65,3 @@ export function buildPlanTemplates(job: HelperJobExamples): PlanTemplate[] {
     },
   ]
 }
-
-/** 오늘부터 N개월 뒤 날짜(YYYY-MM-DD) */
-export function addMonthsKey(from: Date, months: number): string {
-  const d = new Date(from)
-  d.setMonth(d.getMonth() + months)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
