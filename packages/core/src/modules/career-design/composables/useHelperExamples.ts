@@ -8,6 +8,13 @@ import type { DayOfWeek, HelperExample, HelperJobExamples, Project, ProjectCateg
 
 const norm = (s: string) => s.replace(/[\s·‧,]/g, '')
 
+/** 프로토타입: 예시가 있는 직업 목록(목표 직업이 여기 없을 때 골라 보기용) */
+export const HELPER_EXAMPLE_JOBS = HELPER_EXAMPLES_MOCK.map((j) => ({ jobCode: j.jobCode, title: j.title }))
+
+export function findHelperExamplesByCode(jobCode: string): HelperJobExamples | null {
+  return HELPER_EXAMPLES_MOCK.find((j) => j.jobCode === jobCode) ?? null
+}
+
 export function findHelperExamples(targetJob: string): HelperJobExamples | null {
   const q = norm(targetJob ?? '')
   if (!q) return null

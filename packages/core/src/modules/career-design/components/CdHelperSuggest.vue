@@ -1,14 +1,30 @@
 <template>
   <!-- 진로 설계 도우미(베타) — 목표 직업의 채용공고·직업정보 근거로 만든 프로젝트 예시. 예시가 없는 직업이면 아무것도 그리지 않는다 -->
-  <section v-if="job && items.length" class="cd-helper">
+  <!-- 🧪 프로토타입: 목표 직업에 예시가 없어도 영역을 보이고, 예시 직업을 골라 볼 수 있게 한다(PROTOTYPE=false 면 최종 동작 = 숨김) -->
+  <section v-if="PROTOTYPE || (job && items.length)" class="cd-helper">
     <div class="cd-helper__head">
       <div class="cd-helper__title-row">
         <span class="cd-helper__title">도우미 추천</span>
         <span class="cd-helper__beta">BETA</span>
       </div>
-      <p class="cd-helper__desc">
+      <p v-if="job" class="cd-helper__desc">
         {{ job.title }} 채용공고 {{ job.posts }}건을 분석해 만든 {{ categoryLabel }} 예시예요. 담은 뒤 자유롭게 고칠 수 있어요.
       </p>
+      <p v-else class="cd-helper__desc">
+        <template v-if="draftPlan.targetJob">'{{ draftPlan.targetJob }}' 예시는 아직 준비 중이에요. </template>아래 직업을 골라 예시를 살펴보세요.
+      </p>
+    </div>
+
+    <!-- 예시 직업 고르기(프로토타입) — 목표 직업과 맞는 예시가 없을 때, 또는 다른 직업 예시를 둘러볼 때 -->
+    <div v-if="PROTOTYPE && (!matched || picked)" class="cd-helper__jobs">
+      <button
+        v-for="j in HELPER_EXAMPLE_JOBS"
+        :key="j.jobCode"
+        type="button"
+        class="cd-helper__job"
+        :class="{ 'cd-helper__job--on': job?.jobCode === j.jobCode }"
+        @click="picked = j.jobCode"
+      >{{ j.title }}</button>
     </div>
 
     <ul class="cd-helper__list">
@@ -83,7 +99,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useCareerDesign } from '../composables/useCareerDesign'
-import { findHelperExamples, helperExampleToProject } from '../composables/useHelperExamples'
+import { HELPER_EXAMPLE_JOBS, findHelperExamples, findHelperExamplesByCode, helperExampleToProject } from '../composables/useHelperExamples'
 import type { HelperExample, ProjectCategory } from '../types/career-design'
 
 const props = defineProps<{
@@ -101,7 +117,12 @@ const LABELS: Record<ProjectCategory, string> = {
 }
 const categoryLabel = computed(() => LABELS[props.category])
 
-const job = computed(() => findHelperExamples(draftPlan.targetJob))
+// 🧪 프로토타입 스위치 — true: 예시가 없어도 영역을 보이고 예시 직업을 고를 수 있다. 정식 출시 때 false(또는 제거)
+const PROTOTYPE = true
+
+const matched = computed(() => findHelperExamples(draftPlan.targetJob))
+const picked = ref<string | null>(null)
+const job = computed(() => (picked.value ? findHelperExamplesByCode(picked.value) : matched.value))
 const items = computed(() => job.value?.examples[props.category] ?? [])
 
 // 같은 이름의 프로젝트가 이미 계획에 있으면 '담음' — 템플릿 붙여넣기와 같은 기준
@@ -145,6 +166,21 @@ async function add(ex: HelperExample) {
     padding: 2px 6px;
   }
   &__desc { margin-top: 4px; font-size: 12px; color: #888; line-height: 1.5; }
+
+  &__jobs { display: flex; flex-wrap: wrap; gap: 6px; }
+  &__job {
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    background: #F2F2F2;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &--on { color: #fff; background: #222; }
+  }
 
   &__list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
 
