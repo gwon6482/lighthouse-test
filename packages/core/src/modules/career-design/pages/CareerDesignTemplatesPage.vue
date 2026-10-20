@@ -1,8 +1,8 @@
 <template>
   <div class="cd-tpl">
     <CdYellowHeader
-      title="템플릿에서 수정하기"
-      :subtitle="job ? `${job.title}을 위한 라이트하우스 진로계획` : '라이트하우스가 미리 설계한 진로계획'"
+      title="진로계획 세우기"
+      :subtitle="job ? `${job.title}을 위한 라이트하우스 진로계획` : '라이트하우스가 미리 설계한 진로계획에서 시작해요'"
       back-to="/career-design"
     />
 
@@ -66,6 +66,16 @@
           <button type="button" class="cd-tpl__start" @click="startFrom(t)">이 템플릿으로 시작하기</button>
         </div>
       </article>
+
+      <!-- 직접 설계하기 — 템플릿을 쓰지 않는 길. 직업·템플릿 유무와 상관없이 항상 맨 아래에 둔다 -->
+      <button type="button" class="cd-tpl__manual" @click="startManual">
+        <span class="cd-tpl__manual-icon">✏️</span>
+        <span class="cd-tpl__manual-text">
+          <strong>직접 설계하기</strong>
+          <span>템플릿 없이 빈 계획에서 프로젝트를 하나씩 만들어요</span>
+        </span>
+        <span class="cd-tpl__manual-arrow">›</span>
+      </button>
     </div>
   </div>
 </template>
@@ -119,6 +129,13 @@ function pickJob(code: string) {
 }
 
 const countOf = (t: PlanTemplate, c: ProjectCategory) => t.projects.filter((p) => p.category === c).length
+
+// 직접 설계하기 — 예전 진로설계 화면의 [진로계획 시작하기]와 같다(빈 계획 + 목표 진로를 직업 칸에)
+function startManual() {
+  resetDraftPlan()
+  if (targetTitle.value) draftPlan.targetJob = targetTitle.value
+  router.push('/career-design/plan/new')
+}
 
 // 템플릿으로 임시 계획을 채우고 '목표 설정'으로 — 이름·기간을 확인·수정한 뒤 직접 설계와 같은 흐름으로 이어진다
 function startFrom(t: PlanTemplate) {
@@ -192,6 +209,32 @@ function startFrom(t: PlanTemplate) {
   &__project { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; background: #FAFAFA; border-radius: 10px; }
   &__project-name { font-size: 14px; font-weight: 600; color: #333; }
   &__project-meta { font-size: 11px; color: #999; }
+
+  &__manual {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 20px;
+    background: #fff;
+    border: 1.5px dashed #D5D5D5;
+    border-radius: 16px;
+    text-align: left;
+    cursor: pointer;
+
+    &:active { background: #FAFAFA; }
+  }
+  &__manual-icon { font-size: 22px; flex-shrink: 0; }
+  &__manual-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+
+    strong { font-size: 15px; font-weight: 700; color: #222; }
+    span { font-size: 12px; color: #888; }
+  }
+  &__manual-arrow { font-size: 20px; color: #bbb; flex-shrink: 0; }
 
   &__start {
     margin-top: 4px;
