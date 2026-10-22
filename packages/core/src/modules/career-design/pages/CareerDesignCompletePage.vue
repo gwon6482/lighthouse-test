@@ -171,6 +171,13 @@
             </div>
             </template>
           </div>
+          <!-- 프로젝트를 골라 배치하려는 중에만 — 달력을 한 달씩 늘린다 -->
+          <button
+            v-if="selectedProject && canAddMonth"
+            type="button"
+            class="cd-complete__add-month"
+            @click="extraMonths++"
+          >+ 한 달 더</button>
         </template>
       </div>
     </div>
@@ -245,7 +252,7 @@ import type { Project, ProjectCategory } from '../types/career-design'
 import {
   planWeekCount, provisionalWeekCount, weekRangeLabel, projectWeeks, projectEndWeek, fitsInPlan,
   weekDateRange, monthWeekOf, monthWeekLabel, weeksInMonth, parseDateKey, resolveProject,
-  projectHoursPerWeek,
+  projectHoursPerWeek, lastWeekOfMonth, PROVISIONAL_MAX_WEEKS,
 } from '../composables/usePlanTimeline'
 import { DEFAULT_PACE_HOURS, buildTimeline, monthsLabel, paceOfHours } from '../composables/usePlanPace'
 
@@ -303,17 +310,21 @@ function chipStyle(project: Project) {
 // ── 주차 타임라인 ─────────────────────────────────
 // 슬롯은 시작주만 들고, 점유 구간은 project.weeks 에서 파생한다.
 // 목표 설정(종료일)이 맨 끝이라 여기서는 보통 종료일이 없다 → 담은 프로젝트가 다 들어갈 임시 범위
-// 이미 배치돼 있으면 '마지막 배치 주 + 여유 8주'까지만(끝에 빈 주가 수십 개 이어지지 않게, 직접 옮길 공간은 남김)
-const SLACK_WEEKS = 8
+// 이미 배치돼 있으면 '마지막 배치 주가 속한 달 끝'까지만 보여 준다(2026-10-22 사용자).
+// 더 뒤에 놓고 싶으면 프로젝트를 고른 상태에서 '+ 한 달 더'로 한 달씩 늘린다(extraMonths)
+const extraMonths = ref(0)
 const totalWeeks = computed(() => {
   if (draftPlan.endDate) return planWeekCount(draftPlan.startDate, draftPlan.endDate)
-  const all = provisionalWeekCount(draftPlan.projects)
   let last = 0
   for (const s of draftTimeline.value) {
     for (const p of s.projects) last = Math.max(last, projectEndWeek(s.week, resolveProject(p, draftPlan.projects)))
   }
-  return last ? Math.min(all, Math.max(last + SLACK_WEEKS, 12)) : all
+  if (!last) return provisionalWeekCount(draftPlan.projects)
+  let end = lastWeekOfMonth(draftPlan.startDate, last)
+  for (let i = 0; i < extraMonths.value; i++) end = lastWeekOfMonth(draftPlan.startDate, end + 1)
+  return Math.min(PROVISIONAL_MAX_WEEKS, end)
 })
+const canAddMonth = computed(() => !draftPlan.endDate && totalWeeks.value < PROVISIONAL_MAX_WEEKS)
 
 type BarPos = 'only' | 'start' | 'middle' | 'end'
 interface WeekRow {
@@ -1105,4 +1116,17 @@ function barStyle(bar: WeekBar) {
 }
 .cd-complete__week-hours { margin-left: auto; font-size: 11px; font-weight: 700; color: #999; white-space: nowrap; }
 .cd-complete__week-hours--over { color: #E5484D; }
+
+.cd-complete__add-month {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1.5px dashed #ccc;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  color: #777;
+  cursor: pointer;
+}
 </style>

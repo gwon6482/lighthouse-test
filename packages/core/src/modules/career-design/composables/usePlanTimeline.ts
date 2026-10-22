@@ -235,3 +235,16 @@ export function autoSchedule(projects: Project[], budgetHours: number): { week: 
   }
   return out
 }
+
+// 그 주차가 속한 달(월요일 기준)의 마지막 주차. 타임라인을 '마지막 배치 주가 속한 달 끝까지'만 보여 줄 때 쓴다
+export function lastWeekOfMonth(startDate: string, week: number): number {
+  const r = weekDateRange(startDate, week)
+  if (!r) return week
+  const m = monthWeekOf(parseDateKey(r.start)!).month
+  let w = week
+  for (;;) {
+    const next = weekDateRange(startDate, w + 1)
+    if (!next || monthWeekOf(parseDateKey(next.start)!).month !== m) return w
+    w++
+  }
+}
