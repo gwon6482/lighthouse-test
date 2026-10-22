@@ -5,12 +5,11 @@ export type DayOfWeek = '월' | '화' | '수' | '목' | '금' | '토' | '일'
 export interface WeekCurriculum {
   week: number
   title: string
-  // 그 주차의 설명 텍스트. 한 주 = 한 덩어리이므로 여러 항목으로 쪼개지 않는다(2026-08-27).
-  // 그 전에 저장된 데이터·템플릿에는 없으므로 optional.
-  description?: string
-  // 구 데이터 호환용. 2026-08-27 이전에는 주차 안에 항목을 여러 개 쌓는 방식이었다.
-  // 신규 작성은 description 만 쓰고, 읽을 때만 items 를 폴백으로 본다.
+  // 그 주차의 할 일 목록 — **표준**(2026-10-22 사용자 결정: 리스트).
+  //   주 N회 실행과 맞물려 회차마다 하나씩 해 나가고, 진로달성의 주차 진행바·주간 리뷰 이월이 항목 단위로 돈다.
   items: string[]
+  // 옛 형식. 2026-08-27 ~ 10-22 사이에는 '한 주 = 설명 글 한 덩어리'로 썼다. 읽을 때만 줄 단위로 나눠 항목처럼 쓴다.
+  description?: string
 }
 
 export interface Project {

@@ -71,7 +71,9 @@
                   <span class="cd-helper-sheet__week-badge" :style="{ background: colors.btn }">{{ w.week }}주차</span>
                   <span class="cd-helper-sheet__week-title">{{ w.title }}</span>
                 </div>
-                <p class="cd-helper-sheet__desc">{{ weekDescriptionOf(w) }}</p>
+                <ul class="cd-helper-sheet__items">
+                  <li v-for="(it, i) in weekEntriesOf(w)" :key="i">{{ it }}</li>
+                </ul>
               </div>
             </div>
 
@@ -97,7 +99,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useCareerDesign } from '../composables/useCareerDesign'
-import { weekDescriptionOf } from '../composables/useProjectCurriculum'
+import { weekEntriesOf } from '../composables/useProjectCurriculum'
 import { HELPER_EXAMPLE_JOBS, findHelperExamples, findHelperExamplesByCode, helperExampleToProject } from '../composables/useHelperExamples'
 import type { HelperExample, ProjectCategory } from '../types/career-design'
 
@@ -261,7 +263,16 @@ async function add(ex: HelperExample) {
   &__week-head { display: flex; align-items: center; gap: 8px; }
   &__week-badge { flex-shrink: 0; font-size: 11px; font-weight: 700; color: #fff; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
   &__week-title { font-size: 14px; font-weight: 600; color: #333; }
-  &__desc { margin-top: 6px; font-size: 13px; color: #666; line-height: 1.6; white-space: pre-line; }
+  &__items {
+    margin-top: 6px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 13px;
+    color: #666;
+    list-style: disc;
+  }
 
   &__footer { display: flex; gap: 10px; padding: 12px 20px 28px; border-top: 1px solid #f0f0f0; }
   &__btn-secondary {

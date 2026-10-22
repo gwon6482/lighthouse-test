@@ -202,7 +202,9 @@
                   >{{ week.week }}주차</span>
                   <span class="cd-proj-popup__week-title">{{ week.title }}</span>
                 </div>
-                <p v-if="weekDescriptionOf(week)" class="cd-proj-popup__desc">{{ weekDescriptionOf(week) }}</p>
+                <ul v-if="weekEntriesOf(week).length" class="cd-proj-popup__items">
+                  <li v-for="(item, i) in weekEntriesOf(week)" :key="i" class="cd-proj-popup__item">{{ item }}</li>
+                </ul>
               </div>
             </div>
           </div>
@@ -222,7 +224,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
-import { weekDescriptionOf } from '../composables/useProjectCurriculum'
+import { weekEntriesOf, weekDescriptionOf } from '../composables/useProjectCurriculum'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { Project, ProjectCategory } from '../types/career-design'
 import {
@@ -308,7 +310,7 @@ interface WeekBar {
 
 // 그 주차의 설명. 기본 제목("프로젝트명 - n주차")은 바로 옆 프로젝트명과 겹쳐 정보가 없으므로
 // 제목은 쓰지 않고, 사용자가 직접 적은 설명 텍스트만 보여준다.
-// (구 데이터는 items 를 줄바꿈으로 합쳐 설명처럼 취급 — weekDescriptionOf 참조)
+// (그 주 할 일을 ' · ' 로 이어 한 줄로 — 옛 설명 글도 줄 단위로 나눠 같은 모양)
 function barDetailOf(project: Project, curriculumWeek: number): BarDetail | null {
   const text = weekDescriptionOf(project.curriculum?.[curriculumWeek - 1]).replace(/\s*\n\s*/g, ' · ')
   return text ? { text } : null
@@ -1028,11 +1030,4 @@ function barStyle(bar: WeekBar) {
   &:hover { background: #fafafa; }
 }
 
-.cd-proj-popup__desc {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: #666;
-  line-height: 1.6;
-  white-space: pre-line;
-}
 </style>
