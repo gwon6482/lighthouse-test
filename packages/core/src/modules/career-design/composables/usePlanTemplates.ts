@@ -23,7 +23,6 @@ export interface PlanTemplate {
   stageLabel: string       // 비전공 / 전공 / 이직
   who: string              // 누구를 위한 단계인지
   months: number           // 약 N개월(두 프로젝트를 나란히 한다고 보고 계산)
-  summary: string
   note?: string            // 자격 요건 등 꼭 알아야 할 안내
   posts: number
   projects: Project[]      // 해 나갈 순서대로
@@ -76,9 +75,6 @@ export function buildPlanTemplates(job: HelperJobExamples): PlanTemplate[] {
       stageLabel: st.label,
       who: st.who,
       months: monthsOf(projects),
-      summary: !prev
-        ? `기초 지식부터 도구·자격·결과물까지 빠짐없이 담았어요. 프로젝트 ${projects.length}개를 순서대로 해 나가요.`
-        : `${prev.label} 플랜에서 ${st.key === 'major' ? '대학 전공에서 배우는' : '실무에서 이미 익혔을'} 것 ${dropped.length}개를 빼고 ${projects.length}개만 남겼어요.`,
       note: plan.notes?.[st.key],
       posts: job.posts,
       projects,

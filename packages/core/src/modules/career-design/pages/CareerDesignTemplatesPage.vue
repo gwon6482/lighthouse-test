@@ -54,7 +54,6 @@
         </button>
 
         <div v-if="openId === t.id" class="cd-tpl__detail">
-          <p class="cd-tpl__summary">{{ t.summary }}</p>
           <p v-if="t.note" class="cd-tpl__note">ⓘ {{ t.note }}</p>
 
           <!-- 해 나갈 순서대로 -->
@@ -240,8 +239,7 @@ function startFrom(t: PlanTemplate) {
   &__cat { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
   &__toggle { align-self: flex-end; font-size: 12px; font-weight: 600; color: #888; }
 
-  &__detail { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px; border-top: 1px solid #f2f2f2; }
-  &__summary { margin-top: 14px; font-size: 13px; color: #555; line-height: 1.55; }
+  &__detail { padding: 14px 20px 20px; display: flex; flex-direction: column; gap: 12px; border-top: 1px solid #f2f2f2; }
   &__note {
     font-size: 12px;
     color: #8A5A00;
