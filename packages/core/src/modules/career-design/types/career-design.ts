@@ -89,6 +89,7 @@ export interface DraftPlan {
   startDate: string
   endDate: string
   reviewDay: DayOfWeek | ''  // 주간리뷰 요일. 일주일의 끝이자 시작. 미설정이면 ''
+  weeklyHours?: number      // 타임라인 자동 배치 기준 '한 주에 쓸 수 있는 시간'(로컬 임시 계획에만, 서버 저장 안 함)
   timeline: TimelineMonth[]
 }
 

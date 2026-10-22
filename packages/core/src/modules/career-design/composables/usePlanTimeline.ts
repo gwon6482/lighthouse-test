@@ -203,3 +203,35 @@ export function suggestedEndDate(startDate: string, timeline: TimelineSlot[], pr
   }
   return last ? (weekDateRange(startDate, last)?.end ?? '') : ''
 }
+
+// ── 자동 배치(B안, 2026-10-22 사용자 선택): "한 주에 몇 시간 쓸 수 있어요?" ──
+// 프로젝트의 주당 시간 = 실행 요일 수 × 1회 시간
+export function projectHoursPerWeek(p: Pick<Project, 'days' | 'duration'>): number {
+  return ((p.days?.length ?? 0) * (p.duration ?? 0)) / 60
+}
+
+// 순서대로, 각 주의 시간 합이 예산을 넘지 않는 가장 이른 주에 놓는다. 앞 프로젝트보다 먼저 시작하지는 않는다(순서 유지).
+// 한 프로젝트만으로 예산을 넘으면 그 프로젝트는 혼자 있는 주에 놓는다(안 그러면 영원히 못 놓는다).
+// 반환: 시작 주차(1부터)
+export function autoSchedule(projects: Project[], budgetHours: number): { week: number; project: Project }[] {
+  const load: number[] = []
+  const out: { week: number; project: Project }[] = []
+  let floor = 0
+  for (const p of projects) {
+    const w = projectWeeks(p)
+    const h = projectHoursPerWeek(p)
+    let s = floor
+    for (;; s++) {
+      let ok = true
+      for (let k = 0; k < w; k++) {
+        const l = load[s + k] ?? 0
+        if (l > 0 && l + h > budgetHours) { ok = false; break }
+      }
+      if (ok) break
+    }
+    for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
+    out.push({ week: s + 1, project: p })
+    floor = s
+  }
+  return out
+}
