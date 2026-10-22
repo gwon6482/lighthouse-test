@@ -202,11 +202,7 @@
                   >{{ week.week }}주차</span>
                   <span class="cd-proj-popup__week-title">{{ week.title }}</span>
                 </div>
-                <ul v-if="week.items?.length" class="cd-proj-popup__items">
-                  <li v-for="(item, i) in week.items" :key="i" class="cd-proj-popup__item">
-                    {{ item }}
-                  </li>
-                </ul>
+                <p v-if="weekDescriptionOf(week)" class="cd-proj-popup__desc">{{ weekDescriptionOf(week) }}</p>
               </div>
             </div>
           </div>
@@ -1030,5 +1026,13 @@ function barStyle(bar: WeekBar) {
   transition: background 0.12s;
 
   &:hover { background: #fafafa; }
+}
+
+.cd-proj-popup__desc {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.6;
+  white-space: pre-line;
 }
 </style>

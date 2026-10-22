@@ -50,6 +50,7 @@ export function helperExampleToProject(ex: HelperExample, category: ProjectCateg
     level: ex.level,
     weeks: ex.curriculum.length,
     description: ex.basis,
-    curriculum: ex.curriculum.map((w) => ({ ...w, items: [...w.items] })),
+    // 커리큘럼 표준(주차별 설명 글)으로 담는다 — 예시 데이터의 항목 목록은 줄바꿈한 글로
+    curriculum: ex.curriculum.map((w) => ({ week: w.week, title: w.title, description: w.items.join('\n'), items: [] })),
   }
 }

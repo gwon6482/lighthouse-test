@@ -34,6 +34,7 @@
             class="cd-proj-curr__week-desc"
             placeholder="이 주차에 무엇을 할지 적어보세요"
             rows="2"
+            @input="autosize($event.target as HTMLTextAreaElement)"
           />
         </div>
       </div>
@@ -49,10 +50,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
-import { DEFAULT_WEEKS, defaultWeekTitle, syncCurriculumLength } from '../composables/useProjectCurriculum'
+import { DEFAULT_WEEKS, defaultWeekTitle, syncCurriculumLength, weekDescriptionOf } from '../composables/useProjectCurriculum'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { ProjectCategory, WeekCurriculum } from '../types/career-design'
 
@@ -90,8 +91,20 @@ onMounted(() => {
     draftProject.weeks ?? DEFAULT_WEEKS,
     draftProject.name,
   )
+  // 커리큘럼 표준은 '주차별 설명 글'(description)이다. 옛 형식(items 목록)만 있는 주차는 글로 바꿔 채워서
+  // 수정할 수 있게 한다 — 도우미·템플릿·예전 계획에서 담은 내용이 빈칸으로 보이던 문제(2026-10-22)
+  draftProject.curriculum = draftProject.curriculum.map((w) =>
+    w.description?.trim() ? w : { ...w, description: weekDescriptionOf(w) })
   baseline = JSON.stringify(draftProject.curriculum)
+  // 채워진 내용이 다 보이게 처음 높이를 맞춘다
+  nextTick(() => document.querySelectorAll<HTMLTextAreaElement>('.cd-proj-curr__week-desc').forEach(autosize))
 })
+
+// 입력칸 높이를 내용에 맞춘다(여러 줄 설명이 잘려 보이지 않게)
+function autosize(el: HTMLTextAreaElement) {
+  el.style.height = 'auto'
+  el.style.height = `${el.scrollHeight + 2}px`
+}
 
 // 미저장 이탈 가드 (R2). 단, 기간을 고치러 1단계로 돌아가는 건 정상 흐름이라 묻지 않는다.
 onBeforeRouteLeave((to) => {

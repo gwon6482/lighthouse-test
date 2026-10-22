@@ -41,9 +41,7 @@
           <div v-for="week in project.curriculum" :key="week.week" class="cd-proj-detail__week">
             <p class="cd-proj-detail__week-num">{{ week.week }}주차</p>
             <p class="cd-proj-detail__week-title">{{ week.title }}</p>
-            <ul class="cd-proj-detail__week-items">
-              <li v-for="item in week.items" :key="item">✓ {{ item }}</li>
-            </ul>
+            <p v-if="weekDescriptionOf(week)" class="cd-proj-detail__week-desc">{{ weekDescriptionOf(week) }}</p>
           </div>
         </div>
       </div>
@@ -73,6 +71,7 @@
 </template>
 
 <script setup lang="ts">
+import { weekDescriptionOf } from '../composables/useProjectCurriculum'
 import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { safeBack } from '@/shared/utils/navigation'
@@ -332,5 +331,12 @@ async function pasteToMyPlan() {
     font-size: 16px;
     color: #aaa;
   }
+}
+
+.cd-proj-detail__week-desc {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.6;
+  white-space: pre-line;
 }
 </style>
