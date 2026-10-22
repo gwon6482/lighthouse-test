@@ -26,7 +26,7 @@
       </section>
 
       <p v-if="job" class="cd-tpl__intro">
-        {{ job.title }} 채용공고 {{ job.posts }}건과 직업정보를 바탕으로 설계했어요. 고른 뒤 목표·기간·프로젝트를 자유롭게 고칠 수 있어요.
+        {{ job.title }} 채용공고 {{ job.posts }}건과 직업정보를 바탕으로 설계했어요. 지금 내 상황에 맞는 단계를 골라 시작하고, 프로젝트는 자유롭게 고칠 수 있어요.
       </p>
 
       <article
@@ -36,9 +36,12 @@
         :class="{ 'cd-tpl__card--open': openId === t.id }"
       >
         <button type="button" class="cd-tpl__card-head" @click="openId = openId === t.id ? null : t.id">
-          <span class="cd-tpl__badge">{{ t.level }}</span>
+          <span class="cd-tpl__badge-row">
+            <span class="cd-tpl__badge" :class="`cd-tpl__badge--${t.stage}`">{{ t.stageLabel }}</span>
+            <span class="cd-tpl__who">{{ t.who }}</span>
+          </span>
           <span class="cd-tpl__name">{{ t.name }}</span>
-          <span class="cd-tpl__meta">{{ t.months }}개월 · 프로젝트 {{ t.projects.length }}개</span>
+          <span class="cd-tpl__meta">약 {{ t.months }}개월 · 프로젝트 {{ t.projects.length }}개</span>
           <span class="cd-tpl__cats">
             <span
               v-for="c in CATS"
@@ -52,17 +55,35 @@
 
         <div v-if="openId === t.id" class="cd-tpl__detail">
           <p class="cd-tpl__summary">{{ t.summary }}</p>
-          <div v-for="c in CATS" :key="c.value" class="cd-tpl__group">
-            <template v-if="countOf(t, c.value)">
-              <p class="cd-tpl__group-title" :style="{ color: COLORS[c.value].text }">{{ c.label }}</p>
-              <ul class="cd-tpl__projects">
-                <li v-for="p in t.projects.filter((x) => x.category === c.value)" :key="p.id" class="cd-tpl__project">
-                  <span class="cd-tpl__project-name">{{ p.name }}</span>
-                  <span class="cd-tpl__project-meta">{{ p.curriculum?.length ?? 0 }}주 · {{ p.days.join('') }} · {{ p.duration }}분</span>
-                </li>
-              </ul>
-            </template>
+          <p v-if="t.note" class="cd-tpl__note">ⓘ {{ t.note }}</p>
+
+          <!-- 해 나갈 순서대로 -->
+          <ol class="cd-tpl__projects">
+            <li v-for="(p, i) in t.projects" :key="p.id" class="cd-tpl__project">
+              <span class="cd-tpl__project-no">{{ i + 1 }}</span>
+              <span class="cd-tpl__project-main">
+                <span class="cd-tpl__project-top">
+                  <span class="cd-tpl__project-cat" :style="{ background: COLORS[p.category].bg, color: COLORS[p.category].text }">{{ LABEL[p.category] }}</span>
+                  <span class="cd-tpl__project-meta">{{ p.curriculum?.length ?? 0 }}주 · 주 {{ p.days.length }}회 {{ p.duration }}분</span>
+                </span>
+                <span class="cd-tpl__project-name">{{ p.name }}</span>
+              </span>
+            </li>
+          </ol>
+
+          <!-- 앞 단계에서 뺀 것 — 왜 짧아졌는지 -->
+          <div v-if="t.dropped.length" class="cd-tpl__dropped">
+            <button type="button" class="cd-tpl__dropped-toggle" @click="toggleDropped(t.id)">
+              {{ droppedOpen[t.id] ? '▾' : '▸' }} {{ t.stage === 'major' ? '전공자라서 뺀 것' : '경력자라서 뺀 것' }} {{ t.dropped.length }}개
+            </button>
+            <ul v-if="droppedOpen[t.id]" class="cd-tpl__dropped-list">
+              <li v-for="d in t.dropped" :key="d.name" class="cd-tpl__dropped-item">
+                <span class="cd-tpl__dropped-name">{{ d.name }}</span>
+                <span class="cd-tpl__dropped-reason">{{ d.reason }}</span>
+              </li>
+            </ul>
           </div>
+
           <button type="button" class="cd-tpl__start" @click="startFrom(t)">이 템플릿으로 시작하기</button>
         </div>
       </article>
@@ -81,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import { useCareerDesign } from '../composables/useCareerDesign'
@@ -130,6 +151,9 @@ function pickJob(code: string) {
 }
 
 const countOf = (t: PlanTemplate, c: ProjectCategory) => t.projects.filter((p) => p.category === c).length
+const LABEL = Object.fromEntries(CATS.map((c) => [c.value, c.label])) as Record<ProjectCategory, string>
+const droppedOpen = reactive<Record<string, boolean>>({})
+const toggleDropped = (id: string) => { droppedOpen[id] = !droppedOpen[id] }
 
 // 직접 설계하기 — 예전 진로설계 화면의 [진로계획 시작하기]와 같다(빈 계획 + 목표 진로를 직업 칸에)
 function startManual() {
@@ -198,7 +222,18 @@ function startFrom(t: PlanTemplate) {
     text-align: left;
     cursor: pointer;
   }
-  &__badge { font-size: 11px; font-weight: 700; color: #B07D00; background: #FFF6D6; border-radius: 6px; padding: 3px 8px; }
+  &__badge-row { display: flex; align-items: center; gap: 8px; }
+  &__badge {
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 6px;
+    padding: 3px 8px;
+
+    &--nonmajor { color: #B07D00; background: #FFF6D6; }
+    &--major { color: #1D6FD8; background: #E8F1FE; }
+    &--career { color: #6B4FBB; background: #F0EBFA; }
+  }
+  &__who { font-size: 12px; color: #888; }
   &__name { font-size: 16px; font-weight: 700; color: #222; line-height: 1.35; }
   &__meta { font-size: 12px; color: #999; }
   &__cats { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
@@ -207,11 +242,58 @@ function startFrom(t: PlanTemplate) {
 
   &__detail { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px; border-top: 1px solid #f2f2f2; }
   &__summary { margin-top: 14px; font-size: 13px; color: #555; line-height: 1.55; }
-  &__group-title { font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+  &__note {
+    font-size: 12px;
+    color: #8A5A00;
+    background: #FFF8E6;
+    border-radius: 10px;
+    padding: 10px 12px;
+    line-height: 1.55;
+  }
   &__projects { list-style: none; display: flex; flex-direction: column; gap: 6px; }
-  &__project { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; background: #FAFAFA; border-radius: 10px; }
+  &__project { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: #FAFAFA; border-radius: 10px; }
+  &__project-no {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #222;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+  &__project-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  &__project-top { display: flex; align-items: center; gap: 6px; }
+  &__project-cat { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
   &__project-name { font-size: 14px; font-weight: 600; color: #333; }
   &__project-meta { font-size: 11px; color: #999; }
+
+  &__dropped { display: flex; flex-direction: column; gap: 8px; }
+  &__dropped-toggle {
+    align-self: flex-start;
+    font-size: 12px;
+    font-weight: 700;
+    color: #777;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+  &__dropped-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  &__dropped-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 12px;
+    border: 1px dashed #E2E2E2;
+    border-radius: 10px;
+  }
+  &__dropped-name { font-size: 13px; color: #aaa; text-decoration: line-through; }
+  &__dropped-reason { font-size: 12px; color: #777; }
 
   &__manual {
     width: 100%;
