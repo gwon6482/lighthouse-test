@@ -1,6 +1,6 @@
 <template>
   <div class="cd-complete">
-    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" back-to="/career-design/plan/projects" />
+    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" back-to="/career-design/plan/pace" />
 
     <div class="cd-complete__body">
       <!-- 계획 요약 -->
@@ -11,38 +11,14 @@
         </div>
       </div>
 
-      <!-- 자동 배치(B안) — 한 주에 쓸 수 있는 시간만 정하면 순서대로 채운다 -->
-      <div v-if="draftPlan.projects.length" class="cd-complete__section cd-complete__auto">
-        <div class="cd-complete__section-header">
-          <h3 class="cd-complete__section-title">한 주에 몇 시간 쓸 수 있어요?</h3>
-          <span v-if="autoWeeks" class="cd-complete__section-count">예상 {{ autoWeeks }}주 · 약 {{ Math.max(1, Math.round(autoWeeks / 4.33)) }}개월</span>
-        </div>
-        <div class="cd-complete__hours" role="group" aria-label="한 주에 쓸 수 있는 시간">
-          <button
-            v-for="h in HOUR_OPTIONS"
-            :key="h"
-            type="button"
-            class="cd-complete__hour"
-            :class="{ 'cd-complete__hour--on': draftPlan.weeklyHours === h }"
-            @click="applyAuto(h)"
-          >주 {{ h }}시간</button>
-        </div>
-        <p class="cd-complete__hint">
-          {{ manualEdited ? '직접 옮긴 배치예요. 시간을 다시 고르면 처음부터 다시 배치돼요' : '정한 시간 안에서 순서대로 채웠어요. 아래에서 막대를 직접 옮길 수도 있어요' }}
-        </p>
-
-        <button type="button" class="cd-complete__order-toggle" @click="orderOpen = !orderOpen">
-          {{ orderOpen ? '▾' : '▸' }} 순서 바꾸기
-        </button>
-        <ol v-if="orderOpen" class="cd-complete__order">
-          <li v-for="(p, i) in draftPlan.projects" :key="p.id" class="cd-complete__order-item">
-            <span class="cd-complete__order-sw" :style="{ background: categoryColorMap[p.category] }" />
-            <span class="cd-complete__order-name">{{ p.name }}</span>
-            <span class="cd-complete__order-h">주 {{ fmtH(projectHoursPerWeek(p)) }}시간</span>
-            <button type="button" class="cd-complete__order-mv" :disabled="i === 0" aria-label="위로" @click="moveProject(i, -1)">↑</button>
-            <button type="button" class="cd-complete__order-mv" :disabled="i === draftPlan.projects.length - 1" aria-label="아래로" @click="moveProject(i, 1)">↓</button>
-          </li>
-        </ol>
+      <!-- 진행 속도 요약 — 속도·순서는 앞 화면(plan/pace)에서 정한다 -->
+      <div v-if="draftPlan.projects.length" class="cd-complete__pace">
+        <span class="cd-complete__pace-text">
+          <template v-if="pace">{{ pace.emoji }} {{ pace.title }} · 주 {{ pace.hours }}시간</template>
+          <template v-else>직접 배치</template>
+          <template v-if="autoWeeks"> · 예상 {{ autoWeeks }}주({{ monthsLabel(autoWeeks) }})</template>
+        </span>
+        <button type="button" class="cd-complete__pace-btn" @click="router.push('/career-design/plan/pace')">속도 다시 정하기</button>
       </div>
 
       <!-- 프로젝트 풀 -->
@@ -181,7 +157,7 @@
                     <button
                       v-if="bar.pos === 'start' || bar.pos === 'only'"
                       class="cd-complete__bar-del"
-                      @click.stop="removeProject(bar.project.id); manualEdited = true"
+                      @click.stop="removeProject(bar.project.id); draftPlan.timelineManual = true"
                     >✕</button>
                   </div>
 
@@ -269,14 +245,15 @@ import type { Project, ProjectCategory } from '../types/career-design'
 import {
   planWeekCount, provisionalWeekCount, weekRangeLabel, projectWeeks, projectEndWeek, fitsInPlan,
   weekDateRange, monthWeekOf, monthWeekLabel, weeksInMonth, parseDateKey, resolveProject,
-  autoSchedule, projectHoursPerWeek,
+  projectHoursPerWeek,
 } from '../composables/usePlanTimeline'
+import { DEFAULT_PACE_HOURS, buildTimeline, monthsLabel, paceOfHours } from '../composables/usePlanPace'
 
 const router = useRouter()
 const { draftPlan, draftTimeline, syncTimeline } = useCareerDesign()
 
 function goPrev() {
-  router.push('/career-design/plan/projects')
+  router.push('/career-design/plan/pace')
 }
 
 async function goNext() {
@@ -326,9 +303,17 @@ function chipStyle(project: Project) {
 // ── 주차 타임라인 ─────────────────────────────────
 // 슬롯은 시작주만 들고, 점유 구간은 project.weeks 에서 파생한다.
 // 목표 설정(종료일)이 맨 끝이라 여기서는 보통 종료일이 없다 → 담은 프로젝트가 다 들어갈 임시 범위
-const totalWeeks = computed(() => (draftPlan.endDate
-  ? planWeekCount(draftPlan.startDate, draftPlan.endDate)
-  : provisionalWeekCount(draftPlan.projects)))
+// 이미 배치돼 있으면 '마지막 배치 주 + 여유 8주'까지만(끝에 빈 주가 수십 개 이어지지 않게, 직접 옮길 공간은 남김)
+const SLACK_WEEKS = 8
+const totalWeeks = computed(() => {
+  if (draftPlan.endDate) return planWeekCount(draftPlan.startDate, draftPlan.endDate)
+  const all = provisionalWeekCount(draftPlan.projects)
+  let last = 0
+  for (const s of draftTimeline.value) {
+    for (const p of s.projects) last = Math.max(last, projectEndWeek(s.week, resolveProject(p, draftPlan.projects)))
+  }
+  return last ? Math.min(all, Math.max(last + SLACK_WEEKS, 12)) : all
+})
 
 type BarPos = 'only' | 'start' | 'middle' | 'end'
 interface WeekRow {
@@ -458,7 +443,7 @@ function placeAtWeek(week: number) {
   }
   slot.projects.push(project)
   selectedProject.value = null
-  manualEdited.value = true
+  draftPlan.timelineManual = true
 }
 
 function removeProject(projectId: string) {
@@ -469,13 +454,9 @@ function removeProject(projectId: string) {
   draftTimeline.value = draftTimeline.value.filter(s => s.projects.length > 0)
 }
 
-// ── 자동 배치(B안) ────────────────────────────────
-// "한 주에 몇 시간 쓸 수 있어요?"를 고르면 프로젝트 순서대로, 각 주 시간 합이 그 안에 들도록 채운다(autoSchedule).
-// 처음 들어왔을 때 비어 있으면 기본 8시간으로 이미 채워 둔다. 직접 옮긴 뒤 시간을 다시 고르면 덮어쓰기 전에 묻는다.
-const HOUR_OPTIONS = [5, 8, 12, 16]
-const DEFAULT_HOURS = 8
-const manualEdited = ref(false)
-const orderOpen = ref(false)
+// ── 진행 속도 요약 ────────────────────────────────
+// 속도(생활 모습)·순서는 plan/pace 화면에서 정하고 거기서 배치한다. 여기는 결과를 보고 세부 조정하는 곳.
+const pace = computed(() => paceOfHours(draftPlan.weeklyHours))
 const fmtH = (h: number) => (Number.isInteger(h) ? String(h) : h.toFixed(1))
 
 // 배치된 프로젝트가 끝나는 가장 늦은 주 = 예상 기간
@@ -487,37 +468,12 @@ const autoWeeks = computed(() => {
   return last
 })
 
-function placeAll(hours: number) {
-  draftTimeline.value = []
-  for (const { week, project } of autoSchedule(draftPlan.projects, hours)) {
-    let slot = draftTimeline.value.find(s => s.week === week)
-    if (!slot) { slot = { week, projects: [] }; draftTimeline.value.push(slot) }
-    slot.projects.push(project)
-  }
-  draftTimeline.value.sort((a, b) => a.week - b.week)
-  manualEdited.value = false
-}
-
-function applyAuto(hours: number) {
-  if (manualEdited.value && !confirm('직접 옮긴 배치가 다시 정해져요. 계속할까요?')) return
-  draftPlan.weeklyHours = hours
-  placeAll(hours)
-}
-
-function moveProject(i: number, dir: -1 | 1) {
-  const list = draftPlan.projects
-  const j = i + dir
-  if (j < 0 || j >= list.length) return
-  ;[list[i], list[j]] = [list[j]!, list[i]!]
-  // 순서를 바꾸면 그 순서로 다시 채운다(직접 옮긴 것은 이 시점에 덮어쓴다 — 순서 바꾸기는 자동 배치용 도구)
-  placeAll(draftPlan.weeklyHours ?? DEFAULT_HOURS)
-}
-
 onMounted(() => {
-  // 처음 들어왔고 아직 아무것도 배치하지 않았으면 기본 시간으로 채워 둔다
+  // 속도 화면을 거치지 않고 비어 있는 채로 들어오면(예전 임시 계획 등) 기본 속도로 채워 둔다
   if (!draftTimeline.value.length && draftPlan.projects.length && !draftPlan.endDate) {
-    draftPlan.weeklyHours = draftPlan.weeklyHours ?? DEFAULT_HOURS
-    placeAll(draftPlan.weeklyHours)
+    draftPlan.weeklyHours = draftPlan.weeklyHours ?? DEFAULT_PACE_HOURS
+    draftTimeline.value = buildTimeline(draftPlan.projects, draftPlan.weeklyHours)
+    draftPlan.timelineManual = false
   }
 })
 
@@ -1126,51 +1082,26 @@ function barStyle(bar: WeekBar) {
 }
 
 
-.cd-complete__hours { display: flex; gap: 6px; flex-wrap: wrap; }
-.cd-complete__hour {
-  font-size: 13px;
-  font-weight: 700;
-  padding: 8px 12px;
-  border-radius: 20px;
-  border: 1.5px solid #e2e2e2;
-  background: #fff;
-  color: #666;
-  cursor: pointer;
-}
-.cd-complete__hour--on { background: #222; border-color: #222; color: #fff; }
-.cd-complete__order-toggle {
-  align-self: flex-start;
-  border: none;
-  background: none;
-  padding: 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: #777;
-  cursor: pointer;
-}
-.cd-complete__order { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-.cd-complete__order-item {
+.cd-complete__pace {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  background: #fafafa;
-  border-radius: 8px;
-  font-size: 13px;
-}
-.cd-complete__order-sw { width: 6px; height: 20px; border-radius: 3px; flex-shrink: 0; }
-.cd-complete__order-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #333; }
-.cd-complete__order-h { font-size: 11px; color: #999; white-space: nowrap; }
-.cd-complete__order-mv {
-  width: 26px;
-  height: 26px;
-  border: none;
-  border-radius: 6px;
+  justify-content: space-between;
+  gap: 10px;
   background: #fff;
-  color: #444;
+  border-radius: 16px;
+  padding: 12px 16px;
+}
+.cd-complete__pace-text { font-size: 13px; font-weight: 600; color: #444; min-width: 0; }
+.cd-complete__pace-btn {
+  flex-shrink: 0;
+  border: none;
+  background: #FFF6D6;
+  color: #B07D00;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 7px 10px;
   cursor: pointer;
-
-  &:disabled { opacity: 0.3; cursor: default; }
 }
 .cd-complete__week-hours { margin-left: auto; font-size: 11px; font-weight: 700; color: #999; white-space: nowrap; }
 .cd-complete__week-hours--over { color: #E5484D; }

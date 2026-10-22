@@ -1382,6 +1382,7 @@ export function useCareerDesign() {
     draftPlan.endDate = ''
     draftPlan.reviewDay = ''
     draftPlan.weeklyHours = undefined
+    draftPlan.timelineManual = undefined
     draftPlan.timeline = []
     draftTimeline.value = []
   }

@@ -16,6 +16,12 @@ export default [
     component: () => import('./pages/CareerDesignTemplatesPage.vue'),
   },
   {
+    // 진행 속도 고르기(생활 모습 카드) + 순서 확인 → 타임라인 자동 배치. 프로젝트 구성과 타임라인 사이
+    path: '/career-design/plan/pace',
+    name: 'Career Design Pace',
+    component: () => import('./pages/CareerDesignPacePage.vue'),
+  },
+  {
     path: '/career-design/plan/new',
     name: 'Career Design Plan Write',
     component: () => import('./pages/CareerDesignPlanWritePage.vue'),

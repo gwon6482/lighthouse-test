@@ -168,7 +168,7 @@ function goPrev() {
 }
 
 function goNext() {
-  router.push('/career-design/complete')
+  router.push('/career-design/plan/pace')
 }
 </script>
 
