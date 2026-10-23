@@ -10,6 +10,18 @@ export default [
     component: () => import('./pages/CareerDesignExplorePage.vue'),
   },
   {
+    // 템플릿에서 수정하기(베타) — 라이트하우스가 미리 설계한 진로계획을 골라 고친다
+    path: '/career-design/templates',
+    name: 'Career Design Templates',
+    component: () => import('./pages/CareerDesignTemplatesPage.vue'),
+  },
+  {
+    // 진행 속도 고르기(생활 모습 카드) + 순서 확인 → 타임라인 자동 배치. 프로젝트 구성과 타임라인 사이
+    path: '/career-design/plan/pace',
+    name: 'Career Design Pace',
+    component: () => import('./pages/CareerDesignPacePage.vue'),
+  },
+  {
     path: '/career-design/plan/new',
     name: 'Career Design Plan Write',
     component: () => import('./pages/CareerDesignPlanWritePage.vue'),

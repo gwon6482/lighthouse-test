@@ -1,3 +1,4 @@
+import { autoSchedule, projectHoursPerWeek, suggestedEndDate, provisionalWeekCount, lastWeekOfMonth } from '../composables/usePlanTimeline'
 import { describe, it, expect } from 'vitest'
 import type { Project, TimelineSlot } from '../types/career-design'
 import {
@@ -279,5 +280,61 @@ describe('projectStartWeek / projectWeekIndexOn — 커리큘럼 주차 매핑',
 
   it('시작주 이전 날짜는 null', () => {
     expect(projectWeekIndexOn(timeline, '2026-08-31', 'a', d('2026-09-07'))).toBeNull()
+  })
+})
+
+// ── 자동 배치(B안): 한 주 시간 예산 안에서 순서대로 ──
+
+const mk = (id: string, weeks: number, days: number, minutes: number): Project => ({
+  id, category: 'knowledge', name: id, goal: '', days: Array(days).fill('월'), duration: minutes,
+  priority: 'normal', notification: false, missedNotification: false, notificationTime: '', memo: '',
+  curriculum: Array.from({ length: weeks }, (_, i) => ({ week: i + 1, title: '', items: [] })),
+})
+
+describe('autoSchedule', () => {
+  it('주당 시간 = 요일 수 × 1회 시간', () => {
+    expect(projectHoursPerWeek(mk('a', 3, 3, 60))).toBe(3)
+    expect(projectHoursPerWeek(mk('a', 3, 4, 90))).toBe(6)
+  })
+
+  it('예산 안이면 나란히, 넘치면 뒤로 민다', () => {
+    const a = mk('a', 3, 3, 60), b = mk('b', 3, 3, 60), c = mk('c', 2, 4, 90) // 3h, 3h, 6h
+    const r = autoSchedule([a, b, c], 6)
+    expect(r.map(x => x.week)).toEqual([1, 1, 4]) // a+b=6h 로 1주차부터 같이, c 는 그 둘이 끝난 4주차
+  })
+
+  it('순서를 지킨다 — 뒤 프로젝트가 앞 프로젝트보다 먼저 시작하지 않는다', () => {
+    const big = mk('big', 2, 5, 120), small = mk('small', 1, 1, 60) // 10h, 1h
+    const r = autoSchedule([big, small], 8)
+    expect(r[1]!.week).toBeGreaterThanOrEqual(r[0]!.week)
+  })
+
+  it('혼자서 예산을 넘는 프로젝트도 빈 주에는 놓는다', () => {
+    const r = autoSchedule([mk('huge', 2, 5, 120)], 5) // 10h > 5h
+    expect(r[0]!.week).toBe(1)
+  })
+
+  it('예산이 클수록 전체 기간이 짧다', () => {
+    const ps = [mk('a', 4, 3, 60), mk('b', 4, 3, 60), mk('c', 4, 3, 60), mk('d', 4, 3, 60)]
+    const end = (h: number) => Math.max(...autoSchedule(ps, h).map(x => x.week + 3))
+    expect(end(12)).toBeLessThan(end(3))
+  })
+
+  it('자동 배치 결과는 임시 범위 안에 들고, 추천 종료일은 마지막 주 일요일', () => {
+    const ps = [mk('a', 3, 3, 60), mk('b', 2, 3, 60)]
+    const r = autoSchedule(ps, 3) // 하나씩 → a 1~3주, b 4~5주
+    expect(Math.max(...r.map(x => x.week + projectWeeks(x.project) - 1))).toBeLessThanOrEqual(provisionalWeekCount(ps))
+    const slots: TimelineSlot[] = r.map(x => ({ week: x.week, projects: [x.project] }))
+    expect(suggestedEndDate('2026-10-19', slots, ps)).toBe('2026-11-22') // 5주차 = 11.16(월)~11.22(일)
+  })
+})
+
+describe('lastWeekOfMonth', () => {
+  // 2026-10-19(월) 시작: 1주 10.19 · 2주 10.26 · 3주 11.2 … 7주 11.30 · 8주 12.7
+  it('그 주가 속한 달(월요일 기준)의 마지막 주차', () => {
+    expect(lastWeekOfMonth('2026-10-19', 1)).toBe(2)   // 10월: 10.19, 10.26
+    expect(lastWeekOfMonth('2026-10-19', 3)).toBe(7)   // 11월: 11.2 ~ 11.30
+    expect(lastWeekOfMonth('2026-10-19', 7)).toBe(7)
+    expect(lastWeekOfMonth('2026-10-19', 8)).toBe(11)  // 12월: 12.7 ~ 12.28
   })
 })

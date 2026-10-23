@@ -184,3 +184,67 @@ export function projectWeekIndexOn(
   if (planWeek === null || planWeek < startWeek) return null
   return planWeek - startWeek + 1
 }
+
+// ── 목표 설정이 맨 끝으로 간 뒤(2026-10-20 사용자: "프로젝트를 배치하지도 않았는데 종료일을 설정하는 게 큰 의미가 없다") ──
+// 타임라인 배치 때는 아직 종료일이 없다 → 임시 범위를 보여준다.
+//   담은 프로젝트 기간을 모두 이어 붙여도 들어갈 만큼(최소 12주, 최대 104주 = 2년)
+export const PROVISIONAL_MIN_WEEKS = 12
+export const PROVISIONAL_MAX_WEEKS = 104
+export function provisionalWeekCount(projects: Pick<Project, 'weeks' | 'curriculum'>[]): number {
+  const sum = projects.reduce((n, p) => n + projectWeeks(p), 0)
+  return Math.min(PROVISIONAL_MAX_WEEKS, Math.max(PROVISIONAL_MIN_WEEKS, sum))
+}
+
+// 마지막 목표 설정에서 추천하는 종료일 = 배치한 프로젝트 중 가장 늦게 끝나는 주의 일요일. 배치가 없으면 ''
+export function suggestedEndDate(startDate: string, timeline: TimelineSlot[], projects?: Project[]): string {
+  let last = 0
+  for (const slot of timeline) {
+    for (const p of slot.projects) last = Math.max(last, projectEndWeek(slot.week, resolveProject(p, projects)))
+  }
+  return last ? (weekDateRange(startDate, last)?.end ?? '') : ''
+}
+
+// ── 자동 배치(B안, 2026-10-22 사용자 선택): "한 주에 몇 시간 쓸 수 있어요?" ──
+// 프로젝트의 주당 시간 = 실행 요일 수 × 1회 시간
+export function projectHoursPerWeek(p: Pick<Project, 'days' | 'duration'>): number {
+  return ((p.days?.length ?? 0) * (p.duration ?? 0)) / 60
+}
+
+// 순서대로, 각 주의 시간 합이 예산을 넘지 않는 가장 이른 주에 놓는다. 앞 프로젝트보다 먼저 시작하지는 않는다(순서 유지).
+// 한 프로젝트만으로 예산을 넘으면 그 프로젝트는 혼자 있는 주에 놓는다(안 그러면 영원히 못 놓는다).
+// 반환: 시작 주차(1부터)
+export function autoSchedule(projects: Project[], budgetHours: number): { week: number; project: Project }[] {
+  const load: number[] = []
+  const out: { week: number; project: Project }[] = []
+  let floor = 0
+  for (const p of projects) {
+    const w = projectWeeks(p)
+    const h = projectHoursPerWeek(p)
+    let s = floor
+    for (;; s++) {
+      let ok = true
+      for (let k = 0; k < w; k++) {
+        const l = load[s + k] ?? 0
+        if (l > 0 && l + h > budgetHours) { ok = false; break }
+      }
+      if (ok) break
+    }
+    for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
+    out.push({ week: s + 1, project: p })
+    floor = s
+  }
+  return out
+}
+
+// 그 주차가 속한 달(월요일 기준)의 마지막 주차. 타임라인을 '마지막 배치 주가 속한 달 끝까지'만 보여 줄 때 쓴다
+export function lastWeekOfMonth(startDate: string, week: number): number {
+  const r = weekDateRange(startDate, week)
+  if (!r) return week
+  const m = monthWeekOf(parseDateKey(r.start)!).month
+  let w = week
+  for (;;) {
+    const next = weekDateRange(startDate, w + 1)
+    if (!next || monthWeekOf(parseDateKey(next.start)!).month !== m) return w
+    w++
+  }
+}

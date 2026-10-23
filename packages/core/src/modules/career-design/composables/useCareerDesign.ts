@@ -1381,6 +1381,10 @@ export function useCareerDesign() {
     draftPlan.startDate = ''
     draftPlan.endDate = ''
     draftPlan.reviewDay = ''
+    draftPlan.weeklyHours = undefined
+    draftPlan.timelineManual = undefined
+    draftPlan.paceKey = undefined
+    draftPlan.dailyHours = undefined
     draftPlan.timeline = []
     draftTimeline.value = []
   }
@@ -1422,6 +1426,21 @@ export function useCareerDesign() {
     } catch {
       return false
     }
+  }
+
+  // 목표 설정이 맨 끝(2026-10-20)이라, 그 전 단계는 계획 ID 없이 로컬에만 쌓인다(각 sync* 는 ID 가 없으면 안 보냄).
+  // 마지막에 한 번에 올린다: 계획 생성 + 프로젝트 일괄(syncPlanStep1) → 루틴 → 타임라인 → 리뷰 요일.
+  // 이미 서버에 있는 계획(planId)이면 앞 단계가 그때그때 저장됐으므로 개요만 고친다.
+  // 프로젝트 ID 는 앱이 만든 값을 서버가 그대로 쓴다(projects/bulk) → 타임라인 슬롯 연결이 유지된다.
+  async function finalizePlan(): Promise<boolean> {
+    const isNew = !draftPlan.planId
+    if (!(await syncPlanStep1())) return false
+    if (!isNew) return true
+    let ok = true
+    for (const r of draftPlan.routines) ok = (await syncAddRoutine(r)) && ok
+    ok = (await syncTimeline()) && ok
+    if (draftPlan.reviewDay) ok = (await syncPlanReviewDay()) && ok
+    return ok
   }
 
   // STEP2: 프로젝트 추가
@@ -1605,6 +1624,7 @@ export function useCareerDesign() {
     resetDraftProject,
     resetDraftRoutine,
     syncPlanStep1,
+    finalizePlan,
     syncAddProject,
     syncUpdateProject,
     syncDeleteProject,

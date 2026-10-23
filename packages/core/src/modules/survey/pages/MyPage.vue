@@ -85,7 +85,7 @@
       <section class="mypage__section">
         <div class="mypage__section-header">
           <h2 class="mypage__section-title">내 진로설계</h2>
-          <button class="mypage__section-add" @click="router.push('/career-design/plan/new')">+ 새 계획</button>
+          <button class="mypage__section-add" @click="router.push('/career-design/templates')">+ 새 계획</button>
         </div>
         <div v-if="loadingPlans" class="mypage__loading">불러오는 중...</div>
         <div v-else-if="careerPlans.length === 0" class="mypage__empty">

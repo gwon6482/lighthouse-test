@@ -42,7 +42,7 @@
             <p class="cd-proj-detail__week-num">{{ week.week }}주차</p>
             <p class="cd-proj-detail__week-title">{{ week.title }}</p>
             <ul class="cd-proj-detail__week-items">
-              <li v-for="item in week.items" :key="item">✓ {{ item }}</li>
+              <li v-for="item in weekEntriesOf(week)" :key="item">✓ {{ item }}</li>
             </ul>
           </div>
         </div>
@@ -73,6 +73,7 @@
 </template>
 
 <script setup lang="ts">
+import { weekEntriesOf } from '../composables/useProjectCurriculum'
 import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { safeBack } from '@/shared/utils/navigation'
@@ -333,4 +334,5 @@ async function pasteToMyPlan() {
     color: #aaa;
   }
 }
+
 </style>

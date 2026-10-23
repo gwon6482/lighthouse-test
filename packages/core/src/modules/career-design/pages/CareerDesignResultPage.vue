@@ -1,6 +1,6 @@
 <template>
   <div class="cd-result">
-    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" back-to="/career-design/plan/review-day" />
+    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" back-to="/career-design/plan/new" />
 
     <div class="cd-result__body">
       <!-- 완성 축하 -->
@@ -162,10 +162,8 @@
                   >{{ week.week }}주차</span>
                   <span class="cd-proj-popup__week-title">{{ week.title }}</span>
                 </div>
-                <ul v-if="week.items?.length" class="cd-proj-popup__items">
-                  <li v-for="(item, i) in week.items" :key="i" class="cd-proj-popup__item">
-                    {{ item }}
-                  </li>
+                <ul v-if="weekEntriesOf(week).length" class="cd-proj-popup__items">
+                  <li v-for="(item, i) in weekEntriesOf(week)" :key="i" class="cd-proj-popup__item">{{ item }}</li>
                 </ul>
               </div>
             </div>
@@ -196,6 +194,7 @@
 </template>
 
 <script setup lang="ts">
+import { weekEntriesOf } from '../composables/useProjectCurriculum'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { req } from '@/shared/api'
@@ -819,4 +818,5 @@ const periodLabel = computed(() => {
     transform: translateY(100%);
   }
 }
+
 </style>

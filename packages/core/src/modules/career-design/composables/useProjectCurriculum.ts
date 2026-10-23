@@ -40,16 +40,15 @@ export function syncCurriculumLength(
 }
 
 
-// 그 주차의 체크 단위 목록.
-// 신규 데이터는 설명 1건이므로 항상 길이 1(또는 0). 구 데이터(items)는 그대로 여러 개.
-// 진로달성의 주차 체크리스트·분할 진행바가 이걸 기준으로 돈다.
+// 그 주차의 할 일 목록(체크 단위). 표준은 items. items 가 비어 있으면 옛 설명 글을 줄 단위로 나눠 쓴다
+// (2026-08-27 ~ 10-22 에 설명 글로 저장된 계획 호환). 진로달성의 주차 체크리스트·분할 진행바가 이걸 기준으로 돈다.
 export function weekEntriesOf(cw: Pick<WeekCurriculum, 'description' | 'items'> | undefined): string[] {
-  const d = cw?.description?.trim()
-  if (d) return [d]
-  return [...(cw?.items ?? [])].filter(t => t.trim())
+  const items = (cw?.items ?? []).map(t => t.trim()).filter(Boolean)
+  if (items.length) return items
+  return (cw?.description ?? '').split('\n').map(t => t.trim()).filter(Boolean)
 }
 
-// 그 주차에 사용자가 실제로 채운 설명. 없으면 ''.
+// 그 주차의 할 일을 한 줄씩 이은 글(타임라인 막대 보조 문구 등). 없으면 ''.
 export function weekDescriptionOf(cw: Pick<WeekCurriculum, 'description' | 'items'> | undefined): string {
   return weekEntriesOf(cw).join('\n')
 }

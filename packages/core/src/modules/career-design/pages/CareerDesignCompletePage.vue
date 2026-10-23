@@ -1,6 +1,6 @@
 <template>
   <div class="cd-complete">
-    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" back-to="/career-design/plan/projects" />
+    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" back-to="/career-design/plan/pace" />
 
     <div class="cd-complete__body">
       <!-- 계획 요약 -->
@@ -9,6 +9,16 @@
           <span class="cd-complete__target">🎯 {{ draftPlan.targetJob || '목표 직업 미설정' }}</span>
           <span class="cd-complete__period">{{ periodLabel }}</span>
         </div>
+      </div>
+
+      <!-- 진행 속도 요약 — 속도·순서는 앞 화면(plan/pace)에서 정한다 -->
+      <div v-if="draftPlan.projects.length" class="cd-complete__pace">
+        <span class="cd-complete__pace-text">
+          <template v-if="pace">{{ pace.emoji }} {{ pace.title }}<template v-if="draftPlan.dailyHours"> · 하루 {{ draftPlan.dailyHours }}시간</template> · 주 {{ draftPlan.weeklyHours }}시간</template>
+          <template v-else>직접 배치</template>
+          <template v-if="autoWeeks"> · 예상 {{ autoWeeks }}주({{ monthsLabel(autoWeeks) }})</template>
+        </span>
+        <button type="button" class="cd-complete__pace-btn" @click="router.push('/career-design/plan/pace')">속도 다시 정하기</button>
       </div>
 
       <!-- 프로젝트 풀 -->
@@ -117,6 +127,11 @@
               <div class="cd-complete__week-head">
                 <span class="cd-complete__week-num">{{ w.label }}</span>
                 <span class="cd-complete__week-date">{{ w.dateLabel }}</span>
+                <span
+                  v-if="w.hours"
+                  class="cd-complete__week-hours"
+                  :class="{ 'cd-complete__week-hours--over': draftPlan.weeklyHours && w.hours > draftPlan.weeklyHours }"
+                >{{ fmtH(w.hours) }}시간</span>
               </div>
 
               <div class="cd-complete__week-body">
@@ -142,7 +157,7 @@
                     <button
                       v-if="bar.pos === 'start' || bar.pos === 'only'"
                       class="cd-complete__bar-del"
-                      @click.stop="removeProject(bar.project.id)"
+                      @click.stop="removeProject(bar.project.id); draftPlan.timelineManual = true"
                     >✕</button>
                   </div>
 
@@ -156,6 +171,13 @@
             </div>
             </template>
           </div>
+          <!-- 프로젝트를 골라 배치하려는 중에만 — 달력을 한 달씩 늘린다 -->
+          <button
+            v-if="selectedProject && canAddMonth"
+            type="button"
+            class="cd-complete__add-month"
+            @click="extraMonths++"
+          >+ 한 달 더</button>
         </template>
       </div>
     </div>
@@ -202,10 +224,8 @@
                   >{{ week.week }}주차</span>
                   <span class="cd-proj-popup__week-title">{{ week.title }}</span>
                 </div>
-                <ul v-if="week.items?.length" class="cd-proj-popup__items">
-                  <li v-for="(item, i) in week.items" :key="i" class="cd-proj-popup__item">
-                    {{ item }}
-                  </li>
+                <ul v-if="weekEntriesOf(week).length" class="cd-proj-popup__items">
+                  <li v-for="(item, i) in weekEntriesOf(week)" :key="i" class="cd-proj-popup__item">{{ item }}</li>
                 </ul>
               </div>
             </div>
@@ -223,22 +243,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
-import { weekDescriptionOf } from '../composables/useProjectCurriculum'
+import { weekEntriesOf, weekDescriptionOf } from '../composables/useProjectCurriculum'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { Project, ProjectCategory } from '../types/career-design'
 import {
-  planWeekCount, weekRangeLabel, projectWeeks, projectEndWeek, fitsInPlan,
+  planWeekCount, provisionalWeekCount, weekRangeLabel, projectWeeks, projectEndWeek, fitsInPlan,
   weekDateRange, monthWeekOf, monthWeekLabel, weeksInMonth, parseDateKey, resolveProject,
+  projectHoursPerWeek, lastWeekOfMonth, PROVISIONAL_MAX_WEEKS,
 } from '../composables/usePlanTimeline'
+import { DEFAULT_PACE_HOURS, buildTimeline, monthsLabel, paceByKey, paceOfHours } from '../composables/usePlanPace'
 
 const router = useRouter()
 const { draftPlan, draftTimeline, syncTimeline } = useCareerDesign()
 
 function goPrev() {
-  router.push('/career-design/plan/projects')
+  router.push('/career-design/plan/pace')
 }
 
 async function goNext() {
@@ -287,7 +309,22 @@ function chipStyle(project: Project) {
 
 // ── 주차 타임라인 ─────────────────────────────────
 // 슬롯은 시작주만 들고, 점유 구간은 project.weeks 에서 파생한다.
-const totalWeeks = computed(() => planWeekCount(draftPlan.startDate, draftPlan.endDate))
+// 목표 설정(종료일)이 맨 끝이라 여기서는 보통 종료일이 없다 → 담은 프로젝트가 다 들어갈 임시 범위
+// 이미 배치돼 있으면 '마지막 배치 주가 속한 달 끝'까지만 보여 준다(2026-10-22 사용자).
+// 더 뒤에 놓고 싶으면 프로젝트를 고른 상태에서 '+ 한 달 더'로 한 달씩 늘린다(extraMonths)
+const extraMonths = ref(0)
+const totalWeeks = computed(() => {
+  if (draftPlan.endDate) return planWeekCount(draftPlan.startDate, draftPlan.endDate)
+  let last = 0
+  for (const s of draftTimeline.value) {
+    for (const p of s.projects) last = Math.max(last, projectEndWeek(s.week, resolveProject(p, draftPlan.projects)))
+  }
+  if (!last) return provisionalWeekCount(draftPlan.projects)
+  let end = lastWeekOfMonth(draftPlan.startDate, last)
+  for (let i = 0; i < extraMonths.value; i++) end = lastWeekOfMonth(draftPlan.startDate, end + 1)
+  return Math.min(PROVISIONAL_MAX_WEEKS, end)
+})
+const canAddMonth = computed(() => !draftPlan.endDate && totalWeeks.value < PROVISIONAL_MAX_WEEKS)
 
 type BarPos = 'only' | 'start' | 'middle' | 'end'
 interface WeekRow {
@@ -297,6 +334,7 @@ interface WeekRow {
   monthHeader: string    // 달이 바뀌는 첫 행에만 "8월 (5주)" — 아니면 ''
   bars: WeekBar[]
   canPlace: boolean
+  hours: number          // 그 주에 걸친 프로젝트의 주당 시간 합
 }
 
 interface BarDetail { text: string }
@@ -309,7 +347,7 @@ interface WeekBar {
 
 // 그 주차의 설명. 기본 제목("프로젝트명 - n주차")은 바로 옆 프로젝트명과 겹쳐 정보가 없으므로
 // 제목은 쓰지 않고, 사용자가 직접 적은 설명 텍스트만 보여준다.
-// (구 데이터는 items 를 줄바꿈으로 합쳐 설명처럼 취급 — weekDescriptionOf 참조)
+// (그 주 할 일을 ' · ' 로 이어 한 줄로 — 옛 설명 글도 줄 단위로 나눠 같은 모양)
 function barDetailOf(project: Project, curriculumWeek: number): BarDetail | null {
   const text = weekDescriptionOf(project.curriculum?.[curriculumWeek - 1]).replace(/\s*\n\s*/g, ' · ')
   return text ? { text } : null
@@ -350,6 +388,7 @@ const weekRows = computed<WeekRow[]>(() => {
       monthHeader: isNewMonth && mw ? `${mw.month}월 · ${weeksInMonth(mw.year, mw.month)}주` : '',
       bars,
       canPlace: !!sel && fitsInPlan(week, sel, totalWeeks.value),
+      hours: bars.reduce((n, b) => n + projectHoursPerWeek(b.project), 0),
     })
   }
   return rows
@@ -415,6 +454,7 @@ function placeAtWeek(week: number) {
   }
   slot.projects.push(project)
   selectedProject.value = null
+  draftPlan.timelineManual = true
 }
 
 function removeProject(projectId: string) {
@@ -424,6 +464,29 @@ function removeProject(projectId: string) {
   }
   draftTimeline.value = draftTimeline.value.filter(s => s.projects.length > 0)
 }
+
+// ── 진행 속도 요약 ────────────────────────────────
+// 속도(생활 모습)·순서는 plan/pace 화면에서 정하고 거기서 배치한다. 여기는 결과를 보고 세부 조정하는 곳.
+const pace = computed(() => paceByKey(draftPlan.paceKey) ?? paceOfHours(draftPlan.weeklyHours))
+const fmtH = (h: number) => (Number.isInteger(h) ? String(h) : h.toFixed(1))
+
+// 배치된 프로젝트가 끝나는 가장 늦은 주 = 예상 기간
+const autoWeeks = computed(() => {
+  let last = 0
+  for (const s of draftTimeline.value) {
+    for (const p of s.projects) last = Math.max(last, projectEndWeek(s.week, resolveProject(p, draftPlan.projects)))
+  }
+  return last
+})
+
+onMounted(() => {
+  // 속도 화면을 거치지 않고 비어 있는 채로 들어오면(예전 임시 계획 등) 기본 속도로 채워 둔다
+  if (!draftTimeline.value.length && draftPlan.projects.length && !draftPlan.endDate) {
+    draftPlan.weeklyHours = draftPlan.weeklyHours ?? DEFAULT_PACE_HOURS
+    draftTimeline.value = buildTimeline(draftPlan.projects, draftPlan.weeklyHours)
+    draftPlan.timelineManual = false
+  }
+})
 
 function barStyle(bar: WeekBar) {
   const color = categoryColorMap[bar.project.category]
@@ -1027,5 +1090,43 @@ function barStyle(bar: WeekBar) {
   transition: background 0.12s;
 
   &:hover { background: #fafafa; }
+}
+
+
+.cd-complete__pace {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px 16px;
+}
+.cd-complete__pace-text { font-size: 13px; font-weight: 600; color: #444; min-width: 0; }
+.cd-complete__pace-btn {
+  flex-shrink: 0;
+  border: none;
+  background: #FFF6D6;
+  color: #B07D00;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+.cd-complete__week-hours { margin-left: auto; font-size: 11px; font-weight: 700; color: #999; white-space: nowrap; }
+.cd-complete__week-hours--over { color: #E5484D; }
+
+.cd-complete__add-month {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1.5px dashed #ccc;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  color: #777;
+  cursor: pointer;
 }
 </style>

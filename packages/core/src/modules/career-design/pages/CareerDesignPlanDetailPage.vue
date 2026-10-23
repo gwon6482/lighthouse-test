@@ -209,10 +209,8 @@
                   >{{ week.week }}주차</span>
                   <span class="cd-proj-popup__week-title">{{ week.title }}</span>
                 </div>
-                <ul v-if="week.items?.length" class="cd-proj-popup__items">
-                  <li v-for="(item, i) in week.items" :key="i" class="cd-proj-popup__item">
-                    {{ item }}
-                  </li>
+                <ul v-if="weekEntriesOf(week).length" class="cd-proj-popup__items">
+                  <li v-for="(item, i) in weekEntriesOf(week)" :key="i" class="cd-proj-popup__item">{{ item }}</li>
                 </ul>
               </div>
             </div>
@@ -225,6 +223,7 @@
 </template>
 
 <script setup lang="ts">
+import { weekEntriesOf } from '../composables/useProjectCurriculum'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { req } from '@/shared/api'
@@ -786,6 +785,7 @@ const closeProject = () => { selectedProject.value = null }
     &:hover { opacity: 0.7; }
   }
 }
+
 </style>
 
 <style lang="scss">

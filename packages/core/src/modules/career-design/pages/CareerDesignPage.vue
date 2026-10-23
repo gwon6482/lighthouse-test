@@ -180,8 +180,8 @@
 
     <!-- 하단 버튼 -->
     <div class="cd-main__footer">
-      <button class="cd-main__cta" @click="startPlan">진로계획 시작하기</button>
-      <button class="cd-main__cta-secondary" @click="goToExplore">진로계획 탐색하기</button>
+      <button class="cd-main__cta" @click="goToTemplates">진로계획 세우기</button>
+      <!-- [진로계획 탐색하기]는 내렸다(2026-10-20 사용자: 데이터가 모이면 다시 만든다). 페이지(/career-design/explore)는 남겨 둠 -->
     </div>
 
     <!-- 목표 진로 설정 팝업 -->
@@ -258,12 +258,10 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import AppHeader from '@/shared/components/AppHeader.vue'
 import JourneyIntro from '@/shared/components/JourneyIntro.vue'
 import { useRouter } from 'vue-router'
-import { useCareerDesign } from '../composables/useCareerDesign'
 import { fetchTargetCareer, updateTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import type { TargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 
 const router = useRouter()
-const { resetDraftPlan, draftPlan } = useCareerDesign()
 
 // STEP 02 가이드 탭
 const guideCategories = [
@@ -320,16 +318,9 @@ function runTyping() {
   }
 }
 
-function startPlan() {
-  resetDraftPlan()
-  if (targetCareer.value) {
-    draftPlan.targetJob = targetCareer.value.title ?? targetCareer.value.ref
-  }
-  router.push('/career-design/plan/new')
-}
-
-function goToExplore() {
-  router.push('/career-design/explore')
+// [진로계획 세우기] → 템플릿 화면이 기본(2026-10-20 사용자). '직접 설계하기'는 그 화면 맨 아래 상자에서
+function goToTemplates() {
+  router.push('/career-design/templates')
 }
 
 // ── 목표 진로 ──

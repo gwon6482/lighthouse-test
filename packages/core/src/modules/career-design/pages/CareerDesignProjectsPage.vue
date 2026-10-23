@@ -3,7 +3,7 @@
     <CdYellowHeader
       title="진로계획 구성하기"
       :subtitle="`${draftPlan.targetJob || '목표 직업'}을 위한 프로젝트를 추가해 보세요`"
-      back-to="/career-design/plan/new"
+      back-to="/career-design/templates"
     />
 
     <div class="cd-projects__body">
@@ -59,6 +59,9 @@
         </button>
       </div>
 
+      <!-- 진로 설계 도우미(베타) — 선택한 카테고리의 예시. 목표 직업에 예시가 없으면 그리지 않는다 -->
+      <CdHelperSuggest :category="selectedCategory" :colors="currentColors" />
+
       <!-- 전체 요약 -->
       <div class="cd-projects__summary">
         <span class="cd-projects__summary-label">총 {{ draftPlan.projects.length }}개 추가됨</span>
@@ -96,6 +99,7 @@ import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { DEFAULT_WEEKS } from '../composables/useProjectCurriculum'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
+import CdHelperSuggest from '../components/CdHelperSuggest.vue'
 import type { Project, ProjectCategory } from '../types/career-design'
 
 const router = useRouter()
@@ -160,11 +164,11 @@ async function deleteProject(projectId: string) {
 }
 
 function goPrev() {
-  router.push('/career-design/plan/new')
+  router.push('/career-design/templates')
 }
 
 function goNext() {
-  router.push('/career-design/complete')
+  router.push('/career-design/plan/pace')
 }
 </script>
 

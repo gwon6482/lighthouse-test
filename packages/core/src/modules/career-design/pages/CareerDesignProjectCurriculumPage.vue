@@ -9,7 +9,7 @@
 
     <div class="cd-proj-curr__body">
       <p class="cd-proj-curr__guide">
-        주차 제목은 기본값이 채워져 있어요. 원하는 내용으로 바꾸고 그 주에 할 일을 적어보세요
+        주차 제목은 기본값이 채워져 있어요. 그 주에 할 일을 한 줄에 하나씩 적어보세요. 엔터를 누르면 다음 줄이 생겨요
       </p>
 
       <div class="cd-proj-curr__weeks">
@@ -28,13 +28,31 @@
             />
           </div>
 
-          <!-- 그 주차의 설명 -->
-          <textarea
-            v-model="week.description"
-            class="cd-proj-curr__week-desc"
-            placeholder="이 주차에 무엇을 할지 적어보세요"
-            rows="2"
-          />
+          <!-- 그 주차의 할 일 목록 — 한 줄 = 한 항목 -->
+          <ul class="cd-proj-curr__items">
+            <li v-for="(_, ii) in week.items" :key="ii" class="cd-proj-curr__item">
+              <span class="cd-proj-curr__item-dot" aria-hidden="true" />
+              <input
+                v-model="week.items[ii]"
+                class="cd-proj-curr__item-input"
+                :data-w="wi"
+                :data-i="ii"
+                :placeholder="ii === 0 ? '예: 강의 1~3강 듣고 정리하기' : '할 일'"
+                enterkeyhint="next"
+                @keydown.enter="onEnter($event, wi, ii)"
+                @keydown.backspace="onBackspace($event, wi, ii)"
+                @paste="onPaste($event, wi, ii)"
+              />
+              <button
+                v-if="week.items.length > 1 || week.items[ii]"
+                type="button"
+                class="cd-proj-curr__item-del"
+                aria-label="이 할 일 지우기"
+                @click="removeItem(wi, ii)"
+              >×</button>
+            </li>
+          </ul>
+          <button type="button" class="cd-proj-curr__item-add" @click="addItem(wi, week.items.length - 1)">+ 할 일 추가</button>
         </div>
       </div>
     </div>
@@ -49,10 +67,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
-import { DEFAULT_WEEKS, defaultWeekTitle, syncCurriculumLength } from '../composables/useProjectCurriculum'
+import { DEFAULT_WEEKS, defaultWeekTitle, syncCurriculumLength, weekEntriesOf } from '../composables/useProjectCurriculum'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { ProjectCategory, WeekCurriculum } from '../types/career-design'
 
@@ -90,8 +108,73 @@ onMounted(() => {
     draftProject.weeks ?? DEFAULT_WEEKS,
     draftProject.name,
   )
+  // 커리큘럼 표준은 '주차별 할 일 목록'(items, 2026-10-22). 옛 설명 글(description)만 있는 주차는 줄 단위로 나눠
+  // 목록으로 보여 준다. 빈 주차에도 입력 줄 하나는 둔다
+  draftProject.curriculum = draftProject.curriculum.map((w) => {
+    const items = weekEntriesOf(w)
+    return { ...w, items: items.length ? items : [''] }
+  })
   baseline = JSON.stringify(draftProject.curriculum)
 })
+
+// ── 할 일 목록 편집 ──
+// 키보드 흐름: 엔터 = 아래에 새 줄 / 빈 줄에서 ⌫ = 그 줄 지우고 윗줄로 / 여러 줄 붙여넣기 = 줄마다 나눔
+function focusItem(wi: number, ii: number, atEnd = true) {
+  nextTick(() => {
+    const el = document.querySelector<HTMLInputElement>(`.cd-proj-curr__item-input[data-w="${wi}"][data-i="${ii}"]`)
+    if (!el) return
+    el.focus()
+    if (atEnd) el.setSelectionRange(el.value.length, el.value.length)
+  })
+}
+
+function addItem(wi: number, afterIdx: number, text = '') {
+  const w = curriculum.value[wi]
+  if (!w) return
+  w.items.splice(afterIdx + 1, 0, text)
+  focusItem(wi, afterIdx + 1)
+}
+
+function removeItem(wi: number, ii: number) {
+  const w = curriculum.value[wi]
+  if (!w) return
+  if (w.items.length === 1) { w.items[0] = ''; focusItem(wi, 0); return }
+  w.items.splice(ii, 1)
+  focusItem(wi, Math.max(0, ii - 1))
+}
+
+function onEnter(e: KeyboardEvent, wi: number, ii: number) {
+  // 한글 조합 중 엔터는 조합 확정용이라 무시한다(안 그러면 줄이 두 개 생긴다)
+  if (e.isComposing || e.keyCode === 229) return
+  e.preventDefault()
+  const w = curriculum.value[wi]
+  if (!w) return
+  // 빈 줄에서 엔터를 또 누르면 새 줄을 만들지 않는다(빈 줄이 쌓이지 않게)
+  if (!w.items[ii]?.trim()) return
+  addItem(wi, ii)
+}
+
+function onBackspace(e: KeyboardEvent, wi: number, ii: number) {
+  const w = curriculum.value[wi]
+  if (!w || w.items[ii] !== '' || w.items.length === 1) return
+  e.preventDefault()
+  w.items.splice(ii, 1)
+  focusItem(wi, Math.max(0, ii - 1))
+}
+
+function onPaste(e: ClipboardEvent, wi: number, ii: number) {
+  const text = e.clipboardData?.getData('text') ?? ''
+  const lines = text.split(/\r?\n/).map((t) => t.replace(/^\s*[-•*·]\s*/, '').trim()).filter(Boolean)
+  if (lines.length < 2) return
+  e.preventDefault()
+  const w = curriculum.value[wi]
+  if (!w) return
+  // 빈 줄이면 그 자리부터 채우고, 내용이 있는 줄이면 그 아래에 새 줄로 넣는다(기존 글 뒤에 이어 붙지 않게)
+  const empty = !(w.items[ii] ?? '').trim()
+  if (empty) w.items.splice(ii, 1, ...lines)
+  else w.items.splice(ii + 1, 0, ...lines)
+  focusItem(wi, (empty ? ii : ii + 1) + lines.length - 1)
+}
 
 // 미저장 이탈 가드 (R2). 단, 기간을 고치러 1단계로 돌아가는 건 정상 흐름이라 묻지 않는다.
 onBeforeRouteLeave((to) => {
@@ -108,8 +191,8 @@ async function saveProject() {
   const finalCurriculum = curriculum.value.map((w: WeekCurriculum) => ({
     week: w.week,
     title: w.title.trim() || defaultWeekTitle(draftProject.name ?? '', w.week),
-    description: w.description?.trim() ?? '',
-    items: [...(w.items ?? [])],   // 구 데이터 보존
+    items: (w.items ?? []).map((t) => t.trim()).filter(Boolean),
+    description: '',   // 옛 형식은 목록으로 옮겼으므로 비운다(두 형식이 함께 남지 않게)
   }))
   draftProject.curriculum = finalCurriculum
 
@@ -227,21 +310,61 @@ async function saveProject() {
     }
   }
 
-  &__week-desc {
-    width: 100%;
+  &__items { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 4px 2px 10px;
     border: 1.5px solid #eee;
     border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 13px;
-    line-height: 1.5;
-    color: #444;
-    outline: none;
-    resize: none;
-    font-family: inherit;
     transition: border-color 0.15s;
 
-    &::placeholder { color: #ccc; }
-    &:focus { border-color: var(--cat-color); }
+    &:focus-within { border-color: var(--cat-color); }
+  }
+  &__item-dot {
+    flex-shrink: 0;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--cat-color);
+  }
+  &__item-input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+    padding: 9px 0;
+    font-family: inherit;
+
+    &::placeholder { color: #c4c4c4; }
+  }
+  &__item-del {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: none;
+    border-radius: 6px;
+    font-size: 16px;
+    color: #c4c4c4;
+    cursor: pointer;
+
+    &:active { background: #f2f2f2; color: #888; }
+  }
+  &__item-add {
+    align-self: flex-start;
+    border: none;
+    background: none;
+    padding: 4px 2px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--cat-color);
+    cursor: pointer;
   }
 
   &__footer {
