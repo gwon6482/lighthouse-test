@@ -50,15 +50,32 @@
           <span>이 순서로 진행해요</span>
           <span class="cd-pace__order-link">{{ orderOpen ? '접기 ▲' : `순서 보기 (${draftPlan.projects.length}개) ▼` }}</span>
         </button>
-        <ol v-if="orderOpen" class="cd-pace__order">
-          <li v-for="(p, i) in draftPlan.projects" :key="p.id" class="cd-pace__order-item">
-            <span class="cd-pace__order-no">{{ i + 1 }}</span>
-            <span class="cd-pace__order-sw" :style="{ background: CAT_COLOR[p.category] }" />
-            <span class="cd-pace__order-name">{{ p.name }}</span>
-            <button type="button" class="cd-pace__order-mv" :disabled="i === 0" aria-label="위로" @click="move(i, -1)">↑</button>
-            <button type="button" class="cd-pace__order-mv" :disabled="i === draftPlan.projects.length - 1" aria-label="아래로" @click="move(i, 1)">↓</button>
-          </li>
-        </ol>
+        <template v-if="orderOpen">
+          <p class="cd-pace__order-hint">오른쪽 ☰ 를 잡고 끌어서 순서를 바꿔요</p>
+          <!-- 드래그 정렬 — 손잡이(☰)만 끌 수 있다(목록 위에서 페이지 스크롤과 겹치지 않게). 나머지 줄은 move 전환으로 비켜 준다 -->
+          <TransitionGroup tag="ol" name="cd-pace-order" class="cd-pace__order">
+            <li
+              v-for="(p, i) in draftPlan.projects"
+              :key="p.id"
+              :data-id="p.id"
+              class="cd-pace__order-item"
+              :class="{ 'cd-pace__order-item--drag': dragId === p.id }"
+              :style="dragId === p.id ? { transform: `translateY(${dragDy}px)` } : undefined"
+            >
+              <span class="cd-pace__order-no">{{ i + 1 }}</span>
+              <span class="cd-pace__order-sw" :style="{ background: CAT_COLOR[p.category] }" />
+              <span class="cd-pace__order-name">{{ p.name }}</span>
+              <button
+                type="button"
+                class="cd-pace__order-grip"
+                :aria-label="`${p.name} 순서 옮기기 (위·아래 화살표)`"
+                @pointerdown="startDrag($event, p.id)"
+                @keydown.up.prevent="keyMove(i, -1)"
+                @keydown.down.prevent="keyMove(i, 1)"
+              >☰</button>
+            </li>
+          </TransitionGroup>
+        </template>
       </div>
 
       <p v-if="draftPlan.timelineManual" class="cd-pace__warn">
@@ -73,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import { useCareerDesign } from '../composables/useCareerDesign'
@@ -108,11 +125,100 @@ const options = computed(() => PACES.map((p) => {
   return { ...p, hours, endLabel: weeks ? monthLabelOfWeek(startKey.value, weeks) : '-', monthsLabel: monthsLabel(weeks) }
 }))
 
-function move(i: number, dir: -1 | 1) {
+// ── 순서 드래그 ──
+// 끄는 줄은 손가락을 따라 translateY 로 움직이고, 가운데가 이웃 줄의 가운데를 넘는 순간 배열에서 자리를 바꾼다.
+// ⚠️ 위치는 offsetTop(레이아웃 위치)으로 계산한다. getBoundingClientRect 는 이웃 줄이 비켜 주는 전환(FLIP) 도중의
+//    변형된 위치를 돌려줘서, 처음 한 칸만 바뀌고 더 안 내려가는 문제가 있었다(2026-10-23 시험).
+const dragId = ref<string | null>(null)
+const dragDy = ref(0)
+let grabOffset = 0       // 손가락과 줄 위쪽 사이 거리
+let pointerY = 0
+let scrollTimer: number | null = null
+
+const listEl = () => document.querySelector<HTMLElement>('.cd-pace__order')
+const rowEl = (id: string) => document.querySelector<HTMLElement>(`.cd-pace__order-item[data-id="${id}"]`)
+// 줄의 원래(변형 전) 위쪽 — 화면 좌표
+const naturalTop = (el: HTMLElement) => (listEl()?.getBoundingClientRect().top ?? 0) + el.offsetTop
+
+function settle() {
+  const id = dragId.value
+  const el = id ? rowEl(id) : null
+  if (!el) return
+  dragDy.value = pointerY - grabOffset - naturalTop(el)
+}
+
+function reorderTo() {
+  const id = dragId.value
+  if (!id) return
+  const list = draftPlan.projects
+  const from = list.findIndex((p) => p.id === id)
+  const el = rowEl(id)
+  if (from < 0 || !el) return
+  const center = pointerY - grabOffset + el.offsetHeight / 2
+  // 끄는 줄을 뺀 나머지 중 원래 가운데가 끄는 줄 가운데보다 위에 있는 줄 수 = 들어갈 자리
+  let to = 0
+  for (const p of list) {
+    if (p.id === id) continue
+    const o = rowEl(p.id)
+    if (o && naturalTop(o) + o.offsetHeight / 2 < center) to++
+  }
+  if (to !== from) {
+    const [moved] = list.splice(from, 1)
+    list.splice(to, 0, moved!)
+    nextTick(settle)
+  }
+}
+
+function onMove(e: PointerEvent) {
+  pointerY = e.clientY
+  settle()
+  reorderTo()
+}
+
+// 화면 위·아래 가장자리로 끌면 자동 스크롤
+function autoScroll() {
+  const EDGE = 70
+  if (pointerY < EDGE) window.scrollBy(0, -8)
+  else if (pointerY > window.innerHeight - EDGE) window.scrollBy(0, 8)
+  else return
+  settle()
+  reorderTo()
+}
+
+function endDrag() {
+  dragId.value = null
+  dragDy.value = 0
+  window.removeEventListener('pointermove', onMove)
+  window.removeEventListener('pointerup', endDrag)
+  window.removeEventListener('pointercancel', endDrag)
+  if (scrollTimer !== null) { clearInterval(scrollTimer); scrollTimer = null }
+}
+
+function startDrag(e: PointerEvent, id: string) {
+  if (e.button !== 0) return
+  e.preventDefault()
+  const el = rowEl(id)
+  if (!el) return
+  grabOffset = e.clientY - naturalTop(el)
+  pointerY = e.clientY
+  dragDy.value = 0
+  dragId.value = id
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', endDrag)
+  window.addEventListener('pointercancel', endDrag)
+  scrollTimer = window.setInterval(autoScroll, 16)
+}
+
+onBeforeUnmount(endDrag)
+
+// 키보드: 손잡이에서 ↑/↓
+function keyMove(i: number, dir: -1 | 1) {
   const list = draftPlan.projects
   const j = i + dir
   if (j < 0 || j >= list.length) return
+  const id = list[i]!.id
   ;[list[i], list[j]] = [list[j]!, list[i]!]
+  nextTick(() => rowEl(id)?.querySelector<HTMLButtonElement>('.cd-pace__order-grip')?.focus())
 }
 
 function apply() {
@@ -202,21 +308,44 @@ function apply() {
     cursor: pointer;
   }
   &__order-link { font-size: 12px; font-weight: 600; color: #888; }
-  &__order { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-  &__order-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: #fafafa; border-radius: 8px; font-size: 13px; }
+  &__order { position: relative; list-style: none; display: flex; flex-direction: column; gap: 4px; }  // 줄의 offsetTop 기준이 목록이 되게
+  &__order-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 4px 4px 8px;
+    background: #fafafa;
+    border-radius: 8px;
+    font-size: 13px;
+
+    &--drag {
+      z-index: 2;
+      background: #fff;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+      transition: none !important;   // 손가락을 바로 따라오게(이동 전환 제외)
+    }
+  }
   &__order-no { width: 18px; text-align: right; font-size: 11px; font-weight: 700; color: #aaa; flex-shrink: 0; }
   &__order-sw { width: 6px; height: 20px; border-radius: 3px; flex-shrink: 0; }
   &__order-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #333; }
-  &__order-mv {
-    width: 26px;
-    height: 26px;
+  &__order-hint { font-size: 12px; color: #999; margin: -2px 0 0; }
+  &__order-grip {
+    flex-shrink: 0;
+    width: 36px;
+    height: 32px;
     border: none;
-    border-radius: 6px;
-    background: #fff;
-    color: #444;
-    cursor: pointer;
+    border-radius: 8px;
+    background: none;
+    color: #aaa;
+    font-size: 16px;
+    cursor: grab;
+    touch-action: none;   // 손잡이를 누른 채 움직이면 페이지가 아니라 줄이 움직인다
+    user-select: none;
+    -webkit-user-select: none;
 
-    &:disabled { opacity: 0.3; cursor: default; }
+    &:active { cursor: grabbing; background: #f0f0f0; }
+    &:focus-visible { outline: 2px solid #4480F5; outline-offset: 1px; }
   }
 
   &__warn { font-size: 12px; color: #B54708; background: #FFF4E5; border-radius: 10px; padding: 10px 12px; line-height: 1.5; }
@@ -237,4 +366,8 @@ function apply() {
     &:active { opacity: 0.85; }
   }
 }
+
+// 드래그 중 다른 줄이 비켜 주는 전환
+.cd-pace-order-move { transition: transform 0.15s ease; }
+@media (prefers-reduced-motion: reduce) { .cd-pace-order-move { transition: none; } }
 </style>
