@@ -14,7 +14,7 @@
       <!-- 진행 속도 요약 — 속도·순서는 앞 화면(plan/pace)에서 정한다 -->
       <div v-if="draftPlan.projects.length" class="cd-complete__pace">
         <span class="cd-complete__pace-text">
-          <template v-if="pace">{{ pace.emoji }} {{ pace.title }} · 주 {{ pace.hours }}시간</template>
+          <template v-if="pace">{{ pace.emoji }} {{ pace.title }}<template v-if="draftPlan.dailyHours"> · 하루 {{ draftPlan.dailyHours }}시간</template> · 주 {{ draftPlan.weeklyHours }}시간</template>
           <template v-else>직접 배치</template>
           <template v-if="autoWeeks"> · 예상 {{ autoWeeks }}주({{ monthsLabel(autoWeeks) }})</template>
         </span>
@@ -254,7 +254,7 @@ import {
   weekDateRange, monthWeekOf, monthWeekLabel, weeksInMonth, parseDateKey, resolveProject,
   projectHoursPerWeek, lastWeekOfMonth, PROVISIONAL_MAX_WEEKS,
 } from '../composables/usePlanTimeline'
-import { DEFAULT_PACE_HOURS, buildTimeline, monthsLabel, paceOfHours } from '../composables/usePlanPace'
+import { DEFAULT_PACE_HOURS, buildTimeline, monthsLabel, paceByKey, paceOfHours } from '../composables/usePlanPace'
 
 const router = useRouter()
 const { draftPlan, draftTimeline, syncTimeline } = useCareerDesign()
@@ -467,7 +467,7 @@ function removeProject(projectId: string) {
 
 // ── 진행 속도 요약 ────────────────────────────────
 // 속도(생활 모습)·순서는 plan/pace 화면에서 정하고 거기서 배치한다. 여기는 결과를 보고 세부 조정하는 곳.
-const pace = computed(() => paceOfHours(draftPlan.weeklyHours))
+const pace = computed(() => paceByKey(draftPlan.paceKey) ?? paceOfHours(draftPlan.weeklyHours))
 const fmtH = (h: number) => (Number.isInteger(h) ? String(h) : h.toFixed(1))
 
 // 배치된 프로젝트가 끝나는 가장 늦은 주 = 예상 기간

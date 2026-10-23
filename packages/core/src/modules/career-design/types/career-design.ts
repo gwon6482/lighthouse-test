@@ -90,6 +90,8 @@ export interface DraftPlan {
   endDate: string
   reviewDay: DayOfWeek | ''  // 주간리뷰 요일. 일주일의 끝이자 시작. 미설정이면 ''
   weeklyHours?: number      // 타임라인 자동 배치 기준 '한 주에 쓸 수 있는 시간'(로컬 임시 계획에만, 서버 저장 안 함)
+  paceKey?: string          // 고른 속도 카드(light·steady·focus·full·allin, 로컬만)
+  dailyHours?: number       // 올인일 때 하루 시간(주 시간 = 하루 × 6, 로컬만)
   timelineManual?: boolean  // 자동 배치 뒤 타임라인을 직접 옮겼는가(속도를 다시 고를 때 덮어쓰기 안내용, 로컬만)
   timeline: TimelineMonth[]
 }

@@ -24,7 +24,14 @@ export const PACES: Pace[] = [
 ]
 export const DEFAULT_PACE_HOURS = 8
 
-export const paceOfHours = (h?: number) => PACES.find((p) => p.hours === h)
+// 올인은 하루 시간을 직접 고른다(2026-10-22 사용자). 주 시간 = 하루 × 6(하루는 쉰다고 본다). 동시 진행 상한은 두지 않음(사용자 결정)
+export const ALLIN_DAYS_PER_WEEK = 6
+export const ALLIN_DAILY = { min: 3, max: 10, default: 4 }
+export const allinWeeklyHours = (daily: number) => daily * ALLIN_DAYS_PER_WEEK
+
+export const paceByKey = (key?: string) => PACES.find((p) => p.key === key)
+// 예전 임시 계획처럼 속도 키 없이 시간만 있는 경우: 정해진 값이면 그 카드, 아니면(올인 하루 시간 조절값) 올인
+export const paceOfHours = (h?: number) => (h == null ? undefined : PACES.find((p) => p.hours === h) ?? paceByKey('allin'))
 
 /** 자동 배치 결과를 타임라인 슬롯으로 */
 export function buildTimeline(projects: Project[], hours: number): TimelineSlot[] {
