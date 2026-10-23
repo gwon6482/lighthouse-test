@@ -210,17 +210,18 @@ function goNext() {
     cursor: pointer;
   }
 
+  // 아이콘 그림은 모서리가 이미 둥글다(42px 기준 반경 10 → 52px 에서 약 12.4px).
+  // 예전에는 선택 테두리를 그림 '안쪽'에 2.5px 로 그려 둥글기가 어긋나 흰 틈이 보였다(2026-10-23 사용자 제보)
+  // → 테두리 없이, 그림과 같은 둥글기로 바깥에 딱 붙는 링(box-shadow)
   &__cat-icon {
     width: 52px;
     height: 52px;
-    border-radius: 12px;
-    border: 2.5px solid transparent;
-    transition: border-color 0.15s;
-    box-sizing: border-box;
+    border-radius: 12.4px;
+    transition: box-shadow 0.15s;
   }
 
   &__cat-item--active &__cat-icon {
-    border-color: #222;
+    box-shadow: 0 0 0 3px #222;
   }
 
   &__cat-label {
