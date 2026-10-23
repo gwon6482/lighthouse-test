@@ -159,9 +159,16 @@ export interface JobReview {
   recommendation: string
   personalityTags: T1GroupCode[]
   status: 'pending' | 'approved' | 'rejected'
-  submittedBy: 'user' | 'admin'
-  submitterEmail: string
-  adminNote: string
+  // 'research' = 랜딩 연구 설문의 현직자 후기(2026-10-15~)
+  submittedBy: 'user' | 'admin' | 'research'
+  // 공개 응답엔 오지 않는다(API 가 뺀다) — 타입 호환용으로 선택 처리
+  submitterEmail?: string
+  adminNote?: string
+  /** 경력 연차 — 연구 설문 후기에만 있다 */
+  careerYears?: 'lt1' | '1to3' | '3to5' | '5to10' | 'gte10'
+  /** 선택 서술 — 비어 있을 수 있다 */
+  preparation?: string
+  dailyLife?: string
   createdAt: string
   updatedAt: string
 }
@@ -189,19 +196,68 @@ export interface JobPreparationResponse {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// 채용 (추후 API 연동 시 스펙에 맞게 수정)
+// 채용 — GET /api/job/:jobCode/recruitment
+// 출처(고용24·추후 사람인/잡코리아)를 서버가 같은 모양으로 맞춰 준다. 화면은 source 를 몰라도 그린다
 // ────────────────────────────────────────────────────────────────────────────
 
-export interface RecruitmentCard {
-  recruitmentId: string
-  companyName: string
-  position: string
-  deadline: string
+export interface RecruitmentPosting {
+  id: string              // '<source>:<공고번호>'
+  source: string          // 'work24' | 'saramin' | 'jobkorea' ...
+  sourceName: string      // '고용24'
+  title: string
+  company: string
+  region: string
+  salary: string
+  career: string
+  education: string
+  employmentType: string  // 정규직·계약직 등(모르면 '')
+  workSchedule?: string   // 주5일근무 등
+  postedAt: string        // YYYY-MM-DD
+  deadline: { date: string | null; untilFilled: boolean; label: string }
+  url: string
+  mobileUrl: string
+}
+
+export interface RecruitmentSource {
+  id: string
+  name: string
+  ok: boolean
+  total: number           // 출처 전체 공고 수(우리가 보여주는 건 일부)
+  count: number
+  moreUrl: string | null  // 출처 사이트에서 더 보기
+  skipped?: string        // 이 직업은 이 출처와 연결할 수 없음
+  error?: string
+}
+
+/** 기업 공개채용(공채) — 직업이 아니라 직종 '분야'(scope) 단위 */
+export interface RecruitmentOpening {
+  id: string
+  company: string
+  companyType: string     // 대기업·공기업·공공기관·중견기업·외국계기업 (빈 값 있음)
+  title: string
+  startDate: string | null
+  endDate: string | null
+  employmentTypes: string[]
+  logoUrl: string | null
+  url: string | null      // 기업 채용 사이트
+}
+
+export interface RecruitmentOpeningGroup {
+  source: string
+  sourceName: string
+  total: number
+  scope: { code: string; name: string }
+  items: RecruitmentOpening[]
 }
 
 export interface JobRecruitmentResponse {
   success: boolean
-  data: RecruitmentCard[]
+  data: {
+    postings: RecruitmentPosting[]
+    sources: RecruitmentSource[]
+    openings?: RecruitmentOpeningGroup[]
+    cached: boolean
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────

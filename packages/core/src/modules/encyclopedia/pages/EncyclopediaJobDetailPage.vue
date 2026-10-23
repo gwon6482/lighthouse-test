@@ -63,7 +63,7 @@
               설정 중...
             </template>
             <template v-else>
-              🎯 목표진로로 설정하기
+              🎯 {{ currentTarget ? '목표진로로 변경하기' : '목표진로로 설정하기' }}
             </template>
           </button>
         </div>
@@ -77,7 +77,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useEncyclopedia } from '../composables/useEncyclopedia'
 import { useAuthStore } from '@/shared/stores/auth'
-import { fetchTargetCareer, updateTargetCareer } from '../encyclopedia.api'
+import { fetchTargetCareer, updateTargetCareer, type TargetCareer } from '../encyclopedia.api'
 import JobDetailHeader from '../components/page/job-detail/JobDetailHeader.vue'
 import JobDetailTabs from '../components/page/job-detail/JobDetailTabs.vue'
 import OverviewTab from '../components/page/job-detail/tabs/OverviewTab.vue'
@@ -117,20 +117,31 @@ async function handleToggleLike() {
 }
 
 // ── 목표진로 설정 버튼 ──
-const hasNoTarget = ref(false)   // 로그인 + targetCareer null 여부
+// ⚠️ 2026-10-20 핫픽스: 예전에는 '목표진로가 없을 때만' 버튼을 보여서, 한 번 정한 사람은 진로설계 → [변경] →
+//    [진로백과에서 선택하기]로 와도 바꿀 방법이 없었다. 지금은 **현재 목표와 다른 직업이면** 보이고(설정/변경),
+//    이미 목표인 직업이면 숨긴다.
+const targetLoaded = ref(false)
+const currentTarget = ref<TargetCareer | null>(null)
 const settingTarget = ref(false)
 const targetJustSet = ref(false)
 
+const isCurrentTarget = computed(() =>
+  currentTarget.value?.refType === 'jobCode' && currentTarget.value.ref === selectedJob.value?.jobCode
+)
 const showSetTargetBtn = computed(() =>
-  authStore.isLoggedIn && hasNoTarget.value && !!selectedJob.value
+  authStore.isLoggedIn && targetLoaded.value && !!selectedJob.value && (!isCurrentTarget.value || targetJustSet.value)
 )
 
 async function handleSetTarget() {
   if (!selectedJob.value) return
 
-  // /main/before 스테퍼(2단계)에서 진입했으면 확인 후 설정 → 복귀
+  // /main/before 스테퍼(2단계)·진로설계 [변경]에서 진입했으면 확인 후 설정 → 그 화면으로 복귀
   const returnTo = sessionStorage.getItem('lh_target_return')
-  if (returnTo && !confirm('목표진로로 설정하시겠습니까?')) return
+  const prev = currentTarget.value ? (currentTarget.value.title ?? currentTarget.value.ref) : ''
+  const message = prev
+    ? `목표진로를 '${prev}'에서 '${selectedJob.value.title}'(으)로 바꿀까요?`
+    : '목표진로로 설정하시겠습니까?'
+  if ((returnTo || prev) && !confirm(message)) return
 
   settingTarget.value = true
   try {
@@ -139,7 +150,7 @@ async function handleSetTarget() {
       ref: selectedJob.value.jobCode,
     })
     if (data.success) {
-      hasNoTarget.value = false
+      currentTarget.value = { refType: 'jobCode', ref: selectedJob.value.jobCode, title: selectedJob.value.title }
       if (returnTo) {
         sessionStorage.removeItem('lh_target_return')
         router.push(returnTo)
@@ -162,10 +173,10 @@ onMounted(async () => {
     loadUserRecommendedJobCodes()
     try {
       const { data } = await fetchTargetCareer()
-      if (data.success && !data.targetCareer) {
-        hasNoTarget.value = true
-      }
-    } catch { /* 무시 */ }
+      if (data.success) currentTarget.value = data.targetCareer
+    } catch { /* 무시 */ } finally {
+      targetLoaded.value = true
+    }
   }
 })
 </script>

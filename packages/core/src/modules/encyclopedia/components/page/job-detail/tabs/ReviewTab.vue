@@ -19,7 +19,10 @@
               </div>
               <span class="review-card__satisfaction-value">{{ review.satisfaction }}점</span>
             </div>
-            <span class="review-card__date">{{ formatDate(review.createdAt) }}</span>
+            <span class="review-card__date">
+              <span v-if="review.careerYears" class="review-card__career">현직 {{ CAREER_LABELS[review.careerYears] }}</span>
+              {{ formatDate(review.createdAt) }}
+            </span>
           </div>
 
           <p class="review-card__summary">{{ review.summary }}</p>
@@ -38,6 +41,18 @@
           <div class="review-card__recommendation">
             <span class="review-card__recommendation-label">추천</span>
             <p class="review-card__recommendation-text">{{ review.recommendation }}</p>
+          </div>
+
+          <!-- 선택 항목 — 연구 설문 후기에서만 온다 -->
+          <div v-if="review.preparation || review.dailyLife" class="review-card__detail">
+            <div v-if="review.preparation" class="review-card__detail-item review-card__detail-item--prep">
+              <span class="review-card__detail-label">준비</span>
+              <p class="review-card__detail-text">{{ review.preparation }}</p>
+            </div>
+            <div v-if="review.dailyLife" class="review-card__detail-item review-card__detail-item--day">
+              <span class="review-card__detail-label">하루</span>
+              <p class="review-card__detail-text">{{ review.dailyLife }}</p>
+            </div>
           </div>
 
           <div v-if="review.personalityTags.length > 0" class="review-card__tags">
@@ -61,9 +76,16 @@ import type { JobReview, T1GroupCode } from '../../../../types/encyclopedia'
 
 const props = defineProps<{ jobCode: string }>()
 
+// T1 요소 이름 — 검사 결과(API personality.name)·결과 화면과 같은 표기.
+// ⚠️ 2026-10-15 전에는 옛 이름(C 성실성·S 민감성 …)이 남아 있어 결과 화면과 달랐다.
 const TAG_LABELS: Record<T1GroupCode, string> = {
-  E: '외향성', C: '성실성', S: '민감성', A: '친화성',
-  I: '지성', R: '현실성', G: '집단화합', U: '독특성', T: '끈기',
+  E: '외향성', C: '기발함', S: '성실성', A: '우호성', I: '자극추구',
+  R: '위험회피', G: '사회적민감성', U: '자율성', T: '연대감',
+}
+
+// 랜딩 연구 설문 CAREER_YEARS 와 같은 표기
+const CAREER_LABELS: Record<NonNullable<JobReview['careerYears']>, string> = {
+  lt1: '1년 미만', '1to3': '1~3년', '3to5': '3~5년', '5to10': '5~10년', gte10: '10년 이상',
 }
 
 const reviews = ref<JobReview[]>([])

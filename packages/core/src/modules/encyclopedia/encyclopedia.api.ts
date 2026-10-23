@@ -39,8 +39,8 @@ export const fetchJobPreparations = (jobCode: string) =>
   req.get<JobPreparationResponse>(`/api/job/${jobCode}/preparation`)
 
 /** 직업 채용정보 조회 GET /api/job/:jobCode/recruitment */
-export const fetchJobRecruitments = (jobCode: string) =>
-  req.get<JobRecruitmentResponse>(`/api/job/${jobCode}/recruitment`)
+export const fetchJobRecruitments = (jobCode: string, limit = 10) =>
+  req.get<JobRecruitmentResponse>(`/api/job/${jobCode}/recruitment`, { params: { limit } })
 
 /** 북마크 목록 조회 GET /api/user/bookmarks (로그인 필요) */
 export const fetchBookmarks = () =>

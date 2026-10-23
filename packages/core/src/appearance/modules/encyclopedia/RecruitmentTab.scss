@@ -35,10 +35,27 @@
 }
 
 .recruit-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   text-align: center;
   padding: 40px 0;
   font-size: 14px;
   color: #bbb;
+
+  &--error { color: #e05050; }
+}
+
+.recruit-retry {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a7fc1;
+  background: none;
+  border: 1px solid #c9d6ec;
+  border-radius: 20px;
+  padding: 6px 14px;
+  cursor: pointer;
 }
 
 .recruit-list {
@@ -55,6 +72,10 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  color: inherit;
+  text-decoration: none;
+
+  &:active { background-color: #f0f2f5; }
 
   &__head {
     display: flex;
@@ -100,10 +121,29 @@
     padding: 3px 10px;
   }
 
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  &__salary {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+  }
+
   &__bottom {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
     margin-top: 2px;
+  }
+
+  &__source {
+    font-size: 11px;
+    color: #bbb;
   }
 
   &__deadline {
@@ -113,39 +153,59 @@
   }
 }
 
-.recruit-block {
+// 출처별 '더 보기' 링크 (고용24 · 추후 사람인/잡코리아)
+.recruit-more {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
+  gap: 8px;
+  padding-top: 4px;
 
-  &__label {
-    font-size: 12px;
-    font-weight: 700;
+  &__link {
+    display: block;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
     color: #4a7fc1;
-
-    &--pref { color: #3a9a3a; }
+    background-color: #e8edf8;
+    border-radius: 12px;
+    padding: 12px;
+    text-decoration: none;
   }
+}
 
-  &__list {
-    list-style: none;
+// 기업 공채 카드 — recruit-card 를 바탕으로 로고·기업구분만 더한다
+.open-card {
+  &__head {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  &__item {
-    display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 8px;
-    font-size: 13px;
-    color: #555;
-    line-height: 1.55;
 
-    .list-dot {
-      // 첫 줄(line-height 13px * 1.55) 세로 중앙에 점을 고정 — 문장이 두 줄 이상으로 넘어가도 위치 유지
-      margin-top: calc((13px * 1.55 - 3px) / 2);
+    .recruit-card__company {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
+
+    .recruit-card__dday { margin-left: auto; }
+  }
+
+  // 공채속보 로고는 가로형(200×64)이다 — 높이만 맞추고 너비는 비율대로
+  &__logo {
+    height: 22px;
+    width: auto;
+    max-width: 72px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+
+  &__ctype {
+    font-size: 11px;
+    font-weight: 600;
+    color: #7a5cc4;
+    background-color: #f0ebfa;
+    border-radius: 20px;
+    padding: 2px 8px;
+    flex-shrink: 0;
   }
 }
