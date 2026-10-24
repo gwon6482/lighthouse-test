@@ -112,6 +112,7 @@ const categories = [
   { value: 'knowledge' as ProjectCategory, label: '분야지식' },
   { value: 'skill' as ProjectCategory, label: '직무기술' },
   { value: 'portfolio' as ProjectCategory, label: '포트폴리오' },
+  { value: 'experience' as ProjectCategory, label: '실무경험' },
 ]
 
 const categoryColorMap: Record<ProjectCategory, { chipBg: string; chipText: string; btn: string }> = {
@@ -119,6 +120,7 @@ const categoryColorMap: Record<ProjectCategory, { chipBg: string; chipText: stri
   knowledge:     { chipBg: '#FFF2E8', chipText: '#F47820', btn: '#F47820' },
   skill:         { chipBg: '#F5EEFF', chipText: '#A855F7', btn: '#A855F7' },
   portfolio:     { chipBg: '#EBF2FF', chipText: '#4480F5', btn: '#4480F5' },
+  experience:    { chipBg: '#FFEDF2', chipText: '#F0507E', btn: '#F0507E' },
 }
 
 const currentColors = computed(() => categoryColorMap[selectedCategory.value])

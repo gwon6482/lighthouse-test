@@ -92,6 +92,7 @@ const categoryLabelMap: Record<ProjectCategory, string> = {
   knowledge: '분야지식',
   skill: '직무기술',
   portfolio: '포트폴리오',
+  experience: '실무경험',
 }
 
 const categoryLabel = computed(() =>

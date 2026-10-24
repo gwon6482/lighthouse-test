@@ -84,6 +84,7 @@ const categoryColorMap: Record<ProjectCategory, string> = {
   knowledge:     '#F47820',
   skill:         '#A855F7',
   portfolio:     '#4480F5',
+  experience:    '#F0507E',
 }
 
 const currentColor = computed(() => categoryColorMap[draftProject.category ?? 'knowledge'])

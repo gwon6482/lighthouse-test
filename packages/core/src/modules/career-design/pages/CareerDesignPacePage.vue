@@ -107,6 +107,7 @@ const CAT_COLOR: Record<ProjectCategory, string> = {
   knowledge: '#F47820',
   skill: '#A855F7',
   portfolio: '#4480F5',
+  experience: '#F0507E',
 }
 
 // 고른 카드. 예전 임시 계획(시간만 있음)은 시간으로 카드를 찾는다

@@ -1,4 +1,6 @@
-export type ProjectCategory = 'qualification' | 'knowledge' | 'skill' | 'portfolio'
+// 'experience'(실무경험) 시안(2026-10-25, feature/category-experience) — 인턴·현장실습·대외활동처럼 '기간·시간을 채우는' 준비물.
+//   포트폴리오(결과물이 남음)에 억지로 넣던 것을 분리한다. ⚠️ API enum(CareerPlan·PublicCareerPlan)에 아직 없다 → 저장하면 400
+export type ProjectCategory = 'qualification' | 'knowledge' | 'skill' | 'portfolio' | 'experience'
 export type Priority = 'high' | 'normal' | 'low'
 export type DayOfWeek = '월' | '화' | '수' | '목' | '금' | '토' | '일'
 
@@ -112,5 +114,5 @@ export interface HelperJobExamples {
   jobCode: string
   title: string
   posts: number            // 분석한 채용공고 수
-  examples: Record<ProjectCategory, HelperExample[]>
+  examples: Partial<Record<ProjectCategory, HelperExample[]>>
 }

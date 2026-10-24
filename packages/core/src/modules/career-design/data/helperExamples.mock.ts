@@ -424,6 +424,46 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
             }
           ]
         }
+      ],
+      "experience": [
+        {
+          "id": "024101-experience-1",
+          "name": "마케팅 인턴·서포터즈 활동",
+          "goal": "실제 브랜드 캠페인 운영에 참여하고 성과를 숫자로 정리한다.",
+          "level": "입문",
+          "daysPerWeek": 3,
+          "minutesPerSession": 180,
+          "basis": "🧪 시안 더미 — 실무경험 분류 예시",
+          "curriculum": [
+            {
+              "week": 1,
+              "title": "활동 시작",
+              "items": [
+                "브랜드·타깃 파악",
+                "캠페인 일정 확인",
+                "담당 채널 정하기"
+              ]
+            },
+            {
+              "week": 2,
+              "title": "콘텐츠 운영",
+              "items": [
+                "게시물 기획·발행",
+                "반응 지표 기록",
+                "피드백 반영"
+              ]
+            },
+            {
+              "week": 3,
+              "title": "성과 정리",
+              "items": [
+                "성과 수치 정리",
+                "활동 보고서 작성",
+                "포트폴리오 문장으로 옮기기"
+              ]
+            }
+          ]
+        }
       ]
     }
   },
@@ -1079,6 +1119,45 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "소득처분 소득금액표",
                 "과세표준 세액조정계산",
                 "법인세 포트폴리오 완성"
+              ]
+            }
+          ]
+        }
+      ],
+      "experience": [
+        {
+          "id": "027101-experience-1",
+          "name": "세무사무소 신고 시즌 아르바이트",
+          "goal": "부가세·종소세 신고 시즌에 기장·신고 보조 업무를 직접 해 본다.",
+          "level": "입문",
+          "daysPerWeek": 5,
+          "minutesPerSession": 360,
+          "basis": "🧪 시안 더미 — 실무경험 분류 예시",
+          "curriculum": [
+            {
+              "week": 1,
+              "title": "사무소 업무 익히기",
+              "items": [
+                "거래처 자료 정리",
+                "전표 입력 보조",
+                "회계 프로그램 실사용"
+              ]
+            },
+            {
+              "week": 2,
+              "title": "신고 자료 준비",
+              "items": [
+                "증빙 대사",
+                "신고서 초안 보조",
+                "검토 피드백 반영"
+              ]
+            },
+            {
+              "week": 3,
+              "title": "마무리·정리",
+              "items": [
+                "한 업무 목록 정리",
+                "이력서 경력 문장 작성"
               ]
             }
           ]
@@ -1832,6 +1911,55 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
             }
           ]
         }
+      ],
+      "experience": [
+        {
+          "id": "133201-experience-1",
+          "name": "개발 인턴십 3개월",
+          "goal": "실제 서비스 팀에서 코드 리뷰·배포 과정을 경험하고 업무 결과를 정리한다.",
+          "level": "중급",
+          "daysPerWeek": 5,
+          "minutesPerSession": 240,
+          "basis": "🧪 시안 더미 — 실무경험 분류 예시(인턴 경험 우대 공고 비율은 실데이터에서 산출)",
+          "curriculum": [
+            {
+              "week": 1,
+              "title": "온보딩·개발 환경 세팅",
+              "items": [
+                "사내 코드 컨벤션 익히기",
+                "로컬 개발 환경 구성",
+                "첫 이슈 받아 보기"
+              ]
+            },
+            {
+              "week": 2,
+              "title": "작은 기능 개발과 코드 리뷰",
+              "items": [
+                "담당 기능 구현",
+                "리뷰 반영해 수정",
+                "테스트 코드 작성"
+              ]
+            },
+            {
+              "week": 3,
+              "title": "배포·운영 참여",
+              "items": [
+                "배포 절차 따라 해 보기",
+                "장애 대응 회의 참관",
+                "운영 지표 확인"
+              ]
+            },
+            {
+              "week": 4,
+              "title": "인턴 결과 정리",
+              "items": [
+                "한 일과 배운 점 정리",
+                "이력서 경력 문장 작성",
+                "추천서·피드백 요청"
+              ]
+            }
+          ]
+        }
       ]
     }
   },
@@ -2380,15 +2508,17 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
               ]
             }
           ]
-        },
+        }
+      ],
+      "experience": [
         {
-          "id": "231101-portfolio-4",
-          "name": "사회복지 현장실습 120시간 종합 보고서",
-          "goal": "120시간 현장실습 과정에서 수행한 업무 일지와 실습 종결 평가서를 정리한다.",
+          "id": "231101-experience-1",
+          "name": "사회복지 현장실습 120시간 이수",
+          "goal": "사회복지 기관에서 정해진 120시간 현장실습을 마치고 실습 내용을 기록한다.",
           "level": "중급",
           "daysPerWeek": 5,
           "minutesPerSession": 90,
-          "basis": "직업정보 내 120시간 현장실습 요건 및 프로그램 서류 작성 업무 반영.",
+          "basis": "🧪 시안 — 포트폴리오(종합 보고서)에서 실무경험으로 옮김. 사회복지사 2급 필수 요건",
           "curriculum": [
             {
               "week": 1,
@@ -3029,6 +3159,55 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "전체 분석 자료 보고서화",
                 "문서작성 결과물 검토",
                 "최종 포트폴리오 문서 확정"
+              ]
+            }
+          ]
+        }
+      ],
+      "experience": [
+        {
+          "id": "304004-experience-1",
+          "name": "병동 임상실습 심화",
+          "goal": "임상실습에서 맡은 환자 간호 과정을 기록하고 부족한 술기를 채운다.",
+          "level": "중급",
+          "daysPerWeek": 5,
+          "minutesPerSession": 240,
+          "basis": "🧪 시안 더미 — 실무경험 분류 예시",
+          "curriculum": [
+            {
+              "week": 1,
+              "title": "실습 병동 적응",
+              "items": [
+                "병동 업무 흐름 파악",
+                "인수인계 참관",
+                "간호기록 양식 익히기"
+              ]
+            },
+            {
+              "week": 2,
+              "title": "담당 환자 간호 과정",
+              "items": [
+                "사정·진단·계획 작성",
+                "투약 보조 참여",
+                "교수님 피드백 반영"
+              ]
+            },
+            {
+              "week": 3,
+              "title": "술기 보완",
+              "items": [
+                "활력징후 측정 반복",
+                "무균술 점검",
+                "부족한 술기 목록 정리"
+              ]
+            },
+            {
+              "week": 4,
+              "title": "실습 정리",
+              "items": [
+                "케이스 보고서 작성",
+                "실습 평가 면담",
+                "면접용 경험 정리"
               ]
             }
           ]

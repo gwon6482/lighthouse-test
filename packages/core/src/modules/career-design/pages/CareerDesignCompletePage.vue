@@ -274,12 +274,14 @@ const categories: { value: ProjectCategory; label: string }[] = [
   { value: 'knowledge',     label: '분야지식' },
   { value: 'skill',         label: '직무기술' },
   { value: 'portfolio',     label: '포트폴리오' },
+  { value: 'experience',    label: '실무경험' },
 ]
 const categoryColorMap: Record<ProjectCategory, string> = {
   qualification: '#1DB95A',
   knowledge:     '#F47820',
   skill:         '#A855F7',
   portfolio:     '#4480F5',
+  experience:    '#F0507E',
 }
 const categoryLabel = (cat: ProjectCategory) => categories.find(c => c.value === cat)?.label ?? ''
 
@@ -576,13 +578,17 @@ function barStyle(bar: WeekBar) {
     gap: 4px;
   }
 
+  // 분류가 5개(실무경험 시안)가 되면 이름+배지를 가로로 두면 '포트폴리오'가 꺾인다 → 위아래로 쌓고 이름은 한 줄
   &__tab {
     flex: 1;
+    min-width: 0;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    padding: 8px 4px;
+    gap: 3px;
+    padding: 8px 0;
+    white-space: nowrap;
     background: none;
     border: none;
     border-bottom: 2.5px solid transparent;

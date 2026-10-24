@@ -117,8 +117,9 @@ const categoryMeta: Record<ProjectCategory, { label: string; color: string; bg: 
   knowledge:     { label: '분야지식', color: '#F47820', bg: '#FFF2E8' },
   skill:         { label: '직무기술', color: '#A855F7', bg: '#F5EEFF' },
   portfolio:     { label: '포트폴리오', color: '#4480F5', bg: '#EBF2FF' },
+  experience:    { label: '실무경험', color: '#F0507E', bg: '#FFEDF2' },
 }
-const categoryOrder: ProjectCategory[] = ['qualification', 'knowledge', 'skill', 'portfolio']
+const categoryOrder: ProjectCategory[] = ['qualification', 'knowledge', 'skill', 'portfolio', 'experience']
 
 // 예술·디자인·방송관리자(013601): 문화·예술·방송 기관 운영 관리자로 도달한 현직자 여정
 const SAMPLE_JOURNEYS_BY_JOB: Record<string, PreparationJourney[]> = {

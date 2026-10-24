@@ -269,6 +269,7 @@ const guideCategories = [
   { value: 'knowledge',     label: '분야지식', color: '#F47820' },
   { value: 'skill',         label: '직무기술', color: '#A855F7' },
   { value: 'portfolio',     label: '포트폴리오', color: '#4480F5' },
+  { value: 'experience',    label: '실무경험', color: '#F0507E' },
 ] as const
 type GuideCat = typeof guideCategories[number]['value']
 
@@ -279,6 +280,7 @@ const guideProjectMap: Record<GuideCat, string[]> = {
   knowledge:     ['마케팅 원론', '소비자행동론', '데이터 마케팅 입문'],
   skill:         ['Figma 기초', 'SNS 콘텐츠 크리에이티브', 'SQL for 마케터'],
   portfolio:     ['브랜드 SNS 기획서', '캠페인 기획서 작성', '최종 포트폴리오'],
+  experience:    ['마케팅 인턴 3개월', '기업 서포터즈 활동', '브랜드 팝업 운영 스태프'],
 }
 
 const guideCatColor = computed(

@@ -42,6 +42,7 @@ export const PLAN_STAGES_MOCK: Record<string, JobStagePlan> = {
       { id: '027101-portfolio-3', upTo: 'M', skip: '부가세 신고 실무 경험으로 대신해요' },
       { id: '027101-qualification-4', upTo: 'C' },
       { id: '027101-portfolio-4', upTo: 'C' },
+      { id: '027101-experience-1', upTo: 'M', skip: '실무 경력으로 대신해요' },  // 🧪 시안: 실무경험
     ],
   },
 
@@ -64,6 +65,7 @@ export const PLAN_STAGES_MOCK: Record<string, JobStagePlan> = {
       { id: '133201-portfolio-3', upTo: 'M', skip: '실무 프로젝트 경력으로 대신해요' },
       { id: '133201-qualification-4', upTo: 'C' },
       { id: '133201-portfolio-4', upTo: 'C' },
+      { id: '133201-experience-1', upTo: 'M', skip: '관련 경력이 있으면 실무 경험으로 대신해요' },  // 🧪 시안: 실무경험
     ],
   },
 
@@ -75,7 +77,7 @@ export const PLAN_STAGES_MOCK: Record<string, JobStagePlan> = {
       { id: '231101-knowledge-3', upTo: 'N', skip: '전공 과목(노인·아동복지론)이에요' },
       { id: '231101-knowledge-4', upTo: 'N', skip: '전공 과목(사회복지행정론)이에요' },
       { id: '231101-qualification-2', upTo: 'N', skip: '사회복지학과를 졸업하면 2급 자격 요건을 갖춰요' },
-      { id: '231101-portfolio-4', upTo: 'N', skip: '전공 과정에 현장실습(120시간)이 들어 있어요' },
+      { id: '231101-experience-1', upTo: 'N', skip: '전공 과정에 현장실습(120시간)이 들어 있어요' },
       { id: '231101-skill-1', upTo: 'N', skip: '대학 과제·보고서로 충분히 익혀요' },
       { id: '231101-skill-2', upTo: 'N', skip: '대학 과제로 익혀요' },
       { id: '231101-qualification-1', upTo: 'M', skip: '기관 행정 실무 경험으로 대신해요' },
@@ -109,6 +111,7 @@ export const PLAN_STAGES_MOCK: Record<string, JobStagePlan> = {
       { id: '304004-qualification-3', upTo: 'M', skip: '이미 면허가 있는 경력 간호사는 필요 없어요' },
       { id: '304004-portfolio-2', upTo: 'M', skip: '현장 근무 경력으로 대신해요' },
       { id: '304004-portfolio-4', upTo: 'C' },
+      { id: '304004-experience-1', upTo: 'M', skip: '임상 경력으로 대신해요' },  // 🧪 시안: 실무경험
     ],
     notes: {
       nonmajor: '간호사 면허는 간호학과(3·4년제)를 졸업해야 국가시험을 볼 수 있어요. 이 계획은 진학을 준비하거나 재학 중에 함께 하는 용도예요.',
@@ -130,6 +133,7 @@ export const PLAN_STAGES_MOCK: Record<string, JobStagePlan> = {
       { id: '024101-portfolio-1', upTo: 'M', skip: '실무 기획서 작성 경력으로 대신해요' },
       { id: '024101-portfolio-2', upTo: 'C' },
       { id: '024101-portfolio-4', upTo: 'C' },
+      { id: '024101-experience-1', upTo: 'M', skip: '마케팅 실무 경력으로 대신해요' },  // 🧪 시안: 실무경험
     ],
   },
 }

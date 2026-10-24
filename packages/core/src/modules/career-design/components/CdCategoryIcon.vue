@@ -13,6 +13,7 @@ const iconMap: Record<ProjectCategory, string> = {
   knowledge: '/career-design/icon-knowledge.svg',
   skill: '/career-design/icon-skill.svg',
   portfolio: '/career-design/icon-portfolio.svg',
+  experience: '/career-design/icon-experience.svg',
 }
 
 const iconSrc = computed(() => iconMap[props.category])

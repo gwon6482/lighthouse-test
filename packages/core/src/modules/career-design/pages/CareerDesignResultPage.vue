@@ -263,12 +263,14 @@ const categories: { value: ProjectCategory; label: string }[] = [
   { value: 'knowledge',     label: '분야지식' },
   { value: 'skill',         label: '직무기술' },
   { value: 'portfolio',     label: '포트폴리오' },
+  { value: 'experience',    label: '실무경험' },
 ]
 const categoryColorMap: Record<ProjectCategory, string> = {
   qualification: '#1DB95A',
   knowledge:     '#F47820',
   skill:         '#A855F7',
   portfolio:     '#4480F5',
+  experience:    '#F0507E',
 }
 const categoryLabel = (cat: ProjectCategory) => categories.find(c => c.value === cat)?.label ?? ''
 

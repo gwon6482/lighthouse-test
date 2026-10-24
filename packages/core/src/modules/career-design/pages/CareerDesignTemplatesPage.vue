@@ -120,6 +120,7 @@ const CATS: { value: ProjectCategory; label: string }[] = [
   { value: 'knowledge', label: '분야지식' },
   { value: 'skill', label: '직무기술' },
   { value: 'portfolio', label: '포트폴리오' },
+  { value: 'experience', label: '실무경험' },
 ]
 // 진로계획 구성 화면과 같은 카테고리 색
 const COLORS: Record<ProjectCategory, { bg: string; text: string }> = {
@@ -127,6 +128,7 @@ const COLORS: Record<ProjectCategory, { bg: string; text: string }> = {
   knowledge: { bg: '#FFF2E8', text: '#F47820' },
   skill: { bg: '#F5EEFF', text: '#A855F7' },
   portfolio: { bg: '#EBF2FF', text: '#4480F5' },
+  experience: { bg: '#FFEDF2', text: '#F0507E' },
 }
 
 // 목표 진로(진로백과에서 정한 것)를 먼저 본다. 비로그인·미설정이면 비어 있다

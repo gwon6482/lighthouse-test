@@ -228,12 +228,14 @@ const CAT_COLOR: Record<ProjectCategory, string> = {
   knowledge:     '#F47820',
   skill:         '#A855F7',
   portfolio:     '#4480F5',
+  experience:    '#F0507E',
 }
 const CAT_LABEL: Record<ProjectCategory, string> = {
   qualification: '자격요건',
   knowledge:     '분야지식',
   skill:         '직무기술',
   portfolio:     '포트폴리오',
+  experience:    '실무경험',
 }
 
 // 첫 진입(회고할 직전 주가 없는 상태) — hero / 섹션 카피를 setup 모드로 전환

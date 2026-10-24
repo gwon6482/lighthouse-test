@@ -139,6 +139,7 @@ const categories: Record<ProjectCategory, { label: string; color: string }> = {
   knowledge:     { label: '분야지식',   color: '#F47820' },
   skill:         { label: '직무기술',   color: '#A855F7' },
   portfolio:     { label: '포트폴리오', color: '#4480F5' },
+  experience:    { label: '실무경험', color: '#F0507E' },
 }
 
 const categoryInfo = computed(() => {
