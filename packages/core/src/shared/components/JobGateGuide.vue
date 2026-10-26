@@ -16,7 +16,9 @@
     <!-- 진로계획: 배지별로 강조할 것 -->
     <ul v-else class="gate-guide__tips">
       <li v-for="b in badges" :key="b.key">
-        <span class="gate-guide__tip-key" :style="{ color: b.color }">{{ b.emoji }} {{ b.label }}</span>
+        <span class="gate-guide__tip-key" :style="{ color: b.color }">
+          <AppIcon v-if="b.icon" :name="b.icon" /><template v-else>{{ b.emoji }}</template> {{ b.label }}
+        </span>
         {{ b.guide }}
       </li>
     </ul>
@@ -30,6 +32,7 @@
 <script setup lang="ts">
 // 진입 관문 안내 — detail(진로백과 직업 상세) / plan(진로계획 세우기 상단)
 import { computed } from 'vue'
+import AppIcon from './AppIcon.vue'
 import { gateBadge, sortGateBadges } from '@/shared/jobGates/gateBadges'
 import { gateOf, gateConditionLines, GATE_CHECKED_AT } from '@/shared/jobGates/useJobGate'
 

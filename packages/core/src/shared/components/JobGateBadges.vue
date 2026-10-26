@@ -8,8 +8,8 @@
       :style="{ color: b.color, background: b.bg }"
       :title="b.desc"
     >
-      <!-- 아이콘: 사용자 SVG 가 오면 gateBadges.ts 의 icon 만 채우면 된다 -->
-      <img v-if="b.icon" class="gate-badge__icon" :src="b.icon" alt="" aria-hidden="true" />
+      <!-- 자체 아이콘(gateBadges.ts 의 icon) — 없으면 이모지 -->
+      <AppIcon v-if="b.icon" :name="b.icon" class="gate-badge__icon" />
       <span v-else class="gate-badge__icon" aria-hidden="true">{{ b.emoji }}</span>
       <span class="gate-badge__label">{{ b.label }}</span>
     </span>
@@ -19,6 +19,7 @@
 <script setup lang="ts">
 // 직업 진입 관문 배지(최대 max 개). 관문 없는 직업은 아무것도 그리지 않는다.
 import { computed } from 'vue'
+import AppIcon from './AppIcon.vue'
 import { gateBadge, sortGateBadges, type GateBadgeKey } from '@/shared/jobGates/gateBadges'
 import { gateOf, gateCodeOfTitle } from '@/shared/jobGates/useJobGate'
 
@@ -49,6 +50,6 @@ const light = computed(() => gate.value?.weight === 'light')
   &--light { opacity: 0.7; }
 }
 .gate-badge__icon { display: inline-grid; place-items: center; width: 1.15em; height: 1.15em; font-size: 0.95em; }
-img.gate-badge__icon { object-fit: contain; }
+
 .gate-badges--md .gate-badge { padding: 3px 9px; font-size: 12px; }
 </style>
