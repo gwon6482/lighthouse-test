@@ -161,3 +161,12 @@ export function missingMethodField(m?: ProjectMethod | null, detail?: Partial<Re
   const miss = def.fields.find((f) => f.required && !(detail?.[f.key] ?? '').trim())
   return miss ? miss.label : null
 }
+
+/** 화면용 한 줄: "📚 책·교재 · 컴퓨터 구조 입문서" (방식이 없으면 빈 문자열) */
+export function methodLine(m?: ProjectMethod | null, detail?: Partial<Record<MethodField, string>>): string {
+  const def = methodDef(m)
+  if (!def) return ''
+  const d = detail ?? {}
+  const extra = d.title || d.org || d.target || d.note || ''
+  return `${def.emoji} ${def.label}${extra ? ` · ${extra}` : ''}`
+}

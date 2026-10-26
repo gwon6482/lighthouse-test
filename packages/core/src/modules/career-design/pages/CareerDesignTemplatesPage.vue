@@ -66,6 +66,7 @@
                   <span class="cd-tpl__project-meta">{{ p.curriculum?.length ?? 0 }}주 · 주 {{ p.days.length }}회 {{ p.duration }}분</span>
                 </span>
                 <span class="cd-tpl__project-name">{{ p.name }}</span>
+                <span v-if="methodLine(p.method, p.methodDetail)" class="cd-tpl__project-method">{{ methodLine(p.method, p.methodDetail) }}</span>
               </span>
             </li>
           </ol>
@@ -111,6 +112,7 @@ import { toDateKey } from '../composables/usePlanTimeline'
 import { fetchTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import { getToday } from '@/shared/utils/dev-date'
 import type { ProjectCategory } from '../types/career-design'
+import { methodLine } from '../composables/projectMethods'
 
 const router = useRouter()
 const { draftPlan, resetDraftPlan } = useCareerDesign()
@@ -270,6 +272,7 @@ function startFrom(t: PlanTemplate) {
   &__project-cat { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
   &__project-name { font-size: 14px; font-weight: 600; color: #333; }
   &__project-meta { font-size: 11px; color: #999; }
+  &__project-method { font-size: 12px; color: #666; }
 
   &__dropped { display: flex; flex-direction: column; gap: 8px; }
   &__dropped-toggle {

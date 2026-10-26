@@ -2,6 +2,7 @@
 //
 // 시범 5직업의 '진짜에 가까운' 예시: 고용24 채용공고 약 100건씩 → Gemini 추출·집계 → 예시 생성(gemini-3.7-flash)
 // 결과를 그대로 옮겼다(lighthouse-api temp/project-examples-pilot.json). 직종 연결 오류로 나온 '지게차' 예시만 뺐다.
+// 진행 방식(method·methodDetail)은 🧪 시안용으로 사람이 붙였다(2026-10-26) — 책·강의 이름은 일부러 일반 이름. 실데이터(11/1)는 생성 스크립트가 붙인다
 // ⚠️ API(GET /api/job/:jobCode/project-examples)가 생기면 이 파일을 지우고 useHelperExamples 의 출처만 바꾼다.
 import type { HelperJobExamples } from '../types/career-design'
 
@@ -39,7 +40,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "실전 모의고사 1회 완제"
               ]
             }
-          ]
+          ],
+          "method": "book",
+          "methodDetail": {
+            "title": "워드프로세서 필기 기본서"
+          }
         },
         {
           "id": "024101-qualification-2",
@@ -68,7 +73,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "감점 요인 파악 및 오탈자 검수"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "워드프로세서 실기 인강"
+          }
         }
       ],
       "knowledge": [
@@ -99,7 +108,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "마케팅 개념 정리표 완성"
               ]
             }
-          ]
+          ],
+          "method": "book",
+          "methodDetail": {
+            "title": "마케팅 원론 교재"
+          }
         },
         {
           "id": "024101-knowledge-2",
@@ -128,7 +141,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "미디어 분석 리포트 작성"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "미디어 커뮤니케이션 입문 강의"
+          }
         },
         {
           "id": "024101-knowledge-3",
@@ -157,7 +174,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "고객 서비스 매뉴얼 요약"
               ]
             }
-          ]
+          ],
+          "method": "book",
+          "methodDetail": {
+            "title": "소비자 행동론 교재"
+          }
         },
         {
           "id": "024101-knowledge-4",
@@ -186,7 +207,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "경영 행정 요약 정리본 작성"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "경영학 입문 강의"
+          }
         }
       ],
       "skill": [
@@ -217,7 +242,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "최종 인쇄 규격 편집 검수"
               ]
             }
-          ]
+          ],
+          "method": "practice",
+          "methodDetail": {
+            "target": "보도자료·공문 양식 10개 작성"
+          }
         },
         {
           "id": "024101-skill-2",
@@ -246,7 +275,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "5장 분량 사업 발표안 완성"
               ]
             }
-          ]
+          ],
+          "method": "practice",
+          "methodDetail": {
+            "target": "발표 슬라이드 5세트 제작"
+          }
         },
         {
           "id": "024101-skill-3",
@@ -275,7 +308,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "데이터 자동 계산 시트 구성"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "실무 엑셀 인강"
+          }
         },
         {
           "id": "024101-skill-4",
@@ -304,7 +341,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "웹용 최적화 포맷으로 저장"
               ]
             }
-          ]
+          ],
+          "method": "academy",
+          "methodDetail": {
+            "org": "포토샵 단기 과정(학원·국비)"
+          }
         }
       ],
       "portfolio": [
@@ -335,7 +376,8 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "홍보 제안서 최종본 검토"
               ]
             }
-          ]
+          ],
+          "method": "personal_project"
         },
         {
           "id": "024101-portfolio-2",
@@ -364,7 +406,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "포트폴리오용 시안 패키징"
               ]
             }
-          ]
+          ],
+          "method": "content",
+          "methodDetail": {
+            "target": "상품 광고 이미지 5종"
+          }
         },
         {
           "id": "024101-portfolio-3",
@@ -393,7 +439,8 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "월간 집계 요약 시트 완성"
               ]
             }
-          ]
+          ],
+          "method": "personal_project"
         },
         {
           "id": "024101-portfolio-4",
@@ -422,7 +469,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "행사 기획 보고서 인쇄 편철"
               ]
             }
-          ]
+          ],
+          "method": "contest",
+          "methodDetail": {
+            "title": "대학생 광고·마케팅 공모전"
+          }
         }
       ],
       "experience": [
@@ -462,7 +513,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "포트폴리오 문장으로 옮기기"
               ]
             }
-          ]
+          ],
+          "method": "activity",
+          "methodDetail": {
+            "org": "기업 서포터즈"
+          }
         }
       ]
     }
@@ -518,7 +573,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "실전 모의고사 풀이"
               ]
             }
-          ]
+          ],
+          "method": "book",
+          "methodDetail": {
+            "title": "전산회계 2급 이론·실기 교재"
+          }
         },
         {
           "id": "027101-qualification-2",
@@ -565,7 +624,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "시간 배분 모의 테스트"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "전산회계 1급 인강"
+          }
         },
         {
           "id": "027101-qualification-3",
@@ -612,7 +675,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "실전 프로그램 테스트"
               ]
             }
-          ]
+          ],
+          "method": "academy",
+          "methodDetail": {
+            "org": "세무회계 학원·국비 과정"
+          }
         },
         {
           "id": "027101-qualification-4",
@@ -659,7 +726,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "실기 시험 시간 점검"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "전산세무 1급 인강"
+          }
         }
       ],
       "knowledge": [
@@ -699,7 +770,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "퇴직 정산 프로세스"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "4대보험 실무 강의"
+          }
         },
         {
           "id": "027101-knowledge-2",
@@ -737,7 +812,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "세액공제 세부항목 파악"
               ]
             }
-          ]
+          ],
+          "method": "book",
+          "methodDetail": {
+            "title": "원천세·연말정산 실무서"
+          }
         },
         {
           "id": "027101-knowledge-3",
@@ -775,7 +854,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "부가가치세 신고서 검토"
               ]
             }
-          ]
+          ],
+          "method": "book",
+          "methodDetail": {
+            "title": "부가가치세 실무서"
+          }
         },
         {
           "id": "027101-knowledge-4",
@@ -813,7 +896,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "중소기업 특별세액감면"
               ]
             }
-          ]
+          ],
+          "method": "school",
+          "methodDetail": {
+            "org": "학점은행제 세무회계 과목"
+          }
         }
       ],
       "skill": [
@@ -853,7 +940,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "오류 데이터 검증하기"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "엑셀 기초 인강"
+          }
         },
         {
           "id": "027101-skill-2",
@@ -891,7 +982,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "문서 PDF 변환 저장"
               ]
             }
-          ]
+          ],
+          "method": "practice",
+          "methodDetail": {
+            "target": "행정 문서 양식 10개"
+          }
         },
         {
           "id": "027101-skill-3",
@@ -929,7 +1024,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "전표 오류 데이터 수정"
               ]
             }
-          ]
+          ],
+          "method": "practice",
+          "methodDetail": {
+            "target": "전표 입력 실습 100건"
+          }
         },
         {
           "id": "027101-skill-4",
@@ -967,7 +1066,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "부가세 신고서 자동작성"
               ]
             }
-          ]
+          ],
+          "method": "academy",
+          "methodDetail": {
+            "org": "더존 실무 교육 과정"
+          }
         }
       ],
       "portfolio": [
@@ -1007,7 +1110,8 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "PDF 출력 서식 완성"
               ]
             }
-          ]
+          ],
+          "method": "personal_project"
         },
         {
           "id": "027101-portfolio-2",
@@ -1045,7 +1149,8 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "결산보고서 바인더 구성"
               ]
             }
-          ]
+          ],
+          "method": "personal_project"
         },
         {
           "id": "027101-portfolio-3",
@@ -1083,7 +1188,8 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "전자신고 검증파일 생성"
               ]
             }
-          ]
+          ],
+          "method": "personal_project"
         },
         {
           "id": "027101-portfolio-4",
@@ -1121,7 +1227,8 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "법인세 포트폴리오 완성"
               ]
             }
-          ]
+          ],
+          "method": "personal_project"
         }
       ],
       "experience": [
@@ -1160,7 +1267,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "이력서 경력 문장 작성"
               ]
             }
-          ]
+          ],
+          "method": "parttime",
+          "methodDetail": {
+            "org": "세무사무소"
+          }
         }
       ]
     }
@@ -1216,7 +1327,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "시험 전 필수 개념 정리"
               ]
             }
-          ]
+          ],
+          "method": "book",
+          "methodDetail": {
+            "title": "정보처리기능사 필기·실기 교재"
+          }
         },
         {
           "id": "133201-qualification-2",
@@ -1263,7 +1378,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "실전 모의평가 진행"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "리눅스마스터 2급 인강"
+          }
         },
         {
           "id": "133201-qualification-3",
@@ -1310,7 +1429,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "최종 모의평가 진행"
               ]
             }
-          ]
+          ],
+          "method": "book",
+          "methodDetail": {
+            "title": "정보처리산업기사 필기 기본서"
+          }
         },
         {
           "id": "133201-qualification-4",
@@ -1375,7 +1498,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "모의시험 시간 배분 훈련"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "정보처리기사 필기·실기 인강"
+          }
         }
       ],
       "knowledge": [
@@ -1415,7 +1542,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "인터럽트 동작 구조 이해"
               ]
             }
-          ]
+          ],
+          "method": "book",
+          "methodDetail": {
+            "title": "컴퓨터 구조 입문서"
+          }
         },
         {
           "id": "133201-knowledge-2",
@@ -1453,7 +1584,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "시간 복잡도 Big-O 이해"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "자료구조 강의"
+          }
         },
         {
           "id": "133201-knowledge-3",
@@ -1500,7 +1635,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "운영체제 핵심 개념 총정리"
               ]
             }
-          ]
+          ],
+          "method": "study_group",
+          "methodDetail": {
+            "target": "운영체제 교재 1~10장 함께 읽기"
+          }
         },
         {
           "id": "133201-knowledge-4",
@@ -1547,7 +1686,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "품질 평가 기준 정리"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "데이터베이스 개론 강의"
+          }
         }
       ],
       "skill": [
@@ -1587,7 +1730,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "기본 태그 관리 연습"
               ]
             }
-          ]
+          ],
+          "method": "practice",
+          "methodDetail": {
+            "target": "개인 저장소 커밋 50회·브랜치 실습"
+          }
         },
         {
           "id": "133201-skill-2",
@@ -1625,7 +1772,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "서브쿼리 문장 작성 연습"
               ]
             }
-          ]
+          ],
+          "method": "practice",
+          "methodDetail": {
+            "target": "SQL 문제 50개"
+          }
         },
         {
           "id": "133201-skill-3",
@@ -1672,7 +1823,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "간단한 자동화 스크립트"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "파이썬 기초 인강"
+          }
         },
         {
           "id": "133201-skill-4",
@@ -1719,7 +1874,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "간단한 콘솔 관리 툴 구현"
               ]
             }
-          ]
+          ],
+          "method": "book",
+          "methodDetail": {
+            "title": "C++ 입문서"
+          }
         }
       ],
       "portfolio": [
@@ -1768,7 +1927,8 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "포트폴리오 문서 작성"
               ]
             }
-          ]
+          ],
+          "method": "personal_project"
         },
         {
           "id": "133201-portfolio-2",
@@ -1815,7 +1975,8 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "프로젝트 소개서 작성"
               ]
             }
-          ]
+          ],
+          "method": "personal_project"
         },
         {
           "id": "133201-portfolio-3",
@@ -1862,7 +2023,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "API 명세서 문서 작성"
               ]
             }
-          ]
+          ],
+          "method": "team_project",
+          "methodDetail": {
+            "note": "백엔드 API 담당"
+          }
         },
         {
           "id": "133201-portfolio-4",
@@ -1909,7 +2074,8 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "기능 시연 영상 및 문서 제작"
               ]
             }
-          ]
+          ],
+          "method": "personal_project"
         }
       ],
       "experience": [
@@ -1958,7 +2124,8 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "추천서·피드백 요청"
               ]
             }
-          ]
+          ],
+          "method": "internship"
         }
       ]
     }
@@ -2005,7 +2172,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "CBT 모의고사 응시"
               ]
             }
-          ]
+          ],
+          "method": "book",
+          "methodDetail": {
+            "title": "컴퓨터활용능력 2급 필기 교재"
+          }
         },
         {
           "id": "231101-qualification-2",
@@ -2043,7 +2214,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "이수 과목 종합 복습"
               ]
             }
-          ]
+          ],
+          "method": "required_course",
+          "methodDetail": {
+            "org": "학점은행제"
+          }
         },
         {
           "id": "231101-qualification-3",
@@ -2090,7 +2265,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "핵심 암기 사항 점검"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "사회복지사 1급 국가시험 인강"
+          }
         },
         {
           "id": "231101-qualification-4",
@@ -2128,7 +2307,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "시험 대비 최종 점검"
               ]
             }
-          ]
+          ],
+          "method": "book",
+          "methodDetail": {
+            "title": "장애인재활상담사 기본서"
+          }
         }
       ],
       "knowledge": [
@@ -2159,7 +2342,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "주요 제도 비교표 작성"
               ]
             }
-          ]
+          ],
+          "method": "school",
+          "methodDetail": {
+            "org": "학점은행제 사회복지개론"
+          }
         },
         {
           "id": "231101-knowledge-2",
@@ -2197,7 +2384,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "실천 단계 요약집 제작"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "사회복지실천론 강의"
+          }
         },
         {
           "id": "231101-knowledge-3",
@@ -2235,7 +2426,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "복지 체계 보고서 작성"
               ]
             }
-          ]
+          ],
+          "method": "book",
+          "methodDetail": {
+            "title": "노인·아동복지론 교재"
+          }
         },
         {
           "id": "231101-knowledge-4",
@@ -2264,7 +2459,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "결산 및 회계 증빙 파악"
               ]
             }
-          ]
+          ],
+          "method": "study_group",
+          "methodDetail": {
+            "target": "사회복지 행정론 교재 함께 읽기"
+          }
         }
       ],
       "skill": [
@@ -2295,7 +2494,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "최종 공문서 3종 완성"
               ]
             }
-          ]
+          ],
+          "method": "practice",
+          "methodDetail": {
+            "target": "기관 공문·계획서 양식 10개"
+          }
         },
         {
           "id": "231101-skill-2",
@@ -2333,7 +2536,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "명단 취합 파일 완성"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "실무 엑셀 인강"
+          }
         },
         {
           "id": "231101-skill-3",
@@ -2371,7 +2578,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "모의 데이터 등록 완료"
               ]
             }
-          ]
+          ],
+          "method": "academy",
+          "methodDetail": {
+            "org": "희망이음 실무 교육"
+          }
         },
         {
           "id": "231101-skill-4",
@@ -2409,7 +2620,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "기록 5건 완성 및 검수"
               ]
             }
-          ]
+          ],
+          "method": "practice",
+          "methodDetail": {
+            "target": "급여제공 기록 입력 실습 30건"
+          }
         }
       ],
       "portfolio": [
@@ -2440,7 +2655,8 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "기록지 형식 검수 완료"
               ]
             }
-          ]
+          ],
+          "method": "personal_project"
         },
         {
           "id": "231101-portfolio-2",
@@ -2469,7 +2685,8 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "상담 일지 2편 완성"
               ]
             }
-          ]
+          ],
+          "method": "personal_project"
         },
         {
           "id": "231101-portfolio-3",
@@ -2507,7 +2724,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "기획서 최종본 검토"
               ]
             }
-          ]
+          ],
+          "method": "contest",
+          "methodDetail": {
+            "title": "사회복지 프로그램 공모전"
+          }
         }
       ],
       "experience": [
@@ -2547,7 +2768,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "종합 실습 포트폴리오 제본"
               ]
             }
-          ]
+          ],
+          "method": "field_practice",
+          "methodDetail": {
+            "org": "사회복지 기관"
+          }
         }
       ]
     }
@@ -2594,7 +2819,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "자주 틀리는 개념 암기"
               ]
             }
-          ]
+          ],
+          "method": "required_course",
+          "methodDetail": {
+            "org": "간호조무사 교육기관(학원)"
+          }
         },
         {
           "id": "304004-qualification-2",
@@ -2641,7 +2870,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "전체 과목 모의고사 실시"
               ]
             }
-          ]
+          ],
+          "method": "book",
+          "methodDetail": {
+            "title": "간호사 국가시험 기본서"
+          }
         },
         {
           "id": "304004-qualification-3",
@@ -2688,7 +2921,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "마무리 요약집 점검하기"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "간호사 국시 문제풀이 인강"
+          }
         },
         {
           "id": "304004-qualification-4",
@@ -2735,7 +2972,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "분만 처치 프로토콜 복습"
               ]
             }
-          ]
+          ],
+          "method": "required_course",
+          "methodDetail": {
+            "org": "조산 수습 과정(의료기관)"
+          }
         }
       ],
       "knowledge": [
@@ -2766,7 +3007,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "응대 매뉴얼 요약정리"
               ]
             }
-          ]
+          ],
+          "method": "school",
+          "methodDetail": {
+            "org": "간호학과 전공 수업"
+          }
         },
         {
           "id": "304004-knowledge-2",
@@ -2795,7 +3040,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "의료 개인정보 보안 규정"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "환자안전 교육 강의"
+          }
         },
         {
           "id": "304004-knowledge-3",
@@ -2833,7 +3082,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "투약 오류 예방 사례분석"
               ]
             }
-          ]
+          ],
+          "method": "book",
+          "methodDetail": {
+            "title": "약리학 교재"
+          }
         },
         {
           "id": "304004-knowledge-4",
@@ -2871,7 +3124,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "호스피스 돌봄 지침 정리"
               ]
             }
-          ]
+          ],
+          "method": "study_group",
+          "methodDetail": {
+            "target": "상담 기법 교재 함께 읽기"
+          }
         }
       ],
       "skill": [
@@ -2902,7 +3159,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "문서 서식 검토 및 교정"
               ]
             }
-          ]
+          ],
+          "method": "practice",
+          "methodDetail": {
+            "target": "간호기록 작성 연습 20건"
+          }
         },
         {
           "id": "304004-skill-2",
@@ -2931,7 +3192,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "일일 관찰 기록 전산화"
               ]
             }
-          ]
+          ],
+          "method": "lecture",
+          "methodDetail": {
+            "title": "케어포 사용법 강의"
+          }
         },
         {
           "id": "304004-skill-3",
@@ -2969,7 +3234,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "기록 누락 방지 최종 검토"
               ]
             }
-          ]
+          ],
+          "method": "practice",
+          "methodDetail": {
+            "target": "간호일지 30건"
+          }
         },
         {
           "id": "304004-skill-4",
@@ -3007,7 +3276,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "데이터 누락 검증 및 마감"
               ]
             }
-          ]
+          ],
+          "method": "practice",
+          "methodDetail": {
+            "target": "투약·급여 기록 입력 30건"
+          }
         }
       ],
       "portfolio": [
@@ -3038,7 +3311,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "최종 교육 리플릿 인쇄"
               ]
             }
-          ]
+          ],
+          "method": "content",
+          "methodDetail": {
+            "target": "질환별 안내서 5편"
+          }
         },
         {
           "id": "304004-portfolio-2",
@@ -3076,7 +3353,8 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "최종 실무 가이드 완성"
               ]
             }
-          ]
+          ],
+          "method": "personal_project"
         },
         {
           "id": "304004-portfolio-3",
@@ -3114,7 +3392,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "케이스 스터디 보고서 제본"
               ]
             }
-          ]
+          ],
+          "method": "team_project",
+          "methodDetail": {
+            "note": "케이스 발표 담당"
+          }
         },
         {
           "id": "304004-portfolio-4",
@@ -3161,7 +3443,8 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "최종 포트폴리오 문서 확정"
               ]
             }
-          ]
+          ],
+          "method": "personal_project"
         }
       ],
       "experience": [
@@ -3210,7 +3493,11 @@ export const HELPER_EXAMPLES_MOCK: HelperJobExamples[] = [
                 "면접용 경험 정리"
               ]
             }
-          ]
+          ],
+          "method": "field_practice",
+          "methodDetail": {
+            "org": "대학병원 병동"
+          }
         }
       ]
     }

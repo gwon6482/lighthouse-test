@@ -32,6 +32,7 @@
         <button type="button" class="cd-helper__card" @click="open(ex)">
           <span class="cd-helper__card-main">
             <span class="cd-helper__card-name">{{ ex.name }}</span>
+            <span v-if="methodLine(ex.method, ex.methodDetail)" class="cd-helper__card-method">{{ methodLine(ex.method, ex.methodDetail) }}</span>
             <span class="cd-helper__card-meta">{{ ex.level }} · {{ ex.curriculum.length }}주 · 주 {{ ex.daysPerWeek }}회 {{ ex.minutesPerSession }}분</span>
           </span>
           <span
@@ -57,6 +58,10 @@
               <p class="cd-helper-sheet__goal">{{ selected.goal }}</p>
               <p class="cd-helper-sheet__meta">
                 {{ selected.curriculum.length }}주 · 주 {{ selected.daysPerWeek }}회 · 1회 {{ selected.minutesPerSession }}분
+              </p>
+              <p v-if="selected.method" class="cd-helper-sheet__method">
+                {{ methodLine(selected.method, selected.methodDetail) }}
+                <span>✅ {{ doneLabel(category, selected.method) }}</span>
               </p>
             </div>
 
@@ -102,6 +107,7 @@ import { useCareerDesign } from '../composables/useCareerDesign'
 import { weekEntriesOf } from '../composables/useProjectCurriculum'
 import { HELPER_EXAMPLE_JOBS, findHelperExamples, findHelperExamplesByCode, helperExampleToProject } from '../composables/useHelperExamples'
 import type { HelperExample, ProjectCategory } from '../types/career-design'
+import { methodLine, doneLabel } from '../composables/projectMethods'
 
 const props = defineProps<{
   category: ProjectCategory
@@ -203,6 +209,7 @@ async function add(ex: HelperExample) {
   &__card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
   &__card-name { font-size: 14px; font-weight: 600; color: #222; }
   &__card-meta { font-size: 11px; color: #999; }
+  &__card-method { font-size: 12px; color: #555; }
   &__card-add {
     flex-shrink: 0;
     font-size: 12px;
@@ -248,6 +255,17 @@ async function add(ex: HelperExample) {
   &__name { font-size: 18px; font-weight: 700; color: #222; line-height: 1.35; }
   &__goal { font-size: 13px; color: #555; line-height: 1.5; }
   &__meta { font-size: 12px; color: #999; }
+  &__method {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #f6f6f6;
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+
+    span { display: block; margin-top: 2px; font-size: 12px; font-weight: 500; color: #666; }
+  }
 
   &__basis {
     margin: 14px 20px 0;
