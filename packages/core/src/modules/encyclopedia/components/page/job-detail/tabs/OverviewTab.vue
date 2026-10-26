@@ -13,6 +13,9 @@
       비슷한 직업을 묶어 조사한 자료라 세부 직업별로 다를 수 있어요.
     </p>
 
+    <!-- 진입 관문(전공·시험·면허 필수 직업만, 2026-10-27) — 관문 없는 직업은 아무것도 안 그린다 -->
+    <JobGateGuide :job-code="job.jobCode" variant="detail" class="overview-gate" />
+
     <!-- 주요업무 -->
     <section class="overview-section">
       <h3 class="overview-section__title">주요업무</h3>
@@ -247,6 +250,7 @@ import { computed, reactive, ref, onMounted } from 'vue'
 import type { Job, JobDetails, CategoryRankings, RankItem } from '../../../../types/encyclopedia'
 
 import { useCareerAttributes } from '@/shared/composables/useCareerAttributes'
+import JobGateGuide from '@/shared/components/JobGateGuide.vue'
 
 const props = defineProps<{ job: Job }>()
 

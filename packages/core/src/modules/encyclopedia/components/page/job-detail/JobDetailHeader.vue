@@ -9,6 +9,7 @@
         <span class="job-detail-header__secondary">{{ classification.secondary }}</span>
       </div>
       <h1 class="job-detail-header__title">{{ title }}</h1>
+      <JobGateBadges v-if="jobCode" :job-code="jobCode" size="md" class="job-detail-header__gates" />
       <div v-if="isRecommended" class="job-detail-header__recommend-badge">
         <span class="job-detail-header__recommend-icon">✦</span>
         맞춤 추천 직업
@@ -40,8 +41,10 @@
 import { useRouter } from 'vue-router'
 import { safeBack } from '@/shared/utils/navigation'
 import type { JobClassification } from '../../../types/encyclopedia'
+import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 defineProps<{
+  jobCode?: string          // 진입 관문 배지용
   title: string
   classification: JobClassification
   isLiked: boolean

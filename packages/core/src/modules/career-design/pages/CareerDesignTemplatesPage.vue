@@ -29,6 +29,9 @@
         {{ job.title }} 채용공고 {{ job.posts }}건과 직업정보를 바탕으로 설계했어요. 지금 내 상황에 맞는 단계를 골라 시작하고, 프로젝트는 자유롭게 고칠 수 있어요.
       </p>
 
+      <!-- 진입 관문 직업(전공·시험·면허 필수)이면 무엇을 중심에 둘지 먼저 보여준다(2026-10-27) -->
+      <JobGateGuide :job-code="job?.jobCode" variant="plan" class="cd-tpl__gate" />
+
       <article
         v-for="t in templates"
         :key="t.id"
@@ -113,6 +116,7 @@ import { fetchTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import { getToday } from '@/shared/utils/dev-date'
 import type { ProjectCategory } from '../types/career-design'
 import { methodLine } from '../composables/projectMethods'
+import JobGateGuide from '@/shared/components/JobGateGuide.vue'
 
 const router = useRouter()
 const { draftPlan, resetDraftPlan } = useCareerDesign()
@@ -236,6 +240,7 @@ function startFrom(t: PlanTemplate) {
     &--major { color: #1D6FD8; background: #E8F1FE; }
   }
   &__who { font-size: 12px; color: #888; }
+  &__gate { margin-bottom: 4px; }
   &__name { font-size: 16px; font-weight: 700; color: #222; line-height: 1.35; }
   &__meta { font-size: 12px; color: #999; }
   &__cats { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }

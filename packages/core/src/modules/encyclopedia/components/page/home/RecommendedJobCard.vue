@@ -18,6 +18,7 @@
         <span class="rjc__sep">›</span>
         <span class="rjc__tag rjc__tag--secondary">{{ job.classification.secondary }}</span>
       </div>
+      <JobGateBadges :job-code="job.jobCode" class="rjc__gates" />
     </div>
 
     <!-- 화살표 -->
@@ -31,6 +32,7 @@
 
 <script setup lang="ts">
 import type { JobRecommendItem } from '../../../types/encyclopedia'
+import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 defineProps<{
   job: JobRecommendItem

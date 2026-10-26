@@ -14,6 +14,7 @@
     <template v-else-if="selectedJob">
       <!-- 헤더: 직업명 + 분류 + 좋아요 + 추천 배지 -->
       <JobDetailHeader
+        :job-code="selectedJob.jobCode"
         :title="selectedJob.title"
         :classification="selectedJob.classification"
         :is-liked="bookmarkedJobCodes.includes(selectedJob.jobCode)"

@@ -15,7 +15,7 @@
       <span class="search-result-card__secondary">{{ job.classification.secondary }}</span>
     </div>
     <div class="search-result-card__bottom">
-      <p class="search-result-card__title">{{ job.title }}</p>
+      <p class="search-result-card__title">{{ job.title }} <JobGateBadges :job-code="job.jobCode" /></p>
       <span class="search-result-card__arrow">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M6 3l5 5-5 5" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -27,6 +27,7 @@
 
 <script setup lang="ts">
 import type { JobSummary } from '../../../types/encyclopedia'
+import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 defineProps<{
   job: JobSummary
