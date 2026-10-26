@@ -232,7 +232,6 @@ function startFrom(t: PlanTemplate) {
 
     &--nonmajor { color: #B07D00; background: #FFF6D6; }
     &--major { color: #1D6FD8; background: #E8F1FE; }
-    &--career { color: #6B4FBB; background: #F0EBFA; }
   }
   &__who { font-size: 12px; color: #888; }
   &__name { font-size: 16px; font-weight: 700; color: #222; line-height: 1.35; }

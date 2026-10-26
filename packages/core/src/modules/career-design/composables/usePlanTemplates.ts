@@ -1,8 +1,8 @@
 // 템플릿에서 수정하기(베타) — 라이트하우스가 미리 설계한 진로계획.
 //
-// 단계: 비전공 > 전공 > 이직 (2026-10-22 사용자 제안)
+// 단계: 비전공 > 전공 (2026-10-22 사용자 제안. '이직'은 2026-10-27 사용자 결정으로 뺐다 — 서비스 단계상 시기상조)
 //   - 기존 전문성이 낮을수록 준비가 길다. 비전공 플랜을 가장 빈틈없이 설계하고,
-//     전공 플랜은 거기서 대학에서 배우는 것을, 이직 플랜은 다시 실무에서 익히는 것을 뺀다(누적: 이직 ⊂ 전공 ⊂ 비전공)
+//     전공 플랜은 거기서 대학에서 배우는 것을 뺀다(누적: 전공 ⊂ 비전공)
 //   - 그래서 같은 프로젝트는 단계가 달라도 이름·커리큘럼이 같고, 화면에서 '이 단계에서 뺀 것'과 이유를 보여줄 수 있다
 //   (이전 '입문 3개월 / 취업 준비 6개월'은 덜 준비된 사람이 더 짧은 계획을 받는 거꾸로 된 구조라 바꿨다)
 // 🧪 프로토타입: 프로젝트는 도우미 예시 더미(helperExamples.mock.ts), 단계 표시는 planStages.mock.ts.
@@ -20,7 +20,7 @@ export interface PlanTemplate {
   jobCode: string
   jobTitle: string
   name: string
-  stageLabel: string       // 비전공 / 전공 / 이직
+  stageLabel: string       // 비전공 / 전공
   who: string              // 누구를 위한 단계인지
   months: number           // 약 N개월(두 프로젝트를 나란히 한다고 보고 계산)
   note?: string            // 자격 요건 등 꼭 알아야 할 안내
@@ -32,7 +32,6 @@ export interface PlanTemplate {
 const STAGES: { key: StageKey; label: string; who: string; keep: UpTo[] }[] = [
   { key: 'nonmajor', label: '비전공', who: '관련 학과·경력이 없어요', keep: ['N', 'M', 'C'] },
   { key: 'major', label: '전공', who: '관련 학과를 졸업했거나 졸업 예정이에요', keep: ['M', 'C'] },
-  { key: 'career', label: '이직', who: '관련 분야에서 일해 본 적이 있어요', keep: ['C'] },
 ]
 
 // 프로젝트 두 개를 나란히 진행한다고 보고 대략의 기간을 낸다(실제 배치는 사용자가 타임라인에서 정한다)
