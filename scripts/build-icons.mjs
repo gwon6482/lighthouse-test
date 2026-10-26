@@ -16,13 +16,18 @@ for (const f of fs.readdirSync(SRC).filter((x) => x.endsWith('.svg')).sort()) {
   const name = f.replace(/\.svg$/, '')
   let s = fs.readFileSync(path.join(SRC, f), 'utf8').replace(/<!--[\s\S]*?-->/g, '').replace(/<\?xml[^>]*>/, '')
   const viewBox = (s.match(/viewBox="([^"]+)"/) || [, '0 0 24 24'])[1]
-  const inner = s.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '').trim()
+  // 바깥 <svg> 에 적힌 그리기 속성(fill·stroke·stroke-width…)은 안쪽에 그대로 이어져야 한다 → <g> 로 감싸 보존
+  const rootTag = (s.match(/<svg([^>]*)>/) || [, ''])[1]
+  const PRESENT = /\b(fill|stroke|stroke-width|stroke-linecap|stroke-linejoin|stroke-miterlimit|fill-rule|clip-rule|opacity)="[^"]*"/g
+  const rootAttrs = (rootTag.match(PRESENT) || []).join(' ')
+  let inner = s.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '').trim()
+  if (rootAttrs) inner = `<g ${rootAttrs}>${inner}</g>`
   // 배경: 전체를 덮는 첫 rect
   const [, , vw, vh] = viewBox.split(/\s+/).map(Number)
   const bgM = inner.match(new RegExp(`<rect[^>]*width="${vw}"[^>]*height="${vh}"[^>]*fill="([^"]+)"[^>]*/>`))
   let body = bgM ? inner.replace(bgM[0], '').trim() : inner
   let box = viewBox
-  const t = body.match(/^<g([^>]*)transform="translate\(([\d.]+)[ ,]+([\d.]+)\)\s*scale\(([\d.]+)\)"([^>]*)>([\s\S]*)<\/g>$/)
+  const t = body.replace(/^<g [^>]*>([\s\S]*)<\/g>$/, (m, x) => (rootAttrs ? x.trim() : m)).match(/^<g([^>]*)transform="translate\(([\d.]+)[ ,]+([\d.]+)\)\s*scale\(([\d.]+)\)"([^>]*)>([\s\S]*)<\/g>$/)
   if (bgM && t) {
     const [, pre, tx, ty, sc, post, content] = t
     const w = +(24 * +sc).toFixed(3)
