@@ -162,6 +162,7 @@
         <div class="cd-target-card__icon">🎯</div>
         <div class="cd-target-card__info">
           <p class="cd-target-card__title">{{ targetCareer.title ?? targetCareer.ref }}</p>
+          <JobGateBadges :job-code="targetCareer.refType === 'jobCode' ? targetCareer.ref : null" :title="targetCareer.title" class="cd-target-card__gates" />
           <p v-if="targetCareer.classification" class="cd-target-card__sub">
             {{ targetCareer.classification.primary }} · {{ targetCareer.classification.secondary }}
           </p>
@@ -260,6 +261,7 @@ import JourneyIntro from '@/shared/components/JourneyIntro.vue'
 import { useRouter } from 'vue-router'
 import { fetchTargetCareer, updateTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import type { TargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
+import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 const router = useRouter()
 
@@ -395,6 +397,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss">
+.cd-target-card__gates { margin-top: 6px; }   // 진입 관문 배지(2026-10-27)
 .cd-main {
   display: flex;
   flex-direction: column;

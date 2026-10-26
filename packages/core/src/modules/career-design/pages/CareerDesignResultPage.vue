@@ -20,7 +20,7 @@
       <div class="cd-result__summary">
         <div class="cd-result__target">
           <span class="cd-result__target-icon">🎯</span>
-          <span class="cd-result__target-job">{{ draftPlan.targetJob || '목표 직업 미설정' }}</span>
+          <span class="cd-result__target-job">{{ draftPlan.targetJob || '목표 직업 미설정' }} <JobGateBadges :title="draftPlan.targetJob" /></span>
         </div>
         <div class="cd-result__period-row">
           <span class="cd-result__period">{{ periodLabel }}</span>
@@ -204,6 +204,7 @@ import { useWeeklySchedule } from '@/modules/career-achievement/composables/useW
 import { useAuthStore } from '@/shared/stores/auth'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { Project, ProjectCategory, DayOfWeek } from '../types/career-design'
+import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

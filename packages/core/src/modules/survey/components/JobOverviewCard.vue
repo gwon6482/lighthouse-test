@@ -6,6 +6,8 @@
       <div class="jobcard__titlebox">
         <h2 class="jobcard__title">{{ job.title }}</h2>
         <p class="jobcard__class">{{ job.classification.primary }} › {{ job.classification.secondary }}</p>
+        <JobGateBadges :job-code="job.jobCode" size="md" class="jobcard__gates" />
+        <JobGateBadges :job-code="job.jobCode" size="md" class="jobcard__gates" />
       </div>
       <button
         class="jobcard__like"
@@ -88,6 +90,7 @@ import { computed, onMounted } from 'vue'
 import type { Job } from '@/modules/encyclopedia/types/encyclopedia'
 import { useEncyclopedia } from '@/modules/encyclopedia/composables/useEncyclopedia'
 import { useAuthStore } from '@/shared/stores/auth'
+import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 const props = defineProps<{ job: Job }>()
 
@@ -108,6 +111,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+.jobcard__gates { margin-top: 6px; }   // 진입 관문 배지(2026-10-27)
 .jobcard {
   display: flex;
   flex-direction: column;

@@ -12,7 +12,7 @@
       <ul class="jgp__list">
         <li v-for="m in members" :key="m.jobCode">
           <button type="button" class="jgp__item" @click="pick(m.jobCode)">
-            {{ m.title }}
+            {{ m.title }} <JobGateBadges :job-code="m.jobCode" />
           </button>
         </li>
       </ul>
@@ -23,6 +23,7 @@
 </template>
 
 <script setup lang="ts">
+import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 const props = defineProps<{
   modelValue: boolean
   groupTitle: string

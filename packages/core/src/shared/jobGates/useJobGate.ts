@@ -5,6 +5,10 @@ import { CONDITION_LABELS, sortGateBadges, type JobGate } from './gateBadges'
 export { GATE_CHECKED_AT }
 export const gateOf = (jobCode?: string | null): JobGate | undefined => (jobCode ? JOB_GATES[jobCode] : undefined)
 
+// 직업 이름만 있는 곳(진로계획의 targetJob 등)용 — 이름이 정확히 같을 때만
+const BY_TITLE = new Map(Object.entries(JOB_GATES).map(([code, g]) => [g.title, code]))
+export const gateCodeOfTitle = (title?: string | null) => (title ? BY_TITLE.get(title.trim()) : undefined)
+
 /** 조건을 사람이 읽는 줄로: ['관련 학과 졸업', '면허·자격 시험 합격', …] */
 export function gateConditionLines(g: JobGate): string[] {
   const c = g.conditions

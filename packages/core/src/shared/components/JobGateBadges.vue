@@ -20,13 +20,14 @@
 // 직업 진입 관문 배지(최대 max 개). 관문 없는 직업은 아무것도 그리지 않는다.
 import { computed } from 'vue'
 import { gateBadge, sortGateBadges, type GateBadgeKey } from '@/shared/jobGates/gateBadges'
-import { gateOf } from '@/shared/jobGates/useJobGate'
+import { gateOf, gateCodeOfTitle } from '@/shared/jobGates/useJobGate'
 
-const props = withDefaults(defineProps<{ jobCode?: string | null; badges?: GateBadgeKey[]; max?: number; size?: 'sm' | 'md' }>(), {
+const props = withDefaults(defineProps<{ jobCode?: string | null; title?: string | null; badges?: GateBadgeKey[]; max?: number; size?: 'sm' | 'md' }>(), {
   max: 2,
   size: 'sm',
 })
-const gate = computed(() => gateOf(props.jobCode))
+// jobCode 가 없으면 직업 이름으로 찾는다(이름만 들고 있는 화면)
+const gate = computed(() => gateOf(props.jobCode ?? gateCodeOfTitle(props.title)))
 const shown = computed(() => sortGateBadges(props.badges ?? gate.value?.badges ?? []).slice(0, props.max).map(gateBadge))
 // 가벼운 면허(미용사·지게차 등)는 같은 배지를 조금 옅게
 const light = computed(() => gate.value?.weight === 'light')

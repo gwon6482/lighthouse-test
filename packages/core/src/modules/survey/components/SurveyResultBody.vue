@@ -187,7 +187,7 @@
             @click="$emit('job-click', job.jobCode)"
           >
             <div class="t2rec-card-top">
-              <span class="t2rec-title">{{ job.title }}</span>
+              <span class="t2rec-title">{{ job.title }} <JobGateBadges :job-code="job.jobCode" /></span>
               <span class="t2rec-score">매칭도 {{ Math.round(job.t2_match_score * 100) }}%</span>
             </div>
             <p class="t2rec-class">
@@ -295,6 +295,8 @@
             <div class="comp-body">
               <div class="comp-top">
                 <span class="comp-title">{{ job.title }}</span>
+                <JobGateBadges :job-code="job.jobCode" />
+                <JobGateBadges :job-code="job.jobCode" />
                 <!-- 묶음 직업: 고용24가 여러 직업을 한 직업으로 묶어 조사해 점수가 같은 경우
                      추천이 한 자리로 접힌다. 탭하면 세부 직업을 고르게 한다. -->
                 <span v-if="(job.members?.length ?? 1) > 1" class="comp-group">유사 {{ job.members!.length }}개</span>
@@ -382,6 +384,7 @@ import type {
 } from '../types/survey'
 import PersonalityDistribution from './PersonalityDistribution.vue'
 import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
+import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 const props = defineProps<{ surveyId: string }>()
 const emit = defineEmits<{ (e: 'job-click', jobCode: string): void }>()

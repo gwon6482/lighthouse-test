@@ -71,7 +71,7 @@
             @click="router.push(`/career-encyclopedia/job/${job.jobCode}`)"
           >
             <div class="job-list__left">
-              <p class="job-list__title">{{ job.title }}</p>
+              <p class="job-list__title">{{ job.title }} <JobGateBadges :job-code="job.jobCode" /></p>
               <p class="job-list__sub">{{ job.classification?.large }} · {{ job.classification?.medium }}</p>
             </div>
             <svg class="job-list__arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -154,6 +154,7 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { req } from '@/shared/api'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 import AccountDeleteSheet from '../components/AccountDeleteSheet.vue'
+import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

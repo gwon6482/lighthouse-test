@@ -46,7 +46,7 @@
             @click="openJob(job)"
           >
             <div class="rec-t2rec-card-top">
-              <span class="rec-t2rec-title">{{ job.title }}</span>
+              <span class="rec-t2rec-title">{{ job.title }} <JobGateBadges :job-code="job.jobCode" /></span>
               <span v-if="groupSize(job) > 1" class="rec-group-badge">유사 {{ groupSize(job) }}개</span>
               <span class="rec-t2rec-score">{{ Math.round(job.t2_match_score * 100) }}%</span>
             </div>
@@ -118,6 +118,7 @@ import type { T2RecommendJob, SurveyAnalysisResponse } from '@/modules/survey/ty
 import RecommendedJobCard from '../components/page/home/RecommendedJobCard.vue'
 import AppHeader from '@/shared/components/AppHeader.vue'
 import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
+import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 const router = useRouter()
 

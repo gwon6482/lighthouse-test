@@ -6,7 +6,7 @@
       <!-- 계획 요약 -->
       <div class="cd-complete__summary">
         <div class="cd-complete__summary-row">
-          <span class="cd-complete__target">🎯 {{ draftPlan.targetJob || '목표 직업 미설정' }}</span>
+          <span class="cd-complete__target">🎯 {{ draftPlan.targetJob || '목표 직업 미설정' }} <JobGateBadges :title="draftPlan.targetJob" /></span>
           <span class="cd-complete__period">{{ periodLabel }}</span>
         </div>
       </div>
@@ -255,6 +255,7 @@ import {
   projectHoursPerWeek, lastWeekOfMonth, PROVISIONAL_MAX_WEEKS,
 } from '../composables/usePlanTimeline'
 import { DEFAULT_PACE_HOURS, buildTimeline, monthsLabel, paceByKey, paceOfHours } from '../composables/usePlanPace'
+import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 const router = useRouter()
 const { draftPlan, draftTimeline, syncTimeline } = useCareerDesign()

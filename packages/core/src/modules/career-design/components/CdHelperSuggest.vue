@@ -24,7 +24,7 @@
         class="cd-helper__job"
         :class="{ 'cd-helper__job--on': job?.jobCode === j.jobCode }"
         @click="picked = j.jobCode"
-      >{{ j.title }}</button>
+      >{{ j.title }} <JobGateBadges :job-code="j.jobCode" :max="1" /></button>
     </div>
 
     <ul class="cd-helper__list">
@@ -108,6 +108,7 @@ import { weekEntriesOf } from '../composables/useProjectCurriculum'
 import { HELPER_EXAMPLE_JOBS, findHelperExamples, findHelperExamplesByCode, helperExampleToProject } from '../composables/useHelperExamples'
 import type { HelperExample, ProjectCategory } from '../types/career-design'
 import { methodLine, doneLabel } from '../composables/projectMethods'
+import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 const props = defineProps<{
   category: ProjectCategory

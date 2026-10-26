@@ -21,7 +21,7 @@
             class="cd-tpl__job"
             :class="{ 'cd-tpl__job--on': job?.jobCode === j.jobCode }"
             @click="pickJob(j.jobCode)"
-          >{{ j.title }}</button>
+          >{{ j.title }} <JobGateBadges :job-code="j.jobCode" :max="1" /></button>
         </div>
       </section>
 
@@ -117,6 +117,7 @@ import { getToday } from '@/shared/utils/dev-date'
 import type { ProjectCategory } from '../types/career-design'
 import { methodLine } from '../composables/projectMethods'
 import JobGateGuide from '@/shared/components/JobGateGuide.vue'
+import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 const router = useRouter()
 const { draftPlan, resetDraftPlan } = useCareerDesign()

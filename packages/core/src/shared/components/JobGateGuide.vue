@@ -2,7 +2,7 @@
   <section v-if="gate" class="gate-guide" :class="`gate-guide--${variant}`">
     <div class="gate-guide__head">
       <span class="gate-guide__title">{{ variant === 'plan' ? `${gate.title}${subjectJosa(gate.title)} 이렇게 준비해요` : '이 직업이 되려면' }}</span>
-      <JobGateBadges :job-code="jobCode" :max="5" size="md" />
+      <!-- 배지는 넣지 않는다 — 상세 헤더·각 항목에 이미 있다(2026-10-27 사용자) -->
     </div>
 
     <!-- 진로백과: 되는 길(조건·한 줄 설명·근거) -->
@@ -30,7 +30,6 @@
 <script setup lang="ts">
 // 진입 관문 안내 — detail(진로백과 직업 상세) / plan(진로계획 세우기 상단)
 import { computed } from 'vue'
-import JobGateBadges from './JobGateBadges.vue'
 import { gateBadge, sortGateBadges } from '@/shared/jobGates/gateBadges'
 import { gateOf, gateConditionLines, GATE_CHECKED_AT } from '@/shared/jobGates/useJobGate'
 
