@@ -5,6 +5,7 @@
 //   (최종에는 진로백과에서 정한 목표 진로의 jobCode 를 먼저 쓰고, 없을 때 이름으로)
 import { HELPER_EXAMPLES_MOCK } from '../data/helperExamples.mock'
 import type { DayOfWeek, HelperExample, HelperJobExamples, Project, ProjectCategory } from '../types/career-design'
+import { methodFits } from './projectMethods'
 
 const norm = (s: string) => s.replace(/[\s·‧,]/g, '')
 
@@ -52,5 +53,8 @@ export function helperExampleToProject(ex: HelperExample, category: ProjectCateg
     description: ex.basis,
     // 커리큘럼 표준(주차별 할 일 목록) 그대로 담는다
     curriculum: ex.curriculum.map((w) => ({ week: w.week, title: w.title, items: [...w.items] })),
+    // 진행 방식 — 실데이터(11/1~)에는 들어온다. 영역에 맞지 않으면 버린다(사용자가 고르게 '방식 미정'으로)
+    method: methodFits(category, ex.method) ? ex.method : null,
+    methodDetail: methodFits(category, ex.method) ? { ...(ex.methodDetail ?? {}) } : {},
   }
 }

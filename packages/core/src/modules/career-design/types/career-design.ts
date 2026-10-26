@@ -1,5 +1,8 @@
-// 'experience'(실무경험) 시안(2026-10-25, feature/category-experience) — 인턴·현장실습·대외활동처럼 '기간·시간을 채우는' 준비물.
-//   포트폴리오(결과물이 남음)에 억지로 넣던 것을 분리한다. ⚠️ API enum(CareerPlan·PublicCareerPlan)에 아직 없다 → 저장하면 400
+import type { ProjectMethod, MethodField } from '../composables/projectMethods'
+
+// 'experience'(실무경험, 2026-10-25) — 인턴·현장실습·대외활동처럼 '기간·시간을 채우는' 준비물.
+//   포트폴리오(결과물이 남음)에 억지로 넣던 것을 분리했다. API enum 에도 있다(lighthouse-api 6035c60)
+
 export type ProjectCategory = 'qualification' | 'knowledge' | 'skill' | 'portfolio' | 'experience'
 export type Priority = 'high' | 'normal' | 'low'
 export type DayOfWeek = '월' | '화' | '수' | '목' | '금' | '토' | '일'
@@ -35,6 +38,9 @@ export interface Project {
   likes?: number
   views?: number
   curriculum?: WeekCurriculum[]
+  // 진행 방식(영역 × 방식, 🧪 시안 2026-10-26) — composables/projectMethods.ts. 새로 만들 땐 필수, 예전·템플릿 프로젝트는 없을 수 있다(= 방식 미정)
+  method?: ProjectMethod | null
+  methodDetail?: Partial<Record<MethodField, string>>
 }
 
 export interface Routine {
@@ -108,6 +114,8 @@ export interface HelperExample {
   minutesPerSession: number
   basis: string            // 근거 한 줄(예: "회계사무원 공고 97건 중 23%가 전산세무2급을 요구")
   curriculum: WeekCurriculum[]
+  method?: ProjectMethod          // 진행 방식(실데이터부터). 없으면 사용자가 고른다
+  methodDetail?: Partial<Record<MethodField, string>>
 }
 
 export interface HelperJobExamples {

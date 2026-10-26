@@ -33,13 +33,43 @@
         </div>
       </div>
 
+      <!-- 진행 방식 (필수, 🧪 시안 2026-10-26) — 어떻게 해 나갈지·언제 끝났다고 할지를 정한다(projectMethods.ts) -->
+      <div class="cd-proj-write__section">
+        <h3 class="cd-proj-write__label">진행 방식</h3>
+        <p class="cd-proj-write__sub-label">이 프로젝트를 어떻게 해 나갈지 골라주세요</p>
+        <div class="cd-proj-write__methods">
+          <button
+            v-for="m in methods"
+            :key="m.value"
+            type="button"
+            class="cd-proj-write__method"
+            :class="{ 'cd-proj-write__method--active': draftProject.method === m.value }"
+            @click="pickMethod(m.value)"
+          >{{ m.emoji }} {{ m.label }}</button>
+        </div>
+        <template v-if="currentMethod">
+          <div v-for="f in methodFields" :key="f.key" class="cd-proj-write__method-field">
+            <label class="cd-proj-write__method-label" :for="`m-${f.key}`">{{ f.label }}</label>
+            <input
+              :id="`m-${f.key}`"
+              class="cd-proj-write__input"
+              :type="f.type ?? 'text'"
+              :value="draftProject.methodDetail?.[f.key] ?? ''"
+              :placeholder="f.placeholder"
+              @input="setDetail(f.key, ($event.target as HTMLInputElement).value)"
+            />
+          </div>
+          <div class="cd-proj-write__done">✅ 완료 기준 · {{ doneLabel(draftProject.category, draftProject.method) }}</div>
+        </template>
+      </div>
+
       <!-- 프로젝트 이름 -->
       <div class="cd-proj-write__section">
         <h3 class="cd-proj-write__label">프로젝트 이름</h3>
         <input
           v-model="draftProject.name"
           class="cd-proj-write__input"
-          placeholder="예 : OO강의 듣기"
+          :placeholder="currentMethod?.namePlaceholder ?? '예 : OO강의 듣기'"
         />
       </div>
 
@@ -172,19 +202,24 @@
 
     <!-- 하단 버튼 -->
     <div class="cd-proj-write__footer">
+      <p v-if="blocker && tried" class="cd-proj-write__error">{{ blocker }}</p>
       <button class="cd-proj-write__cta" @click="goNext">다음</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUnsavedGuard } from '@/shared/composables/useUnsavedGuard'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { MIN_WEEKS, MAX_WEEKS, DEFAULT_WEEKS, clampWeeks } from '../composables/useProjectCurriculum'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { DayOfWeek, Priority, ProjectCategory } from '../types/career-design'
+import {
+  methodsOf, methodDef, methodFits, doneLabel, missingMethodField, QUALIFICATION_EXTRA,
+  type ProjectMethod, type MethodField,
+} from '../composables/projectMethods'
 
 const router = useRouter()
 const { draftPlan, draftProject } = useCareerDesign()
@@ -242,8 +277,43 @@ function toggleDay(day: DayOfWeek) {
   else draftProject.days.push(day)
 }
 
+// ── 진행 방식 ──
+const methods = computed(() => methodsOf(draftProject.category))
+const currentMethod = computed(() => methodDef(draftProject.method))
+// 자격요건은 방식과 상관없이 시험일을 함께 받는다(필수 교육 이수는 시험이 아니라 제외)
+const methodFields = computed(() => {
+  const base = currentMethod.value?.fields ?? []
+  return draftProject.category === 'qualification' && draftProject.method !== 'required_course'
+    ? [...base, { ...QUALIFICATION_EXTRA, placeholder: '' }]
+    : base
+})
+function pickMethod(m: ProjectMethod) {
+  if (draftProject.method !== m) draftProject.methodDetail = {}
+  draftProject.method = m
+}
+function setDetail(k: MethodField, v: string) {
+  draftProject.methodDetail = { ...(draftProject.methodDetail ?? {}), [k]: v }
+}
+// 영역을 바꾸면 그 영역에 없는 방식은 풀린다(공용 방식 — 책·인강 등 — 은 유지)
+watch(() => draftProject.category, (c) => {
+  if (draftProject.method && !methodFits(c, draftProject.method)) { draftProject.method = null; draftProject.methodDetail = {} }
+})
+
+// 을/를 — 마지막 글자 받침으로. 라벨 끝의 '(선택)' 같은 괄호는 필수 칸엔 없다
+const objectJosa = (w: string) => { const c = w.trim().slice(-1).charCodeAt(0) - 0xac00; return c < 0 || c > 11171 ? '을(를)' : c % 28 ? '을' : '를' }
+
+const tried = ref(false)
+const blocker = computed(() => {
+  if (!draftProject.method) return '진행 방식을 골라주세요'
+  const miss = missingMethodField(draftProject.method, draftProject.methodDetail)
+  if (miss) return `${miss}${objectJosa(miss)} 적어주세요`
+  if (!draftProject.name?.trim()) return '프로젝트 이름을 적어주세요'
+  return null
+})
+
 function goNext() {
-  if (!draftProject.name) return
+  tried.value = true
+  if (blocker.value) return
   bypass()
   router.push('/career-design/project/curriculum')
 }
@@ -381,6 +451,60 @@ function goNext() {
     font-size: 12px;
     color: #aaa;
     margin-bottom: 12px;
+  }
+
+  /* 진행 방식 */
+  &__methods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__method {
+    padding: 9px 13px;
+    border: 1.5px solid #eee;
+    border-radius: 999px;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &--active {
+      background: var(--cat-color);
+      border-color: var(--cat-color);
+      color: #fff;
+    }
+  }
+
+  &__method-field { margin-top: 14px; }
+
+  &__method-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+  }
+
+  &__done {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--cat-color) 10%, white);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cat-color);
+  }
+
+  &__error {
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #E53E3E;
+    text-align: center;
   }
 
   &__tip {

@@ -1455,6 +1455,8 @@ export function useCareerDesign() {
         startTime:  project.notificationTime,
         endTime:    '',
         curriculum: project.curriculum,
+        method:       project.method ?? null,
+        methodDetail: project.methodDetail ?? {},
       })
       // 서버에서 반환된 id로 local id 동기화
       project.id = res.data.project.id
@@ -1475,6 +1477,8 @@ export function useCareerDesign() {
         days:       project.days,
         startTime:  project.notificationTime,
         curriculum: project.curriculum,
+        method:       project.method ?? null,
+        methodDetail: project.methodDetail ?? {},
       })
       return true
     } catch {
@@ -1608,6 +1612,8 @@ export function useCareerDesign() {
     draftProject.memo = ''
     draftProject.weeks = DEFAULT_WEEKS
     draftProject.curriculum = []
+    draftProject.method = null
+    draftProject.methodDetail = {}
   }
 
   return {
