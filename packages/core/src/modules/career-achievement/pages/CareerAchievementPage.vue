@@ -9,8 +9,8 @@
     </div>
 
     <template v-else>
-      <!-- 레퍼런스 배치(2026-10-28): ①지표 띠 ②인사+오늘 요약 ③앞으로 3일 카드(경계에 걸침) ⑤이번 주 목표 ④오늘 할 일 ⑥바로가기 — ⑤ 는 사용자 요청으로 ④ 위 -->
-      <section class="ah-hero">
+      <!-- 레퍼런스 배치(2026-10-28): ①지표 띠 ②인사+오늘 요약 / ④오늘 할 일(경계에 걸친 카드) / ⑤이번 주 목표 / ③다가오는 일정 / ⑥바로가기 -->
+      <section class="ah-hero" :class="{ 'ah-hero--flat': phase !== 'running' }">
         <!-- ① 기간을 가장 길게 보는 자리 — 오늘은 ②, 이번 주는 ⑤ 가 맡는다 -->
         <div class="ah-stats">
           <button type="button" class="ah-stat" @click="router.push('/career-achievement/weekly-review')">
@@ -55,20 +55,49 @@
         </div>
       </section>
 
-      <!-- ③ 앞으로 3일(요일·날짜) — 미리 보기만(체크 없음). 누르면 일정 조정 -->
-      <div v-if="previews.length" class="ah-preview">
-        <button
-          v-for="d in previews" :key="d.key" type="button" class="ah-day"
-          @click="router.push({ name: 'Career Achievement Weekly Schedule', query: { date: d.key } })"
-        >
-          <span class="ah-day__head" :class="{ 'ah-day__head--weekend': d.weekend }"><strong>{{ d.dow }}</strong>{{ d.md }}</span>
-          <span v-if="d.rest" class="ah-day__rest">쉬는 날</span>
-          <span v-for="(l, i) in d.lines" :key="i" class="ah-day__line">
-            <i class="ah-day__dot" :style="{ background: l.color }" />{{ l.name }}
-          </span>
-          <span v-if="d.more" class="ah-day__more">+{{ d.more }}</span>
-        </button>
-      </div>
+      <!-- ④ 오늘 할 일 — 경계에 걸친 카드(가장 눈에 띄는 자리, 사용자 2026-10-28).
+           아직 안 한 첫 일을 크게, 나머지는 한 줄씩. 완료한 일은 '완료 N개' 아래로 모은다. 남은 일 4개 넘으면 접는다 -->
+      <section v-if="phase === 'running'" class="ah-today">
+        <div class="ah-today__head">
+          <h2 class="ah-today__title">오늘 할 일</h2>
+          <span v-if="todayTotal" class="ah-today__count"><strong>{{ todayDone }}</strong>/{{ todayTotal }}</span>
+        </div>
+
+        <p v-if="!todayTotal" class="ah-today__empty"><AppIcon name="ui-free" /> 오늘은 쉬어 가는 날이에요</p>
+        <p v-else-if="!pending.length" class="ah-today__empty ah-today__empty--done"><AppIcon name="ui-celebrate" /> 오늘 할 일을 모두 마쳤어요</p>
+
+        <ul v-if="pending.length" class="ah-list">
+          <li
+            v-for="(t, i) in visiblePending" :key="t.key" class="ah-task"
+            :class="{ 'ah-task--next': i === 0 }"
+          >
+            <span class="ah-task__chip" :style="t.chipStyle"><AppIcon :name="t.icon" /></span>
+            <div class="ah-task__body">
+              <span v-if="i === 0" class="ah-task__eyebrow">지금 할 일</span>
+              <span class="ah-task__name">{{ t.name }}</span>
+              <span class="ah-task__focus">{{ t.sub }}</span>
+            </div>
+            <button v-if="t.type === 'project'" type="button" class="ah-task__btn" @click="startProject(t.project!)">시작</button>
+            <button v-else type="button" class="ah-task__check" :aria-pressed="false" @click="toggleRoutine(t.id)">완료</button>
+          </li>
+        </ul>
+        <button v-if="hiddenCount" type="button" class="ah-today__more" @click="showAll = true">+{{ hiddenCount }}개 더 보기</button>
+
+        <template v-if="finished.length">
+          <p class="ah-today__divider">완료 {{ finished.length }}개</p>
+          <ul class="ah-list ah-list--done">
+            <li v-for="t in finished" :key="t.key" class="ah-task ah-task--done">
+              <span class="ah-task__chip" :style="t.chipStyle"><AppIcon :name="t.icon" /></span>
+              <div class="ah-task__body"><span class="ah-task__name">{{ t.name }}</span></div>
+              <button
+                v-if="t.type === 'routine'" type="button" class="ah-task__check ah-task__check--on"
+                :aria-pressed="true" @click="toggleRoutine(t.id)"
+              ><AppIcon name="ui-check" /> 완료</button>
+              <span v-else class="ah-task__state"><AppIcon name="ui-check" /> 완료</span>
+            </li>
+          </ul>
+        </template>
+      </section>
 
       <!-- ⑤ 이번 주 목표 — 이번 주에 배치된 프로젝트 모두. 결산일엔 버튼 -->
       <section v-if="weekGoals.length || review" class="ah-sec">
@@ -99,54 +128,22 @@
         </div>
       </section>
 
-      <!-- ④ 오늘 할 일 — 프로젝트 / 루틴 나눔, 완료 항목은 그 자리에서 흐리게 -->
-      <section v-if="phase === 'running'" class="ah-sec">
-        <h2 class="ah-sec__title">오늘 할 일</h2>
-        <p v-if="!todayTotal" class="ah-sec__empty">오늘은 예정된 일이 없어요.</p>
-
-        <template v-if="todayProjects.length">
-          <h3 class="ah-sec__sub">프로젝트</h3>
-          <ul class="ah-list">
-            <li
-              v-for="p in todayProjects" :key="p.id" class="ah-task"
-              :class="{ 'ah-task--done': isProjectDone(p.id) }"
-            >
-              <span class="ah-task__chip" :style="{ color: categoryColor(p.category), background: tint(categoryColor(p.category)) }">
-                <AppIcon :name="methodIcon(p.method) || 'ui-target'" />
-              </span>
-              <div class="ah-task__body">
-                <span class="ah-task__name">{{ p.name }}</span>
-                <span class="ah-task__focus">
-                  <template v-if="todayFocus(p).weekIdx">{{ todayFocus(p).weekIdx }}주차 · </template>{{ todayFocus(p).text }}
-                </span>
-              </div>
-              <span v-if="isProjectDone(p.id)" class="ah-task__state"><AppIcon name="ui-check" /> 완료</span>
-              <button v-else type="button" class="ah-task__btn" @click="startProject(p)">시작</button>
-            </li>
-          </ul>
-        </template>
-
-        <template v-if="todayRoutines.length">
-          <h3 class="ah-sec__sub">루틴</h3>
-          <ul class="ah-list">
-            <li
-              v-for="r in todayRoutines" :key="r.id" class="ah-task ah-task--routine"
-              :class="{ 'ah-task--done': isRoutineDone(r.id) }"
-            >
-              <span class="ah-task__chip ah-task__chip--routine"><AppIcon name="ui-repeat" /></span>
-              <div class="ah-task__body">
-                <span class="ah-task__name">{{ r.name }}</span>
-                <span class="ah-task__focus">{{ r.duration }}분</span>
-              </div>
-              <button
-                type="button" class="ah-task__check" :class="{ 'ah-task__check--on': isRoutineDone(r.id) }"
-                :aria-pressed="isRoutineDone(r.id)" @click="toggleRoutine(r.id)"
-              >
-                <AppIcon v-if="isRoutineDone(r.id)" name="ui-check" /> 완료
-              </button>
-            </li>
-          </ul>
-        </template>
+      <!-- ③ 다가오는 일정 — 앞으로 3일 미리 보기만(체크 없음). 누르면 일정 조정 -->
+      <section v-if="previews.length" class="ah-sec ah-sec--flush">
+        <h2 class="ah-sec__title">다가오는 일정</h2>
+      <div class="ah-preview">
+        <button
+          v-for="d in previews" :key="d.key" type="button" class="ah-day"
+          @click="router.push({ name: 'Career Achievement Weekly Schedule', query: { date: d.key } })"
+        >
+          <span class="ah-day__head" :class="{ 'ah-day__head--weekend': d.weekend }"><strong>{{ d.dow }}</strong>{{ d.md }}</span>
+          <span v-if="d.rest" class="ah-day__rest">쉬는 날</span>
+          <span v-for="(l, i) in d.lines" :key="i" class="ah-day__line">
+            <i class="ah-day__dot" :style="{ background: l.color }" />{{ l.name }}
+          </span>
+          <span v-if="d.more" class="ah-day__more">+{{ d.more }}</span>
+        </button>
+      </div>
       </section>
 
       <!-- ⑥ 바로가기 -->
@@ -175,6 +172,7 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import { usePlanBoard } from '../composables/usePlanBoard'
 import { categoryColor } from '../lib/planBoard'
 import { methodIcon } from '@/modules/career-design/composables/projectMethods'
+import type { Project } from '@/modules/career-design/types/career-design'
 
 const router = useRouter()
 const RING_LEN = 2 * Math.PI * 27
@@ -188,10 +186,38 @@ const {
   weekGoals, weekNumber, review,
 } = usePlanBoard()
 
-const allDone = computed(() => todayTotal.value > 0 && todayDone.value >= todayTotal.value)
-
 // 분류 색의 옅은 바탕(아이콘 칩)
 const tint = (c: string) => `color-mix(in srgb, ${c} 14%, white)`
+
+const allDone = computed(() => todayTotal.value > 0 && todayDone.value >= todayTotal.value)
+
+// 오늘 할 일 한 줄 — 프로젝트·루틴을 한 목록으로(구분은 칩 색: 프로젝트=분류 색, 루틴=파랑)
+interface TodayRow { key: string; type: 'project' | 'routine'; id: string; name: string; sub: string; icon: string; chipStyle?: Record<string, string>; project?: Project }
+const rows = computed(() => {
+  const pending: TodayRow[] = []
+  const finished: TodayRow[] = []
+  for (const p of todayProjects.value) {
+    const f = todayFocus(p)
+    const c = categoryColor(p.category)
+    const row: TodayRow = {
+      key: 'p' + p.id, type: 'project', id: p.id, name: p.name, project: p,
+      sub: (f.weekIdx ? `${f.weekIdx}주차 · ` : '') + f.text,
+      icon: methodIcon(p.method) || 'ui-target', chipStyle: { color: c, background: tint(c) },
+    }
+    ;(isProjectDone(p.id) ? finished : pending).push(row)
+  }
+  for (const r of todayRoutines.value) {
+    const row: TodayRow = { key: 'r' + r.id, type: 'routine', id: r.id, name: r.name, sub: `루틴 · ${r.duration}분`, icon: 'ui-repeat', chipStyle: { color: '#3B6FD8', background: '#E6F0FF' } }
+    ;(isRoutineDone(r.id) ? finished : pending).push(row)
+  }
+  return { pending, finished }
+})
+const pending = computed(() => rows.value.pending)
+const finished = computed(() => rows.value.finished)
+const MAX_PENDING = 4
+const showAll = ref(false)
+const visiblePending = computed(() => showAll.value ? pending.value : pending.value.slice(0, MAX_PENDING))
+const hiddenCount = computed(() => pending.value.length - visiblePending.value.length)
 
 // 링은 0에서 차오르게 — 첫 그림을 0으로 그린 뒤 한 프레임 뒤에 값을 준다
 const shown = ref(false)

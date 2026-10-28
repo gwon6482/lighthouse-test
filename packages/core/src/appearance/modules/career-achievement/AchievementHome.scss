@@ -1,6 +1,6 @@
 @use '../../variables' as *;
 
-// 진로달성 메인(2026-10-28) — 노란 영역(①②) 아래 경계에 ③ 카드가 반쯤 걸친다(레퍼런스의 핵심 장치)
+// 진로달성 메인(2026-10-28) — 노란 영역(①②) 아래 경계에 ④ 오늘 할 일 카드가 반쯤 걸친다(레퍼런스의 핵심 장치)
 $ah-overlap: 44px;
 
 .ah {
@@ -30,6 +30,7 @@ $ah-overlap: 44px;
   display: grid;
   gap: $space-xl;
   > * { position: relative; }
+  &--flat { padding-bottom: $space-xl; } // 걸칠 카드가 없을 때(계획 시작 전·완료 후)
 }
 
 .ah-stats {
@@ -100,13 +101,14 @@ button.ah-stat { cursor: pointer; transition: transform $transition-fast; &:acti
 .ah-preview {
   display: flex;
   gap: 10px;
-  margin-top: -$ah-overlap;
   padding: 0 0 4px $space-lg; // 오른쪽 끝 여백은 ::after 가 맡는다(패딩과 겹치면 두 배가 된다)
   overflow-x: auto;
   scroll-snap-type: x proximity; // 손가락으로 밀어 끝 카드까지 다 볼 수 있게(mandatory 는 끝에서 되튐)
   scroll-padding-inline: $space-lg; // snap 이 패딩을 무시하고 첫 카드를 화면 끝에 붙이지 않게
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  user-select: none; // 끌어서 넘길 때 글자가 선택되지 않게
+  -webkit-user-select: none;
   &::-webkit-scrollbar { display: none; }
   // 끝 여백 — 가로 스크롤 flex 상자는 오른쪽 padding 을 무시해서(특히 Safari) 마지막 카드가 끝에 붙는다
   &::after { content: ''; flex: 0 0 ($space-lg - 10px); }
@@ -148,6 +150,33 @@ button.ah-stat { cursor: pointer; transition: transform $transition-fast; &:acti
   &__title { margin: 0 0 $space-md; font-size: 18px; font-weight: $fw-bold; letter-spacing: $ls-heading; }
   &__sub { margin: $space-md 0 $space-sm; font-size: $fs-xs; font-weight: $fw-semibold; color: $color-text-secondary; }
   &__empty { margin: 0; font-size: $fs-sm; color: $color-text-tertiary; }
+  &--flush { padding-left: 0; padding-right: 0; }
+  &--flush &__title { padding: 0 $space-lg; }
+}
+
+// ── ④ 오늘 할 일 카드 — 경계에 걸침 ──────────
+.ah-today {
+  position: relative;
+  margin: (-$ah-overlap) $space-lg 0;
+  padding: 18px 16px 16px;
+  border-radius: 22px;
+  background: $color-surface;
+  box-shadow: 0 10px 30px rgba(120, 90, 0, 0.12);
+  &__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: $space-md; padding: 0 2px; }
+  &__title { margin: 0; font-size: 19px; font-weight: $fw-bold; letter-spacing: $ls-heading; }
+  &__count { font-size: $fs-sm; color: $color-text-secondary; font-variant-numeric: tabular-nums; strong { color: $color-text; font-size: 17px; } }
+  &__empty {
+    display: flex; align-items: center; gap: 8px; margin: 0; padding: 14px; border-radius: $radius-lg;
+    background: $color-surface-alt; font-size: $fs-md; font-weight: $fw-medium; color: $color-text-secondary;
+    .app-icon { font-size: 22px; }
+    &--done { background: $color-success-tint; color: $color-success; }
+  }
+  &__more { width: 100%; margin-top: $space-sm; padding: 10px; border: 0; border-radius: $radius-md; background: $color-surface-alt; font: inherit; font-size: $fs-sm; font-weight: $fw-semibold; color: $color-text-secondary; cursor: pointer; }
+  &__divider {
+    display: flex; align-items: center; gap: $space-sm; margin: $space-lg 0 $space-sm;
+    font-size: $fs-2xs; font-weight: $fw-semibold; color: $color-text-tertiary;
+    &::after { content: ''; flex: 1; height: 1px; background: $color-border; }
+  }
 }
 
 .ah-list { list-style: none; margin: 0; padding: 0; display: grid; gap: $space-sm; }
@@ -155,9 +184,8 @@ button.ah-stat { cursor: pointer; transition: transform $transition-fast; &:acti
   display: flex;
   align-items: center;
   gap: $space-md;
-  padding: 14px;
+  padding: 10px 4px;
   border-radius: $radius-lg;
-  background: $color-surface;
   transition: opacity $transition-base;
   &__chip {
     flex: 0 0 40px; height: 40px; display: grid; place-items: center;
@@ -178,8 +206,17 @@ button.ah-stat { cursor: pointer; transition: transform $transition-fast; &:acti
     background: $color-surface; font: inherit; font-size: $fs-sm; font-weight: $fw-semibold; cursor: pointer;
     &--on { border-color: $color-success; background: $color-success-tint; color: $color-success; }
   }
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-  &--done { opacity: 0.5; }
+  // 지금 할 일(아직 안 한 첫 항목) — 크게, 연노랑 바탕
+  &--next {
+    padding: 14px 12px; margin-bottom: 4px;
+    background: $color-primary-tint;
+    .ah-task__chip { flex-basis: 48px; height: 48px; border-radius: 14px; font-size: 25px; }
+    .ah-task__name { font-size: 17px; font-weight: $fw-bold; }
+    .ah-task__btn { padding: 10px 18px; font-size: $fs-md; }
+  }
+  &__eyebrow { font-size: 11px; font-weight: $fw-bold; letter-spacing: 0.02em; color: $amber-700; }
+  &--done { opacity: 0.5; padding-top: 6px; padding-bottom: 6px; }
+  &--done .ah-task__chip { flex-basis: 32px; height: 32px; border-radius: 10px; font-size: 17px; }
   &--done &__check--on { opacity: 1; }
 }
 
@@ -215,6 +252,7 @@ button.ah-stat { cursor: pointer; transition: transform $transition-fast; &:acti
   padding: $space-xl $space-lg 0;
 }
 .ah-tile {
+  user-select: none;
   display: grid;
   justify-items: center;
   gap: 8px;
@@ -242,15 +280,13 @@ button.ah-stat { cursor: pointer; transition: transform $transition-fast; &:acti
 // ── 움직임 — 들어올 때 아래에서 살짝 떠오른다(순서대로). 움직임 줄이기 설정이면 끈다 ──
 @keyframes ah-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes ah-pop { 0% { transform: scale(1); } 40% { transform: scale(1.1); } 100% { transform: scale(1); } }
-.ah-stats, .ah-greet, .ah-day, .ah-sec, .ah-tiles { animation: ah-rise 0.5s $ease-standard both; }
+.ah-stats, .ah-greet, .ah-today, .ah-sec, .ah-tiles { animation: ah-rise 0.5s $ease-standard both; }
+.ah-today { animation-delay: 0.1s; }
 .ah-greet { animation-delay: 0.05s; }
-.ah-day:nth-child(1) { animation-delay: 0.12s; }
-.ah-day:nth-child(2) { animation-delay: 0.18s; }
-.ah-day:nth-child(3) { animation-delay: 0.24s; }
-.ah-sec { animation-delay: 0.3s; }
-.ah-sec + .ah-sec { animation-delay: 0.36s; }
+.ah-sec { animation-delay: 0.2s; }
+.ah-sec + .ah-sec { animation-delay: 0.28s; }
 .ah-tiles { animation-delay: 0.42s; }
 @media (prefers-reduced-motion: reduce) {
-  .ah-stats, .ah-greet, .ah-day, .ah-sec, .ah-tiles, .ah-ring--done { animation: none; }
+  .ah-stats, .ah-greet, .ah-today, .ah-sec, .ah-tiles, .ah-ring--done { animation: none; }
   .ah-ring__fill { transition: none; }
 }
