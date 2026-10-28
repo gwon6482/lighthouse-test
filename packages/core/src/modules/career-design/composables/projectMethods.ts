@@ -26,7 +26,6 @@ export type MethodField = 'title' | 'link' | 'org' | 'target' | 'deadline' | 're
 export interface MethodDef {
   value: ProjectMethod
   label: string
-  emoji: string
   done: string                       // 완료 기준(사용자에게 보이는 한 줄)
   fields: { key: MethodField; label: string; placeholder: string; required?: boolean; type?: 'text' | 'url' | 'date' }[]
   namePlaceholder: string            // 프로젝트 이름 예시
@@ -34,12 +33,12 @@ export interface MethodDef {
 
 const M: Record<ProjectMethod, MethodDef> = {
   book: {
-    value: 'book', label: '책·교재', emoji: '📚', done: '마지막 장까지 읽고 정리하면 완료',
+    value: 'book', label: '책·교재', done: '마지막 장까지 읽고 정리하면 완료',
     fields: [{ key: 'title', label: '책 이름', placeholder: '예: 혼자 공부하는 컴퓨터 구조+운영체제', required: true }],
     namePlaceholder: '예: 컴퓨터 구조 책 한 권 끝내기',
   },
   lecture: {
-    value: 'lecture', label: '인강', emoji: '🎬', done: '마지막 강까지 들으면 완료',
+    value: 'lecture', label: '인강', done: '마지막 강까지 들으면 완료',
     fields: [
       { key: 'title', label: '강의 이름', placeholder: '예: 김영한의 스프링 입문', required: true },
       { key: 'link', label: '강의 링크 (선택)', placeholder: 'https://', type: 'url' },
@@ -47,37 +46,37 @@ const M: Record<ProjectMethod, MethodDef> = {
     namePlaceholder: '예: 스프링 입문 강의 완강',
   },
   academy: {
-    value: 'academy', label: '학원·교육과정', emoji: '🏫', done: '과정을 수료하면 완료',
+    value: 'academy', label: '학원·교육과정', done: '과정을 수료하면 완료',
     fields: [{ key: 'org', label: '기관·과정 이름', placeholder: '예: ○○ 국비 백엔드 부트캠프', required: true }],
     namePlaceholder: '예: 백엔드 부트캠프 수료',
   },
   study_group: {
-    value: 'study_group', label: '스터디', emoji: '👥', done: '함께 정한 범위를 마치면 완료',
+    value: 'study_group', label: '스터디', done: '함께 정한 범위를 마치면 완료',
     fields: [{ key: 'target', label: '함께 볼 범위', placeholder: '예: 알고리즘 교재 1~8장', required: true }],
     namePlaceholder: '예: 알고리즘 스터디',
   },
   required_course: {
-    value: 'required_course', label: '필수 교육·학점 이수', emoji: '🎓', done: '정해진 교육·학점을 이수하면 완료',
+    value: 'required_course', label: '필수 교육·학점 이수', done: '정해진 교육·학점을 이수하면 완료',
     fields: [{ key: 'org', label: '이수 기관', placeholder: '예: 학점은행제, ○○ 협회 보수교육', required: true }],
     namePlaceholder: '예: 사회복지사 2급 필수 교과목 이수',
   },
   school: {
-    value: 'school', label: '학교 수업', emoji: '🏛️', done: '수업을 이수하면 완료',
+    value: 'school', label: '학교 수업', done: '수업을 이수하면 완료',
     fields: [{ key: 'org', label: '학교·학기 (선택)', placeholder: '예: ○○대 2026-2학기' }],
     namePlaceholder: '예: 자료구조 수업 이수',
   },
   practice: {
-    value: 'practice', label: '연습 과제', emoji: '🛠️', done: '정한 양을 채우면 완료',
+    value: 'practice', label: '연습 과제', done: '정한 양을 채우면 완료',
     fields: [{ key: 'target', label: '목표량', placeholder: '예: SQL 문제 50개, 엑셀 실습 20개', required: true }],
     namePlaceholder: '예: SQL 문제 풀이',
   },
   personal_project: {
-    value: 'personal_project', label: '개인 프로젝트', emoji: '🧩', done: '결과물을 공개하면 완료',
+    value: 'personal_project', label: '개인 프로젝트', done: '결과물을 공개하면 완료',
     fields: [{ key: 'resultUrl', label: '결과물 링크 (완성 후)', placeholder: '깃허브·배포 주소·노션 등', type: 'url' }],
     namePlaceholder: '예: 동네 맛집 지도 웹앱 만들기',
   },
   team_project: {
-    value: 'team_project', label: '팀 프로젝트', emoji: '🤝', done: '결과물을 공개하면 완료',
+    value: 'team_project', label: '팀 프로젝트', done: '결과물을 공개하면 완료',
     fields: [
       { key: 'note', label: '내 역할', placeholder: '예: 백엔드 API 담당' },
       { key: 'resultUrl', label: '결과물 링크 (완성 후)', placeholder: '깃허브·배포 주소 등', type: 'url' },
@@ -85,7 +84,7 @@ const M: Record<ProjectMethod, MethodDef> = {
     namePlaceholder: '예: 사이드 프로젝트 팀 참여',
   },
   contest: {
-    value: 'contest', label: '대회·공모전', emoji: '🏆', done: '출품하면 완료',
+    value: 'contest', label: '대회·공모전', done: '출품하면 완료',
     fields: [
       { key: 'title', label: '대회 이름', placeholder: '예: 공공데이터 활용 공모전', required: true },
       { key: 'deadline', label: '제출 마감일 (선택)', placeholder: '', type: 'date' },
@@ -93,7 +92,7 @@ const M: Record<ProjectMethod, MethodDef> = {
     namePlaceholder: '예: 공공데이터 공모전 출품',
   },
   content: {
-    value: 'content', label: '콘텐츠 제작', emoji: '🎨', done: '정한 편수를 발행하면 완료',
+    value: 'content', label: '콘텐츠 제작', done: '정한 편수를 발행하면 완료',
     fields: [
       { key: 'target', label: '목표 편수', placeholder: '예: 직무 블로그 글 10편', required: true },
       { key: 'link', label: '채널 링크 (선택)', placeholder: '블로그·유튜브 주소', type: 'url' },
@@ -101,32 +100,32 @@ const M: Record<ProjectMethod, MethodDef> = {
     namePlaceholder: '예: 직무 블로그 연재',
   },
   internship: {
-    value: 'internship', label: '인턴십', emoji: '💼', done: '정한 기간을 채우면 완료',
+    value: 'internship', label: '인턴십', done: '정한 기간을 채우면 완료',
     fields: [{ key: 'org', label: '회사·기관 (선택)', placeholder: '예: ○○ 스타트업' }],
     namePlaceholder: '예: 개발 인턴 3개월',
   },
   field_practice: {
-    value: 'field_practice', label: '현장실습', emoji: '🏥', done: '정해진 실습 시간을 채우면 완료',
+    value: 'field_practice', label: '현장실습', done: '정해진 실습 시간을 채우면 완료',
     fields: [{ key: 'org', label: '실습 기관 (선택)', placeholder: '예: ○○ 노인복지관' }],
     namePlaceholder: '예: 사회복지 현장실습 120시간',
   },
   parttime: {
-    value: 'parttime', label: '아르바이트·계약직', emoji: '🧾', done: '정한 기간을 채우면 완료',
+    value: 'parttime', label: '아르바이트·계약직', done: '정한 기간을 채우면 완료',
     fields: [{ key: 'org', label: '일하는 곳 (선택)', placeholder: '예: ○○ 세무사무소' }],
     namePlaceholder: '예: 세무사무소 신고 시즌 아르바이트',
   },
   club: {
-    value: 'club', label: '동아리·커뮤니티', emoji: '🧑‍🤝‍🧑', done: '정한 활동 기간을 채우면 완료',
+    value: 'club', label: '동아리·커뮤니티', done: '정한 활동 기간을 채우면 완료',
     fields: [{ key: 'org', label: '동아리·모임 이름 (선택)', placeholder: '예: 연합 개발 동아리' }],
     namePlaceholder: '예: 개발 동아리 한 학기 활동',
   },
   activity: {
-    value: 'activity', label: '봉사·대외활동', emoji: '🌱', done: '정한 기간·시간을 채우면 완료',
+    value: 'activity', label: '봉사·대외활동', done: '정한 기간·시간을 채우면 완료',
     fields: [{ key: 'org', label: '단체·활동 이름 (선택)', placeholder: '예: ○○ 기업 서포터즈' }],
     namePlaceholder: '예: 기업 서포터즈 활동',
   },
   etc: {
-    value: 'etc', label: '기타', emoji: '✨', done: '스스로 정한 기준을 채우면 완료',
+    value: 'etc', label: '기타', done: '스스로 정한 기준을 채우면 완료',
     fields: [{ key: 'note', label: '어떻게 진행하나요?', placeholder: '예: 현직자 멘토링 4회', required: true }],
     namePlaceholder: '예: 현직자 멘토링 받기',
   },
@@ -162,11 +161,14 @@ export function missingMethodField(m?: ProjectMethod | null, detail?: Partial<Re
   return miss ? miss.label : null
 }
 
-/** 화면용 한 줄: "📚 책·교재 · 컴퓨터 구조 입문서" (방식이 없으면 빈 문자열) */
+/** 아이콘 이름(public/icons/method-*.svg) — 2026-10-28 이모지 → 자체 아이콘 */
+export const methodIcon = (m?: ProjectMethod | null) => (m ? `method-${m.replace(/_/g, '-')}` : '')
+
+/** 화면용 한 줄(글자만, 아이콘은 methodIcon 으로 따로): "책·교재 · 컴퓨터 구조 입문서" — 방식이 없으면 빈 문자열 */
 export function methodLine(m?: ProjectMethod | null, detail?: Partial<Record<MethodField, string>>): string {
   const def = methodDef(m)
   if (!def) return ''
   const d = detail ?? {}
   const extra = d.title || d.org || d.target || d.note || ''
-  return `${def.emoji} ${def.label}${extra ? ` · ${extra}` : ''}`
+  return `${def.label}${extra ? ` · ${extra}` : ''}`
 }

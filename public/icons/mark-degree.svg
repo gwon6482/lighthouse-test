@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <!-- 학위 필수: 대학(학문 기관) 건물 — 대학 과정을 거쳐야 함 -->
-  <rect width="48" height="48" rx="12" fill="#6366F1"/>
-  <g transform="translate(13 13) scale(0.9167)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M3 9 12 4l9 5Z"/>
-    <path d="M6 12v5M10 12v5M14 12v5M18 12v5"/>
-    <path d="M3 20.5h18"/>
-  </g>
-</svg>

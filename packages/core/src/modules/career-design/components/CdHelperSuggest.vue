@@ -32,7 +32,7 @@
         <button type="button" class="cd-helper__card" @click="open(ex)">
           <span class="cd-helper__card-main">
             <span class="cd-helper__card-name">{{ ex.name }}</span>
-            <span v-if="methodLine(ex.method, ex.methodDetail)" class="cd-helper__card-method">{{ methodLine(ex.method, ex.methodDetail) }}</span>
+            <span v-if="methodLine(ex.method, ex.methodDetail)" class="cd-helper__card-method"><AppIcon :name="methodIcon(ex.method)" /> {{ methodLine(ex.method, ex.methodDetail) }}</span>
             <span class="cd-helper__card-meta">{{ ex.level }} · {{ ex.curriculum.length }}주 · 주 {{ ex.daysPerWeek }}회 {{ ex.minutesPerSession }}분</span>
           </span>
           <span
@@ -60,7 +60,7 @@
                 {{ selected.curriculum.length }}주 · 주 {{ selected.daysPerWeek }}회 · 1회 {{ selected.minutesPerSession }}분
               </p>
               <p v-if="selected.method" class="cd-helper-sheet__method">
-                {{ methodLine(selected.method, selected.methodDetail) }}
+                <AppIcon :name="methodIcon(selected.method)" /> {{ methodLine(selected.method, selected.methodDetail) }}
                 <span>✅ {{ doneLabel(category, selected.method) }}</span>
               </p>
             </div>
@@ -107,8 +107,9 @@ import { useCareerDesign } from '../composables/useCareerDesign'
 import { weekEntriesOf } from '../composables/useProjectCurriculum'
 import { HELPER_EXAMPLE_JOBS, findHelperExamples, findHelperExamplesByCode, helperExampleToProject } from '../composables/useHelperExamples'
 import type { HelperExample, ProjectCategory } from '../types/career-design'
-import { methodLine, doneLabel } from '../composables/projectMethods'
+import { methodLine, methodIcon, doneLabel } from '../composables/projectMethods'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
+import AppIcon from '@/shared/components/AppIcon.vue'
 
 const props = defineProps<{
   category: ProjectCategory

@@ -45,7 +45,7 @@
             class="cd-proj-write__method"
             :class="{ 'cd-proj-write__method--active': draftProject.method === m.value }"
             @click="pickMethod(m.value)"
-          >{{ m.emoji }} {{ m.label }}</button>
+          ><AppIcon :name="methodIcon(m.value)" /> {{ m.label }}</button>
         </div>
         <template v-if="currentMethod">
           <div v-for="f in methodFields" :key="f.key" class="cd-proj-write__method-field">
@@ -133,7 +133,7 @@
             :class="[`cd-proj-write__priority-btn--${p.value}`, { 'cd-proj-write__priority-btn--active': draftProject.priority === p.value }]"
             @click="draftProject.priority = p.value"
           >
-            {{ p.icon }} {{ p.label }}
+            <AppIcon :name="p.icon" /> {{ p.label }}
           </button>
         </div>
       </div>
@@ -216,8 +216,9 @@ import { useCareerDesign } from '../composables/useCareerDesign'
 import { MIN_WEEKS, MAX_WEEKS, DEFAULT_WEEKS, clampWeeks } from '../composables/useProjectCurriculum'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { DayOfWeek, Priority, ProjectCategory } from '../types/career-design'
+import AppIcon from '@/shared/components/AppIcon.vue'
 import {
-  methodsOf, methodDef, methodFits, doneLabel, missingMethodField, QUALIFICATION_EXTRA,
+  methodsOf, methodDef, methodFits, methodIcon, doneLabel, missingMethodField, QUALIFICATION_EXTRA,
   type ProjectMethod, type MethodField,
 } from '../composables/projectMethods'
 
@@ -265,9 +266,9 @@ function setWeeks(n: number) {
 }
 
 const priorities: { value: Priority; icon: string; label: string }[] = [
-  { value: 'high', icon: '🔥', label: '높음' },
-  { value: 'normal', icon: '⭐', label: '보통' },
-  { value: 'low', icon: '📈', label: '낮음' },
+  { value: 'high', icon: 'priority-high', label: '높음' },
+  { value: 'normal', icon: 'priority-normal', label: '보통' },
+  { value: 'low', icon: 'priority-low', label: '낮음' },
 ]
 
 function toggleDay(day: DayOfWeek) {

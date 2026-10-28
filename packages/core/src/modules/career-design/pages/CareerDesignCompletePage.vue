@@ -14,7 +14,7 @@
       <!-- 진행 속도 요약 — 속도·순서는 앞 화면(plan/pace)에서 정한다 -->
       <div v-if="draftPlan.projects.length" class="cd-complete__pace">
         <span class="cd-complete__pace-text">
-          <template v-if="pace">{{ pace.emoji }} {{ pace.title }}<template v-if="draftPlan.dailyHours"> · 하루 {{ draftPlan.dailyHours }}시간</template> · 주 {{ draftPlan.weeklyHours }}시간</template>
+          <template v-if="pace"><AppIcon :name="pace.icon" /> {{ pace.title }}<template v-if="draftPlan.dailyHours"> · 하루 {{ draftPlan.dailyHours }}시간</template> · 주 {{ draftPlan.weeklyHours }}시간</template>
           <template v-else>직접 배치</template>
           <template v-if="autoWeeks"> · 예상 {{ autoWeeks }}주({{ monthsLabel(autoWeeks) }})</template>
         </span>
@@ -256,6 +256,7 @@ import {
 } from '../composables/usePlanTimeline'
 import { DEFAULT_PACE_HOURS, buildTimeline, monthsLabel, paceByKey, paceOfHours } from '../composables/usePlanPace'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
+import AppIcon from '@/shared/components/AppIcon.vue'
 
 const router = useRouter()
 const { draftPlan, draftTimeline, syncTimeline } = useCareerDesign()

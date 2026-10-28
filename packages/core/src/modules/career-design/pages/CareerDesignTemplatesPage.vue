@@ -69,7 +69,7 @@
                   <span class="cd-tpl__project-meta">{{ p.curriculum?.length ?? 0 }}주 · 주 {{ p.days.length }}회 {{ p.duration }}분</span>
                 </span>
                 <span class="cd-tpl__project-name">{{ p.name }}</span>
-                <span v-if="methodLine(p.method, p.methodDetail)" class="cd-tpl__project-method">{{ methodLine(p.method, p.methodDetail) }}</span>
+                <span v-if="methodLine(p.method, p.methodDetail)" class="cd-tpl__project-method"><AppIcon :name="methodIcon(p.method)" /> {{ methodLine(p.method, p.methodDetail) }}</span>
               </span>
             </li>
           </ol>
@@ -115,9 +115,10 @@ import { toDateKey } from '../composables/usePlanTimeline'
 import { fetchTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import { getToday } from '@/shared/utils/dev-date'
 import type { ProjectCategory } from '../types/career-design'
-import { methodLine } from '../composables/projectMethods'
+import { methodLine, methodIcon } from '../composables/projectMethods'
 import JobGateGuide from '@/shared/components/JobGateGuide.vue'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
+import AppIcon from '@/shared/components/AppIcon.vue'
 
 const router = useRouter()
 const { draftPlan, resetDraftPlan } = useCareerDesign()

@@ -8,19 +8,19 @@ import { autoSchedule, projectEndWeek, weekDateRange } from './usePlanTimeline'
 
 export interface Pace {
   key: 'light' | 'steady' | 'focus' | 'full' | 'allin'
-  emoji: string
+  icon: string        // 자체 아이콘 이름(public/icons/pace-*.svg)
   title: string
   life: string        // 생활 모습
   hours: number       // 주당 시간(보조 표시)
 }
 
 export const PACES: Pace[] = [
-  { key: 'light', emoji: '🌱', title: '틈틈이', life: '평일 저녁 1시간 정도', hours: 5 },
-  { key: 'steady', emoji: '🚶', title: '꾸준히', life: '매일 1시간, 주말엔 조금 더', hours: 8 },
-  { key: 'focus', emoji: '🏃', title: '집중해서', life: '하루 2시간 안팎', hours: 12 },
-  { key: 'full', emoji: '🔥', title: '전력으로', life: '하루 2~3시간, 준비에 집중', hours: 16 },
+  { key: 'light', icon: 'pace-light', title: '틈틈이', life: '평일 저녁 1시간 정도', hours: 5 },
+  { key: 'steady', icon: 'pace-steady', title: '꾸준히', life: '매일 1시간, 주말엔 조금 더', hours: 8 },
+  { key: 'focus', icon: 'pace-focus', title: '집중해서', life: '하루 2시간 안팎', hours: 12 },
+  { key: 'full', icon: 'pace-full', title: '전력으로', life: '하루 2~3시간, 준비에 집중', hours: 16 },
   // 2026-10-22 사용자: 진짜 올인하는 사람(하루 3시간 이상)을 위한 선택지
-  { key: 'allin', emoji: '🎯', title: '올인', life: '하루 3시간 넘게, 준비가 생활의 중심', hours: 24 },
+  { key: 'allin', icon: 'pace-allin', title: '올인', life: '하루 3시간 넘게, 준비가 생활의 중심', hours: 24 },
 ]
 export const DEFAULT_PACE_HOURS = 8
 

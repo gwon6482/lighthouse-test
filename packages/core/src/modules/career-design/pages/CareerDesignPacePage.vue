@@ -22,7 +22,7 @@
           @keydown.space.prevent="selectedKey = p.key"
         >
           <div class="cd-pace__card-row">
-            <span class="cd-pace__emoji" aria-hidden="true">{{ p.emoji }}</span>
+            <span class="cd-pace__emoji" aria-hidden="true"><AppIcon :name="p.icon" /></span>
             <span class="cd-pace__main">
               <span class="cd-pace__title">{{ p.title }}</span>
               <span class="cd-pace__life">{{ p.life }}</span>
@@ -98,6 +98,7 @@ import { toDateKey } from '../composables/usePlanTimeline'
 import { PACES, DEFAULT_PACE_HOURS, ALLIN_DAILY, allinWeeklyHours, paceOfHours, buildTimeline, scheduleEndWeek, monthLabelOfWeek, monthsLabel } from '../composables/usePlanPace'
 import { getToday } from '@/shared/utils/dev-date'
 import type { ProjectCategory } from '../types/career-design'
+import AppIcon from '@/shared/components/AppIcon.vue'
 
 const router = useRouter()
 const { draftPlan, draftTimeline } = useCareerDesign()
