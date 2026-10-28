@@ -28,6 +28,12 @@ export default [
     meta: { showBottomNav: true },
   },
   {
+    // 기록 모아보기(2026-10-28) — 마이페이지 '전체보기'·메인 타일
+    path: '/career-achievement/records',
+    name: 'Career Achievement Records',
+    component: () => import('./pages/CareerAchievementRecordsPage.vue'),
+  },
+  {
     path: '/career-achievement/weekly-schedule',
     name: 'Career Achievement Weekly Schedule',
     component: () => import('./pages/CareerAchievementSchedulePage.vue'),

@@ -151,8 +151,8 @@
         <button type="button" class="ah-tile ah-tile--blue" @click="router.push({ name: 'Career Achievement Weekly Schedule' })">
           <AppIcon name="ui-calendar" class="ah-tile__icon" /><span>일정 조정</span>
         </button>
-        <!-- 기록 모아보기 — 버튼만(화면은 아직 없음, 사용자 2026-10-28). 주간 결산은 ① 연속 달성·⑤ 결산 버튼으로 들어간다 -->
-        <button type="button" class="ah-tile ah-tile--orange">
+        <!-- 기록 모아보기 — 마이페이지 '전체보기'와 같은 화면. 주간 결산은 ① 연속 달성·⑤ 결산 버튼으로 들어간다 -->
+        <button type="button" class="ah-tile ah-tile--orange" @click="router.push({ name: 'Career Achievement Records' })">
           <AppIcon name="ui-photo" class="ah-tile__icon" /><span>기록 모아보기</span>
         </button>
         <button type="button" class="ah-tile ah-tile--purple" @click="router.push('/career-design')">

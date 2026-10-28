@@ -1,148 +1,130 @@
 <template>
-  <div class="mypage">
-
-    <!-- 헤더 -->
-    <header class="mypage__header">
-      <button class="mypage__back" @click="safeBack(router, '/')">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M12.5 15L7.5 10L12.5 5" stroke="#1a1a1a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <span class="mypage__header-title">마이페이지</span>
-    </header>
-
-    <div class="mypage__body">
-
-      <!-- 프로필 카드 -->
-      <section class="profile-card">
-        <div class="profile-card__avatar">{{ avatarLetter }}</div>
-        <div class="profile-card__info">
-          <p class="profile-card__name">{{ user?.name ?? user?.email }}</p>
-          <p class="profile-card__email">{{ user?.email }}</p>
-          <div class="profile-card__tags">
-            <span v-if="user?.age" class="profile-card__tag">{{ user.age }}세</span>
-            <span v-if="user?.gender" class="profile-card__tag">{{ user.gender === 'M' ? '남성' : '여성' }}</span>
-          </div>
+  <!-- 마이페이지(2026-10-28 개편) — 메인·로드맵과 같은 톤. 진행 상황(○○를 향해 n일차·%)은 메인·로드맵 몫이라 여기엔 두지 않는다(사용자) -->
+  <div class="mp">
+    <section class="mp-hero">
+      <div class="mp-hero__profile">
+        <span class="mp-hero__avatar">{{ avatarLetter }}</span>
+        <div class="mp-hero__who">
+          <p class="mp-hero__name">{{ user?.name ?? user?.email }}<small v-if="user?.name">님</small></p>
+          <p class="mp-hero__email">{{ user?.email }}</p>
         </div>
-      </section>
-
-      <!-- 내 검사결과 -->
-      <section class="mypage__section">
-        <h2 class="mypage__section-title">내 검사결과</h2>
-        <div v-if="loadingSurveys" class="mypage__loading">불러오는 중...</div>
-        <div v-else-if="surveyResults.length === 0" class="mypage__empty">
-          아직 완료한 검사가 없습니다.
-        </div>
-        <ul v-else class="result-list">
-          <li
-            v-for="result in surveyResults"
-            :key="result.survey_id"
-            class="result-list__item"
-            @click="router.push(`/self-understanding/result/${result.survey_id}`)"
-          >
-            <div class="result-list__left">
-              <div class="result-list__top-row">
-                <p class="result-list__id">{{ result.survey_id }}</p>
-                <span v-if="result.T1_result?.full_name" class="result-list__type-badge">
-                  {{ result.T1_result.full_name }}
-                </span>
-              </div>
-              <p class="result-list__date">{{ formatDate(result.submitted_at) }}</p>
-            </div>
-            <svg class="result-list__arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M6 12L10 8L6 4" stroke="#ccc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </li>
-        </ul>
-      </section>
-
-      <!-- 내 진로백과 -->
-      <section class="mypage__section">
-        <h2 class="mypage__section-title">내 진로백과</h2>
-        <div v-if="loadingBookmarks" class="mypage__loading">불러오는 중...</div>
-        <div v-else-if="bookmarks.length === 0" class="mypage__empty">
-          북마크한 직업이 없습니다.
-        </div>
-        <ul v-else class="job-list">
-          <li
-            v-for="job in bookmarks"
-            :key="job.jobCode"
-            class="job-list__item"
-            @click="router.push(`/career-encyclopedia/job/${job.jobCode}`)"
-          >
-            <div class="job-list__left">
-              <p class="job-list__title">{{ job.title }} <JobGateBadges :job-code="job.jobCode" /></p>
-              <p class="job-list__sub">{{ job.classification?.large }} · {{ job.classification?.medium }}</p>
-            </div>
-            <svg class="job-list__arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M6 12L10 8L6 4" stroke="#ccc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </li>
-        </ul>
-      </section>
-
-      <!-- 내 진로설계 -->
-      <section class="mypage__section">
-        <div class="mypage__section-header">
-          <h2 class="mypage__section-title">내 진로설계</h2>
-          <button class="mypage__section-add" @click="router.push('/career-design/templates')">+ 새 계획</button>
-        </div>
-        <div v-if="loadingPlans" class="mypage__loading">불러오는 중...</div>
-        <div v-else-if="careerPlans.length === 0" class="mypage__empty">
-          아직 저장된 진로계획이 없습니다.
-        </div>
-        <ul v-else class="plan-list">
-          <li
-            v-for="plan in careerPlans"
-            :key="plan.planId"
-            class="plan-list__item"
-          >
-            <div class="plan-list__body" @click="openPlan(plan.planId)">
-              <div class="plan-list__top-row">
-                <span class="plan-list__job">{{ plan.targetJob || '목표 직업 미설정' }}</span>
-                <span class="plan-list__status" :class="`plan-list__status--${plan.status}`">
-                  {{ statusLabel(plan.status) }}
-                </span>
-              </div>
-              <p class="plan-list__name">{{ plan.name || '이름 없는 계획' }}</p>
-              <p class="plan-list__meta">
-                프로젝트 {{ plan.projects?.length ?? 0 }}개
-                <template v-if="plan.startDate"> · {{ plan.startDate }}</template>
-              </p>
-            </div>
-            <button class="plan-list__delete" @click.stop="deletePlan(plan.planId)">
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-                <path d="M2 4h11M5 4V2.5a.5.5 0 01.5-.5h4a.5.5 0 01.5.5V4M6 7v4M9 7v4M3 4l.8 8.1A1 1 0 004.8 13h5.4a1 1 0 001-.9L12 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-          </li>
-        </ul>
-      </section>
-
-      <!-- 내 진로달성 -->
-      <section class="mypage__section">
-        <h2 class="mypage__section-title">내 진로달성</h2>
-        <div class="mypage__coming-soon">
-          <span class="mypage__coming-soon-icon"><AppIcon name="ui-coming-soon" /></span>
-          <p>준비 중인 기능입니다.</p>
-        </div>
-      </section>
-
-      <!-- 계정. 🚨 탈퇴는 **되돌릴 수 없다** — 맨 아래에 두고 약하게 강조한다.
-           개인정보처리방침에 '파기'를 명시했으므로 앱에서 탈퇴할 길이 있어야 한다. -->
-      <section class="mypage__section">
-        <h2 class="mypage__section-title">계정</h2>
-        <!-- 로그아웃 — 운영 앱에 없었다(테스트 셸 홈에만 있었음, 2026-10-28 추가) -->
-        <button type="button" class="mypage__account-link" @click="logout">로그아웃</button>
-        <button type="button" class="mypage__danger-link" @click="showDelete = true">
-          회원 탈퇴
+      </div>
+      <!-- 숫자 3칸 — 누르면 아래 해당 영역으로 -->
+      <div class="mp-counts">
+        <button type="button" class="mp-count" @click="jump('mp-records')">
+          <span class="mp-count__chip mp-count__chip--orange"><AppIcon name="ui-photo" /></span>
+          <strong>{{ records.length }}</strong><span>완료 기록</span>
         </button>
-        <p class="mypage__danger-note">
-          탈퇴하면 검사 결과와 진로 기록이 모두 삭제되고 되돌릴 수 없어요.
-        </p>
-      </section>
+        <button type="button" class="mp-count" @click="jump('mp-surveys')">
+          <span class="mp-count__chip mp-count__chip--green"><AppIcon name="service-test" /></span>
+          <strong>{{ surveyResults.length }}</strong><span>검사</span>
+        </button>
+        <button type="button" class="mp-count" @click="jump('mp-jobs')">
+          <span class="mp-count__chip mp-count__chip--blue"><AppIcon name="ui-like" /></span>
+          <strong>{{ bookmarks.length }}</strong><span>관심 직업</span>
+        </button>
+      </div>
+    </section>
 
-    </div>
+    <!-- 기록 모아보기 — 최근 몇 장 + 전체보기 -->
+    <section id="mp-records" class="mp-sec">
+      <div class="mp-sec__head">
+        <h2 class="mp-sec__title">기록 모아보기</h2>
+        <button v-if="records.length" type="button" class="mp-sec__more" @click="router.push({ name: 'Career Achievement Records' })">
+          전체보기 <AppIcon name="ui-chevron-right" />
+        </button>
+      </div>
+      <p v-if="!records.length" class="mp-empty">프로젝트를 완료하며 남긴 사진·메모가 여기에 모여요.</p>
+      <div v-else class="mp-shots">
+        <button
+          v-for="e in recentRecords" :key="e.date + e.itemId" type="button" class="mp-shot"
+          :style="e.photoUrl ? undefined : { background: tint(categoryColor(e.itemCategory)), color: categoryColor(e.itemCategory) }"
+          @click="router.push({ name: 'Career Achievement Records' })"
+        >
+          <img v-if="e.photoUrl" :src="e.photoUrl" :alt="e.itemName" loading="lazy">
+          <span v-else class="mp-shot__name">{{ e.itemName }}</span>
+          <span class="mp-shot__date">{{ shortDate(e.date) }}</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 내 검사결과 — 제목은 유형 이름(예전엔 내부 ID SURV… 를 그대로 보였다) -->
+    <section id="mp-surveys" class="mp-sec">
+      <h2 class="mp-sec__title">내 검사결과</h2>
+      <div v-if="loadingSurveys" class="mp-empty">불러오는 중...</div>
+      <p v-else-if="!surveyResults.length" class="mp-empty">아직 완료한 검사가 없어요.</p>
+      <ul v-else class="mp-list">
+        <li v-for="(r, i) in surveyResults" :key="r.survey_id">
+          <button type="button" class="mp-row" @click="router.push(`/self-understanding/result/${r.survey_id}`)">
+            <span class="mp-row__chip mp-row__chip--green"><AppIcon name="area-personality" /></span>
+            <span class="mp-row__body">
+              <span class="mp-row__title">{{ r.T1_result?.full_name || '자기이해 검사' }}<em v-if="i === 0" class="mp-row__badge">최근</em></span>
+              <span class="mp-row__sub">{{ formatDate(r.submitted_at) }}</span>
+            </span>
+            <AppIcon name="ui-chevron-right" class="mp-row__arrow" />
+          </button>
+        </li>
+      </ul>
+    </section>
+
+    <!-- 관심 직업(북마크) -->
+    <section id="mp-jobs" class="mp-sec">
+      <h2 class="mp-sec__title">관심 직업</h2>
+      <div v-if="loadingBookmarks" class="mp-empty">불러오는 중...</div>
+      <p v-else-if="!bookmarks.length" class="mp-empty">진로백과에서 하트를 누른 직업이 여기에 모여요.</p>
+      <ul v-else class="mp-list">
+        <li v-for="job in bookmarks" :key="job.jobCode">
+          <button type="button" class="mp-row" @click="router.push(`/career-encyclopedia/job/${job.jobCode}`)">
+            <span class="mp-row__chip mp-row__chip--blue"><AppIcon name="service-encyclopedia" /></span>
+            <span class="mp-row__body">
+              <span class="mp-row__title">{{ job.title }} <JobGateBadges :job-code="job.jobCode" /></span>
+              <span class="mp-row__sub">{{ job.classification?.large }} · {{ job.classification?.medium }}</span>
+            </span>
+            <AppIcon name="ui-chevron-right" class="mp-row__arrow" />
+          </button>
+        </li>
+      </ul>
+    </section>
+
+    <!-- 진로계획 목록 -->
+    <section class="mp-sec">
+      <div class="mp-sec__head">
+        <h2 class="mp-sec__title">진로계획</h2>
+        <button type="button" class="mp-sec__more" @click="router.push('/career-design/templates')">+ 새 계획</button>
+      </div>
+      <div v-if="loadingPlans" class="mp-empty">불러오는 중...</div>
+      <p v-else-if="!careerPlans.length" class="mp-empty">아직 저장된 진로계획이 없어요.</p>
+      <ul v-else class="mp-list">
+        <li v-for="plan in careerPlans" :key="plan.planId" class="mp-plan">
+          <button type="button" class="mp-row" @click="openPlan(plan.planId)">
+            <span class="mp-row__chip mp-row__chip--purple"><AppIcon name="ui-template" /></span>
+            <span class="mp-row__body">
+              <span class="mp-row__title">
+                {{ plan.targetJob || '목표 직업 미설정' }}
+                <em class="mp-row__status" :class="`mp-row__status--${plan.status}`">{{ statusLabel(plan.status) }}</em>
+              </span>
+              <span class="mp-row__sub">{{ plan.name || '이름 없는 계획' }} · 프로젝트 {{ plan.projects?.length ?? 0 }}개</span>
+            </span>
+          </button>
+          <button type="button" class="mp-plan__delete" :aria-label="`${plan.name || '이 계획'} 삭제`" @click="deletePlan(plan.planId)">
+            <AppIcon name="ui-close" />
+          </button>
+        </li>
+      </ul>
+    </section>
+
+    <!-- 계정. 🚨 탈퇴는 **되돌릴 수 없다** — 맨 아래에 두고 약하게 강조한다.
+         개인정보처리방침에 '파기'를 명시했으므로 앱에서 탈퇴할 길이 있어야 한다. -->
+    <section class="mp-sec mp-account">
+      <h2 class="mp-sec__title">계정</h2>
+      <ul class="mp-links">
+        <li><button type="button" class="mp-link" @click="logout">로그아웃</button></li>
+        <li><a class="mp-link" href="https://www.lighthouse.career/terms" target="_blank" rel="noopener">이용약관</a></li>
+        <li><a class="mp-link" href="https://www.lighthouse.career/privacy" target="_blank" rel="noopener">개인정보처리방침</a></li>
+      </ul>
+      <button type="button" class="mp-danger" @click="showDelete = true">회원 탈퇴</button>
+      <p class="mp-danger-note">탈퇴하면 검사 결과와 진로 기록이 모두 삭제되고 되돌릴 수 없어요.</p>
+    </section>
 
     <AccountDeleteSheet v-model="showDelete" @deleted="onDeleted" />
   </div>
@@ -152,13 +134,14 @@
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { safeBack } from '@/shared/utils/navigation'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { req } from '@/shared/api'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 import AccountDeleteSheet from '../components/AccountDeleteSheet.vue'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
+import { useAchievementEntries } from '@/modules/career-achievement/composables/useAchievementEntries'
+import { categoryColor } from '@/modules/career-achievement/lib/planBoard'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -234,7 +217,16 @@ function logout() {
   router.replace('/onboarding')
 }
 
+// ── 기록 모아보기 — 진행 중 계획의 완료 기록(사진·메모). 최근 6개만, 나머지는 전체보기 ──
+const { feedSorted, entries } = useAchievementEntries()
+const records = computed(() => { void entries.value; return feedSorted().filter((e) => e.itemType === 'project') })
+const recentRecords = computed(() => records.value.slice(0, 6))
+const tint = (c: string) => `color-mix(in srgb, ${c} 14%, white)`
+const shortDate = (k: string) => { const [, m, d] = k.split('-'); return `${+m!}/${+d!}` }
+function jump(id: string) { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
+
 onMounted(async () => {
+  achievementStore.loadActivePlan() // 완료 기록을 함께 읽는다(이미 읽었으면 그대로)
   if (!authStore.isLoggedIn) {
     router.replace('/')
     return
