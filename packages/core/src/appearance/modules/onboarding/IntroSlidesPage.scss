@@ -42,6 +42,7 @@
   &__emoji {
     font-size: 88px;
     line-height: 1;
+    color: $color-primary; // 자체 아이콘은 글자색을 따른다 — 지정 안 하면 검고 무겁다. 슬라이드별 색은 slides[].color(2026-10-28)
   }
 
   &__title {

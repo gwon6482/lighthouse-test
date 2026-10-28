@@ -17,7 +17,7 @@
     <ul v-else class="gate-guide__tips">
       <li v-for="b in badges" :key="b.key">
         <span class="gate-guide__tip-key" :style="{ color: b.color }">
-          <AppIcon v-if="b.icon" :name="b.icon" /><template v-else>{{ b.emoji }}</template> {{ b.label }}
+          <AppIcon :name="b.icon" /> {{ b.label }}
         </span>
         {{ b.guide }}
       </li>

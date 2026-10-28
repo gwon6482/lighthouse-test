@@ -8,9 +8,8 @@
       :style="{ color: b.color, background: b.bg }"
       :title="b.desc"
     >
-      <!-- 자체 아이콘(gateBadges.ts 의 icon) — 없으면 이모지 -->
-      <AppIcon v-if="b.icon" :name="b.icon" class="gate-badge__icon" />
-      <span v-else class="gate-badge__icon" aria-hidden="true">{{ b.emoji }}</span>
+      <!-- 자체 아이콘(gateBadges.ts 의 icon) -->
+      <AppIcon :name="b.icon" class="gate-badge__icon" />
       <span class="gate-badge__label">{{ b.label }}</span>
     </span>
   </span>
