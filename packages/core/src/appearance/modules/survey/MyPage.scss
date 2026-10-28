@@ -356,6 +356,20 @@
   }
 }
 
+/* 로그아웃 — 계정 영역 첫 줄. 탈퇴보다 자주 쓰므로 평범한 글자 버튼 */
+.mypage__account-link {
+  display: block;
+  margin-bottom: 14px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+
 /* 계정 영역 — 탈퇴는 되돌릴 수 없으므로 **약하게** 강조한다.
    빨간 버튼으로 눈에 띄게 만들면 오조작을 유도한다. 실제 경고는 확인 시트가 한다. */
 .mypage__danger-link {
