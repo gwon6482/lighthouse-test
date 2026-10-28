@@ -9,26 +9,20 @@
     </div>
 
     <template v-else>
-      <!-- 머리 — 전체에서 어디까지 왔나 -->
-      <section class="rm-hero">
-        <span class="rm-hero__eyebrow">나의 로드맵</span>
-        <h1 class="rm-hero__title">{{ goalTitle }}</h1>
-        <p class="rm-hero__period">{{ periodLabel }}</p>
-
-        <div class="rm-progress">
-          <div class="rm-progress__row">
-            <strong class="rm-progress__pct">{{ progress.percent }}<small>%</small></strong>
-            <span class="rm-progress__meta">항목 {{ progress.done }} / {{ progress.total }} 완료</span>
-          </div>
-          <span class="rm-progress__bar"><i :style="{ width: `${shown ? progress.percent : 0}%` }" /></span>
-          <div class="rm-progress__facts">
-            <span v-if="phase === 'running' && weekNumber">지금 <strong>{{ weekNumber }}주차</strong> / {{ totalWeeks }}주</span>
-            <span v-else-if="phase === 'before'">출발 전</span>
-            <span v-else>계획 기간 끝</span>
-            <span>{{ remainingLabel }}</span>
-          </div>
+      <!-- 머리 — 간소화한 고정 바(사용자 2026-10-28): 제목 · % · 막대 · 지금 주차/남은 기간 -->
+      <header class="rm-bar">
+        <div class="rm-bar__row">
+          <h1 class="rm-bar__title">{{ goalTitle }}</h1>
+          <strong class="rm-bar__pct">{{ progress.percent }}<small>%</small></strong>
         </div>
-      </section>
+        <span class="rm-bar__track"><i :style="{ width: `${shown ? progress.percent : 0}%` }" /></span>
+        <p class="rm-bar__meta">
+          <template v-if="phase === 'running' && weekNumber">지금 <strong>{{ weekNumber }}주차</strong> / {{ totalWeeks }}주</template>
+          <template v-else-if="phase === 'before'">출발 전</template>
+          <template v-else>계획 기간 끝</template>
+          <span aria-hidden="true"> · </span>{{ remainingLabel }}
+        </p>
+      </header>
 
       <!-- 여정 — 시작 주차 순 정거장. '지금 여기'는 아직 시작 안 한 첫 정거장 앞 -->
       <ol class="rm-path">
@@ -41,7 +35,7 @@
           <li v-if="i === hereIndex" ref="hereEl" class="rm-here">
             <span class="rm-here__pill">지금 여기<template v-if="weekNumber"> · {{ weekNumber }}주차</template></span>
           </li>
-          <li class="rm-node" :class="`rm-node--${s.status}`">
+          <li class="rm-node" :class="`rm-node--${s.status}`" :data-now="s.status === 'now' || undefined">
             <span class="rm-node__dot">
               <AppIcon v-if="s.status === 'done'" name="ui-check" />
               <i v-else />
@@ -117,7 +111,6 @@ const tint = (c: string) => `color-mix(in srgb, ${c} 14%, white)`
 const ymd = (s?: string) => { const d = parsePlanDate(s); return d ? `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}` : '' }
 const startLabel = computed(() => ymd(plan.value?.startDate))
 const endLabel = computed(() => ymd(plan.value?.endDate))
-const periodLabel = computed(() => [startLabel.value, endLabel.value].filter(Boolean).join(' – '))
 const goalTitle = computed(() => plan.value?.targetJob ? `${plan.value.targetJob}까지의 여정` : '나의 여정')
 const remainingLabel = computed(() => {
   const e = parsePlanDate(plan.value?.endDate)
@@ -155,13 +148,20 @@ function weeksShown(s: RoadmapStop) {
 
 const shown = ref(false)
 const hereEl = ref<HTMLElement[] | HTMLElement | null>(null)
+
+// 지금 위치로 데려간다 — 진행 중인 첫 정거장(없으면 '지금 여기')을 고정 바 바로 아래로.
+// ⚠️ 라우터 scrollBehavior({ top: 0 })가 화면이 붙은 **뒤**에 돌아서, mounted 에서 바로 옮기면
+//    하단 탭으로 들어올 때 맨 위로 되돌아간다(계획이 이미 로드돼 있어 load 가 빨리 끝나는 경우). 그래서 한 박자 뒤에 옮긴다
+function scrollToNow() {
+  const now = document.querySelector<HTMLElement>('.rm-node[data-now]')
+  const here = Array.isArray(hereEl.value) ? hereEl.value[0] : hereEl.value
+  ;(now ?? here)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+}
 onMounted(async () => {
   await load()
   for (const s of roadmap.value) if (s.status === 'now') open.value[s.project.id] = 'week'
   await nextTick()
   requestAnimationFrame(() => requestAnimationFrame(() => { shown.value = true }))
-  // 지금 위치로 데려간다
-  const el = Array.isArray(hereEl.value) ? hereEl.value[0] : hereEl.value
-  el?.scrollIntoView({ block: 'center' })
+  setTimeout(scrollToNow, 150)
 })
 </script>

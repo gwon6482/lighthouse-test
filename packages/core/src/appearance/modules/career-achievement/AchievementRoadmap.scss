@@ -10,32 +10,25 @@ $rm-rail: 28px; // 세로선 x 위치(점 중심)
   color: $color-text;
 }
 
-.rm-hero {
-  padding: max(24px, env(safe-area-inset-top)) $space-lg $space-xl;
-  background:
-    radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.55) 0 56px, transparent 57px),
-    radial-gradient(circle at 8% 100%, rgba(255, 166, 0, 0.3) 0 80px, transparent 81px),
-    linear-gradient(160deg, #FFDF3D 0%, $color-primary 60%, #FFC400 100%);
+// 머리 — 간소화한 고정 바(2026-10-28). 정거장은 이 바 아래로 스크롤해 들어간다
+$rm-bar-h: 90px; // 실측 높이(노치 없는 폰) — 자동 이동 때 정거장이 바에 가리지 않게(scroll-margin)
+.rm-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: max(14px, env(safe-area-inset-top)) $space-lg 12px;
+  background: $color-primary;
+  box-shadow: 0 6px 16px rgba(120, 90, 0, 0.12);
   display: grid;
-  gap: 4px;
-  &__eyebrow { font-size: $fs-2xs; font-weight: $fw-bold; letter-spacing: 0.04em; color: rgba(0, 0, 0, 0.55); }
-  &__title { margin: 0; font-size: 26px; line-height: $lh-heading; font-weight: $fw-bold; letter-spacing: $ls-heading; word-break: keep-all; }
-  &__period { margin: 0 0 $space-lg; font-size: $fs-sm; color: rgba(0, 0, 0, 0.6); font-variant-numeric: tabular-nums; }
-}
-
-.rm-progress {
-  padding: 16px;
-  border-radius: $radius-card;
-  background: rgba(255, 255, 255, 0.75);
-  display: grid;
-  gap: 10px;
-  &__row { display: flex; align-items: baseline; justify-content: space-between; }
-  &__pct { font-size: 34px; font-weight: $fw-black; letter-spacing: -1px; line-height: 1; small { font-size: 18px; margin-left: 1px; } }
-  &__meta { font-size: $fs-xs; color: $color-text-secondary; font-variant-numeric: tabular-nums; }
-  &__bar { display: block; height: 10px; border-radius: $radius-pill; background: rgba(0, 0, 0, 0.08); overflow: hidden;
+  gap: 8px;
+  &__row { display: flex; align-items: baseline; justify-content: space-between; gap: $space-md; }
+  &__title { margin: 0; min-width: 0; font-size: 19px; font-weight: $fw-bold; letter-spacing: $ls-heading; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &__pct { flex: 0 0 auto; font-size: 24px; font-weight: $fw-black; letter-spacing: -0.5px; line-height: 1; small { font-size: 14px; margin-left: 1px; } }
+  &__track { display: block; height: 8px; border-radius: $radius-pill; background: rgba(0, 0, 0, 0.1); overflow: hidden;
     i { display: block; height: 100%; border-radius: inherit; background: $color-text; transition: width 1s $ease-standard; } }
-  &__facts { display: flex; justify-content: space-between; gap: $space-sm; font-size: $fs-sm; color: rgba(0, 0, 0, 0.7); font-variant-numeric: tabular-nums; strong { color: $color-text; } }
+  &__meta { margin: 0; font-size: $fs-xs; color: rgba(0, 0, 0, 0.68); font-variant-numeric: tabular-nums; strong { color: $color-text; } }
 }
+.rm-node, .rm-here { scroll-margin-top: $rm-bar-h + 12px; }
 
 // ── 여정 ──────────────────────────────────
 .rm-path {
@@ -149,5 +142,5 @@ $rm-rail: 28px; // 세로선 x 위치(점 중심)
 
 @media (prefers-reduced-motion: reduce) {
   .rm-node--now .rm-node__dot { animation: none; }
-  .rm-progress__bar i { transition: none; }
+  .rm-bar__track i { transition: none; }
 }
