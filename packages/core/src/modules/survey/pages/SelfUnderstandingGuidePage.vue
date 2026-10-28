@@ -26,7 +26,7 @@
 
         <div class="guide-card-meta">
           <span class="guide-meta-pill">{{ part.questionCount }}</span>
-          <span v-if="part.minutes" class="guide-meta-pill">⏱ 약 {{ part.minutes }}분</span>
+          <span v-if="part.minutes" class="guide-meta-pill"><AppIcon name="ui-duration" /> 약 {{ part.minutes }}분</span>
         </div>
 
       </div>

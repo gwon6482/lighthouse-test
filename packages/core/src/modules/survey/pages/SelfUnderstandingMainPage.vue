@@ -38,7 +38,7 @@
             <span class="su-main__pill" :style="{ color: part.color, background: part.bg, borderColor: part.bg }">
               {{ part.questionCount }}
             </span>
-            <span v-if="part.minutes" class="su-main__pill">⏱ 약 {{ part.minutes }}분</span>
+            <span v-if="part.minutes" class="su-main__pill"><AppIcon name="ui-duration" /> 약 {{ part.minutes }}분</span>
           </div>
         </div>
       </div>

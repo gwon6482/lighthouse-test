@@ -123,7 +123,7 @@
       <section class="mypage__section">
         <h2 class="mypage__section-title">내 진로달성</h2>
         <div class="mypage__coming-soon">
-          <span class="mypage__coming-soon-icon">🏆</span>
+          <span class="mypage__coming-soon-icon"><AppIcon name="ui-coming-soon" /></span>
           <p>준비 중인 기능입니다.</p>
         </div>
       </section>
@@ -147,6 +147,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { safeBack } from '@/shared/utils/navigation'

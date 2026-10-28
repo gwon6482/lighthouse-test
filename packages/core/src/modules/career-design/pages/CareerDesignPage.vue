@@ -119,7 +119,7 @@
       <div class="cd-main__step-card">
         <div class="cd-main__step-preview">
           <div class="g-result-top">
-            <span class="g-result-job">🎯 마케팅 기획자</span>
+            <span class="g-result-job"><AppIcon name="ui-target" /> 마케팅 기획자</span>
             <span class="g-result-period">2024.01 ~ 2025.12</span>
           </div>
           <div class="g-result-timeline">
@@ -159,7 +159,7 @@
 
       <!-- 설정된 목표 진로 -->
       <div v-else-if="targetCareer" class="cd-target-card cd-target-card--set">
-        <div class="cd-target-card__icon">🎯</div>
+        <div class="cd-target-card__icon"><AppIcon name="ui-target" /></div>
         <div class="cd-target-card__info">
           <p class="cd-target-card__title">{{ targetCareer.title ?? targetCareer.ref }}</p>
           <JobGateBadges :job-code="targetCareer.refType === 'jobCode' ? targetCareer.ref : null" :title="targetCareer.title" class="cd-target-card__gates" />
@@ -202,7 +202,7 @@
                 <p class="cd-popup__desc">목표 진로를 어떻게 설정할까요?</p>
                 <div class="cd-popup__options">
                   <button class="cd-popup__option" @click="goToEncyclopedia">
-                    <span class="cd-popup__option-icon">📚</span>
+                    <span class="cd-popup__option-icon"><AppIcon name="ui-template" /></span>
                     <div class="cd-popup__option-text">
                       <strong>진로백과에서 선택하기</strong>
                       <span>538개 직업 중 나의 목표 진로를 찾아요</span>
@@ -210,7 +210,7 @@
                     <span class="cd-popup__option-arrow">›</span>
                   </button>
                   <button class="cd-popup__option" @click="popupMode = 'manual'">
-                    <span class="cd-popup__option-icon">✏️</span>
+                    <span class="cd-popup__option-icon"><AppIcon name="ui-edit" /></span>
                     <div class="cd-popup__option-text">
                       <strong>내가 직접 입력하기</strong>
                       <span>진로백과에 없는 직업도 자유롭게 입력해요</span>
@@ -255,6 +255,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import AppHeader from '@/shared/components/AppHeader.vue'
 import JourneyIntro from '@/shared/components/JourneyIntro.vue'

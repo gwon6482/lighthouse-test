@@ -14,7 +14,7 @@
 
         <!-- 카드 -->
         <div class="cm__card" @click.stop>
-          <div class="cm__icon">🎉</div>
+          <div class="cm__icon"><AppIcon name="ui-celebrate" /></div>
           <h2 class="cm__title">{{ title }}</h2>
           <p class="cm__sub">{{ sub }}</p>
           <button class="cm__btn" @click="close">계속 가기</button>
@@ -25,6 +25,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 defineProps<{
   modelValue: boolean
   title: string

@@ -10,7 +10,7 @@
       </div>
 
       <h1 class="welcome__title">
-        <strong>{{ name }}</strong>님,<br/>환영합니다! 🎉
+        <strong>{{ name }}</strong>님,<br/>환영합니다! <AppIcon name="ui-celebrate" />
       </h1>
       <p class="welcome__desc">
         가입이 완료됐어요.<br/>
@@ -25,6 +25,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'

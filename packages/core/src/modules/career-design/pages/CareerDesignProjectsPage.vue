@@ -45,7 +45,7 @@
               <small v-else class="cd-projects__chip-method cd-projects__chip-method--missing" @click="editProject(project)">진행 방식을 정해주세요 ›</small>
             </span>
             <div class="cd-projects__chip-actions">
-              <button class="cd-projects__btn cd-projects__btn--edit" @click="editProject(project)">✏️</button>
+              <button class="cd-projects__btn cd-projects__btn--edit" @click="editProject(project)"><AppIcon name="ui-edit" /></button>
               <button class="cd-projects__btn cd-projects__btn--delete" @click="deleteProject(project.id)">✕</button>
             </div>
           </div>

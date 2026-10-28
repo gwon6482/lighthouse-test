@@ -3,7 +3,7 @@
     <AppHeader />
 
 <section class="wr__hero">
-      <div class="wr__hero-icon">📝</div>
+      <div class="wr__hero-icon"><AppIcon name="ui-weekly-review" /></div>
       <div class="wr__hero-body">
         <span class="wr__hero-eyebrow">WEEKLY REVIEW</span>
         <h1 class="wr__hero-title">지난 한 주를<br />돌아봐요</h1>
@@ -15,7 +15,7 @@
 
     <template v-else-if="!draftPlan.planId">
       <div class="wr__empty">
-        <span class="wr__empty-icon">📅</span>
+        <span class="wr__empty-icon"><AppIcon name="ui-calendar" /></span>
         <h2 class="wr__empty-title">진로계획이 없어요</h2>
         <p class="wr__empty-text">먼저 진로계획을 만들어 주세요.</p>
         <button class="wr__empty-btn" @click="router.push('/career-design')">진로계획 만들기</button>
@@ -32,7 +32,7 @@
 
         <div class="wr__metrics">
           <div class="wr__metric">
-            <span class="wr__metric-icon">🎯</span>
+            <span class="wr__metric-icon"><AppIcon name="ui-target" /></span>
             <span class="wr__metric-label">루틴 달성</span>
             <span class="wr__metric-value">
               <strong>{{ summary.routineDone }}</strong>
@@ -41,7 +41,7 @@
             <span class="wr__metric-pct">{{ pct(summary.routineDone, summary.routinePlanned) }}%</span>
           </div>
           <div class="wr__metric">
-            <span class="wr__metric-icon">✅</span>
+            <span class="wr__metric-icon"><AppIcon name="ui-done" /></span>
             <span class="wr__metric-label">프로젝트 완료</span>
             <span class="wr__metric-value">
               <strong>{{ summary.projectDone }}</strong>
@@ -129,6 +129,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/shared/components/AppHeader.vue'

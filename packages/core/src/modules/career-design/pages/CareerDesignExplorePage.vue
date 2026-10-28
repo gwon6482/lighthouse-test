@@ -9,7 +9,7 @@
       />
       <div class="cd-explore__search-wrap">
         <div class="cd-explore__search">
-          <span>🔍</span>
+          <span><AppIcon name="ui-search" /></span>
           <input
             v-model="searchQuery"
             class="cd-explore__search-input"
@@ -55,6 +55,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import type { CareerPlan } from '../types/career-design'

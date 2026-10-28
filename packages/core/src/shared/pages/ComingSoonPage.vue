@@ -1,7 +1,7 @@
 <template>
   <div class="coming-soon">
     <div class="coming-soon__inner">
-      <div class="coming-soon__emoji">🚧</div>
+      <div class="coming-soon__emoji"><AppIcon name="ui-coming-soon" /></div>
       <h1 class="coming-soon__title">{{ title }}</h1>
       <p class="coming-soon__msg">{{ message }}</p>
       <p class="coming-soon__sub">곧 공개될 예정이에요</p>
@@ -10,6 +10,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 

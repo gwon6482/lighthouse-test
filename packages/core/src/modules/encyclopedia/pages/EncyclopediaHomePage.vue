@@ -50,7 +50,7 @@
       <!-- 나의 추천 진로 -->
       <div class="enc-home__section">
         <button class="enc-home__menu-btn" @click="goToRecommended">
-          <span class="enc-home__menu-icon">⭐</span>
+          <span class="enc-home__menu-icon"><AppIcon name="ui-recommend" /></span>
           <div class="enc-home__menu-text">
             <span class="enc-home__menu-title">나의 추천 진로</span>
             <span class="enc-home__menu-desc">자기이해 결과를 바탕으로 추천된 직업을 확인해보세요</span>
@@ -63,6 +63,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { useRouter } from 'vue-router'
 import { useEncyclopedia } from '../composables/useEncyclopedia'
 import type { JobSummary } from '../types/encyclopedia'

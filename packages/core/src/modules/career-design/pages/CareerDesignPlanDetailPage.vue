@@ -32,15 +32,15 @@
           >{{ statusLabel(plan.status) }}</span>
         </div>
         <div class="summary-card__target">
-          <span class="summary-card__target-icon">🎯</span>
+          <span class="summary-card__target-icon"><AppIcon name="ui-target" /></span>
           <span class="summary-card__target-job">{{ plan.targetJob || '목표 직업 미설정' }}</span>
         </div>
         <div v-if="periodLabel" class="summary-card__meta">
-          <span class="summary-card__meta-icon">🗓️</span>
+          <span class="summary-card__meta-icon"><AppIcon name="ui-calendar" /></span>
           <span>{{ periodLabel }}</span>
         </div>
         <div v-if="plan.reviewDay" class="summary-card__meta">
-          <span class="summary-card__meta-icon">🔄</span>
+          <span class="summary-card__meta-icon"><AppIcon name="ui-repeat" /></span>
           <span>매주 <strong>{{ plan.reviewDay }}요일</strong>에 주간리뷰</span>
         </div>
       </section>
@@ -139,7 +139,7 @@
             <span class="routines__name">{{ routine.name }}</span>
             <span class="routines__meta">
               {{ daysSummary(routine.days) }} · {{ routine.duration }}분
-              <template v-if="routine.notification"> · 🔔 {{ routine.notificationTime }}</template>
+              <template v-if="routine.notification"> · <AppIcon name="ui-bell" /> {{ routine.notificationTime }}</template>
             </span>
           </div>
         </div>
@@ -223,6 +223,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { weekEntriesOf } from '../composables/useProjectCurriculum'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'

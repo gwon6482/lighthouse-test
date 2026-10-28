@@ -6,7 +6,7 @@
 
     <!-- survey ID 없음 -->
     <div v-if="noSurvey" class="rec-no-survey">
-      <div class="rec-no-survey__icon">📋</div>
+      <div class="rec-no-survey__icon"><AppIcon name="ui-no-survey" /></div>
       <p class="rec-no-survey__title">검사 결과가 없어요</p>
       <p class="rec-no-survey__desc">자기이해 검사를 완료하면<br>나만을 위한 진로를 추천해드려요</p>
       <button class="rec-no-survey__cta" @click="$router.push('/self-understanding')">
@@ -109,6 +109,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useEncyclopedia } from '../composables/useEncyclopedia'

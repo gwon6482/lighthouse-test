@@ -93,7 +93,7 @@
 
       <!-- 직접 설계하기 — 템플릿을 쓰지 않는 길. 직업·템플릿 유무와 상관없이 항상 맨 아래에 둔다 -->
       <button type="button" class="cd-tpl__manual" @click="startManual">
-        <span class="cd-tpl__manual-icon">✏️</span>
+        <span class="cd-tpl__manual-icon"><AppIcon name="ui-edit" /></span>
         <span class="cd-tpl__manual-text">
           <strong>직접 설계하기</strong>
           <span>템플릿 없이 빈 계획에서 프로젝트를 하나씩 만들어요</span>

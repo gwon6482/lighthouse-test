@@ -6,11 +6,11 @@
     </div>
 
     <div v-if="isLoading" class="search-result__state">
-      <span class="search-result__state-icon">🔍</span>
+      <span class="search-result__state-icon"><AppIcon name="ui-search" /></span>
       <span>검색 중...</span>
     </div>
     <div v-else-if="searchResults.length === 0" class="search-result__state">
-      <span class="search-result__state-icon">😶</span>
+      <span class="search-result__state-icon"><AppIcon name="ui-empty-result" /></span>
       <span><strong>{{ searchQuery }}</strong>에 대한 결과가 없어요</span>
     </div>
     <div v-else class="search-result__list">
@@ -24,6 +24,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import type { JobSummary } from '@/modules/encyclopedia/types/encyclopedia';
 import SearchResultCard from './SearchResultCard.vue'
 

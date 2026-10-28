@@ -61,7 +61,7 @@
               </p>
               <p v-if="selected.method" class="cd-helper-sheet__method">
                 <AppIcon :name="methodIcon(selected.method)" /> {{ methodLine(selected.method, selected.methodDetail) }}
-                <span>✅ {{ doneLabel(category, selected.method) }}</span>
+                <span><AppIcon name="ui-done" /> {{ doneLabel(category, selected.method) }}</span>
               </p>
             </div>
 

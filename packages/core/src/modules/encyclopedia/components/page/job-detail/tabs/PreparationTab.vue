@@ -21,7 +21,7 @@
           <!-- 인물 헤더 -->
           <div class="prep-card__head">
             <div class="prep-card__person">
-              <span class="prep-card__avatar">🧑</span>
+              <span class="prep-card__avatar"><AppIcon name="ui-avatar" /></span>
               <div class="prep-card__who">
                 <span class="prep-card__author">{{ journey.author }}</span>
                 <span class="prep-card__role">{{ journey.role }}</span>
@@ -78,6 +78,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { computed } from 'vue'
 import type { ProjectCategory } from '@/modules/career-design/types/career-design'
 

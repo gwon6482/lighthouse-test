@@ -26,7 +26,7 @@
         </div>
         <div class="cd-proj-detail__stats">
           <span>♡ {{ project.likes }}</span>
-          <span>👁 {{ project.views }}</span>
+          <span><AppIcon name="ui-views" /> {{ project.views }}</span>
           <span class="cd-proj-detail__lecture-count">{{ project.curriculum?.length ?? 0 * (project.weeks ?? 0) }}개 강의</span>
         </div>
       </div>
@@ -73,6 +73,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { weekEntriesOf } from '../composables/useProjectCurriculum'
 import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'

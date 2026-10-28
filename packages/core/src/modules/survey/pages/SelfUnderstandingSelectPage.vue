@@ -12,7 +12,7 @@
       <button class="select-button" @click="handleScaleSelect(2)">
         <div class="select-button__top">
           <span class="select-button__title">심플</span>
-          <span class="select-button__time">⏱ 5분</span>
+          <span class="select-button__time"><AppIcon name="ui-duration" /> 5분</span>
         </div>
         <div class="select-button__preview">
           <p class="sq-sample-text">나는 새로운 환경에 잘 적응한다.</p>
@@ -28,7 +28,7 @@
       <button class="select-button" @click="handleScaleSelect(5)">
         <div class="select-button__top">
           <span class="select-button__title">베이직</span>
-          <span class="select-button__time">⏱ 10분</span>
+          <span class="select-button__time"><AppIcon name="ui-duration" /> 10분</span>
         </div>
         <div class="select-button__preview">
           <p class="sq-sample-text">나는 계획적으로 행동하는 편이다.</p>
@@ -51,7 +51,7 @@
       <button class="select-button" @click="handleScaleSelect(10)">
         <div class="select-button__top">
           <span class="select-button__title">디테일</span>
-          <span class="select-button__time">⏱ 15분</span>
+          <span class="select-button__time"><AppIcon name="ui-duration" /> 15분</span>
         </div>
         <div class="select-button__preview">
           <p class="sq-sample-text">나는 창의적인 방식으로 문제를 푼다.</p>
@@ -66,6 +66,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/shared/components/AppHeader.vue'
 import { useSurvey } from '../composables/useSurvey'

@@ -24,7 +24,7 @@
             <CdCategoryIcon :category="item.category" />
             <div class="cd-timeline__item-text">
               <span class="cd-timeline__item-name">{{ item.projectName }}</span>
-              <span class="cd-timeline__item-meta">📅 {{ item.date }} · 진로지식</span>
+              <span class="cd-timeline__item-meta"><AppIcon name="ui-calendar" /> {{ item.date }} · 진로지식</span>
             </div>
           </div>
         </div>
@@ -34,6 +34,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import type { TimelineMonth } from '../types/career-design'
 import CdCategoryIcon from './CdCategoryIcon.vue'
 

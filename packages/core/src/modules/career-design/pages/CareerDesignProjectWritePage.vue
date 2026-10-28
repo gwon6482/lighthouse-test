@@ -59,7 +59,7 @@
               @input="setDetail(f.key, ($event.target as HTMLInputElement).value)"
             />
           </div>
-          <div class="cd-proj-write__done">✅ 완료 기준 · {{ doneLabel(draftProject.category, draftProject.method) }}</div>
+          <div class="cd-proj-write__done"><AppIcon name="ui-done" /> 완료 기준 · {{ doneLabel(draftProject.category, draftProject.method) }}</div>
         </template>
       </div>
 
@@ -118,7 +118,7 @@
           <span>15분</span><span>3시간</span>
         </div>
         <div class="cd-proj-write__tip">
-          💡 추천: 처음 시작할 때는 30-60분이 적당해요. 너무 긴 시간을 설정하면 부담스러울 수 있어요
+          <AppIcon name="ui-tip" /> 추천: 처음 시작할 때는 30-60분이 적당해요. 너무 긴 시간을 설정하면 부담스러울 수 있어요
         </div>
       </div>
 
@@ -161,7 +161,7 @@
           <div class="cd-proj-write__time-input">
             <input v-model="draftProject.notificationTime" type="time" class="cd-proj-write__time-raw" />
             <span class="cd-proj-write__time-display">오전 {{ draftProject.notificationTime }}</span>
-            <span>🕐</span>
+            <span><AppIcon name="ui-time-input" /></span>
           </div>
         </div>
       </div>
@@ -195,7 +195,7 @@
           >+</button>
         </div>
         <div class="cd-proj-write__tip">
-          💡 다음 화면에서 {{ weeks }}개 주차의 커리큘럼을 채워요. 기간은 언제든 다시 바꿀 수 있어요
+          <AppIcon name="ui-tip" /> 다음 화면에서 {{ weeks }}개 주차의 커리큘럼을 채워요. 기간은 언제든 다시 바꿀 수 있어요
         </div>
       </div>
     </div>

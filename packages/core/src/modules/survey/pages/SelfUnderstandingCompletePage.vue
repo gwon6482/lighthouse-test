@@ -2,7 +2,7 @@
   <div class="lh-page complete-page">
 
     <section class="complete-hero">
-      <div class="complete-icon">🎉</div>
+      <div class="complete-icon"><AppIcon name="ui-celebrate" /></div>
       <h1 class="complete-title">검사 완료!</h1>
       <p class="complete-sub">수고하셨습니다, 검사가 끝났어요.<br>결과를 분석하고 있어요.</p>
     </section>

@@ -71,7 +71,7 @@
           <div class="cd-rt-write__time-input">
             <input v-model="draftRoutine.notificationTime" type="time" class="cd-rt-write__time-raw" />
             <span class="cd-rt-write__time-display">{{ draftRoutine.notificationTime }}</span>
-            <span>🕐</span>
+            <span><AppIcon name="ui-time-input" /></span>
           </div>
         </div>
       </div>
@@ -97,6 +97,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { safeBack } from '@/shared/utils/navigation'

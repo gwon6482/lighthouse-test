@@ -180,7 +180,7 @@
           </div>
 
           <div class="lock-row">
-            <span style="font-size:16px;flex-shrink:0;">🔒</span>
+            <span style="font-size:16px;flex-shrink:0;"><AppIcon name="ui-privacy" /></span>
             <div class="lock-text"><strong>더 많은 추천 직업 &amp; 상세 분석</strong>은 회원가입 후 전체 결과에서 확인할 수 있어</div>
           </div>
         </div>
@@ -216,7 +216,7 @@
       <h2 class="m-ttl" style="color:#2B2F6B;margin-bottom:6px;">더 강력해질<br>LightHouse</h2>
       <p class="m-sub" style="color:#8890CC;margin-bottom:20px;">AI + 현직자 연결로 진로 달성이 훨씬 빨라져</p>
       <div class="soon-header-banner">
-        <span class="soon-banner-icon">🚀</span>
+        <span class="soon-banner-icon"><AppIcon name="ui-coming-soon" /></span>
         <div>
           <div class="soon-banner-title">업그레이드 예고</div>
           <div class="soon-banner-sub">AI + 현직자 연결로 진로 달성이 훨씬 빨라져</div>
@@ -255,7 +255,7 @@
 
     <!-- FINAL CTA -->
     <section class="m-sec yellow" style="text-align:center;">
-      <div class="final-sky">💙 무료로 시작할 수 있어</div>
+      <div class="final-sky"><AppIcon name="ui-free" /> 무료로 시작할 수 있어</div>
       <h2 class="final-title">지금, 나를 찾는<br>5분을 써봐</h2>
       <p class="final-sub">회원가입 없이 바로 시작.<br>결과 저장 시 더 많은 기능 이용 가능.</p>
       <RouterLink class="final-cta" to="/self-understanding/guide"> 무료로 검사 시작하기 → </RouterLink>

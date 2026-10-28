@@ -6,7 +6,7 @@
       <!-- 계획 요약 -->
       <div class="cd-complete__summary">
         <div class="cd-complete__summary-row">
-          <span class="cd-complete__target">🎯 {{ draftPlan.targetJob || '목표 직업 미설정' }} <JobGateBadges :title="draftPlan.targetJob" /></span>
+          <span class="cd-complete__target"><AppIcon name="ui-target" /> {{ draftPlan.targetJob || '목표 직업 미설정' }} <JobGateBadges :title="draftPlan.targetJob" /></span>
           <span class="cd-complete__period">{{ periodLabel }}</span>
         </div>
       </div>

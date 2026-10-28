@@ -2,7 +2,7 @@
   <div class="cd-plan-card" @click="$emit('click')">
     <h3 class="cd-plan-card__title">{{ plan.name }}</h3>
     <div class="cd-plan-card__meta">
-      <span class="cd-plan-card__author">👤 {{ plan.author }}</span>
+      <span class="cd-plan-card__author"><AppIcon name="ui-avatar" /> {{ plan.author }}</span>
       <span class="cd-plan-card__dot">·</span>
       <span>{{ plan.duration }}</span>
     </div>
@@ -13,7 +13,7 @@
     <div class="cd-plan-card__footer">
       <div class="cd-plan-card__stats">
         <span>♡ {{ plan.likes }}</span>
-        <span>👁 {{ plan.views }}</span>
+        <span><AppIcon name="ui-views" /> {{ plan.views }}</span>
       </div>
       <div class="cd-plan-card__counts">
         <span>{{ plan.routineCount }}개 루틴</span>
@@ -24,6 +24,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import type { CareerPlan } from '../types/career-design'
 
 defineProps<{ plan: CareerPlan }>()

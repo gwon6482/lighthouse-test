@@ -16,6 +16,7 @@
 
   .complete-icon {
     font-size: 52px;
+    color: $color-primary;   // 자체 아이콘은 글자색을 따른다 — 어두운 배경이라 지정하지 않으면 묻힌다(2026-10-28)
     margin-bottom: 20px;
     display: block;
     animation: complete-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;

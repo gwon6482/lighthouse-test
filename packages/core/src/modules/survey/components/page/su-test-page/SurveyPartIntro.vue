@@ -7,7 +7,7 @@
       <div class="pi-badges">
         <span class="pi-badge count">{{ introData.questionCount }}</span>
         <span v-if="introData.estimatedMinutes" class="pi-badge time">
-          ⏱ 약 {{ introData.estimatedMinutes }}분
+          <AppIcon name="ui-duration" /> 약 {{ introData.estimatedMinutes }}분
         </span>
       </div>
     </div>

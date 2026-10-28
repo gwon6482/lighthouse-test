@@ -28,7 +28,7 @@
       <section class="cac__section">
         <label class="cac__label">인증사진 <span class="cac__label-opt">(선택)</span></label>
         <div v-if="!photo" class="cac__photo-empty" @click="pickPhoto">
-          <span class="cac__photo-icon">📷</span>
+          <span class="cac__photo-icon"><AppIcon name="ui-photo" /></span>
           <span class="cac__photo-text">사진 추가</span>
         </div>
         <div v-else class="cac__photo">
@@ -92,6 +92,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'

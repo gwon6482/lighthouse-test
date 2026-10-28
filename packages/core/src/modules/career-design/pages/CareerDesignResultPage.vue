@@ -5,7 +5,7 @@
     <div class="cd-result__body">
       <!-- 완성 축하 -->
       <div class="cd-result__celebrate">
-        <span class="cd-result__celebrate-emoji">🎉</span>
+        <span class="cd-result__celebrate-emoji"><AppIcon name="ui-celebrate" /></span>
         <h2 class="cd-result__celebrate-title">진로계획 완성!</h2>
         <p class="cd-result__celebrate-msg">
           수고하셨습니다! <strong>{{ userName }}</strong>님의 진로계획이 완성되었어요!
@@ -19,7 +19,7 @@
       <!-- 요약 카드 -->
       <div class="cd-result__summary">
         <div class="cd-result__target">
-          <span class="cd-result__target-icon">🎯</span>
+          <span class="cd-result__target-icon"><AppIcon name="ui-target" /></span>
           <span class="cd-result__target-job">{{ draftPlan.targetJob || '목표 직업 미설정' }} <JobGateBadges :title="draftPlan.targetJob" /></span>
         </div>
         <div class="cd-result__period-row">
@@ -27,7 +27,7 @@
           <span class="cd-result__stats">프로젝트 {{ placedCount }}개 배치</span>
         </div>
         <div v-if="draftPlan.reviewDay" class="cd-result__review-row">
-          <span class="cd-result__review-icon">🔄</span>
+          <span class="cd-result__review-icon"><AppIcon name="ui-repeat" /></span>
           <span class="cd-result__review-text">
             매주 <strong>{{ draftPlan.reviewDay }}요일</strong>에 한 주를 돌아보고 다음 주를 계획해요
           </span>
@@ -47,7 +47,7 @@
               <span class="cd-result__routine-name">{{ routine.name }}</span>
               <span class="cd-result__routine-meta">
                 {{ daysSummary(routine.days) }} · {{ routine.duration }}분
-                <template v-if="routine.notification"> · 🔔 {{ routine.notificationTime }}</template>
+                <template v-if="routine.notification"> · <AppIcon name="ui-bell" /> {{ routine.notificationTime }}</template>
               </span>
             </div>
           </div>
@@ -194,6 +194,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { weekEntriesOf } from '../composables/useProjectCurriculum'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'

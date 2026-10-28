@@ -64,7 +64,7 @@
               설정 중...
             </template>
             <template v-else>
-              🎯 {{ currentTarget ? '목표진로로 변경하기' : '목표진로로 설정하기' }}
+              <AppIcon name="ui-target" /> {{ currentTarget ? '목표진로로 변경하기' : '목표진로로 설정하기' }}
             </template>
           </button>
         </div>
@@ -74,6 +74,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useEncyclopedia } from '../composables/useEncyclopedia'

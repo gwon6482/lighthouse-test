@@ -3,7 +3,7 @@
     <AppHeader />
 
     <section class="ws__hero">
-      <div class="ws__hero-icon">🗓️</div>
+      <div class="ws__hero-icon"><AppIcon name="ui-calendar" /></div>
       <div class="ws__hero-body">
         <span class="ws__hero-eyebrow">THIS WEEK</span>
         <h1 class="ws__hero-title">이번 주 일정을<br />조정해 보세요</h1>
@@ -15,7 +15,7 @@
 
     <template v-else-if="!draftPlan.planId">
       <div class="ws__empty">
-        <span class="ws__empty-icon">📅</span>
+        <span class="ws__empty-icon"><AppIcon name="ui-calendar" /></span>
         <h2 class="ws__empty-title">진로계획이 없어요</h2>
         <button class="ws__empty-btn" @click="router.push('/career-design')">진로계획 만들기</button>
       </div>
@@ -82,7 +82,7 @@
     <!-- 계획은 있으나 이번 주 범위를 못 구한 경우(시작 전 / 데이터 미비) — 빈 화면 방지 -->
     <template v-else>
       <div class="ws__empty">
-        <span class="ws__empty-icon">🗓️</span>
+        <span class="ws__empty-icon"><AppIcon name="ui-calendar" /></span>
         <h2 class="ws__empty-title">
           {{ notStarted ? '아직 시작 전이에요' : '이번 주 일정을 만들 수 없어요' }}
         </h2>
@@ -137,6 +137,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/shared/components/AppHeader.vue'

@@ -12,7 +12,7 @@
           루틴은 진로계획이 끝날 때까지 정해진 주기로 반복하는 일이에요.
         </p>
         <div class="cd-routines__tip">
-          💡 '매일 30분 코딩'처럼 프로젝트와 이어져도 좋고,
+          <AppIcon name="ui-tip" /> '매일 30분 코딩'처럼 프로젝트와 이어져도 좋고,
           '아침 스트레칭'처럼 상관없는 좋은 습관이어도 괜찮아요
         </div>
 
@@ -26,11 +26,11 @@
               <span class="cd-routines__chip-name">{{ routine.name }}</span>
               <span class="cd-routines__chip-meta">
                 {{ daysSummary(routine.days) }} · {{ routine.duration }}분
-                <template v-if="routine.notification"> · 🔔 {{ routine.notificationTime }}</template>
+                <template v-if="routine.notification"> · <AppIcon name="ui-bell" /> {{ routine.notificationTime }}</template>
               </span>
             </div>
             <div class="cd-routines__chip-actions">
-              <button class="cd-routines__btn cd-routines__btn--edit" @click="editRoutine(routine)">✏️</button>
+              <button class="cd-routines__btn cd-routines__btn--edit" @click="editRoutine(routine)"><AppIcon name="ui-edit" /></button>
               <button class="cd-routines__btn cd-routines__btn--delete" @click="deleteRoutine(routine.id)">✕</button>
             </div>
           </div>
@@ -52,6 +52,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
