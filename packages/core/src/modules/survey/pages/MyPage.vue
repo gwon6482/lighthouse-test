@@ -132,6 +132,8 @@
            개인정보처리방침에 '파기'를 명시했으므로 앱에서 탈퇴할 길이 있어야 한다. -->
       <section class="mypage__section">
         <h2 class="mypage__section-title">계정</h2>
+        <!-- 로그아웃 — 운영 앱에 없었다(테스트 셸 홈에만 있었음, 2026-10-28 추가) -->
+        <button type="button" class="mypage__account-link" @click="logout">로그아웃</button>
         <button type="button" class="mypage__danger-link" @click="showDelete = true">
           회원 탈퇴
         </button>
@@ -152,6 +154,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { safeBack } from '@/shared/utils/navigation'
 import { useAuthStore } from '@/shared/stores/auth'
+import { useAchievementStore } from '@/shared/stores/achievement'
 import { req } from '@/shared/api'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 import AccountDeleteSheet from '../components/AccountDeleteSheet.vue'
@@ -159,6 +162,7 @@ import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const achievementStore = useAchievementStore()
 const { fetchMyPlans } = useCareerDesign()
 const user = computed(() => authStore.user)
 
@@ -172,6 +176,7 @@ const showDelete = ref(false)
 function onDeleted() {
   showDelete.value = false
   authStore.logout()
+  achievementStore.reset()
   router.replace('/onboarding')
 }
 
@@ -203,13 +208,30 @@ function openPlan(planId: string) {
   router.push(`/career-design/plan/${planId}`)
 }
 
+// ⚠️ 되돌릴 수 없다 — 예전엔 휴지통 한 번에 확인 없이 지웠다(진행 중 계획도). 2026-10-28 확인 추가
 async function deletePlan(planId: string) {
+  const plan = careerPlans.value.find(p => p.planId === planId)
+  const name = plan?.name || plan?.targetJob || '이 진로계획'
+  // 서버가 딸린 주간 일정·실행 기록·커리큘럼 완료·인증사진까지 함께 지운다(lighthouse-api services/userPurge.purgePlan)
+  const c = name.trim().slice(-1).charCodeAt(0) - 0xac00
+  const josa = c < 0 || c > 11171 ? '을(를)' : c % 28 ? '을' : '를' // 받침으로 을/를
+  if (!confirm(`'${name}'${josa} 삭제할까요?\n주간 일정·달성 기록·인증 사진도 함께 사라지고 되돌릴 수 없어요.`)) return
   try {
     await req.delete(`/api/career-plan/${planId}`)
     careerPlans.value = careerPlans.value.filter(p => p.planId !== planId)
+    // 진행 중 계획을 지웠으면 메인(진로달성)·하단 탭이 옛 계획을 붙잡지 않게 다시 읽힌다
+    if (plan?.status === 'active') achievementStore.reset()
   } catch {
-    // silent fail
+    alert('삭제하지 못했어요. 잠시 후 다시 시도해 주세요.')
   }
+}
+
+function logout() {
+  if (!confirm('로그아웃할까요?')) return
+  authStore.logout()
+  achievementStore.reset()
+  // replace — 뒤로가기로 로그인된 화면에 돌아오지 않게
+  router.replace('/onboarding')
 }
 
 onMounted(async () => {
