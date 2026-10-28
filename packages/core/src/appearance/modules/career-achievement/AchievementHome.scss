@@ -221,6 +221,7 @@ button.ah-stat { cursor: pointer; transition: transform $transition-fast; &:acti
 }
 
 .ah-week {
+  cursor: pointer;
   padding: 18px;
   border-radius: $radius-card;
   background: linear-gradient(180deg, #FFFBEA 0%, $color-surface 60%);

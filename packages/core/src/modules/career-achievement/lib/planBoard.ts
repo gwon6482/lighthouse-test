@@ -2,6 +2,7 @@
 // 화면 연결은 composables/usePlanBoard.ts.
 import type { DayOfWeek, Project, ProjectCategory } from '@/modules/career-design/types/career-design'
 import { weekEntriesOf } from '@/modules/career-design/composables/useProjectCurriculum'
+import { projectEndWeek } from '@/modules/career-design/composables/usePlanTimeline'
 
 // 분류 색·라벨 — ⚠️ 같은 표가 여러 화면에 복제돼 있다(실무경험 추가 때 18곳). 새 화면은 여기 것을 쓴다
 export const CATEGORY_META: Record<ProjectCategory, { label: string; color: string }> = {
@@ -134,4 +135,50 @@ export function journeyHeadline(targetJob: string, phase: PlanPhase, day: number
   const job = targetJob.trim()
   const head = job ? `${job}${objectJosa(job)} 향해` : '목표를 향해'
   return phase === 'running' && day ? `${head} ${day}일차` : head
+}
+
+// ── 로드맵(2026-10-28) — 계획 전체를 프로젝트 정거장으로. 시작 주차 순 ──
+export type StopStatus = 'done' | 'now' | 'past' | 'next'
+export interface RoadmapStop {
+  project: Project
+  startWeek: number
+  endWeek: number
+  status: StopStatus      // done=항목 다 함 · now=지금 주차가 기간 안 · past=기간 지났는데 남은 항목 · next=아직 시작 전
+  done: number
+  total: number
+  weeks: { week: number; entries: { text: string; done: boolean }[] }[] // week = 그 프로젝트의 n주차
+}
+export function roadmapStops(
+  projects: Project[],
+  timeline: { week: number; projects: Pick<Project, 'id'>[] }[],
+  currentWeek: number | null,
+  isItemDone: (projectId: string, week: number, idx: number) => boolean,
+): RoadmapStop[] {
+  const startOf = new Map<string, number>()
+  for (const slot of timeline) for (const p of slot.projects) {
+    const prev = startOf.get(p.id)
+    if (prev === undefined || slot.week < prev) startOf.set(p.id, slot.week)
+  }
+  const out: RoadmapStop[] = []
+  for (const p of projects) {
+    const start = startOf.get(p.id)
+    if (start === undefined) continue // 배치 안 된 프로젝트는 로드맵에 없다
+    const end = projectEndWeek(start, p) // 서버는 weeks 를 저장하지 않는다 — 정본 계산을 쓴다
+    let done = 0
+    let total = 0
+    const weeks = (p.curriculum ?? []).map((cw) => {
+      const entries = weekEntriesOf(cw).map((text, i) => ({ text, done: isItemDone(p.id, cw.week, i) }))
+      total += entries.length
+      done += entries.filter((e) => e.done).length
+      return { week: cw.week, entries }
+    })
+    const cur = currentWeek ?? 0
+    const status: StopStatus =
+      total > 0 && done >= total ? 'done'
+      : start > cur ? 'next'
+      : end < cur ? 'past'
+      : 'now'
+    out.push({ project: p, startWeek: start, endWeek: end, status, done, total, weeks })
+  }
+  return out.sort((a, b) => a.startWeek - b.startWeek || a.endWeek - b.endWeek)
 }

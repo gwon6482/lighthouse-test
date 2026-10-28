@@ -18,17 +18,17 @@
             <span class="ah-stat__label">연속 달성</span>
             <strong class="ah-stat__value">{{ streak }}일</strong>
           </button>
-          <div class="ah-stat">
+          <button type="button" class="ah-stat" @click="goRoadmap">
             <span class="ah-stat__chip ah-stat__chip--progress"><AppIcon name="ui-target" /></span>
             <span class="ah-stat__label">전체 진행</span>
             <strong v-if="progress.done" class="ah-stat__value">{{ progress.percent }}%</strong>
             <span v-else class="ah-stat__hint">첫 항목을<br>완료해 보세요</span>
-          </div>
-          <div class="ah-stat">
+          </button>
+          <button type="button" class="ah-stat" @click="goRoadmap">
             <span class="ah-stat__chip ah-stat__chip--dday"><AppIcon name="ui-calendar" /></span>
             <span class="ah-stat__label">완료까지</span>
             <strong class="ah-stat__value">{{ dDay }}</strong>
-          </div>
+          </button>
         </div>
 
         <!-- ② 인사 + 오늘 요약 -->
@@ -99,9 +99,9 @@
         </template>
       </section>
 
-      <!-- ⑤ 이번 주 목표 — 이번 주에 배치된 프로젝트 모두. 결산일엔 버튼 -->
+      <!-- ⑤ 이번 주 목표 — 이번 주에 배치된 프로젝트 모두. 결산일엔 버튼. 누르면 로드맵 -->
       <section v-if="weekGoals.length || review" class="ah-sec">
-        <div class="ah-week">
+        <div class="ah-week" role="link" tabindex="0" @click="goRoadmap" @keydown.enter="goRoadmap">
           <div class="ah-week__head">
             <h2 class="ah-week__title">이번 주 목표<span v-if="weekNumber"> · {{ weekNumber }}주차</span></h2>
             <span v-if="review" class="ah-week__badge" :class="{ 'ah-week__badge--today': review.kind === 'today' }">
@@ -123,7 +123,7 @@
           <p v-if="!weekGoals.length" class="ah-sec__empty">이번 주에 배치된 프로젝트가 없어요.</p>
           <button
             v-if="review?.kind === 'today'" type="button" class="ah-week__cta"
-            @click="router.push('/career-achievement/weekly-review')"
+            @click.stop="router.push('/career-achievement/weekly-review')"
           >주간 결산 시작</button>
         </div>
       </section>
@@ -175,6 +175,7 @@ import { methodIcon } from '@/modules/career-design/composables/projectMethods'
 import type { Project } from '@/modules/career-design/types/career-design'
 
 const router = useRouter()
+const goRoadmap = () => router.push({ name: 'Career Achievement Roadmap' })
 const RING_LEN = 2 * Math.PI * 27
 
 const {

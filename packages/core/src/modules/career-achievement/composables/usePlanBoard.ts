@@ -4,7 +4,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { useAuthStore } from '@/shared/stores/auth'
-import { projectWeekIndexOn, weekOfDate, projectsActiveInWeek } from '@/modules/career-design/composables/usePlanTimeline'
+import { projectWeekIndexOn, weekOfDate, projectsActiveInWeek, planWeekCount, weekDateRange } from '@/modules/career-design/composables/usePlanTimeline'
 import { weekEntriesOf } from '@/modules/career-design/composables/useProjectCurriculum'
 import type { DayOfWeek, Project, Routine } from '@/modules/career-design/types/career-design'
 import { useAchievement } from './useAchievement'
@@ -15,7 +15,7 @@ import {
 } from './useWeeklySchedule'
 import {
   planPhase, planDayNumber, dDayLabel, overallProgress, streakCount, reviewBadge,
-  todayMessage, journeyHeadline, categoryColor,
+  todayMessage, journeyHeadline, categoryColor, roadmapStops,
 } from '../lib/planBoard'
 
 export interface PreviewLine { name: string; color: string }
@@ -147,6 +147,24 @@ export function usePlanBoard() {
   })
   const review = computed(() => plan.value ? reviewBadge(plan.value.reviewDay, today.value, phase.value) : null)
 
+  // ── 로드맵 — 계획 전체를 프로젝트 정거장으로 ──
+  const totalWeeks = computed(() => plan.value ? planWeekCount(plan.value.startDate, plan.value.endDate) : 0)
+  const roadmap = computed(() => {
+    const pl = plan.value
+    if (!pl) return []
+    const cur = phase.value === 'before' ? 0 : phase.value === 'finished' ? Number.MAX_SAFE_INTEGER : weekNumber.value
+    return roadmapStops(pl.projects, pl.timeline, cur, isItemDone)
+  })
+  // 'M/D' — 계획 n주차의 월요일·일요일
+  function weekSpanLabel(fromWeek: number, toWeek: number): string {
+    const pl = plan.value
+    const a = pl && weekDateRange(pl.startDate, fromWeek)
+    const b = pl && weekDateRange(pl.startDate, toWeek)
+    if (!a || !b) return ''
+    const md = (k: string) => { const d = parseDateKey(k)!; return `${d.getMonth() + 1}/${d.getDate()}` }
+    return `${md(a.start)}~${md(b.end)}`
+  }
+
   async function load() {
     loading.value = true
     try {
@@ -170,5 +188,6 @@ export function usePlanBoard() {
     todayProjects, todayRoutines, todayFocus, startProject, toggleRoutine,
     isProjectDone: ach.isProjectDone, isRoutineDone: ach.isRoutineDone,
     weekGoals, weekNumber, review,
+    totalWeeks, roadmap, weekSpanLabel,
   }
 }

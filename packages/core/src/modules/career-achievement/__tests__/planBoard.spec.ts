@@ -67,3 +67,17 @@ describe('planBoard', () => {
     expect(journeyHeadline('회계사무원', 'before', null)).toBe('회계사무원을 향해')
   })
 })
+
+describe('roadmapStops', () => {
+  const P = (id: string, weeks: number, n = 2) => ({ id, name: id, weeks, curriculum: Array.from({ length: weeks }, (_, i) => ({ week: i + 1, items: Array.from({ length: n }, (_, j) => `${id}-${i + 1}-${j}`) })) }) as any
+  const projects = [P('late', 2), P('a', 3), P('b', 2), P('c', 2), P('unplaced', 1)]
+  const timeline = [{ week: 1, projects: [{ id: 'a' }] }, { week: 3, projects: [{ id: 'b' }] }, { week: 6, projects: [{ id: 'late' }] }, { week: 1, projects: [{ id: 'c' }] }]
+  it('시작 주차 순, 배치 안 된 것은 빼고, 상태를 가른다', async () => {
+    const { roadmapStops } = await import('../lib/planBoard')
+    const doneAll = new Set(['c'])
+    const stops = roadmapStops(projects, timeline, 4, (p) => doneAll.has(p))
+    expect(stops.map((s) => s.project.id)).toEqual(['c', 'a', 'b', 'late'])
+    expect(stops.map((s) => s.status)).toEqual(['done', 'past', 'now', 'next'])
+    expect(stops[1]).toMatchObject({ startWeek: 1, endWeek: 3, done: 0, total: 6 })
+  })
+})

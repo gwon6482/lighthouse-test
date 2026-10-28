@@ -58,7 +58,7 @@ const achievementStore = useAchievementStore()
 // (2026-07-31 베타: 3탭 = 로드맵 · 홈 · 마이. 플래그 flip 시 재노출)
 const navItems: NavItem[] = [
   { key: 'career',    label: '커리어',   icon: 'briefcase', routeName: 'Career Hub',                          comingSoon: true },
-  { key: 'schedule',  label: '로드맵',   icon: 'map',       routeName: 'Career Achievement Weekly Schedule' },
+  { key: 'roadmap',   label: '로드맵',   icon: 'map',       routeName: 'Career Achievement Roadmap' }, // 2026-10-28 전엔 Weekly Schedule(일정 조정)
   { key: 'home',      label: '홈',       icon: 'home',      routeName: 'Career Achievement',                  center: true },
   { key: 'community', label: '커뮤니티', icon: 'users',     routeName: 'Community',                            comingSoon: true },
   { key: 'my',        label: '마이',     icon: 'user',      routeName: 'MyPage' },

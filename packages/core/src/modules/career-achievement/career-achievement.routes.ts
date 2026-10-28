@@ -21,6 +21,13 @@ export default [
     component: () => import('./pages/CareerAchievementWeeklyReviewPage.vue'),
   },
   {
+    // 하단 탭 '로드맵'(2026-10-28~). 예전엔 이 탭이 '이번 주 일정 조정'(weekly-schedule)이었다
+    path: '/career-achievement/roadmap',
+    name: 'Career Achievement Roadmap',
+    component: () => import('./pages/CareerAchievementRoadmapPage.vue'),
+    meta: { showBottomNav: true },
+  },
+  {
     path: '/career-achievement/weekly-schedule',
     name: 'Career Achievement Weekly Schedule',
     component: () => import('./pages/CareerAchievementSchedulePage.vue'),
