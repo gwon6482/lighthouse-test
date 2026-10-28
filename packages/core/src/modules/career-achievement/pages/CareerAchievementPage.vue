@@ -1,7 +1,5 @@
 <template>
   <div class="ah">
-    <AppHeader />
-
     <div v-if="loading" class="ah__loading">불러오는 중...</div>
 
     <div v-else-if="!plan" class="ah__empty">
@@ -16,18 +14,18 @@
         <!-- ① 기간을 가장 길게 보는 자리 — 오늘은 ②, 이번 주는 ⑤ 가 맡는다 -->
         <div class="ah-stats">
           <button type="button" class="ah-stat" @click="router.push('/career-achievement/weekly-review')">
-            <AppIcon name="ui-repeat" class="ah-stat__icon" />
+            <span class="ah-stat__chip ah-stat__chip--streak"><AppIcon name="ui-repeat" /></span>
             <span class="ah-stat__label">연속 달성</span>
             <strong class="ah-stat__value">{{ streak }}일</strong>
           </button>
           <div class="ah-stat">
-            <AppIcon name="ui-target" class="ah-stat__icon" />
+            <span class="ah-stat__chip ah-stat__chip--progress"><AppIcon name="ui-target" /></span>
             <span class="ah-stat__label">전체 진행</span>
             <strong v-if="progress.done" class="ah-stat__value">{{ progress.percent }}%</strong>
             <span v-else class="ah-stat__hint">첫 항목을<br>완료해 보세요</span>
           </div>
           <div class="ah-stat">
-            <AppIcon name="ui-calendar" class="ah-stat__icon" />
+            <span class="ah-stat__chip ah-stat__chip--dday"><AppIcon name="ui-calendar" /></span>
             <span class="ah-stat__label">완료까지</span>
             <strong class="ah-stat__value">{{ dDay }}</strong>
           </div>
@@ -45,7 +43,7 @@
               <circle class="ah-ring__track" cx="32" cy="32" r="27" />
               <circle
                 v-if="todayTotal" class="ah-ring__fill" cx="32" cy="32" r="27"
-                :stroke-dasharray="RING_LEN" :stroke-dashoffset="RING_LEN * (1 - todayDone / todayTotal)"
+                :stroke-dasharray="RING_LEN" :stroke-dashoffset="RING_LEN * (1 - (shown ? todayDone / todayTotal : 0))"
               />
             </svg>
             <span class="ah-ring__center">
@@ -57,13 +55,13 @@
         </div>
       </section>
 
-      <!-- ③ 내일·모레·글피 — 미리 보기만(체크 없음). 누르면 일정 조정 -->
+      <!-- ③ 앞으로 3일(요일·날짜) — 미리 보기만(체크 없음). 누르면 일정 조정 -->
       <div v-if="previews.length" class="ah-preview">
         <button
           v-for="d in previews" :key="d.key" type="button" class="ah-day"
           @click="router.push({ name: 'Career Achievement Weekly Schedule', query: { date: d.key } })"
         >
-          <span class="ah-day__head"><strong>{{ d.label }}</strong> {{ d.date }}</span>
+          <span class="ah-day__head" :class="{ 'ah-day__head--weekend': d.weekend }"><strong>{{ d.dow }}</strong>{{ d.md }}</span>
           <span v-if="d.rest" class="ah-day__rest">쉬는 날</span>
           <span v-for="(l, i) in d.lines" :key="i" class="ah-day__line">
             <i class="ah-day__dot" :style="{ background: l.color }" />{{ l.name }}
@@ -84,7 +82,9 @@
               v-for="p in todayProjects" :key="p.id" class="ah-task"
               :class="{ 'ah-task--done': isProjectDone(p.id) }"
             >
-              <i class="ah-task__bar" :style="{ background: categoryColor(p.category) }" />
+              <span class="ah-task__chip" :style="{ color: categoryColor(p.category), background: tint(categoryColor(p.category)) }">
+                <AppIcon :name="methodIcon(p.method) || 'ui-target'" />
+              </span>
               <div class="ah-task__body">
                 <span class="ah-task__name">{{ p.name }}</span>
                 <span class="ah-task__focus">
@@ -104,6 +104,7 @@
               v-for="r in todayRoutines" :key="r.id" class="ah-task ah-task--routine"
               :class="{ 'ah-task--done': isRoutineDone(r.id) }"
             >
+              <span class="ah-task__chip ah-task__chip--routine"><AppIcon name="ui-repeat" /></span>
               <div class="ah-task__body">
                 <span class="ah-task__name">{{ r.name }}</span>
                 <span class="ah-task__focus">{{ r.duration }}분</span>
@@ -150,13 +151,13 @@
 
       <!-- ⑥ 바로가기 — 구성은 시안 본 뒤 다시 정한다(임시) -->
       <nav class="ah-tiles" aria-label="바로가기">
-        <button type="button" class="ah-tile" @click="router.push({ name: 'Career Achievement Weekly Schedule' })">
+        <button type="button" class="ah-tile ah-tile--blue" @click="router.push({ name: 'Career Achievement Weekly Schedule' })">
           <AppIcon name="ui-calendar" class="ah-tile__icon" /><span>일정 조정</span>
         </button>
-        <button type="button" class="ah-tile" @click="router.push('/career-achievement/weekly-review')">
+        <button type="button" class="ah-tile ah-tile--green" @click="router.push('/career-achievement/weekly-review')">
           <AppIcon name="ui-weekly-review" class="ah-tile__icon" /><span>주간 결산</span>
         </button>
-        <button type="button" class="ah-tile" @click="router.push('/career-design')">
+        <button type="button" class="ah-tile ah-tile--purple" @click="router.push('/career-design')">
           <AppIcon name="ui-template" class="ah-tile__icon" /><span>내 진로계획</span>
         </button>
       </nav>
@@ -167,12 +168,12 @@
 <script setup lang="ts">
 // 진로달성 메인 — 설계를 마친 뒤의 홈(2026-10-28 개편, 사용자와 항목별로 정함 → tasks/career-achievement-redesign.md)
 // 예전 실데이터 화면은 CareerAchievementPage copy.vue, 팀원 더미 시안 컴포넌트는 components/(TaskCard 등)
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import AppHeader from '@/shared/components/AppHeader.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { usePlanBoard } from '../composables/usePlanBoard'
 import { categoryColor } from '../lib/planBoard'
+import { methodIcon } from '@/modules/career-design/composables/projectMethods'
 
 const router = useRouter()
 const RING_LEN = 2 * Math.PI * 27
@@ -188,5 +189,13 @@ const {
 
 const allDone = computed(() => todayTotal.value > 0 && todayDone.value >= todayTotal.value)
 
-onMounted(load)
+// 분류 색의 옅은 바탕(아이콘 칩)
+const tint = (c: string) => `color-mix(in srgb, ${c} 14%, white)`
+
+// 링은 0에서 차오르게 — 첫 그림을 0으로 그린 뒤 한 프레임 뒤에 값을 준다
+const shown = ref(false)
+onMounted(async () => {
+  await load()
+  requestAnimationFrame(() => requestAnimationFrame(() => { shown.value = true }))
+})
 </script>

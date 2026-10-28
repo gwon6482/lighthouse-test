@@ -18,18 +18,28 @@ $ah-overlap: 44px;
 
 // ── ①② 노란 영역 ─────────────────────────────
 .ah-hero {
-  background: $color-primary;
-  padding: $space-lg $space-lg ($space-xl + $ah-overlap);
+  position: relative;
+  overflow: hidden;
+  // 고정 헤더를 뺐다(2026-10-28) — 노란 영역이 화면 맨 위부터. 노치·상태바만큼 띄운다
+  padding: max(20px, env(safe-area-inset-top)) $space-lg ($space-xl + $ah-overlap);
+  background:
+    radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.55) 0 60px, transparent 61px),
+    radial-gradient(circle at 78% 62%, rgba(255, 166, 0, 0.35) 0 90px, transparent 91px),
+    radial-gradient(circle at 6% 96%, rgba(255, 255, 255, 0.35) 0 70px, transparent 71px),
+    linear-gradient(160deg, #FFDF3D 0%, $color-primary 55%, #FFC400 100%);
   display: grid;
   gap: $space-xl;
+  > * { position: relative; }
 }
 
 .ah-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  background: rgba(255, 255, 255, 0.45);
-  border-radius: $radius-lg;
-  padding: $space-md 0;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(6px);
+  border-radius: $radius-card;
+  padding: 14px 0 12px;
+  box-shadow: 0 6px 18px rgba(176, 120, 0, 0.15);
 }
 .ah-stat {
   display: grid;
@@ -43,12 +53,20 @@ $ah-overlap: 44px;
   color: inherit;
   text-align: center;
   & + & { border-left: 1px solid rgba(0, 0, 0, 0.08); }
-  &__icon { font-size: 20px; margin-bottom: 2px; }
+  &__chip {
+    display: grid; place-items: center;
+    width: 34px; height: 34px; margin-bottom: 4px;
+    border-radius: 50%;
+    font-size: 19px;
+    &--streak   { background: #FFE3CC; color: #F0640A; }
+    &--progress { background: #D9F5E3; color: #129447; }
+    &--dday     { background: #E2E9FF; color: #3E63DD; }
+  }
   &__label { font-size: $fs-2xs; font-weight: $fw-medium; color: rgba(0, 0, 0, 0.6); }
   &__value { font-size: 17px; font-weight: $fw-bold; letter-spacing: $ls-tight; font-variant-numeric: tabular-nums; }
   &__hint { font-size: 11px; font-weight: $fw-medium; line-height: 1.35; color: rgba(0, 0, 0, 0.7); }
 }
-button.ah-stat { cursor: pointer; }
+button.ah-stat { cursor: pointer; transition: transform $transition-fast; &:active { transform: scale(0.96); } }
 
 .ah-greet {
   display: flex;
@@ -66,7 +84,7 @@ button.ah-stat { cursor: pointer; }
   height: 76px;
   > svg { width: 100%; height: 100%; transform: rotate(-90deg); } // 가운데 AppIcon(svg)까지 잡지 않게 직계만
   &__track { fill: none; stroke: rgba(0, 0, 0, 0.1); stroke-width: 7; }
-  &__fill { fill: none; stroke: $color-text; stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset $transition-slow $ease-standard; }
+  &__fill { fill: none; stroke: $color-text; stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset 0.9s $ease-standard; }
   &__center {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
@@ -74,7 +92,9 @@ button.ah-stat { cursor: pointer; }
     strong { font-size: 20px; font-weight: $fw-bold; }
     .app-icon { font-size: 26px; }
   }
-  &--done .ah-ring__fill { stroke: $color-text; }
+  &--done .ah-ring__fill { stroke: $color-success; }
+  &--done .ah-ring__center { color: $color-success; }
+  &--done { animation: ah-pop 0.5s $ease-standard; }
 }
 
 // ── ③ 내일·모레·글피 ─────────────────────────
@@ -105,7 +125,15 @@ button.ah-stat { cursor: pointer; }
   font: inherit;
   color: inherit;
   cursor: pointer;
-  &__head { font-size: $fs-2xs; color: $color-text-secondary; strong { color: $color-text; font-size: $fs-sm; margin-right: 2px; } }
+  transition: transform $transition-fast;
+  &:active { transform: scale(0.97); }
+  &__head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 6px;
+    margin-bottom: 2px; padding-bottom: 8px; border-bottom: 1px dashed $color-border;
+    font-size: $fs-2xs; font-weight: $fw-medium; color: $color-text-tertiary; font-variant-numeric: tabular-nums;
+    strong { color: $color-text; font-size: $fs-base; font-weight: $fw-bold; }
+    &--weekend strong { color: #E8590C; }
+  }
   &__line { display: flex; align-items: center; gap: 6px; font-size: $fs-xs; font-weight: $fw-medium; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   &__dot { flex: 0 0 auto; display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
   &__more { font-size: $fs-2xs; color: $color-text-tertiary; }
@@ -129,7 +157,11 @@ button.ah-stat { cursor: pointer; }
   border-radius: $radius-lg;
   background: $color-surface;
   transition: opacity $transition-base;
-  &__bar { flex: 0 0 4px; align-self: stretch; border-radius: 2px; }
+  &__chip {
+    flex: 0 0 40px; height: 40px; display: grid; place-items: center;
+    border-radius: 12px; font-size: 21px;
+    &--routine { background: #E6F0FF; color: #3B6FD8; }
+  }
   &__body { flex: 1; min-width: 0; display: grid; gap: 2px; }
   &__name { font-size: $fs-md; font-weight: $fw-semibold; }
   &__focus { font-size: $fs-xs; color: $color-text-secondary; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -144,6 +176,7 @@ button.ah-stat { cursor: pointer; }
     background: $color-surface; font: inherit; font-size: $fs-sm; font-weight: $fw-semibold; cursor: pointer;
     &--on { border-color: $color-success; background: $color-success-tint; color: $color-success; }
   }
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   &--done { opacity: 0.5; }
   &--done &__check--on { opacity: 1; }
 }
@@ -151,7 +184,8 @@ button.ah-stat { cursor: pointer; }
 .ah-week {
   padding: 18px;
   border-radius: $radius-card;
-  background: $color-surface;
+  background: linear-gradient(180deg, #FFFBEA 0%, $color-surface 60%);
+  border: 1px solid #FFF0B3;
   display: grid;
   gap: 14px;
   &__head { display: flex; align-items: center; justify-content: space-between; gap: $space-sm; }
@@ -168,7 +202,7 @@ button.ah-stat { cursor: pointer; }
   &__name { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: $fs-sm; font-weight: $fw-semibold; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   &__count { font-size: $fs-xs; color: $color-text-secondary; font-variant-numeric: tabular-nums; strong { color: $color-text; } }
   &__bar { grid-column: 1 / -1; display: flex; gap: 3px; }
-  &__seg { flex: 1; height: 6px; border-radius: 3px; background: $color-border; }
+  &__seg { flex: 1; height: 8px; border-radius: 4px; background: $color-border; transition: background $transition-slow; }
 }
 
 // ── ⑥ 바로가기 ───────────────────────────────
@@ -191,5 +225,29 @@ button.ah-stat { cursor: pointer; }
   font-weight: $fw-semibold;
   color: $color-text;
   cursor: pointer;
-  &__icon { font-size: 26px; }
+  transition: transform $transition-fast;
+  &:active { transform: scale(0.96); }
+  &__icon {
+    width: 48px; height: 48px; padding: 11px; border-radius: 16px;
+    font-size: 26px; box-sizing: border-box;
+  }
+  &--blue   &__icon { background: #E2E9FF; color: #3E63DD; }
+  &--green  &__icon { background: #D9F5E3; color: #129447; }
+  &--purple &__icon { background: #EEE4FF; color: #7B4FD6; }
+}
+
+// ── 움직임 — 들어올 때 아래에서 살짝 떠오른다(순서대로). 움직임 줄이기 설정이면 끈다 ──
+@keyframes ah-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes ah-pop { 0% { transform: scale(1); } 40% { transform: scale(1.1); } 100% { transform: scale(1); } }
+.ah-stats, .ah-greet, .ah-day, .ah-sec, .ah-tiles { animation: ah-rise 0.5s $ease-standard both; }
+.ah-greet { animation-delay: 0.05s; }
+.ah-day:nth-child(1) { animation-delay: 0.12s; }
+.ah-day:nth-child(2) { animation-delay: 0.18s; }
+.ah-day:nth-child(3) { animation-delay: 0.24s; }
+.ah-sec { animation-delay: 0.3s; }
+.ah-sec + .ah-sec { animation-delay: 0.36s; }
+.ah-tiles { animation-delay: 0.42s; }
+@media (prefers-reduced-motion: reduce) {
+  .ah-stats, .ah-greet, .ah-day, .ah-sec, .ah-tiles, .ah-ring--done { animation: none; }
+  .ah-ring__fill { transition: none; }
 }

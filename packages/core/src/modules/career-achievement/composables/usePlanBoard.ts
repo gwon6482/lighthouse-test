@@ -19,7 +19,7 @@ import {
 } from '../lib/planBoard'
 
 export interface PreviewLine { name: string; color: string }
-export interface DayPreview { key: string; label: string; date: string; lines: PreviewLine[]; more: number; rest: boolean }
+export interface DayPreview { key: string; dow: string; md: string; weekend: boolean; lines: PreviewLine[]; more: number; rest: boolean }
 export interface WeekGoalBar { project: Project; weekIdx: number; total: number; done: number }
 
 const DOW: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토']
@@ -107,14 +107,14 @@ export function usePlanBoard() {
     phase: phase.value, startDate: plan.value?.startDate ?? '', total: todayTotal.value, done: todayDone.value,
   }))
 
-  // ── ③ 내일·모레·글피 미리 보기(체크 없음) ──
+  // ── ③ 앞으로 3일 미리 보기(체크 없음). 머리는 요일 + 날짜(사용자: '내일·모레·글피' 말고)
   const previews = computed<DayPreview[]>(() => {
     const pl = plan.value
     if (!pl) return []
     const end = parseDateKey(pl.endDate)
     const out: DayPreview[] = []
-    ;['내일', '모레', '글피'].forEach((label, i) => {
-      const d = new Date(today.value); d.setDate(d.getDate() + i + 1)
+    ;[1, 2, 3].forEach((n) => {
+      const d = new Date(today.value); d.setDate(d.getDate() + n)
       if (end && toDateKey(d) > pl.endDate) return // 계획 끝난 뒤는 카드를 줄인다
       const lines: PreviewLine[] = []
       for (const it of itemsOn(d)) {
@@ -122,7 +122,7 @@ export function usePlanBoard() {
         else { const r = routineOf(it.itemId); if (r) lines.push({ name: r.name, color: ROUTINE_COLOR }) }
       }
       out.push({
-        key: toDateKey(d), label, date: `${d.getMonth() + 1}/${d.getDate()} (${DOW[d.getDay()]})`,
+        key: toDateKey(d), dow: `${DOW[d.getDay()]}요일`, md: `${d.getMonth() + 1}/${d.getDate()}`, weekend: d.getDay() === 0 || d.getDay() === 6,
         lines: lines.slice(0, 3), more: Math.max(0, lines.length - 3), rest: lines.length === 0,
       })
     })
