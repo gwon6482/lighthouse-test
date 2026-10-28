@@ -30,6 +30,9 @@
 @use './modules/encyclopedia/PreparationTab.scss';
 @use './modules/encyclopedia/RecruitmentTab.scss';
 
+// Career Achievement
+@use './modules/career-achievement/AchievementHome.scss';
+
 // OnBoarding
 @use './modules/onboarding/SplashPage.scss';
 @use './modules/onboarding/AuthPage.scss';

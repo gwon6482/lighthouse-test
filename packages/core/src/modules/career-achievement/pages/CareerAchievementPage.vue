@@ -1,128 +1,192 @@
 <template>
-  <div class="lh-page ca-page">
+  <div class="ah">
     <AppHeader />
 
-    <!-- 진행 화면 -->
-    <ProjectView
-      v-if="activeIndex !== null && tasks[activeIndex]"
-      :task="tasks[activeIndex]"
-      @back="closeProject"
-      @complete="completeActive"
-    />
+    <div v-if="loading" class="ah__loading">불러오는 중...</div>
 
-    <!-- 홈 -->
+    <div v-else-if="!plan" class="ah__empty">
+      <span class="ah__empty-icon"><AppIcon name="ui-target" /></span>
+      <p class="ah__empty-text">아직 진로계획이 없어요</p>
+      <button class="ah__empty-btn" @click="router.push('/career-design')">진로계획 만들러 가기</button>
+    </div>
+
     <template v-else>
-      <!-- ─── 섹션 1: 오늘의 달성률 ─────────────────── -->
-      <section class="m-sec white">
-        <DayProgressCard
-          :day-count="dayCount"
-          :date="date"
-          :done="doneCount"
-          :total="totalCount"
-        />
-      </section>
+      <!-- 레퍼런스 배치(2026-10-28): ①지표 띠 ②인사+오늘 요약 ③내일~글피 카드(경계에 걸침) ④오늘 할 일 ⑤이번 주 목표 ⑥바로가기 -->
+      <section class="ah-hero">
+        <!-- ① 기간을 가장 길게 보는 자리 — 오늘은 ②, 이번 주는 ⑤ 가 맡는다 -->
+        <div class="ah-stats">
+          <button type="button" class="ah-stat" @click="router.push('/career-achievement/weekly-review')">
+            <AppIcon name="ui-repeat" class="ah-stat__icon" />
+            <span class="ah-stat__label">연속 달성</span>
+            <strong class="ah-stat__value">{{ streak }}일</strong>
+          </button>
+          <div class="ah-stat">
+            <AppIcon name="ui-target" class="ah-stat__icon" />
+            <span class="ah-stat__label">전체 진행</span>
+            <strong v-if="progress.done" class="ah-stat__value">{{ progress.percent }}%</strong>
+            <span v-else class="ah-stat__hint">첫 항목을<br>완료해 보세요</span>
+          </div>
+          <div class="ah-stat">
+            <AppIcon name="ui-calendar" class="ah-stat__icon" />
+            <span class="ah-stat__label">완료까지</span>
+            <strong class="ah-stat__value">{{ dDay }}</strong>
+          </div>
+        </div>
 
-      <!-- ─── 섹션 2: 오늘 할 일 ─────────────────── -->
-      <section class="m-sec gray">
-        <span class="m-lbl y">오늘 할 일</span>
-        <h2 class="m-ttl">두 가지만 해봐요</h2>
-        <p class="m-sub">첫날이에요. 이것 하나부터 가볍게 시작해요.</p>
-
-        <div class="home-tasks">
-          <TaskCard
-            v-for="(task, i) in tasks"
-            :key="i"
-            :task="task"
-            @open="openProject(i)"
-            @toggle="toggleTask(i)"
-          />
+        <!-- ② 인사 + 오늘 요약 -->
+        <div class="ah-greet">
+          <div class="ah-greet__text">
+            <p v-if="userName" class="ah-greet__name">{{ userName }}님,</p>
+            <h1 class="ah-greet__headline">{{ headline }}</h1>
+            <p class="ah-greet__message">{{ message }}</p>
+          </div>
+          <div v-if="phase === 'running'" class="ah-ring" :class="{ 'ah-ring--done': allDone }">
+            <svg viewBox="0 0 64 64" aria-hidden="true">
+              <circle class="ah-ring__track" cx="32" cy="32" r="27" />
+              <circle
+                v-if="todayTotal" class="ah-ring__fill" cx="32" cy="32" r="27"
+                :stroke-dasharray="RING_LEN" :stroke-dashoffset="RING_LEN * (1 - todayDone / todayTotal)"
+              />
+            </svg>
+            <span class="ah-ring__center">
+              <AppIcon v-if="!todayTotal" name="ui-free" />
+              <AppIcon v-else-if="allDone" name="ui-check" />
+              <template v-else><strong>{{ todayDone }}</strong>/{{ todayTotal }}</template>
+            </span>
+          </div>
         </div>
       </section>
 
-      <!-- ─── 섹션 3: 오늘의 루틴 ─────────────────── -->
-      <section class="m-sec white">
-        <span class="m-lbl s">오늘의 루틴</span>
-        <h2 class="m-ttl">꾸준함이 힘이에요</h2>
-        <p class="m-sub">{{ routineDone }} / {{ routines.length }} 완료</p>
+      <!-- ③ 내일·모레·글피 — 미리 보기만(체크 없음). 누르면 일정 조정 -->
+      <div v-if="previews.length" class="ah-preview">
+        <button
+          v-for="d in previews" :key="d.key" type="button" class="ah-day"
+          @click="router.push({ name: 'Career Achievement Weekly Schedule', query: { date: d.key } })"
+        >
+          <span class="ah-day__head"><strong>{{ d.label }}</strong> {{ d.date }}</span>
+          <span v-if="d.rest" class="ah-day__rest">쉬는 날</span>
+          <span v-for="(l, i) in d.lines" :key="i" class="ah-day__line">
+            <i class="ah-day__dot" :style="{ background: l.color }" />{{ l.name }}
+          </span>
+          <span v-if="d.more" class="ah-day__more">+{{ d.more }}</span>
+        </button>
+      </div>
 
-        <RoutineList :routines="routines" @toggle="toggleRoutine" />
+      <!-- ④ 오늘 할 일 — 프로젝트 / 루틴 나눔, 완료 항목은 그 자리에서 흐리게 -->
+      <section v-if="phase === 'running'" class="ah-sec">
+        <h2 class="ah-sec__title">오늘 할 일</h2>
+        <p v-if="!todayTotal" class="ah-sec__empty">오늘은 예정된 일이 없어요.</p>
+
+        <template v-if="todayProjects.length">
+          <h3 class="ah-sec__sub">프로젝트</h3>
+          <ul class="ah-list">
+            <li
+              v-for="p in todayProjects" :key="p.id" class="ah-task"
+              :class="{ 'ah-task--done': isProjectDone(p.id) }"
+            >
+              <i class="ah-task__bar" :style="{ background: categoryColor(p.category) }" />
+              <div class="ah-task__body">
+                <span class="ah-task__name">{{ p.name }}</span>
+                <span class="ah-task__focus">
+                  <template v-if="todayFocus(p).weekIdx">{{ todayFocus(p).weekIdx }}주차 · </template>{{ todayFocus(p).text }}
+                </span>
+              </div>
+              <span v-if="isProjectDone(p.id)" class="ah-task__state"><AppIcon name="ui-check" /> 완료</span>
+              <button v-else type="button" class="ah-task__btn" @click="startProject(p)">시작</button>
+            </li>
+          </ul>
+        </template>
+
+        <template v-if="todayRoutines.length">
+          <h3 class="ah-sec__sub">루틴</h3>
+          <ul class="ah-list">
+            <li
+              v-for="r in todayRoutines" :key="r.id" class="ah-task ah-task--routine"
+              :class="{ 'ah-task--done': isRoutineDone(r.id) }"
+            >
+              <div class="ah-task__body">
+                <span class="ah-task__name">{{ r.name }}</span>
+                <span class="ah-task__focus">{{ r.duration }}분</span>
+              </div>
+              <button
+                type="button" class="ah-task__check" :class="{ 'ah-task__check--on': isRoutineDone(r.id) }"
+                :aria-pressed="isRoutineDone(r.id)" @click="toggleRoutine(r.id)"
+              >
+                <AppIcon v-if="isRoutineDone(r.id)" name="ui-check" /> 완료
+              </button>
+            </li>
+          </ul>
+        </template>
       </section>
+
+      <!-- ⑤ 이번 주 목표 — 이번 주에 배치된 프로젝트 모두. 결산일엔 버튼 -->
+      <section v-if="weekGoals.length || review" class="ah-sec">
+        <div class="ah-week">
+          <div class="ah-week__head">
+            <h2 class="ah-week__title">이번 주 목표<span v-if="weekNumber"> · {{ weekNumber }}주차</span></h2>
+            <span v-if="review" class="ah-week__badge" :class="{ 'ah-week__badge--today': review.kind === 'today' }">
+              {{ review.kind === 'today' ? '오늘 결산' : `결산 D-${review.days}` }}
+            </span>
+          </div>
+          <ul class="ah-week__list">
+            <li v-for="g in weekGoals" :key="g.project.id" class="ah-goal">
+              <span class="ah-goal__name"><i class="ah-day__dot" :style="{ background: categoryColor(g.project.category) }" />{{ g.project.name }}</span>
+              <span class="ah-goal__count"><strong>{{ g.done }}</strong>/{{ g.total }}</span>
+              <span class="ah-goal__bar">
+                <i
+                  v-for="i in g.total" :key="i" class="ah-goal__seg"
+                  :style="i <= g.done ? { background: categoryColor(g.project.category) } : undefined"
+                />
+              </span>
+            </li>
+          </ul>
+          <p v-if="!weekGoals.length" class="ah-sec__empty">이번 주에 배치된 프로젝트가 없어요.</p>
+          <button
+            v-if="review?.kind === 'today'" type="button" class="ah-week__cta"
+            @click="router.push('/career-achievement/weekly-review')"
+          >주간 결산 시작</button>
+        </div>
+      </section>
+
+      <!-- ⑥ 바로가기 — 구성은 시안 본 뒤 다시 정한다(임시) -->
+      <nav class="ah-tiles" aria-label="바로가기">
+        <button type="button" class="ah-tile" @click="router.push({ name: 'Career Achievement Weekly Schedule' })">
+          <AppIcon name="ui-calendar" class="ah-tile__icon" /><span>일정 조정</span>
+        </button>
+        <button type="button" class="ah-tile" @click="router.push('/career-achievement/weekly-review')">
+          <AppIcon name="ui-weekly-review" class="ah-tile__icon" /><span>주간 결산</span>
+        </button>
+        <button type="button" class="ah-tile" @click="router.push('/career-design')">
+          <AppIcon name="ui-template" class="ah-tile__icon" /><span>내 진로계획</span>
+        </button>
+      </nav>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import DayProgressCard from '../components/DayProgressCard.vue'
-import TaskCard from '../components/TaskCard.vue'
-import RoutineList from '../components/RoutineList.vue'
-import ProjectView from '../components/ProjectView.vue'
-import AppHeader from '../../../shared/components/AppHeader.vue'
+// 진로달성 메인 — 설계를 마친 뒤의 홈(2026-10-28 개편, 사용자와 항목별로 정함 → tasks/career-achievement-redesign.md)
+// 예전 실데이터 화면은 CareerAchievementPage copy.vue, 팀원 더미 시안 컴포넌트는 components/(TaskCard 등)
+import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import AppHeader from '@/shared/components/AppHeader.vue'
+import AppIcon from '@/shared/components/AppIcon.vue'
+import { usePlanBoard } from '../composables/usePlanBoard'
+import { categoryColor } from '../lib/planBoard'
 
-const dayCount = ref(1)
-const date = ref('9월 10일 (목)')
+const router = useRouter()
+const RING_LEN = 2 * Math.PI * 27
 
-const tasks = ref([
-  {
-    title: '예술경영 아카데미 수료 · 경영전략',
-    category: '자격요건',
-    bg: '#EAF3DE',
-    fg: '#27500A',
-    meta: '계획 30분',
-    done: false,
-  },
-  {
-    title: '공연·전시 기획론',
-    category: '분야지식',
-    bg: '#FAECE7',
-    fg: '#712B13',
-    meta: '계획 20분',
-    done: false,
-  },
-])
-const routines = ref([
-  { title: '매일 30분 독서', meta: '30분', done: false },
-  { title: '영어 단어 10개 외우기', meta: '30분', done: true },
-])
+const {
+  loading, plan, phase, load,
+  streak, progress, dDay,
+  userName, headline, message, todayTotal, todayDone,
+  previews,
+  todayProjects, todayRoutines, todayFocus, startProject, toggleRoutine, isProjectDone, isRoutineDone,
+  weekGoals, weekNumber, review,
+} = usePlanBoard()
 
-const activeIndex = ref<number | null>(null)
+const allDone = computed(() => todayTotal.value > 0 && todayDone.value >= todayTotal.value)
 
-const totalCount = computed(() => tasks.value.length + routines.value.length)
-const doneCount = computed(
-  () => tasks.value.filter((t) => t.done).length + routines.value.filter((r) => r.done).length,
-)
-const routineDone = computed(() => routines.value.filter((r) => r.done).length)
-
-function openProject(i: number) {
-  activeIndex.value = i
-}
-function closeProject() {
-  activeIndex.value = null
-}
-function completeActive() {
-  if (activeIndex.value === null) return
-  const task = tasks.value[activeIndex.value]
-  if (task) task.done = true
-  closeProject()
-}
-function toggleTask(i: number) {
-  const task = tasks.value[i]
-  if (task) task.done = !task.done
-}
-function toggleRoutine(i: number) {
-  const routine = routines.value[i]
-  if (routine) routine.done = !routine.done
-}
+onMounted(load)
 </script>
-
-<style lang="scss">
-.ca-page {
-  padding-bottom: 96px; // 하단 고정 BottomNav(App.vue 전역 렌더)에 콘텐츠가 가리지 않도록
-
-  .home-tasks {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-}
-</style>

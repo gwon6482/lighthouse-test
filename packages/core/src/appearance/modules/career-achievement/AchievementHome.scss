@@ -1,0 +1,195 @@
+@use '../../variables' as *;
+
+// 진로달성 메인(2026-10-28) — 노란 영역(①②) 아래 경계에 ③ 카드가 반쯤 걸친다(레퍼런스의 핵심 장치)
+$ah-overlap: 44px;
+
+.ah {
+  min-height: 100vh;
+  background: $color-surface-page;
+  padding-bottom: 104px; // 하단 탭(BottomNav)에 가리지 않게
+  color: $color-text;
+
+  &__loading, &__empty { padding: 80px $space-xl; text-align: center; color: $color-text-secondary; }
+  &__empty { display: grid; justify-items: center; gap: $space-md; }
+  &__empty-icon { font-size: 40px; color: $color-text-tertiary; }
+  &__empty-text { margin: 0; font-size: $fs-md; }
+  &__empty-btn { padding: 12px 20px; border: 0; border-radius: $radius-lg; background: $color-primary; font-weight: $fw-semibold; font-size: $fs-md; }
+}
+
+// ── ①② 노란 영역 ─────────────────────────────
+.ah-hero {
+  background: $color-primary;
+  padding: $space-lg $space-lg ($space-xl + $ah-overlap);
+  display: grid;
+  gap: $space-xl;
+}
+
+.ah-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: $radius-lg;
+  padding: $space-md 0;
+}
+.ah-stat {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 2px;
+  padding: 0 $space-sm;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: center;
+  & + & { border-left: 1px solid rgba(0, 0, 0, 0.08); }
+  &__icon { font-size: 20px; margin-bottom: 2px; }
+  &__label { font-size: $fs-2xs; font-weight: $fw-medium; color: rgba(0, 0, 0, 0.6); }
+  &__value { font-size: 17px; font-weight: $fw-bold; letter-spacing: $ls-tight; font-variant-numeric: tabular-nums; }
+  &__hint { font-size: 11px; font-weight: $fw-medium; line-height: 1.35; color: rgba(0, 0, 0, 0.7); }
+}
+button.ah-stat { cursor: pointer; }
+
+.ah-greet {
+  display: flex;
+  align-items: center;
+  gap: $space-lg;
+  &__text { flex: 1; min-width: 0; }
+  &__name { margin: 0 0 2px; font-size: $fs-md; font-weight: $fw-medium; }
+  &__headline { margin: 0; font-size: 24px; line-height: $lh-heading; font-weight: $fw-bold; letter-spacing: $ls-heading; word-break: keep-all; }
+  &__message { margin: 6px 0 0; font-size: $fs-md; font-weight: $fw-medium; color: rgba(0, 0, 0, 0.72); }
+}
+
+.ah-ring {
+  position: relative;
+  flex: 0 0 76px;
+  height: 76px;
+  > svg { width: 100%; height: 100%; transform: rotate(-90deg); } // 가운데 AppIcon(svg)까지 잡지 않게 직계만
+  &__track { fill: none; stroke: rgba(0, 0, 0, 0.1); stroke-width: 7; }
+  &__fill { fill: none; stroke: $color-text; stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset $transition-slow $ease-standard; }
+  &__center {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: $fs-sm; font-variant-numeric: tabular-nums;
+    strong { font-size: 20px; font-weight: $fw-bold; }
+    .app-icon { font-size: 26px; }
+  }
+  &--done .ah-ring__fill { stroke: $color-text; }
+}
+
+// ── ③ 내일·모레·글피 ─────────────────────────
+.ah-preview {
+  display: flex;
+  gap: 10px;
+  margin-top: -$ah-overlap;
+  padding: 0 $space-lg 4px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: $space-lg; // snap 이 패딩을 무시하고 첫 카드를 화면 끝에 붙이지 않게
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+.ah-day {
+  flex: 0 0 41%; // 세 번째 카드가 살짝 잘려 '더 있다'를 알린다
+  scroll-snap-align: start;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-height: 112px;
+  padding: 14px;
+  border: 0;
+  border-radius: $radius-card;
+  background: $color-surface;
+  box-shadow: $shadow-card;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  &__head { font-size: $fs-2xs; color: $color-text-secondary; strong { color: $color-text; font-size: $fs-sm; margin-right: 2px; } }
+  &__line { display: flex; align-items: center; gap: 6px; font-size: $fs-xs; font-weight: $fw-medium; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &__dot { flex: 0 0 auto; display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
+  &__more { font-size: $fs-2xs; color: $color-text-tertiary; }
+  &__rest { font-size: $fs-xs; color: $color-text-tertiary; }
+}
+
+// ── ④⑤ 섹션 공통 ─────────────────────────────
+.ah-sec {
+  padding: $space-xl $space-lg 0;
+  &__title { margin: 0 0 $space-md; font-size: 18px; font-weight: $fw-bold; letter-spacing: $ls-heading; }
+  &__sub { margin: $space-md 0 $space-sm; font-size: $fs-xs; font-weight: $fw-semibold; color: $color-text-secondary; }
+  &__empty { margin: 0; font-size: $fs-sm; color: $color-text-tertiary; }
+}
+
+.ah-list { list-style: none; margin: 0; padding: 0; display: grid; gap: $space-sm; }
+.ah-task {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+  padding: 14px;
+  border-radius: $radius-lg;
+  background: $color-surface;
+  transition: opacity $transition-base;
+  &__bar { flex: 0 0 4px; align-self: stretch; border-radius: 2px; }
+  &__body { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  &__name { font-size: $fs-md; font-weight: $fw-semibold; }
+  &__focus { font-size: $fs-xs; color: $color-text-secondary; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__btn {
+    flex: 0 0 auto; padding: 8px 14px; border: 0; border-radius: $radius-md;
+    background: $color-primary; font: inherit; font-size: $fs-sm; font-weight: $fw-semibold; cursor: pointer;
+  }
+  &__state { flex: 0 0 auto; font-size: $fs-sm; font-weight: $fw-semibold; color: $color-success; }
+  &__check {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px;
+    padding: 8px 14px; border: 1px solid $color-border-strong; border-radius: $radius-md;
+    background: $color-surface; font: inherit; font-size: $fs-sm; font-weight: $fw-semibold; cursor: pointer;
+    &--on { border-color: $color-success; background: $color-success-tint; color: $color-success; }
+  }
+  &--done { opacity: 0.5; }
+  &--done &__check--on { opacity: 1; }
+}
+
+.ah-week {
+  padding: 18px;
+  border-radius: $radius-card;
+  background: $color-surface;
+  display: grid;
+  gap: 14px;
+  &__head { display: flex; align-items: center; justify-content: space-between; gap: $space-sm; }
+  &__title { margin: 0; font-size: 17px; font-weight: $fw-bold; letter-spacing: $ls-heading; span { color: $color-text-secondary; font-weight: $fw-medium; } }
+  &__badge { flex: 0 0 auto; padding: 4px 10px; border-radius: $radius-pill; background: $color-primary-tint; color: $amber-700; font-size: $fs-2xs; font-weight: $fw-bold; }
+  &__badge--today { background: $color-primary; color: $color-text; }
+  &__list { list-style: none; margin: 0; padding: 0; display: grid; gap: $space-md; }
+  &__cta { padding: 13px; border: 0; border-radius: $radius-lg; background: $color-text; color: $color-surface; font: inherit; font-size: $fs-md; font-weight: $fw-semibold; cursor: pointer; }
+}
+.ah-goal {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+  &__name { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: $fs-sm; font-weight: $fw-semibold; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  &__count { font-size: $fs-xs; color: $color-text-secondary; font-variant-numeric: tabular-nums; strong { color: $color-text; } }
+  &__bar { grid-column: 1 / -1; display: flex; gap: 3px; }
+  &__seg { flex: 1; height: 6px; border-radius: 3px; background: $color-border; }
+}
+
+// ── ⑥ 바로가기 ───────────────────────────────
+.ah-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: $space-xl $space-lg 0;
+}
+.ah-tile {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 18px 8px;
+  border: 0;
+  border-radius: $radius-lg;
+  background: $color-surface;
+  font: inherit;
+  font-size: $fs-sm;
+  font-weight: $fw-semibold;
+  color: $color-text;
+  cursor: pointer;
+  &__icon { font-size: 26px; }
+}
