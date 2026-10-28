@@ -9,7 +9,7 @@
       <div class="intro__track" :style="{ transform: `translateX(-${index * 100}%)` }">
         <section v-for="(s, i) in slides" :key="i" class="intro__slide">
           <div class="intro__art" :style="{ background: s.bg }">
-            <span class="intro__emoji">{{ s.emoji }}</span>
+            <span class="intro__emoji"><AppIcon :name="s.icon" /></span>
           </div>
           <h2 class="intro__title" v-html="s.title" />
           <p class="intro__body" v-html="s.body" />
@@ -36,6 +36,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -43,19 +44,19 @@ const router = useRouter()
 
 const slides = [
   {
-    emoji: '🧭',
+    icon: 'onboard-compass',
     bg: 'linear-gradient(135deg, #FFF6D6 0%, #FFE99A 100%)',
     title: '나를 먼저<br/>이해하는 것부터',
     body: '성격·재능·흥미·가치관·업무환경<br/>5가지 검사로 진짜 나를 알아봐요.',
   },
   {
-    emoji: '📚',
+    icon: 'onboard-encyclopedia',
     bg: 'linear-gradient(135deg, #E6F0FF 0%, #C9DDFF 100%)',
     title: '537개 직업 중<br/>나에게 맞는 진로',
     body: '검사 결과를 바탕으로<br/>꼭 맞는 직업을 추천해드려요.',
   },
   {
-    emoji: '🚀',
+    icon: 'onboard-launch',
     bg: 'linear-gradient(135deg, #EFE6FF 0%, #DCC9FF 100%)',
     title: '계획을 세우고<br/>매일 실천까지',
     body: '진로 목표를 설계하고<br/>하루하루 달성해 나가요.',
