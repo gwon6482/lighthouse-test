@@ -95,31 +95,13 @@
     flex: 0 0 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 21px;
     &--green  { background: #D9F5E3; color: #129447; }
     &--blue   { background: #E2E9FF; color: #3E63DD; }
-    &--purple { background: #EEE4FF; color: #7B4FD6; }
   }
   &__body { flex: 1; min-width: 0; display: grid; gap: 2px; }
   &__title { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: $fs-md; font-weight: $fw-semibold; }
   &__sub { font-size: $fs-xs; color: $color-text-secondary; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   &__arrow { flex: 0 0 auto; color: $color-text-placeholder; }
   &__badge { padding: 1px 7px; border-radius: $radius-pill; background: $color-primary-tint; color: $amber-700; font-size: 11px; font-weight: $fw-bold; font-style: normal; }
-  &__status {
-    padding: 1px 7px; border-radius: $radius-pill; font-size: 11px; font-weight: $fw-bold; font-style: normal;
-    background: $color-surface-alt; color: $color-text-secondary;
-    &--active { background: $color-primary; color: $color-text; }
-    &--completed { background: $color-success-tint; color: $color-success; }
-  }
 }
-.mp-plan {
-  position: relative;
-  .mp-row { padding-right: 52px; }
-  &__delete {
-    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-    width: 36px; height: 36px; border: 0; border-radius: 10px; background: none;
-    display: grid; place-items: center; font-size: 17px; color: $color-text-tertiary; cursor: pointer;
-    &:active { background: $color-surface-alt; }
-  }
-}
-
 // 계정 — 탈퇴는 되돌릴 수 없으므로 약하게(빨간 버튼으로 눈에 띄게 하면 오조작을 부른다. 경고는 확인 시트가)
 .mp-links { list-style: none; margin: 0 0 $space-lg; padding: 0; border-radius: $radius-lg; background: $color-surface; overflow: hidden; }
 .mp-links li + li { border-top: 1px solid $color-border; }

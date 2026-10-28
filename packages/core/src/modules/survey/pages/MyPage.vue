@@ -1,5 +1,6 @@
 <template>
-  <!-- 마이페이지(2026-10-28 개편) — 메인·로드맵과 같은 톤. 진행 상황(○○를 향해 n일차·%)은 메인·로드맵 몫이라 여기엔 두지 않는다(사용자) -->
+  <!-- 마이페이지(2026-10-28 개편) — 메인·로드맵과 같은 톤. 진행 상황(○○를 향해 n일차·%)은 메인·로드맵 몫이라 여기엔 두지 않는다(사용자).
+       진로계획 목록도 뺐다(사용자: 리스트로 많이 있을 필요 없음) — 계획 보기·수정은 메인 '내 진로계획' 타일 -->
   <div class="mp">
     <section class="mp-hero">
       <div class="mp-hero__profile">
@@ -86,33 +87,6 @@
       </ul>
     </section>
 
-    <!-- 진로계획 목록 -->
-    <section class="mp-sec">
-      <div class="mp-sec__head">
-        <h2 class="mp-sec__title">진로계획</h2>
-        <button type="button" class="mp-sec__more" @click="router.push('/career-design/templates')">+ 새 계획</button>
-      </div>
-      <div v-if="loadingPlans" class="mp-empty">불러오는 중...</div>
-      <p v-else-if="!careerPlans.length" class="mp-empty">아직 저장된 진로계획이 없어요.</p>
-      <ul v-else class="mp-list">
-        <li v-for="plan in careerPlans" :key="plan.planId" class="mp-plan">
-          <button type="button" class="mp-row" @click="openPlan(plan.planId)">
-            <span class="mp-row__chip mp-row__chip--purple"><AppIcon name="ui-template" /></span>
-            <span class="mp-row__body">
-              <span class="mp-row__title">
-                {{ plan.targetJob || '목표 직업 미설정' }}
-                <em class="mp-row__status" :class="`mp-row__status--${plan.status}`">{{ statusLabel(plan.status) }}</em>
-              </span>
-              <span class="mp-row__sub">{{ plan.name || '이름 없는 계획' }} · 프로젝트 {{ plan.projects?.length ?? 0 }}개</span>
-            </span>
-          </button>
-          <button type="button" class="mp-plan__delete" :aria-label="`${plan.name || '이 계획'} 삭제`" @click="deletePlan(plan.planId)">
-            <AppIcon name="ui-close" />
-          </button>
-        </li>
-      </ul>
-    </section>
-
     <!-- 계정. 🚨 탈퇴는 **되돌릴 수 없다** — 맨 아래에 두고 약하게 강조한다.
          개인정보처리방침에 '파기'를 명시했으므로 앱에서 탈퇴할 길이 있어야 한다. -->
     <section class="mp-sec mp-account">
@@ -137,7 +111,6 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { req } from '@/shared/api'
-import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 import AccountDeleteSheet from '../components/AccountDeleteSheet.vue'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 import { useAchievementEntries } from '@/modules/career-achievement/composables/useAchievementEntries'
@@ -146,7 +119,6 @@ import { categoryColor } from '@/modules/career-achievement/lib/planBoard'
 const router = useRouter()
 const authStore = useAuthStore()
 const achievementStore = useAchievementStore()
-const { fetchMyPlans } = useCareerDesign()
 const user = computed(() => authStore.user)
 
 // ── 회원 탈퇴 ─────────────────────────────────────────────────────────────
@@ -170,43 +142,13 @@ const avatarLetter = computed(() => {
 
 const surveyResults = ref<any[]>([])
 const bookmarks = ref<any[]>([])
-const careerPlans = ref<any[]>([])
 const loadingSurveys = ref(true)
 const loadingBookmarks = ref(true)
-const loadingPlans = ref(true)
 
 const formatDate = (iso: string) => {
   if (!iso) return ''
   const d = new Date(iso)
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
-}
-
-const statusLabel = (status: string) => {
-  if (status === 'active')    return '진행중'
-  if (status === 'completed') return '완료'
-  return '초안'
-}
-
-function openPlan(planId: string) {
-  router.push(`/career-design/plan/${planId}`)
-}
-
-// ⚠️ 되돌릴 수 없다 — 예전엔 휴지통 한 번에 확인 없이 지웠다(진행 중 계획도). 2026-10-28 확인 추가
-async function deletePlan(planId: string) {
-  const plan = careerPlans.value.find(p => p.planId === planId)
-  const name = plan?.name || plan?.targetJob || '이 진로계획'
-  // 서버가 딸린 주간 일정·실행 기록·커리큘럼 완료·인증사진까지 함께 지운다(lighthouse-api services/userPurge.purgePlan)
-  const c = name.trim().slice(-1).charCodeAt(0) - 0xac00
-  const josa = c < 0 || c > 11171 ? '을(를)' : c % 28 ? '을' : '를' // 받침으로 을/를
-  if (!confirm(`'${name}'${josa} 삭제할까요?\n주간 일정·달성 기록·인증 사진도 함께 사라지고 되돌릴 수 없어요.`)) return
-  try {
-    await req.delete(`/api/career-plan/${planId}`)
-    careerPlans.value = careerPlans.value.filter(p => p.planId !== planId)
-    // 진행 중 계획을 지웠으면 메인(진로달성)·하단 탭이 옛 계획을 붙잡지 않게 다시 읽힌다
-    if (plan?.status === 'active') achievementStore.reset()
-  } catch {
-    alert('삭제하지 못했어요. 잠시 후 다시 시도해 주세요.')
-  }
 }
 
 function logout() {
@@ -231,16 +173,13 @@ onMounted(async () => {
     router.replace('/')
     return
   }
-  const [surveyRes, bookmarkRes, plans] = await Promise.allSettled([
+  const [surveyRes, bookmarkRes] = await Promise.allSettled([
     req.get('/api/user/survey-results'),
     req.get('/api/user/bookmarks'),
-    fetchMyPlans(),
   ])
   if (surveyRes.status === 'fulfilled')  surveyResults.value = surveyRes.value.data.surveyResults ?? []
   if (bookmarkRes.status === 'fulfilled') bookmarks.value = bookmarkRes.value.data.bookmarkedJobs ?? []
-  if (plans.status === 'fulfilled')      careerPlans.value = plans.value
   loadingSurveys.value = false
   loadingBookmarks.value = false
-  loadingPlans.value = false
 })
 </script>
