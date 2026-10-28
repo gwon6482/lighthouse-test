@@ -9,7 +9,7 @@
     </div>
 
     <template v-else>
-      <!-- 레퍼런스 배치(2026-10-28): ①지표 띠 ②인사+오늘 요약 ③내일~글피 카드(경계에 걸침) ④오늘 할 일 ⑤이번 주 목표 ⑥바로가기 -->
+      <!-- 레퍼런스 배치(2026-10-28): ①지표 띠 ②인사+오늘 요약 ③앞으로 3일 카드(경계에 걸침) ⑤이번 주 목표 ④오늘 할 일 ⑥바로가기 — ⑤ 는 사용자 요청으로 ④ 위 -->
       <section class="ah-hero">
         <!-- ① 기간을 가장 길게 보는 자리 — 오늘은 ②, 이번 주는 ⑤ 가 맡는다 -->
         <div class="ah-stats">
@@ -70,6 +70,35 @@
         </button>
       </div>
 
+      <!-- ⑤ 이번 주 목표 — 이번 주에 배치된 프로젝트 모두. 결산일엔 버튼 -->
+      <section v-if="weekGoals.length || review" class="ah-sec">
+        <div class="ah-week">
+          <div class="ah-week__head">
+            <h2 class="ah-week__title">이번 주 목표<span v-if="weekNumber"> · {{ weekNumber }}주차</span></h2>
+            <span v-if="review" class="ah-week__badge" :class="{ 'ah-week__badge--today': review.kind === 'today' }">
+              {{ review.kind === 'today' ? '오늘 결산' : `결산 D-${review.days}` }}
+            </span>
+          </div>
+          <ul class="ah-week__list">
+            <li v-for="g in weekGoals" :key="g.project.id" class="ah-goal">
+              <span class="ah-goal__name"><i class="ah-day__dot" :style="{ background: categoryColor(g.project.category) }" />{{ g.project.name }}</span>
+              <span class="ah-goal__count"><strong>{{ g.done }}</strong>/{{ g.total }}</span>
+              <span class="ah-goal__bar">
+                <i
+                  v-for="i in g.total" :key="i" class="ah-goal__seg"
+                  :style="i <= g.done ? { background: categoryColor(g.project.category) } : undefined"
+                />
+              </span>
+            </li>
+          </ul>
+          <p v-if="!weekGoals.length" class="ah-sec__empty">이번 주에 배치된 프로젝트가 없어요.</p>
+          <button
+            v-if="review?.kind === 'today'" type="button" class="ah-week__cta"
+            @click="router.push('/career-achievement/weekly-review')"
+          >주간 결산 시작</button>
+        </div>
+      </section>
+
       <!-- ④ 오늘 할 일 — 프로젝트 / 루틴 나눔, 완료 항목은 그 자리에서 흐리게 -->
       <section v-if="phase === 'running'" class="ah-sec">
         <h2 class="ah-sec__title">오늘 할 일</h2>
@@ -120,42 +149,14 @@
         </template>
       </section>
 
-      <!-- ⑤ 이번 주 목표 — 이번 주에 배치된 프로젝트 모두. 결산일엔 버튼 -->
-      <section v-if="weekGoals.length || review" class="ah-sec">
-        <div class="ah-week">
-          <div class="ah-week__head">
-            <h2 class="ah-week__title">이번 주 목표<span v-if="weekNumber"> · {{ weekNumber }}주차</span></h2>
-            <span v-if="review" class="ah-week__badge" :class="{ 'ah-week__badge--today': review.kind === 'today' }">
-              {{ review.kind === 'today' ? '오늘 결산' : `결산 D-${review.days}` }}
-            </span>
-          </div>
-          <ul class="ah-week__list">
-            <li v-for="g in weekGoals" :key="g.project.id" class="ah-goal">
-              <span class="ah-goal__name"><i class="ah-day__dot" :style="{ background: categoryColor(g.project.category) }" />{{ g.project.name }}</span>
-              <span class="ah-goal__count"><strong>{{ g.done }}</strong>/{{ g.total }}</span>
-              <span class="ah-goal__bar">
-                <i
-                  v-for="i in g.total" :key="i" class="ah-goal__seg"
-                  :style="i <= g.done ? { background: categoryColor(g.project.category) } : undefined"
-                />
-              </span>
-            </li>
-          </ul>
-          <p v-if="!weekGoals.length" class="ah-sec__empty">이번 주에 배치된 프로젝트가 없어요.</p>
-          <button
-            v-if="review?.kind === 'today'" type="button" class="ah-week__cta"
-            @click="router.push('/career-achievement/weekly-review')"
-          >주간 결산 시작</button>
-        </div>
-      </section>
-
-      <!-- ⑥ 바로가기 — 구성은 시안 본 뒤 다시 정한다(임시) -->
+      <!-- ⑥ 바로가기 -->
       <nav class="ah-tiles" aria-label="바로가기">
         <button type="button" class="ah-tile ah-tile--blue" @click="router.push({ name: 'Career Achievement Weekly Schedule' })">
           <AppIcon name="ui-calendar" class="ah-tile__icon" /><span>일정 조정</span>
         </button>
-        <button type="button" class="ah-tile ah-tile--green" @click="router.push('/career-achievement/weekly-review')">
-          <AppIcon name="ui-weekly-review" class="ah-tile__icon" /><span>주간 결산</span>
+        <!-- 기록 모아보기 — 버튼만(화면은 아직 없음, 사용자 2026-10-28). 주간 결산은 ① 연속 달성·⑤ 결산 버튼으로 들어간다 -->
+        <button type="button" class="ah-tile ah-tile--orange">
+          <AppIcon name="ui-photo" class="ah-tile__icon" /><span>기록 모아보기</span>
         </button>
         <button type="button" class="ah-tile ah-tile--purple" @click="router.push('/career-design')">
           <AppIcon name="ui-template" class="ah-tile__icon" /><span>내 진로계획</span>
