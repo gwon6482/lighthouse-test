@@ -7,7 +7,6 @@
         <h2 class="jobcard__title">{{ job.title }}</h2>
         <p class="jobcard__class">{{ job.classification.primary }} › {{ job.classification.secondary }}</p>
         <JobGateBadges :job-code="job.jobCode" size="md" class="jobcard__gates" />
-        <JobGateBadges :job-code="job.jobCode" size="md" class="jobcard__gates" />
       </div>
       <button
         class="jobcard__like"

@@ -47,7 +47,7 @@
         <div class="t2-groups">
           <!-- T21 재능 Top3 -->
           <div class="t2-group">
-            <p class="result-sub-label">🏆 재능 Top 3</p>
+            <p class="result-sub-label"><AppIcon name="result-talent" /> 재능 Top 3</p>
             <div class="talent-list">
               <div
                 v-for="(item, idx) in analysis.talent.top3"
@@ -78,7 +78,7 @@
 
           <!-- T23 가치관 -->
           <div class="t2-group">
-            <p class="result-sub-label">💎 나의 가치관</p>
+            <p class="result-sub-label"><AppIcon name="result-values" /> 나의 가치관</p>
             <div class="values-list">
               <template
                 v-for="(prio, idx) in [
@@ -103,7 +103,7 @@
 
           <!-- T22 관심분야 -->
           <div class="t2-group">
-            <p class="result-sub-label">🔍 관심 분야</p>
+            <p class="result-sub-label"><AppIcon name="result-interest" /> 관심 분야</p>
             <!-- <p class="result-sub-label">🔍 관심 분야 ({{ analysis.interest.total }}개 선택)</p> -->
             <div v-if="analysis.interest.total > 0" class="interest-tag-groups">
               <div
@@ -220,7 +220,7 @@
         <!-- 6개 파트 전체 레벨 3: 환경 유연형 안내 -->
         <div v-if="t3AllNeutral" class="env-block env-block--neutral">
           <p class="env-block-header">
-            <span class="env-block-icon">🔄</span>
+            <span class="env-block-icon"><AppIcon :name="ENV_JUDGE_ICON.neutral" /></span>
             <span class="env-block-title">환경 유연형</span>
           </p>
           <p class="env-block-text">특정 환경에 대한 강한 선호나 거부감이 없어요.</p>
@@ -233,7 +233,7 @@
         <template v-else>
           <div v-if="t3GoodTexts.length > 0" class="env-block env-block--rec">
             <p class="env-block-header">
-              <span class="env-block-icon">✅</span>
+              <span class="env-block-icon"><AppIcon :name="ENV_JUDGE_ICON.good" /></span>
               <span class="env-block-title">나에게 맞는 환경</span>
             </p>
             <p v-for="item in t3GoodTexts" :key="item.part" class="env-block-text">
@@ -241,7 +241,7 @@
             </p>
             <div v-if="t3WeVisible && t3WeRec.length > 0" class="env-we-list">
               <div v-for="item in t3WeRec" :key="item.code" class="env-we-item">
-                <span class="env-we-icon">{{ T3_WE_ITEMS[item.code]?.icon }}</span>
+                <span class="env-we-icon"><AppIcon :name="T3_WE_ITEMS[item.code]?.icon ?? weIcon(item.code)" /></span>
                 <div class="env-we-info">
                   <span class="env-we-name">{{ T3_WE_ITEMS[item.code]?.name }}</span>
                   <p class="env-we-desc">{{ T3_WE_ITEMS[item.code]?.description }}</p>
@@ -252,7 +252,7 @@
 
           <div v-if="t3BadTexts.length > 0" class="env-block env-block--non">
             <p class="env-block-header">
-              <span class="env-block-icon">❌</span>
+              <span class="env-block-icon"><AppIcon :name="ENV_JUDGE_ICON.bad" /></span>
               <span class="env-block-title">나에게 맞지 않는 환경</span>
             </p>
             <p v-for="item in t3BadTexts" :key="item.part" class="env-block-text">
@@ -260,7 +260,7 @@
             </p>
             <div v-if="t3WeVisible && t3WeNonRec.length > 0" class="env-we-list">
               <div v-for="item in t3WeNonRec" :key="item.code" class="env-we-item">
-                <span class="env-we-icon">{{ T3_WE_ITEMS[item.code]?.icon }}</span>
+                <span class="env-we-icon"><AppIcon :name="T3_WE_ITEMS[item.code]?.icon ?? weIcon(item.code)" /></span>
                 <div class="env-we-info">
                   <span class="env-we-name">{{ T3_WE_ITEMS[item.code]?.name }}</span>
                   <p class="env-we-desc">{{ T3_WE_ITEMS[item.code]?.description }}</p>
@@ -295,7 +295,6 @@
             <div class="comp-body">
               <div class="comp-top">
                 <span class="comp-title">{{ job.title }}</span>
-                <JobGateBadges :job-code="job.jobCode" />
                 <JobGateBadges :job-code="job.jobCode" />
                 <!-- 묶음 직업: 고용24가 여러 직업을 한 직업으로 묶어 조사해 점수가 같은 경우
                      추천이 한 자리로 접힌다. 탭하면 세부 직업을 고르게 한다. -->
@@ -368,6 +367,8 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
+import { ENV_JUDGE_ICON, weIcon } from '@/modules/survey/surveyIcons'
 import { ref, computed, onMounted } from 'vue'
 import {
   fetchSurveyAnalysis,
@@ -477,160 +478,160 @@ const T1_IMG_MAP: Record<string, string> = {
 }
 
 const T3_WE_ITEMS: Record<string, { icon: string; name: string; description: string }> = {
-  WE01: { icon: '🏢', name: '실내 근무', description: '건물 내부에서 주로 업무를 처리하는 환경' },
+  WE01: { icon: weIcon('WE01'), name: '실내 근무', description: '건물 내부에서 주로 업무를 처리하는 환경' },
   WE02: {
-    icon: '🪑',
+    icon: weIcon('WE02'),
     name: '앉아서 근무',
     description: '대부분의 업무를 앉은 자세로 처리하는 환경',
   },
   WE03: {
-    icon: '📧',
+    icon: weIcon('WE03'),
     name: '이메일 업무',
     description: '이메일을 통한 소통과 업무 처리가 많은 환경',
   },
   WE04: {
-    icon: '🤝',
+    icon: weIcon('WE04'),
     name: '사람들과 직접 접촉',
     description: '고객이나 동료와 직접 만나 일하는 환경',
   },
   WE05: {
-    icon: '💬',
+    icon: weIcon('WE05'),
     name: '다른 사람과의 상호작용',
     description: '타인과 지속적으로 소통하며 협력하는 환경',
   },
-  WE06: { icon: '👋', name: '다른 사람과의 접촉', description: '다양한 사람들과 접촉이 잦은 환경' },
+  WE06: { icon: weIcon('WE06'), name: '다른 사람과의 접촉', description: '다양한 사람들과 접촉이 잦은 환경' },
   WE07: {
-    icon: '👑',
+    icon: weIcon('WE07'),
     name: '조율·이끌기',
     description: '다른 사람들을 조율하거나 이끄는 역할이 있는 환경',
   },
   WE08: {
-    icon: '📄',
+    icon: weIcon('WE08'),
     name: '공문·문서 교환',
     description: '공식 문서나 공문을 주고받는 업무가 많은 환경',
   },
-  WE09: { icon: '📞', name: '전화 업무', description: '전화 통화가 잦은 업무 환경' },
-  WE10: { icon: '🛎️', name: '외부 고객 응대', description: '외부 고객을 직접 상대하는 업무 환경' },
+  WE09: { icon: weIcon('WE09'), name: '전화 업무', description: '전화 통화가 잦은 업무 환경' },
+  WE10: { icon: weIcon('WE10'), name: '외부 고객 응대', description: '외부 고객을 직접 상대하는 업무 환경' },
   WE11: {
-    icon: '🔬',
+    icon: weIcon('WE11'),
     name: '정확성·정밀성',
     description: '높은 정밀도와 꼼꼼함이 요구되는 업무 환경',
   },
   WE12: {
-    icon: '📊',
+    icon: weIcon('WE12'),
     name: '조직에 미치는 강도',
     description: '이미지, 평판, 재정에 큰 영향을 미치는 업무 환경',
   },
-  WE13: { icon: '🔁', name: '반복적인 업무', description: '동일한 작업이 반복되는 구조의 환경' },
+  WE13: { icon: weIcon('WE13'), name: '반복적인 업무', description: '동일한 작업이 반복되는 구조의 환경' },
   WE14: {
-    icon: '🔑',
+    icon: weIcon('WE14'),
     name: '의사결정 권한',
     description: '중요한 결정을 스스로 내릴 수 있는 권한이 있는 환경',
   },
   WE15: {
-    icon: '📌',
+    icon: weIcon('WE15'),
     name: '결과에 대한 책임',
     description: '업무 결과에 대해 명확하게 책임지는 환경',
   },
   WE16: {
-    icon: '🫂',
+    icon: weIcon('WE16'),
     name: '신체적 접촉',
     description: '타인과 신체적으로 접촉하는 업무가 포함된 환경',
   },
   WE17: {
-    icon: '🏆',
+    icon: weIcon('WE17'),
     name: '조직에 미치는 영향력',
     description: '조직의 방향이나 성과에 영향력을 행사하는 환경',
   },
   WE18: {
-    icon: '🖐️',
+    icon: weIcon('WE18'),
     name: '손 사용',
     description: '도구나 장치를 손으로 직접 다루는 작업이 많은 환경',
   },
-  WE19: { icon: '⏰', name: '마감시간', description: '촉박한 마감이 자주 있는 업무 환경' },
+  WE19: { icon: weIcon('WE19'), name: '마감시간', description: '촉박한 마감이 자주 있는 업무 환경' },
   WE20: {
-    icon: '💡',
+    icon: weIcon('WE20'),
     name: '의사결정 가능성',
     description: '업무 내에서 판단하고 결정할 기회가 많은 환경',
   },
-  WE21: { icon: '💥', name: '갈등 상황', description: '갈등이나 충돌이 발생할 수 있는 환경' },
-  WE22: { icon: '⚖️', name: '균형 유지', description: '신체 균형을 요구하는 작업이 포함된 환경' },
+  WE21: { icon: weIcon('WE21'), name: '갈등 상황', description: '갈등이나 충돌이 발생할 수 있는 환경' },
+  WE22: { icon: weIcon('WE22'), name: '균형 유지', description: '신체 균형을 요구하는 작업이 포함된 환경' },
   WE23: {
-    icon: '🛡️',
+    icon: weIcon('WE23'),
     name: '건강·안전 책임',
     description: '타인의 건강과 안전을 책임지는 역할이 포함된 환경',
   },
-  WE24: { icon: '🌿', name: '실외 근무', description: '야외나 현장에서 주로 활동하는 환경' },
-  WE25: { icon: '🎤', name: '발표·회의', description: '연설, 발표, 회의가 자주 있는 환경' },
+  WE24: { icon: weIcon('WE24'), name: '실외 근무', description: '야외나 현장에서 주로 활동하는 환경' },
+  WE25: { icon: weIcon('WE25'), name: '발표·회의', description: '연설, 발표, 회의가 자주 있는 환경' },
   WE26: {
-    icon: '😤',
+    icon: weIcon('WE26'),
     name: '무례한 사람 상대',
     description: '불쾌하거나 무례한 상황을 감수해야 하는 환경',
   },
   WE27: {
-    icon: '🎯',
+    icon: weIcon('WE27'),
     name: '실수의 심각성',
     description: '실수가 큰 결과로 이어질 수 있는 긴장감 있는 환경',
   },
-  WE28: { icon: '⚙️', name: '움직이는 기계', description: '가동 중인 기계 근처에서 작업하는 환경' },
+  WE28: { icon: weIcon('WE28'), name: '움직이는 기계', description: '가동 중인 기계 근처에서 작업하는 환경' },
   WE29: {
-    icon: '📅',
+    icon: weIcon('WE29'),
     name: '주말·공휴일 근무',
     description: '주말이나 공휴일에도 근무해야 하는 환경',
   },
-  WE30: { icon: '🥊', name: '치열한 경쟁', description: '성과 경쟁이 치열한 업무 환경' },
-  WE31: { icon: '🔊', name: '소음 노출', description: '작업 중 상당한 소음에 노출되는 환경' },
-  WE32: { icon: '🤖', name: '자동화 환경', description: '자동화된 시스템이나 장비가 많은 환경' },
+  WE30: { icon: weIcon('WE30'), name: '치열한 경쟁', description: '성과 경쟁이 치열한 업무 환경' },
+  WE31: { icon: weIcon('WE31'), name: '소음 노출', description: '작업 중 상당한 소음에 노출되는 환경' },
+  WE32: { icon: weIcon('WE32'), name: '자동화 환경', description: '자동화된 시스템이나 장비가 많은 환경' },
   WE33: {
-    icon: '🏭',
+    icon: weIcon('WE33'),
     name: '장비 속도에 보조',
     description: '기계나 장비의 속도에 맞춰 작업해야 하는 환경',
   },
-  WE34: { icon: '🌡️', name: '극단적 기온', description: '매우 춥거나 더운 환경에서 일하는 환경' },
-  WE35: { icon: '🏠', name: '재택근무', description: '집이나 원격지에서 근무하는 환경' },
+  WE34: { icon: weIcon('WE34'), name: '극단적 기온', description: '매우 춥거나 더운 환경에서 일하는 환경' },
+  WE35: { icon: weIcon('WE35'), name: '재택근무', description: '집이나 원격지에서 근무하는 환경' },
   WE36: {
-    icon: '📦',
+    icon: weIcon('WE36'),
     name: '비좁은 업무 공간',
     description: '좁거나 제한된 공간에서 작업하는 환경',
   },
-  WE37: { icon: '💡', name: '부적절한 조명', description: '지나치게 밝거나 어두운 조명 환경' },
-  WE38: { icon: '🦵', name: '서서 근무', description: '장시간 서서 일하는 환경' },
+  WE37: { icon: weIcon('WE37'), name: '부적절한 조명', description: '지나치게 밝거나 어두운 조명 환경' },
+  WE38: { icon: weIcon('WE38'), name: '서서 근무', description: '장시간 서서 일하는 환경' },
   WE39: {
-    icon: '🩹',
+    icon: weIcon('WE39'),
     name: '경미한 부상 위험',
     description: '가벼운 화상, 자상 등에 노출될 수 있는 환경',
   },
   WE40: {
-    icon: '🤸',
+    icon: weIcon('WE40'),
     name: '몸을 구부리거나 비틀기',
     description: '신체를 자주 굽히거나 비트는 자세가 요구되는 환경',
   },
-  WE41: { icon: '🚶', name: '걷거나 뛰기', description: '이동이 잦고 신체활동이 많은 환경' },
+  WE41: { icon: weIcon('WE41'), name: '걷거나 뛰기', description: '이동이 잦고 신체활동이 많은 환경' },
   WE42: {
-    icon: '📳',
+    icon: weIcon('WE42'),
     name: '온몸 진동 노출',
     description: '진동이 심한 장비나 차량을 다루는 환경',
   },
   WE43: {
-    icon: '☣️',
+    icon: weIcon('WE43'),
     name: '오염물질 노출',
     description: '먼지, 화학물질 등 오염 환경에서 일하는 환경',
   },
   WE44: {
-    icon: '🦺',
+    icon: weIcon('WE44'),
     name: '보호장비 착용',
     description: '안전모, 장갑 등 보호장비를 착용해야 하는 환경',
   },
-  WE45: { icon: '⚠️', name: '위험한 장비 노출', description: '위험한 기계나 장비를 다루는 환경' },
+  WE45: { icon: weIcon('WE45'), name: '위험한 장비 노출', description: '위험한 기계나 장비를 다루는 환경' },
   WE46: {
-    icon: '🚨',
+    icon: weIcon('WE46'),
     name: '위험한 상태 노출',
     description: '사고 위험이 있는 상황에서 작업하는 환경',
   },
-  WE47: { icon: '🦠', name: '질병·감염 위험', description: '질병이나 감염에 노출될 수 있는 환경' },
-  WE48: { icon: '🏔️', name: '고지대 작업', description: '높은 곳에서 작업하는 환경' },
+  WE47: { icon: weIcon('WE47'), name: '질병·감염 위험', description: '질병이나 감염에 노출될 수 있는 환경' },
+  WE48: { icon: weIcon('WE48'), name: '고지대 작업', description: '높은 곳에서 작업하는 환경' },
   WE49: {
-    icon: '🗓️',
+    icon: weIcon('WE49'),
     name: '규칙적인 근무',
     description: '일정하고 예측 가능한 루틴으로 일하는 환경',
   },

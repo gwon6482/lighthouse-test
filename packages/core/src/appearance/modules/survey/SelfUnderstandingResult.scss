@@ -1136,7 +1136,12 @@
     gap: $space-sm;
   }
 
+  // 진입 관문 배지(2026-10-27)는 이름·점수 줄을 좁히지 않게 다음 줄로 — 한 줄에 두면 긴 이름이 세로로 꺾였다
+  .comp-top { flex-wrap: wrap; }
+  .comp-top .gate-badges { order: 3; flex-basis: 100%; }
+
   .comp-title {
+    min-width: 0;
     font-size: $fs-md;
     font-weight: $fw-semibold;
     color: $color-text;

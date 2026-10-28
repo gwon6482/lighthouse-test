@@ -19,7 +19,7 @@
             <span class="guide-card-label">{{ part.label }}</span>
             <span class="guide-card-title">{{ part.title }}</span>
           </div>
-          <span class="guide-card-emoji">{{ part.emoji }}</span>
+          <span class="guide-card-emoji"><AppIcon :name="part.icon" /></span>
         </div>
 
         <p class="guide-card-desc">{{ part.desc }}</p>
@@ -37,7 +37,7 @@
       <p class="guide-tips-title">이렇게 답해주세요</p>
       <ul class="guide-tip-list">
         <li v-for="tip in tips" :key="tip.text" class="guide-tip-item">
-          <span class="guide-tip-icon">{{ tip.icon }}</span>
+          <span class="guide-tip-icon"><AppIcon :name="tip.icon" /></span>
           <span>{{ tip.text }}</span>
         </li>
       </ul>
@@ -54,6 +54,8 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
+import { AREA_ICON, TIP_ICON } from '@/modules/survey/surveyIcons'
 import AppHeader from '@/shared/components/AppHeader.vue'
 /**
  * SelfUnderstandingGuidePage
@@ -71,7 +73,7 @@ const parts = [
     label: '파트 1',
     title: '성격 & 기질',
     desc: '타고난 기질·성격 패턴 9가지 요소 분석. 나를 가장 잘 아는 데이터가 돼요.',
-    emoji: '🧠',
+    icon: AREA_ICON.personality,
     questionCount: '43문항',
     minutes: 5,
     accent: 'accent-y',
@@ -80,7 +82,7 @@ const parts = [
     label: '파트 2',
     title: '좋아하는 일',
     desc: '재능 · 흥미 · 가치관, 3개 파트로 나눠 내가 좋아하는 일을 구체적으로 찾아요.',
-    emoji: '✨',
+    icon: AREA_ICON.likes,
     questionCount: '총 103문항',
     minutes: 5,
     accent: 'accent-s',
@@ -89,7 +91,7 @@ const parts = [
     label: '파트 3',
     title: '업무 환경',
     desc: '좋아하는 일을 해도 맞지 않는 환경이면 힘들 수 있어요. 진로 리스크를 미리 파악해요.',
-    emoji: '🌿',
+    icon: AREA_ICON.environment,
     questionCount: '6개 항목',
     minutes: null,
     accent: 'accent-p',
@@ -97,8 +99,8 @@ const parts = [
 ]
 
 const tips = [
-  { icon: '💡', text: '정답은 없어요. 현재 나의 모습 그대로 솔직하게 답해주세요.' },
-  { icon: '⚡', text: '너무 오래 고민하지 말고 첫 느낌으로 골라주세요.' },
-  { icon: '⚠️', text: '중간에 멈추면 처음부터 다시 시작해야 해요.' },
+  { icon: TIP_ICON.honest, text: '정답은 없어요. 현재 나의 모습 그대로 솔직하게 답해주세요.' },
+  { icon: TIP_ICON.quick, text: '너무 오래 고민하지 말고 첫 느낌으로 골라주세요.' },
+  { icon: TIP_ICON.warning, text: '중간에 멈추면 처음부터 다시 시작해야 해요.' },
 ]
 </script>

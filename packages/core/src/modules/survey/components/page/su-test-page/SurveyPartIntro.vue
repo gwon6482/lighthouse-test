@@ -14,7 +14,7 @@
 
     <!-- 이모지 + 타이틀 -->
     <div class="pi-hero">
-      <span class="pi-emoji">{{ introData.emoji }}</span>
+      <span class="pi-emoji"><AppIcon :name="introData.icon" /></span>
       <h2 class="pi-title">{{ introData.title }}</h2>
       <p class="pi-desc">{{ introData.description }}</p>
     </div>
@@ -31,6 +31,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 /**
  * SurveyPartIntro 컴포넌트
  *

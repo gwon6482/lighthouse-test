@@ -9,7 +9,7 @@
 
     <section class="complete-summary">
       <div v-for="part in parts" :key="part.name" class="complete-part-row">
-        <span class="complete-part-emoji">{{ part.emoji }}</span>
+        <span class="complete-part-emoji"><AppIcon :name="part.icon" /></span>
         <span class="complete-part-name">{{ part.name }}</span>
         <span class="complete-check">✓</span>
       </div>
@@ -31,6 +31,8 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
+import { AREA_ICON } from '@/modules/survey/surveyIcons'
 import { computed } from 'vue'
 import { useSurvey } from '../composables/useSurvey'
 
@@ -45,8 +47,8 @@ const resultPath = computed(() =>
 )
 
 const parts = [
-  { emoji: '🧠', name: '성격 & 기질' },
-  { emoji: '✨', name: '좋아하는 일' },
-  { emoji: '🌿', name: '업무 환경' },
+  { icon: AREA_ICON.personality, name: '성격 & 기질' },
+  { icon: AREA_ICON.likes, name: '좋아하는 일' },
+  { icon: AREA_ICON.environment, name: '업무 환경' },
 ]
 </script>

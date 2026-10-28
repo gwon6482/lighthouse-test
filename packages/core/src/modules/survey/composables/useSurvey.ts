@@ -1,3 +1,4 @@
+import { AREA_ICON } from '@/modules/survey/surveyIcons'
 /**
  * useSurvey Composable
  *
@@ -145,7 +146,7 @@ export function useSurvey() {
         partLabel: '파트 1',
         title: '성격 & 기질',
         description: '적성을 파악하는 데 가장 중요한 요소',
-        emoji: '🧠',
+        icon: AREA_ICON.personality,
         questionCount: '43문항',
         estimatedMinutes: 5,
         highlights: [
@@ -158,7 +159,7 @@ export function useSurvey() {
         partLabel: '파트 2',
         title: '좋아하는 일',
         description: '라이트하우스 검사의 핵심',
-        emoji: '✨',
+        icon: AREA_ICON.likes,
         questionCount: '총 103문항',  // T21(61) + T22(33) + T23(9)
         estimatedMinutes: 5,
         highlights: [
@@ -171,7 +172,7 @@ export function useSurvey() {
         partLabel: '파트 3',
         title: '업무 환경',
         description: '나의 진로 리스크를 미리 파악하는 검사',
-        emoji: '🌿',
+        icon: AREA_ICON.environment,
         questionCount: '6개 항목',
         // estimatedMinutes 없음 — T3는 예상 시간 미표시
         highlights: [
