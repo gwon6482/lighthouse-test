@@ -2,7 +2,7 @@
   <div v-if="project" class="cd-proj-detail">
     <!-- 노란 헤더 -->
     <div class="cd-proj-detail__top">
-      <button class="cd-proj-detail__back" @click="safeBack(router, '/career-design/plan/projects')">‹</button>
+      <button class="cd-proj-detail__back" @click="safeBack(router, '/career-design/plan/projects')"><AppIcon name="ui-back" /></button>
       <div class="cd-proj-detail__top-info">
         <CdCategoryIcon :category="project.category" />
         <div>
@@ -25,7 +25,7 @@
           <span v-for="tag in project.tags" :key="tag" class="cd-proj-detail__tag">{{ tag }}</span>
         </div>
         <div class="cd-proj-detail__stats">
-          <span>♡ {{ project.likes }}</span>
+          <span><AppIcon name="ui-like" /> {{ project.likes }}</span>
           <span><AppIcon name="ui-views" /> {{ project.views }}</span>
           <span class="cd-proj-detail__lecture-count">{{ project.curriculum?.length ?? 0 * (project.weeks ?? 0) }}개 강의</span>
         </div>
@@ -42,7 +42,7 @@
             <p class="cd-proj-detail__week-num">{{ week.week }}주차</p>
             <p class="cd-proj-detail__week-title">{{ week.title }}</p>
             <ul class="cd-proj-detail__week-items">
-              <li v-for="item in weekEntriesOf(week)" :key="item">✓ {{ item }}</li>
+              <li v-for="item in weekEntriesOf(week)" :key="item"><AppIcon name="ui-check" /> {{ item }}</li>
             </ul>
           </div>
         </div>
@@ -58,7 +58,7 @@
         :disabled="pasting"
         @click="pasteToMyPlan"
       >
-        <template v-if="pasted">✓ 내 계획에 담았어요</template>
+        <template v-if="pasted"><AppIcon name="ui-check" /> 내 계획에 담았어요</template>
         <template v-else-if="pasting">담는 중...</template>
         <template v-else-if="alreadyInPlan">이미 담긴 프로젝트예요</template>
         <template v-else>내 계획에 붙여넣기</template>
@@ -67,7 +67,7 @@
   </div>
 
   <div v-else class="cd-proj-detail cd-proj-detail--empty">
-    <button @click="safeBack(router, '/career-design/plan/projects')">‹ 돌아가기</button>
+    <button @click="safeBack(router, '/career-design/plan/projects')"><AppIcon name="ui-back" /> 돌아가기</button>
     <p>프로젝트를 찾을 수 없어요</p>
   </div>
 </template>

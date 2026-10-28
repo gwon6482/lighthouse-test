@@ -23,4 +23,8 @@ const def = computed(() => ICONS[props.name])
 
 <style scoped>
 .app-icon { display: inline-block; flex-shrink: 0; vertical-align: -0.125em; }
+/* 펼침 토글: ui-chevron-down 하나로 아래(닫힘)↔위(열림), --side 는 ui-chevron-right 로 오른쪽↔아래 */
+.app-icon.chevron-toggle { transition: transform 0.2s; }
+.app-icon.chevron-toggle--open { transform: rotate(180deg); }
+.app-icon.chevron-toggle--side.chevron-toggle--open { transform: rotate(90deg); }
 </style>

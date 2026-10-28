@@ -34,7 +34,7 @@
 
     <!-- 상세 뷰 (계획 선택 후) -->
     <div v-else class="cd-explore__body">
-      <button class="cd-explore__deselect" @click="selectedPlan = null">← 목록으로</button>
+      <button class="cd-explore__deselect" @click="selectedPlan = null"><AppIcon name="ui-back" /> 목록으로</button>
 
       <!-- 선택된 계획 카드 -->
       <CdPlanCard :plan="selectedPlan" />

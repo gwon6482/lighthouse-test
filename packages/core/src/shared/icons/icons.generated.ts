@@ -532,9 +532,24 @@ export const ICONS: Record<string, IconDef> = {
     "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M10.3 3.9 2.4 17.8A2 2 0 0 0 4.1 20.8h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z\"/><path d=\"M12 9v4.5\"/><circle cx=\"12\" cy=\"17\" r=\"1.3\" fill=\"currentColor\" stroke=\"none\"/></g>",
     "bg": null
   },
+  "ui-arrow-down": {
+    "viewBox": "0 0 24 24",
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 4v16M6 14l6 6 6-6\"/></g>",
+    "bg": null
+  },
+  "ui-arrow-right": {
+    "viewBox": "0 0 24 24",
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 12h16M14 6l6 6-6 6\"/></g>",
+    "bg": null
+  },
   "ui-avatar": {
     "viewBox": "0 0 24 24",
     "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M4.5 21c0-4 3.4-7 7.5-7s7.5 3 7.5 7\"/></g>",
+    "bg": null
+  },
+  "ui-back": {
+    "viewBox": "0 0 24 24",
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m15 4-8 8 8 8\"/></g>",
     "bg": null
   },
   "ui-bell": {
@@ -552,6 +567,26 @@ export const ICONS: Record<string, IconDef> = {
     "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3.5 20.5 8 9l7 7Z\"/><path d=\"M14 3v2M19 10h2M18.5 4.5 17 6M12 8.5c.4-1.4 1.6-2 2.8-1.6M15.5 12c1.2-.4 2.4.2 2.8 1.5\"/><circle cx=\"20\" cy=\"17\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"9.5\" cy=\"4\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"/></g>",
     "bg": null
   },
+  "ui-check": {
+    "viewBox": "0 0 24 24",
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m4.5 12.5 5 5 10-11\"/></g>",
+    "bg": null
+  },
+  "ui-chevron-down": {
+    "viewBox": "0 0 24 24",
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m5 9 7 7 7-7\"/></g>",
+    "bg": null
+  },
+  "ui-chevron-right": {
+    "viewBox": "0 0 24 24",
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m9 5 7 7-7 7\"/></g>",
+    "bg": null
+  },
+  "ui-close": {
+    "viewBox": "0 0 24 24",
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 6l12 12M18 6 6 18\"/></g>",
+    "bg": null
+  },
   "ui-coming-soon": {
     "viewBox": "0 0 24 24",
     "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2.5\" y=\"7\" width=\"19\" height=\"7\" rx=\"1\"/><path d=\"M8 7 4.5 14M13.5 7 10 14M19 7l-3.5 7\"/><path d=\"M6 4v3M18 4v3M6 14v6.5M18 14v6.5\"/></g>",
@@ -560,6 +595,11 @@ export const ICONS: Record<string, IconDef> = {
   "ui-done": {
     "viewBox": "0 0 24 24",
     "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"4\"/><path d=\"m8 12.2 2.8 2.8 5.2-5.6\"/></g>",
+    "bg": null
+  },
+  "ui-drag": {
+    "viewBox": "0 0 24 24",
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"9\" cy=\"6\" r=\"1.6\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"15\" cy=\"6\" r=\"1.6\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"9\" cy=\"12\" r=\"1.6\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"15\" cy=\"12\" r=\"1.6\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"9\" cy=\"18\" r=\"1.6\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"15\" cy=\"18\" r=\"1.6\" fill=\"currentColor\" stroke=\"none\"/></g>",
     "bg": null
   },
   "ui-duration": {
@@ -580,6 +620,11 @@ export const ICONS: Record<string, IconDef> = {
   "ui-free": {
     "viewBox": "0 0 24 24",
     "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"8\" width=\"18\" height=\"4\" rx=\"1\"/><path d=\"M4.5 12v8a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-8M12 8v13.5\"/><path d=\"M12 8C10.6 4.2 7 3.6 7 6s3 2 5 2 5 .4 5-2-3.6-1.8-5 2Z\"/></g>",
+    "bg": null
+  },
+  "ui-like": {
+    "viewBox": "0 0 24 24",
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 20.5s-8.5-4.9-8.5-11A4.8 4.8 0 0 1 12 6.7a4.8 4.8 0 0 1 8.5 2.8c0 6.1-8.5 11-8.5 11Z\"/></g>",
     "bg": null
   },
   "ui-no-survey": {
@@ -610,6 +655,16 @@ export const ICONS: Record<string, IconDef> = {
   "ui-search": {
     "viewBox": "0 0 24 24",
     "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"10.5\" cy=\"10.5\" r=\"7.5\"/><path d=\"m16 16 5 5\"/></g>",
+    "bg": null
+  },
+  "ui-sparkle": {
+    "viewBox": "0 0 24 24",
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path fill=\"currentColor\" d=\"M10 3.5 11.8 9 17 10.8 11.8 12.6 10 18 8.2 12.6 3 10.8 8.2 9Z\"/><path fill=\"currentColor\" d=\"M18 14.5 18.8 16.7 21 17.5 18.8 18.3 18 20.5 17.2 18.3 15 17.5 17.2 16.7Z\"/></g>",
+    "bg": null
+  },
+  "ui-star": {
+    "viewBox": "0 0 24 24",
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path fill=\"currentColor\" d=\"M12 3 L9.47 9.12 L2.87 9.63 L7.91 13.93 L6.36 20.37 L12 16.9 L17.64 20.37 L16.09 13.93 L21.13 9.63 L14.53 9.12Z\"/></g>",
     "bg": null
   },
   "ui-target": {

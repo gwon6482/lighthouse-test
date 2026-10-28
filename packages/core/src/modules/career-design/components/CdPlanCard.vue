@@ -12,7 +12,7 @@
     </div>
     <div class="cd-plan-card__footer">
       <div class="cd-plan-card__stats">
-        <span>♡ {{ plan.likes }}</span>
+        <span><AppIcon name="ui-like" /> {{ plan.likes }}</span>
         <span><AppIcon name="ui-views" /> {{ plan.views }}</span>
       </div>
       <div class="cd-plan-card__counts">

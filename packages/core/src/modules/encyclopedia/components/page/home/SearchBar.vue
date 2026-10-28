@@ -14,7 +14,7 @@
         class="search-bar__clear"
         @click="handleClear"
       >
-        ✕
+        <AppIcon name="ui-close" />
       </button>
       <button class="search-bar__btn" @click="handleSearch">
         검색
@@ -24,6 +24,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref } from 'vue'
 
 const props = defineProps<{

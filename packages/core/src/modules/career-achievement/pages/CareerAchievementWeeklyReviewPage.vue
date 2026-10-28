@@ -60,7 +60,7 @@
             </span>
           </div>
           <p class="wr__missed-proj-hint">
-            놓친 항목은 자동으로 이번 주 같은 요일에 다시 잡아뒀어요. 빼고 싶다면 아래 "이번 주 일정" 에서 ✕ 로 제거해 주세요.
+            놓친 항목은 자동으로 이번 주 같은 요일에 다시 잡아뒀어요. 빼고 싶다면 아래 "이번 주 일정" 에서 <AppIcon name="ui-close" /> 로 제거해 주세요.
           </p>
           <ul class="wr__missed-proj-list">
             <li
@@ -78,11 +78,11 @@
                 <span class="wr__missed-proj-name">{{ m.name }}</span>
                 <span class="wr__missed-proj-flow">
                   <span class="wr__missed-proj-orig">{{ m.origLabel }}</span>
-                  <span class="wr__missed-proj-arrow">→</span>
+                  <span class="wr__missed-proj-arrow"><AppIcon name="ui-arrow-right" /></span>
                   <span class="wr__missed-proj-target">{{ m.targetLabel }}</span>
                 </span>
               </div>
-              <span v-if="isCarriedOver(m)" class="wr__missed-proj-done">✓ 이월됨</span>
+              <span v-if="isCarriedOver(m)" class="wr__missed-proj-done"><AppIcon name="ui-check" /> 이월됨</span>
               <span v-else class="wr__missed-proj-dropped">이번 주에서 제외</span>
             </li>
           </ul>
@@ -119,7 +119,7 @@
       <!-- 마무리 CTA: 이번 주 일정 조정 페이지로 이동 -->
       <div class="wr__footer">
         <button class="wr__start" type="button" @click="goToSchedule">
-          이번 주 일정 조정하기 →
+          이번 주 일정 조정하기 <AppIcon name="ui-arrow-right" />
         </button>
       </div>
 

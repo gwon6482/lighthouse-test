@@ -49,7 +49,7 @@
                 class="cd-proj-curr__item-del"
                 aria-label="이 할 일 지우기"
                 @click="removeItem(wi, ii)"
-              >×</button>
+              ><AppIcon name="ui-close" /></button>
             </li>
           </ul>
           <button type="button" class="cd-proj-curr__item-add" @click="addItem(wi, week.items.length - 1)">+ 할 일 추가</button>
@@ -67,6 +67,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'

@@ -63,7 +63,7 @@
                   @click="removeItem(it.id)"
                   type="button"
                   aria-label="삭제"
-                >✕</button>
+                ><AppIcon name="ui-close" /></button>
               </li>
             </ul>
             <p v-else class="ws__day-empty">예정된 프로젝트 없음</p>
@@ -107,7 +107,7 @@
             <div class="ws-sheet__handle" />
             <div class="ws-sheet__head">
               <h3 class="ws-sheet__title">{{ addSheetDateLabel }} 에 프로젝트 추가</h3>
-              <button class="ws-sheet__close" @click="closeAddSheet" type="button">✕</button>
+              <button class="ws-sheet__close" @click="closeAddSheet" type="button"><AppIcon name="ui-close" /></button>
             </div>
             <div class="ws-sheet__list">
               <button

@@ -21,7 +21,7 @@
       </template>
 
       <RouterLink to="/encyclopedia" class="btn-encyclopedia">
-        진로백과 바로가기 →
+        진로백과 바로가기 <AppIcon name="ui-arrow-right" />
       </RouterLink>
     </section>
   </SurveyResultBody>
@@ -30,6 +30,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'

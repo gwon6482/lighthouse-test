@@ -48,7 +48,7 @@
               v-if="isCategoryDone[cat.value]"
               class="cd-complete__tab-done"
               :style="{ background: categoryColorMap[cat.value] }"
-            >✓</span>
+            ><AppIcon name="ui-check" /></span>
             <span
               v-else
               class="cd-complete__tab-count"
@@ -158,7 +158,7 @@
                       v-if="bar.pos === 'start' || bar.pos === 'only'"
                       class="cd-complete__bar-del"
                       @click.stop="removeProject(bar.project.id); draftPlan.timelineManual = true"
-                    >✕</button>
+                    ><AppIcon name="ui-close" /></button>
                   </div>
 
                   <!-- 그 주차의 커리큘럼 — 사용자가 채웠을 때만 -->

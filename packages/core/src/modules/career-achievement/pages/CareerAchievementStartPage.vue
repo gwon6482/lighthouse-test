@@ -1,7 +1,7 @@
 <template>
   <div class="cas">
     <header class="cas__header">
-      <button class="cas__back" @click="confirmExit">←</button>
+      <button class="cas__back" @click="confirmExit"><AppIcon name="ui-back" /></button>
       <span class="cas__header-title">집중 모드</span>
       <span class="cas__header-spacer" />
     </header>
@@ -52,6 +52,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'

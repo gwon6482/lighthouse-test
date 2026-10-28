@@ -55,7 +55,7 @@
             <span class="enc-home__menu-title">나의 추천 진로</span>
             <span class="enc-home__menu-desc">자기이해 결과를 바탕으로 추천된 직업을 확인해보세요</span>
           </div>
-          <span class="enc-home__menu-arrow">›</span>
+          <span class="enc-home__menu-arrow"><AppIcon name="ui-chevron-right" /></span>
         </button>
       </div>
     </template>

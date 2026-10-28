@@ -1,7 +1,7 @@
 <template>
   <div class="cac">
     <header class="cac__header">
-      <button class="cac__back" @click="goBack">←</button>
+      <button class="cac__back" @click="goBack"><AppIcon name="ui-back" /></button>
       <span class="cac__header-title">기록 작성</span>
       <span class="cac__header-spacer" />
     </header>
@@ -33,7 +33,7 @@
         </div>
         <div v-else class="cac__photo">
           <img :src="photo" class="cac__photo-img" alt="인증사진" />
-          <button class="cac__photo-remove" @click="photo = ''">×</button>
+          <button class="cac__photo-remove" @click="photo = ''"><AppIcon name="ui-close" /></button>
         </div>
         <input
           ref="fileInput"
@@ -56,7 +56,7 @@
             :class="{ 'cac__diff-btn--active': difficulty >= n }"
             @click="difficulty = n as 1|2|3|4|5"
           >
-            ★
+            <AppIcon name="ui-star" />
           </button>
         </div>
         <div class="cac__difficulty-label">{{ difficultyLabel }}</div>

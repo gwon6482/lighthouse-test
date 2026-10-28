@@ -11,7 +11,7 @@
       <div v-for="part in parts" :key="part.name" class="complete-part-row">
         <span class="complete-part-emoji"><AppIcon :name="part.icon" /></span>
         <span class="complete-part-name">{{ part.name }}</span>
-        <span class="complete-check">✓</span>
+        <span class="complete-check"><AppIcon name="ui-check" /></span>
       </div>
     </section>
 

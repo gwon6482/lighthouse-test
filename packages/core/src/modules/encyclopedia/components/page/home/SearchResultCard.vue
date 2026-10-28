@@ -6,7 +6,7 @@
       <span class="search-result-card__secondary">{{ job.classification.secondary }}</span>
     </div>
     <p class="search-result-card__title">{{ job.title }}</p>
-    <span class="search-result-card__arrow">›</span>
+    <span class="search-result-card__arrow"><AppIcon name="ui-chevron-right" /></span>
   </div> -->
   <RouterLink class="search-result-card" :to="`/career-encyclopedia/job/${job.jobCode}`">
     <div class="search-result-card__meta">
@@ -26,6 +26,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import type { JobSummary } from '../../../types/encyclopedia'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 

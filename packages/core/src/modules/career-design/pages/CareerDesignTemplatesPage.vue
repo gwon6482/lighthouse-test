@@ -53,7 +53,7 @@
               :style="{ background: COLORS[c.value].bg, color: COLORS[c.value].text }"
             >{{ c.label }} {{ countOf(t, c.value) }}</span>
           </span>
-          <span class="cd-tpl__toggle">{{ openId === t.id ? '접기 ▲' : '구성 보기 ▼' }}</span>
+          <span class="cd-tpl__toggle">{{ openId === t.id ? '접기' : '구성 보기' }} <AppIcon name="ui-chevron-down" class="chevron-toggle" :class="{ 'chevron-toggle--open': openId === t.id }" /></span>
         </button>
 
         <div v-if="openId === t.id" class="cd-tpl__detail">
@@ -77,7 +77,7 @@
           <!-- 앞 단계에서 뺀 것 — 왜 짧아졌는지 -->
           <div v-if="t.dropped.length" class="cd-tpl__dropped">
             <button type="button" class="cd-tpl__dropped-toggle" @click="toggleDropped(t.id)">
-              {{ droppedOpen[t.id] ? '▾' : '▸' }} {{ t.stage === 'major' ? '전공자라서 뺀 것' : '경력자라서 뺀 것' }} {{ t.dropped.length }}개
+              <AppIcon name="ui-chevron-right" class="chevron-toggle chevron-toggle--side" :class="{ 'chevron-toggle--open': droppedOpen[t.id] }" /> {{ t.stage === 'major' ? '전공자라서 뺀 것' : '경력자라서 뺀 것' }} {{ t.dropped.length }}개
             </button>
             <ul v-if="droppedOpen[t.id]" class="cd-tpl__dropped-list">
               <li v-for="d in t.dropped" :key="d.name" class="cd-tpl__dropped-item">
@@ -98,7 +98,7 @@
           <strong>직접 설계하기</strong>
           <span>템플릿 없이 빈 계획에서 프로젝트를 하나씩 만들어요</span>
         </span>
-        <span class="cd-tpl__manual-arrow">›</span>
+        <span class="cd-tpl__manual-arrow"><AppIcon name="ui-chevron-right" /></span>
       </button>
     </div>
   </div>

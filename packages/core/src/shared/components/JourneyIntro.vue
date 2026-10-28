@@ -3,7 +3,7 @@
     <div class="journey-intro__trail">
       <template v-for="(s, i) in STEPS" :key="s">
         <span :class="`journey-intro__trail-${i < step ? 'done' : i === step ? 'now' : 'next'}`">
-          {{ i < step ? s + ' ✓' : s }}
+          {{ s }} <AppIcon v-if="i < step" name="ui-check" />
         </span>
         <span v-if="i < STEPS.length - 1" class="journey-intro__trail-sep">›</span>
       </template>
@@ -21,6 +21,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 const STEPS = ['자기이해', '직업 탐색', '진로계획', '진로달성'] as const
 
 defineProps<{

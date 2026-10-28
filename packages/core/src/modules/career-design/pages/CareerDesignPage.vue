@@ -98,7 +98,7 @@
             <div class="g-pool-chip" style="border-color:#F47820;color:#F47820">마케팅 원론</div>
             <div class="g-pool-chip" style="border-color:#A855F7;color:#A855F7">Figma 기초</div>
           </div>
-          <div class="g-arrow-hint">↓ 탭 후 월을 선택해 배치</div>
+          <div class="g-arrow-hint"><AppIcon name="ui-arrow-down" /> 탭 후 월을 선택해 배치</div>
           <div class="g-slot g-slot--filled">
             <span class="g-slot-badge">2024년 1월</span>
             <div class="g-slot-item" style="border-left-color:#1DB95A">GA4 자격증<span class="g-slot-cat" style="color:#1DB95A">자격요건</span></div>
@@ -175,7 +175,7 @@
       <div v-else class="cd-target-card cd-target-card--empty" @click="openPopup">
         <div class="cd-target-card__icon">＋</div>
         <p class="cd-target-card__hint">목표 진로를 설정해보세요</p>
-        <span class="cd-target-card__arrow">›</span>
+        <span class="cd-target-card__arrow"><AppIcon name="ui-chevron-right" /></span>
       </div>
     </div>
 
@@ -197,7 +197,7 @@
               <template v-if="popupMode === 'choose'">
                 <div class="cd-popup__header">
                   <p class="cd-popup__title">목표 진로 설정</p>
-                  <button class="cd-popup__close" @click="closePopup">✕</button>
+                  <button class="cd-popup__close" @click="closePopup"><AppIcon name="ui-close" /></button>
                 </div>
                 <p class="cd-popup__desc">목표 진로를 어떻게 설정할까요?</p>
                 <div class="cd-popup__options">
@@ -207,7 +207,7 @@
                       <strong>진로백과에서 선택하기</strong>
                       <span>538개 직업 중 나의 목표 진로를 찾아요</span>
                     </div>
-                    <span class="cd-popup__option-arrow">›</span>
+                    <span class="cd-popup__option-arrow"><AppIcon name="ui-chevron-right" /></span>
                   </button>
                   <button class="cd-popup__option" @click="popupMode = 'manual'">
                     <span class="cd-popup__option-icon"><AppIcon name="ui-edit" /></span>
@@ -215,7 +215,7 @@
                       <strong>내가 직접 입력하기</strong>
                       <span>진로백과에 없는 직업도 자유롭게 입력해요</span>
                     </div>
-                    <span class="cd-popup__option-arrow">›</span>
+                    <span class="cd-popup__option-arrow"><AppIcon name="ui-chevron-right" /></span>
                   </button>
                 </div>
               </template>
@@ -223,9 +223,9 @@
               <!-- 직접 입력 -->
               <template v-else-if="popupMode === 'manual'">
                 <div class="cd-popup__header">
-                  <button class="cd-popup__back" @click="popupMode = 'choose'">‹</button>
+                  <button class="cd-popup__back" @click="popupMode = 'choose'"><AppIcon name="ui-back" /></button>
                   <p class="cd-popup__title">직접 입력하기</p>
-                  <button class="cd-popup__close" @click="closePopup">✕</button>
+                  <button class="cd-popup__close" @click="closePopup"><AppIcon name="ui-close" /></button>
                 </div>
                 <p class="cd-popup__desc">목표 진로 이름을 자유롭게 입력해주세요</p>
                 <div class="cd-popup__input-wrap">

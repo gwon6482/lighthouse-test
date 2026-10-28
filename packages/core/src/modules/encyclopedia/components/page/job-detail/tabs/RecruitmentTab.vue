@@ -52,7 +52,7 @@
           target="_blank"
           rel="noopener noreferrer"
         >
-          {{ s.name }}에서 {{ s.total > s.count ? `전체 ${s.total.toLocaleString()}건 보기` : '더 보기' }} ›
+          {{ s.name }}에서 {{ s.total > s.count ? `전체 ${s.total.toLocaleString()}건 보기` : '더 보기' }} <AppIcon name="ui-chevron-right" />
         </a>
       </div>
     </section>
@@ -107,6 +107,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { computed, ref, onMounted, watch } from 'vue'
 import { fetchJobRecruitments } from '../../../../encyclopedia.api'
 import { reactive } from 'vue'

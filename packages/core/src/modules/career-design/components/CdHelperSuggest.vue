@@ -39,7 +39,7 @@
             class="cd-helper__card-add"
             :class="{ 'cd-helper__card-add--done': isAdded(ex) }"
             :style="isAdded(ex) ? {} : { color: colors.chipText, background: colors.chipBg }"
-          >{{ isAdded(ex) ? '담음 ✓' : '+ 담기' }}</span>
+          ><template v-if="isAdded(ex)">담음 <AppIcon name="ui-check" /></template><template v-else>+ 담기</template></span>
         </button>
       </li>
     </ul>

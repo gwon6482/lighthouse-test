@@ -1,6 +1,6 @@
 <template>
   <header class="job-detail-header">
-    <button class="job-detail-header__back" @click="safeBack(router, '/career-encyclopedia')">‹</button>
+    <button class="job-detail-header__back" @click="safeBack(router, '/career-encyclopedia')"><AppIcon name="ui-back" /></button>
 
     <div class="job-detail-header__info">
       <div class="job-detail-header__classifications">
@@ -11,7 +11,7 @@
       <h1 class="job-detail-header__title">{{ title }}</h1>
       <JobGateBadges v-if="jobCode" :job-code="jobCode" size="md" class="job-detail-header__gates" />
       <div v-if="isRecommended" class="job-detail-header__recommend-badge">
-        <span class="job-detail-header__recommend-icon">✦</span>
+        <span class="job-detail-header__recommend-icon"><AppIcon name="ui-sparkle" /></span>
         맞춤 추천 직업
       </div>
     </div>
@@ -38,6 +38,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { useRouter } from 'vue-router'
 import { safeBack } from '@/shared/utils/navigation'
 import type { JobClassification } from '../../../types/encyclopedia'

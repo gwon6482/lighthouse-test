@@ -46,7 +46,7 @@
     <!-- CTA -->
     <div class="guide-cta-wrap">
       <RouterLink class="guide-cta" to="/self-understanding/select">
-        척도 선택하고 시작하기 →
+        척도 선택하고 시작하기 <AppIcon name="ui-arrow-right" />
       </RouterLink>
     </div>
 

@@ -1,6 +1,6 @@
 <template>
   <div class="cd-yellow-header" :style="{ background: color ?? '#FFC700' }">
-    <button class="cd-yellow-header__back" :style="{ color: textColor }" @click="backTo ? router.push(backTo) : safeBack(router, '/')">‹</button>
+    <button class="cd-yellow-header__back" :style="{ color: textColor }" @click="backTo ? router.push(backTo) : safeBack(router, '/')"><AppIcon name="ui-back" /></button>
     <div class="cd-yellow-header__text">
       <h1 class="cd-yellow-header__title" :style="{ color: textColor }">{{ title }}</h1>
       <p v-if="subtitle" class="cd-yellow-header__subtitle" :style="{ color: subtitleColor }">{{ subtitle }}</p>
@@ -9,6 +9,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { safeBack } from '@/shared/utils/navigation'

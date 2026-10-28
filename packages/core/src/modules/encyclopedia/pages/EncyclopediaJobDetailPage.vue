@@ -58,7 +58,7 @@
             @click="handleSetTarget"
           >
             <template v-if="targetJustSet">
-              ✓ 목표진로로 설정됐어요
+              <AppIcon name="ui-check" /> 목표진로로 설정됐어요
             </template>
             <template v-else-if="settingTarget">
               설정 중...

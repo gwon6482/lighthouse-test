@@ -48,10 +48,10 @@
       <div class="cd-pace__order-box">
         <button type="button" class="cd-pace__order-toggle" :aria-expanded="orderOpen" @click="orderOpen = !orderOpen">
           <span>이 순서로 진행해요</span>
-          <span class="cd-pace__order-link">{{ orderOpen ? '접기 ▲' : `순서 보기 (${draftPlan.projects.length}개) ▼` }}</span>
+          <span class="cd-pace__order-link">{{ orderOpen ? '접기' : `순서 보기 (${draftPlan.projects.length}개)` }} <AppIcon name="ui-chevron-down" class="chevron-toggle" :class="{ 'chevron-toggle--open': orderOpen }" /></span>
         </button>
         <template v-if="orderOpen">
-          <p class="cd-pace__order-hint">오른쪽 ☰ 를 잡고 끌어서 순서를 바꿔요</p>
+          <p class="cd-pace__order-hint">오른쪽 <AppIcon name="ui-drag" /> 손잡이를 잡고 끌어서 순서를 바꿔요</p>
           <!-- 드래그 정렬 — 손잡이(☰)만 끌 수 있다(목록 위에서 페이지 스크롤과 겹치지 않게). 나머지 줄은 move 전환으로 비켜 준다 -->
           <TransitionGroup tag="ol" name="cd-pace-order" class="cd-pace__order">
             <li
@@ -72,7 +72,7 @@
                 @pointerdown="startDrag($event, p.id)"
                 @keydown.up.prevent="keyMove(i, -1)"
                 @keydown.down.prevent="keyMove(i, 1)"
-              >☰</button>
+              ><AppIcon name="ui-drag" /></button>
             </li>
           </TransitionGroup>
         </template>

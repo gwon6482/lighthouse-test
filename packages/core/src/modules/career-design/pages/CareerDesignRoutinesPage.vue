@@ -31,7 +31,7 @@
             </div>
             <div class="cd-routines__chip-actions">
               <button class="cd-routines__btn cd-routines__btn--edit" @click="editRoutine(routine)"><AppIcon name="ui-edit" /></button>
-              <button class="cd-routines__btn cd-routines__btn--delete" @click="deleteRoutine(routine.id)">✕</button>
+              <button class="cd-routines__btn cd-routines__btn--delete" @click="deleteRoutine(routine.id)"><AppIcon name="ui-close" /></button>
             </div>
           </div>
 

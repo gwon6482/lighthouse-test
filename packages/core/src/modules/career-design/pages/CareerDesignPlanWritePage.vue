@@ -60,7 +60,7 @@
         </p>
 
         <button class="cd-plan-write__duty-link" @click="router.push('/career-encyclopedia')">
-          진로백과에서 진로정보 확인하기 →
+          진로백과에서 진로정보 확인하기 <AppIcon name="ui-arrow-right" />
         </button>
       </div>
     </div>
@@ -74,6 +74,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'

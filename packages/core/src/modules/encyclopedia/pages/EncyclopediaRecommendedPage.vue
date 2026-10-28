@@ -18,7 +18,7 @@
 
       <!-- 히어로 헤더 -->
       <div class="rec-hero">
-        <p class="rec-hero__label">✦ AI 맞춤 추천</p>
+        <p class="rec-hero__label"><AppIcon name="ui-sparkle" /> AI 맞춤 추천</p>
         <h2 class="rec-hero__title">나의 추천 진로</h2>
         <p class="rec-hero__sub">자기이해 검사 결과를 바탕으로<br>나에게 딱 맞는 직업을 추천했어요</p>
       </div>
