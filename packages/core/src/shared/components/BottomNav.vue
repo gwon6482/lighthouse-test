@@ -43,7 +43,7 @@ import { features } from '@/shared/config/features'
 interface NavItem {
   key: string
   label: string
-  icon: 'briefcase' | 'map' | 'home' | 'users' | 'user'
+  icon: 'briefcase' | 'map' | 'home' | 'users' | 'user' | 'compass' | 'notebook'
   routeName: string
   center?: boolean
   comingSoon?: boolean
@@ -54,12 +54,14 @@ const router = useRouter()
 const authStore = useAuthStore()
 const achievementStore = useAchievementStore()
 
-// 항목/아이콘 코드는 보존하고, 커리어·커뮤니티는 피처 플래그로만 노출을 제어한다.
-// (2026-07-31 베타: 3탭 = 로드맵 · 홈 · 마이. 플래그 flip 시 재노출)
+// 2026-10-29 기획회의: 5탭 = 진로정보 · 로드맵 · 홈 · 로그 · 마이.
+// 커리어·커뮤니티 항목/아이콘 코드는 보존하고 피처 플래그로만 노출을 제어한다(2026-07-31 베타부터 꺼져 있음).
 const navItems: NavItem[] = [
+  { key: 'info',      label: '진로정보', icon: 'compass',   routeName: 'Career Info' },
   { key: 'career',    label: '커리어',   icon: 'briefcase', routeName: 'Career Hub',                          comingSoon: true },
   { key: 'roadmap',   label: '로드맵',   icon: 'map',       routeName: 'Career Achievement Roadmap' }, // 2026-10-28 전엔 Weekly Schedule(일정 조정)
   { key: 'home',      label: '홈',       icon: 'home',      routeName: 'Career Achievement',                  center: true },
+  { key: 'log',       label: '로그',     icon: 'notebook',  routeName: 'Career Achievement Records' },       // 진로 달성 기록 모아보기
   { key: 'community', label: '커뮤니티', icon: 'users',     routeName: 'Community',                            comingSoon: true },
   { key: 'my',        label: '마이',     icon: 'user',      routeName: 'MyPage' },
 ]
@@ -132,7 +134,22 @@ const User = () => h('svg', svgProps, [
   h('path', { d: 'M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1' }),
 ])
 
+// 나침반 — '진로정보' 탭
+const Compass = () => h('svg', svgProps, [
+  h('circle', { cx: 12, cy: 12, r: 9 }),
+  h('path', { d: 'M15.5 8.5l-2 5-5 2 2-5z' }),
+])
+
+// 기록장 — '로그' 탭
+const Notebook = () => h('svg', svgProps, [
+  h('path', { d: 'M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z' }),
+  h('path', { d: 'M6 3v18' }),
+  h('path', { d: 'M10 8h5M10 12h5' }),
+])
+
 const iconMap = {
+  compass:   Compass,
+  notebook:  Notebook,
   briefcase: Briefcase,
   map:       Map,
   home:      Home,

@@ -1,0 +1,89 @@
+@use '../../variables' as *;
+
+// 진로정보(하단 탭, 2026-10-29) — 메인·로드맵·로그·마이와 같은 노란 머리 톤
+.ci {
+  min-height: 100vh;
+  background: $color-surface-page;
+  padding-bottom: 112px;
+  color: $color-text;
+  word-break: keep-all;
+}
+
+.ci-hero {
+  padding: max(24px, env(safe-area-inset-top)) $space-lg $space-xl;
+  background:
+    radial-gradient(circle at 92% 6%, rgba(255, 255, 255, 0.55) 0 56px, transparent 57px),
+    linear-gradient(160deg, #FFDF3D 0%, $color-primary 60%, #FFC400 100%);
+  display: grid;
+  gap: 4px;
+  &__title { margin: 0; font-size: 24px; font-weight: $fw-bold; letter-spacing: $ls-heading; }
+  &__sub { margin: 0 0 $space-lg; font-size: $fs-sm; color: rgba(0, 0, 0, 0.62); }
+}
+.ci-search {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 6px 6px 14px; border-radius: $radius-lg; background: $color-surface;
+  &__icon { font-size: 19px; color: $color-text-tertiary; }
+  &__input { flex: 1; min-width: 0; border: 0; outline: none; background: none; font: inherit; font-size: $fs-md; color: $color-text;
+    &::placeholder { color: $color-text-placeholder; } }
+  &__btn { padding: 9px 14px; border: 0; border-radius: $radius-md; background: $color-text; color: $color-surface; font: inherit; font-size: $fs-sm; font-weight: $fw-semibold; cursor: pointer; }
+}
+
+.ci-sec {
+  padding: $space-xl $space-lg 0;
+  &__head { display: flex; align-items: baseline; justify-content: space-between; }
+  &__title { margin: 0 0 $space-md; font-size: 18px; font-weight: $fw-bold; letter-spacing: $ls-heading;
+    small { font-size: $fs-sm; font-weight: $fw-medium; color: $color-text-secondary; margin-left: 4px; } }
+  &__more { display: inline-flex; align-items: center; gap: 2px; padding: 0; border: 0; background: none; font: inherit; font-size: $fs-sm; font-weight: $fw-semibold; color: $color-text-secondary; cursor: pointer; }
+}
+.ci-empty { margin: 0; padding: 16px; border-radius: $radius-lg; background: $color-surface; font-size: $fs-sm; color: $color-text-tertiary; }
+
+// 검사 카드
+.ci-test {
+  padding: 18px; border-radius: $radius-card; background: $color-surface; display: grid; gap: 14px;
+  &__head { display: flex; align-items: center; gap: 12px; }
+  &__chip { flex: 0 0 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-size: 26px; background: #D9F5E3; color: #129447; }
+  &__who { display: grid; gap: 2px; strong { font-size: 17px; font-weight: $fw-bold; } span { font-size: $fs-xs; color: $color-text-secondary; } }
+  &__areas {
+    list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px;
+    li { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: $radius-pill; background: $color-surface-alt; font-size: $fs-xs; font-weight: $fw-semibold; }
+  }
+  &__actions { display: flex; gap: 8px; }
+}
+.ci-btn {
+  flex: 1; padding: 12px; border: 0; border-radius: $radius-lg; background: $color-primary;
+  font: inherit; font-size: $fs-md; font-weight: $fw-semibold; color: $color-text; cursor: pointer;
+  small { font-weight: $fw-medium; color: $color-text-secondary; }
+  &--ghost { background: $color-surface-alt; }
+}
+.ci-note { display: flex; align-items: center; gap: 6px; margin: 10px 2px 0; font-size: $fs-xs; color: $color-text-tertiary; }
+
+// 진로백과 바로가기
+.ci-links { display: grid; gap: $space-sm; }
+.ci-link {
+  display: flex; align-items: center; gap: 12px; padding: 14px; border: 0; border-radius: $radius-lg;
+  background: $color-surface; font: inherit; color: inherit; text-align: left; cursor: pointer;
+  transition: transform $transition-fast;
+  &:active { transform: scale(0.99); }
+  &__icon { flex: 0 0 auto; width: 42px; height: 42px; padding: 10px; border-radius: 12px; box-sizing: border-box; font-size: 22px; }
+  &__text { display: grid; gap: 1px; strong { font-size: $fs-md; font-weight: $fw-semibold; } small { font-size: $fs-xs; color: $color-text-secondary; } }
+  &--yellow &__icon { background: $color-primary-tint; color: $amber-700; }
+  &--green  &__icon { background: #D9F5E3; color: #129447; }
+  &--blue   &__icon { background: #E2E9FF; color: #3E63DD; }
+}
+
+// 채용 소식
+.ci-posts { list-style: none; margin: 0; padding: 0; display: grid; gap: $space-sm; }
+.ci-post {
+  display: grid; gap: 3px; padding: 14px; border-radius: $radius-lg; background: $color-surface; color: inherit; text-decoration: none;
+  &__company { font-size: $fs-xs; font-weight: $fw-semibold; color: $color-text-secondary; }
+  &__title { font-size: $fs-md; font-weight: $fw-semibold; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  &__meta { font-size: $fs-2xs; color: $color-text-tertiary; }
+}
+.ci-source { margin: 8px 2px 0; font-size: 11px; color: $color-text-tertiary; }
+
+.ci-soon {
+  display: grid; justify-items: center; gap: 8px; padding: 22px 16px; border-radius: $radius-lg;
+  background: $color-surface; text-align: center; font-size: $fs-sm; color: $color-text-tertiary;
+  .app-icon { font-size: 28px; }
+  p { margin: 0; }
+}

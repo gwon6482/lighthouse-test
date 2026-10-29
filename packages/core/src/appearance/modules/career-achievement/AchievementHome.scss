@@ -248,7 +248,7 @@ button.ah-stat { cursor: pointer; transition: transform $transition-fast; &:acti
 // ── ⑥ 바로가기 ───────────────────────────────
 .ah-tiles {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   padding: $space-xl $space-lg 0;
 }

@@ -10,9 +10,9 @@
           <p class="mp-hero__email">{{ user?.email }}</p>
         </div>
       </div>
-      <!-- 숫자 3칸 — 누르면 아래 해당 영역으로 -->
+      <!-- 숫자 3칸 — 완료 기록은 하단 탭 '로그'로, 나머지는 아래 해당 영역으로 -->
       <div class="mp-counts">
-        <button type="button" class="mp-count" @click="jump('mp-records')">
+        <button type="button" class="mp-count" @click="router.push({ name: 'Career Achievement Records' })">
           <span class="mp-count__chip mp-count__chip--orange"><AppIcon name="ui-photo" /></span>
           <strong>{{ records.length }}</strong><span>완료 기록</span>
         </button>
@@ -23,28 +23,6 @@
         <button type="button" class="mp-count" @click="jump('mp-jobs')">
           <span class="mp-count__chip mp-count__chip--blue"><AppIcon name="ui-like" /></span>
           <strong>{{ bookmarks.length }}</strong><span>관심 직업</span>
-        </button>
-      </div>
-    </section>
-
-    <!-- 기록 모아보기 — 최근 몇 장 + 전체보기 -->
-    <section id="mp-records" class="mp-sec">
-      <div class="mp-sec__head">
-        <h2 class="mp-sec__title">기록 모아보기</h2>
-        <button v-if="records.length" type="button" class="mp-sec__more" @click="router.push({ name: 'Career Achievement Records' })">
-          전체보기 <AppIcon name="ui-chevron-right" />
-        </button>
-      </div>
-      <p v-if="!records.length" class="mp-empty">프로젝트를 완료하며 남긴 사진·메모가 여기에 모여요.</p>
-      <div v-else class="mp-shots">
-        <button
-          v-for="e in recentRecords" :key="e.date + e.itemId" type="button" class="mp-shot"
-          :style="e.photoUrl ? undefined : { background: tint(categoryColor(e.itemCategory)), color: categoryColor(e.itemCategory) }"
-          @click="router.push({ name: 'Career Achievement Records' })"
-        >
-          <img v-if="e.photoUrl" :src="e.photoUrl" :alt="e.itemName" loading="lazy">
-          <span v-else class="mp-shot__name">{{ e.itemName }}</span>
-          <span class="mp-shot__date">{{ shortDate(e.date) }}</span>
         </button>
       </div>
     </section>
@@ -114,7 +92,6 @@ import { req } from '@/shared/api'
 import AccountDeleteSheet from '../components/AccountDeleteSheet.vue'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 import { useAchievementEntries } from '@/modules/career-achievement/composables/useAchievementEntries'
-import { categoryColor } from '@/modules/career-achievement/lib/planBoard'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -159,12 +136,9 @@ function logout() {
   router.replace('/onboarding')
 }
 
-// ── 기록 모아보기 — 진행 중 계획의 완료 기록(사진·메모). 최근 6개만, 나머지는 전체보기 ──
+// 완료 기록 수(숫자 칸) — 기록 자체는 하단 탭 '로그'에서 본다(2026-10-29)
 const { feedSorted, entries } = useAchievementEntries()
 const records = computed(() => { void entries.value; return feedSorted().filter((e) => e.itemType === 'project') })
-const recentRecords = computed(() => records.value.slice(0, 6))
-const tint = (c: string) => `color-mix(in srgb, ${c} 14%, white)`
-const shortDate = (k: string) => { const [, m, d] = k.split('-'); return `${+m!}/${+d!}` }
 function jump(id: string) { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 
 onMounted(async () => {

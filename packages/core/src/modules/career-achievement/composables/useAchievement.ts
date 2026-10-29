@@ -225,6 +225,7 @@ export function useAchievement() {
     todayRoutines,
     todayProjects,
     dateProjects,
+    getDay,          // 그날 완료한 프로젝트·루틴 id(로그 달력)
     isProjectDone,
     isRoutineDone,
     toggleProject,

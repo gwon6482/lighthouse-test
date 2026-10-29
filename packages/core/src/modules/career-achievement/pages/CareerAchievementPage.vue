@@ -146,14 +146,10 @@
       </div>
       </section>
 
-      <!-- ⑥ 바로가기 -->
+      <!-- ⑥ 바로가기 — 기록 모아보기는 하단 탭 '로그'로 옮겼다(2026-10-29) -->
       <nav class="ah-tiles" aria-label="바로가기">
         <button type="button" class="ah-tile ah-tile--blue" @click="router.push({ name: 'Career Achievement Weekly Schedule' })">
           <AppIcon name="ui-calendar" class="ah-tile__icon" /><span>일정 조정</span>
-        </button>
-        <!-- 기록 모아보기 — 마이페이지 '전체보기'와 같은 화면. 주간 결산은 ① 연속 달성·⑤ 결산 버튼으로 들어간다 -->
-        <button type="button" class="ah-tile ah-tile--orange" @click="router.push({ name: 'Career Achievement Records' })">
-          <AppIcon name="ui-photo" class="ah-tile__icon" /><span>기록 모아보기</span>
         </button>
         <button type="button" class="ah-tile ah-tile--purple" @click="router.push('/career-design')">
           <AppIcon name="ui-template" class="ah-tile__icon" /><span>내 진로계획</span>
