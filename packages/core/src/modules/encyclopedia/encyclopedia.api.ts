@@ -42,6 +42,11 @@ export const fetchJobPreparations = (jobCode: string) =>
 export const fetchJobRecruitments = (jobCode: string, limit = 10) =>
   req.get<JobRecruitmentResponse>(`/api/job/${jobCode}/recruitment`, { params: { limit } })
 
+/** 진로 뉴스 GET /api/news/career — 진로엔뉴스 RSS 의 제목·날짜·출처·원문 링크만(저작권상 썸네일·요약 없음, 2026-10-29) */
+export interface CareerNewsItem { title: string; url: string; publishedAt: string; source: string }
+export const fetchCareerNews = (limit = 5) =>
+  req.get<{ success: boolean; data: { items: CareerNewsItem[]; source: { name: string; url: string }; cached: boolean } }>('/api/news/career', { params: { limit } })
+
 /** 북마크 목록 조회 GET /api/user/bookmarks (로그인 필요) */
 export const fetchBookmarks = () =>
   req.get<{ success: boolean; bookmarkedJobs: { jobCode: string }[] }>('/api/user/bookmarks')

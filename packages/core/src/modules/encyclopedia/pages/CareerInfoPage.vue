@@ -76,13 +76,23 @@
       <p class="ci-source">출처: 고용24</p>
     </section>
 
-    <!-- 진로 뉴스 — 출처를 아직 정하지 않았다(2026-10-29). 정해지면 이 자리에 -->
+    <!-- 진로 뉴스 — 진로엔뉴스(API 가 RSS 를 받아 둔다). 제목·날짜·출처만, 누르면 원문(저작권상 썸네일·요약은 쓰지 않는다) -->
     <section class="ci-sec">
-      <h2 class="ci-sec__title">진로 뉴스</h2>
-      <div class="ci-soon">
-        <AppIcon name="ui-coming-soon" />
-        <p>진로·교육 소식을 모아 보여 드릴 준비를 하고 있어요.</p>
+      <div class="ci-sec__head">
+        <h2 class="ci-sec__title">진로 뉴스</h2>
+        <a v-if="news.length" class="ci-sec__more" :href="newsSource.url" target="_blank" rel="noopener">더 보기 <AppIcon name="ui-chevron-right" /></a>
       </div>
+      <p v-if="loadingNews" class="ci-empty">불러오는 중...</p>
+      <p v-else-if="!news.length" class="ci-empty">뉴스를 불러오지 못했어요.</p>
+      <ul v-else class="ci-news">
+        <li v-for="n in news" :key="n.url">
+          <a class="ci-news__item" :href="n.url" target="_blank" rel="noopener noreferrer">
+            <span class="ci-news__title">{{ n.title }}</span>
+            <span class="ci-news__meta">{{ n.source }} · {{ newsDate(n.publishedAt) }}</span>
+          </a>
+        </li>
+      </ul>
+      <p v-if="news.length" class="ci-source">출처: {{ newsSource.name }} — 기사를 누르면 원문으로 이동해요</p>
     </section>
   </div>
 </template>
@@ -94,7 +104,7 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import { req } from '@/shared/api'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { useEncyclopedia } from '../composables/useEncyclopedia'
-import { searchJobs, fetchJobRecruitments } from '../encyclopedia.api'
+import { searchJobs, fetchJobRecruitments, fetchCareerNews, type CareerNewsItem } from '../encyclopedia.api'
 import type { RecruitmentPosting } from '../types/encyclopedia'
 import { AREA_ICON } from '@/modules/survey/surveyIcons'
 
@@ -145,7 +155,27 @@ function openTargetJob() {
   else { query.value = targetJob.value; search() }
 }
 
+// 진로 뉴스
+const news = ref<CareerNewsItem[]>([])
+const newsSource = ref({ name: '진로엔뉴스', url: 'https://www.jinron.kr' })
+const loadingNews = ref(true)
+async function loadNews() {
+  try {
+    const { data } = await fetchCareerNews(5)
+    news.value = data.data.items
+    newsSource.value = data.data.source
+  } catch { /* 뉴스는 없어도 화면은 된다 */ } finally {
+    loadingNews.value = false
+  }
+}
+const newsDate = (iso: string) => {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`
+}
+
 onMounted(async () => {
+  loadNews()
   const [surveys] = await Promise.allSettled([req.get('/api/user/survey-results'), store.loadActivePlan()])
   if (surveys.status === 'fulfilled') latest.value = surveys.value.data.surveyResults?.[0] ?? null
   loadTargetJob()
