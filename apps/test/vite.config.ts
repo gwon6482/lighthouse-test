@@ -59,6 +59,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      // 아직 배포 안 된 API 를 로컬에서 볼 때(2026-10-29): LOCAL_API=http://localhost:8098 LOCAL_API_PATHS=/api/news pnpm dev
+      // 지정한 경로만 로컬 API 로, 나머지(로그인·계획 등)는 그대로 운영 API — 로컬 API 는 운영 토큰을 못 읽어서 전부 돌리면 로그아웃된다
+      ...Object.fromEntries((process.env.LOCAL_API ? (process.env.LOCAL_API_PATHS ?? '/api/news').split(',') : [])
+        .map((p) => [p.trim(), { target: process.env.LOCAL_API, changeOrigin: true }])),
       '/api': {
         target: 'https://api.lighthouse.career',
         changeOrigin: true,
