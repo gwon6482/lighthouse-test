@@ -90,7 +90,7 @@
         </li>
         <li>
           <button type="button" class="mp-link mp-link--menu" @click="router.push({ name: 'Career Achievement Weekly Schedule' })">
-            <AppIcon name="ui-calendar" class="mp-link__icon" /><span class="mp-link__label">이번 주 일정 조정</span><AppIcon name="ui-chevron-right" class="mp-link__arrow" />
+            <AppIcon name="ui-calendar" class="mp-link__icon" /><span class="mp-link__label">주간 일정 조정</span><AppIcon name="ui-chevron-right" class="mp-link__arrow" />
           </button>
         </li>
       </ul>

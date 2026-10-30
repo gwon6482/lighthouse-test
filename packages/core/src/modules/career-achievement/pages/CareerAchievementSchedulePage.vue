@@ -5,7 +5,7 @@
     <section class="ws__hero">
       <div class="ws__hero-icon"><AppIcon name="ui-calendar" /></div>
       <div class="ws__hero-body">
-        <span class="ws__hero-eyebrow">THIS WEEK</span>
+        <span class="ws__hero-eyebrow">주간 일정 조정</span>
         <h1 class="ws__hero-title">이번 주 일정을<br />조정해 보세요</h1>
         <p class="ws__hero-desc">요일·항목을 자유롭게 다듬어 두면 매일이 한결 가벼워져요.</p>
       </div>
@@ -28,8 +28,9 @@
           <span class="ws__range">{{ fmtRange(currentRange) }}</span>
         </div>
         <p class="ws__hint">
-          프로젝트를 추가/제거하거나 다른 요일로 옮길 수 있어요. 루틴은 정해진 요일로 자동 배치돼요. 변경은 자동 저장돼요.
-          <span v-if="saving" class="ws__autosave">저장 중...</span>
+          프로젝트를 추가/제거하거나 다른 요일로 옮길 수 있어요. 루틴은 정해진 요일로 자동 배치돼요.
+          바꾼 내용은 아래 <strong>[수정하기]</strong>를 눌러야 저장돼요.
+          <span v-if="dirty" class="ws__autosave">바꾼 내용 있음</span>
         </p>
 
         <div v-if="currentDays.length" class="ws__days">
@@ -71,10 +72,12 @@
         </div>
       </section>
 
-      <!-- 시작하기 CTA -->
-      <div class="ws__footer">
-        <button class="ws__start" type="button" @click="router.push('/career-achievement')">
-          오늘의 계획 시작하기
+      <!-- 취소 / 수정하기(2026-10-30) — 예전엔 바꾸는 즉시 저장되고 '오늘의 계획 시작하기'로 홈에 갔다.
+           이제 바꾼 내용은 임시로 들고 있다가 [수정하기]에서 확인 후 한 번에 저장, [취소]는 확인 후 버리고 뒤로 -->
+      <div class="ws__footer ws__footer--two">
+        <button class="ws__cancel" type="button" :disabled="saving" @click="cancelEdit">취소</button>
+        <button class="ws__start" type="button" :disabled="saving || !dirty" @click="applyEdit">
+          {{ saving ? '저장 중...' : '수정하기' }}
         </button>
       </div>
     </template>
@@ -140,6 +143,8 @@
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUnsavedGuard } from '@/shared/composables/useUnsavedGuard'
+import { safeBack } from '@/shared/utils/navigation'
 import AppHeader from '@/shared/components/AppHeader.vue'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 import {
@@ -173,6 +178,10 @@ const CAT_LABEL: Record<ProjectCategory, string> = {
 const loading         = ref(true)
 const saving          = ref(false)
 const currentSchedule = ref<WeeklySchedule | null>(null)
+// 고치는 중인 사본 — [수정하기] 전까지 서버에 보내지 않는다
+const draftItems      = ref<WeeklySchedule['items'] | null>(null)
+const dirty = computed(() => !!currentSchedule.value && !!draftItems.value
+  && JSON.stringify(draftItems.value) !== JSON.stringify(currentSchedule.value.items))
 
 const addSheetOpen = ref(false)
 const addSheetDate = ref('')
@@ -211,7 +220,7 @@ const currentDays = computed<DayCard[]>(() => {
   if (!sd || !ed) return []
 
   const itemsByDate: Record<string, WeeklySchedule['items']> = {}
-  for (const it of currentSchedule.value.items) {
+  for (const it of draftItems.value ?? currentSchedule.value.items) {
     if (it.itemType !== 'project') continue
     ;(itemsByDate[it.date] ??= []).push(it)
   }
@@ -266,47 +275,59 @@ function fmtDateLabel(s: string): string {
   return `${d.getMonth() + 1}월 ${d.getDate()}일 (${DOW[d.getDay()]})`
 }
 
-async function persistItems(newItems: WeeklySchedule['items']) {
-  if (!draftPlan.planId || !currentSchedule.value) return
-  const planId    = draftPlan.planId
-  const weekStart = currentSchedule.value.weekStart
-  currentSchedule.value = { ...currentSchedule.value, items: newItems }
-  saving.value = true
-  try {
-    const updated = await updateSchedule(planId, weekStart, { items: newItems })
-    if (updated) currentSchedule.value = updated
-  } finally {
-    saving.value = false
-  }
-}
-
 function removeItem(itemId: string) {
-  if (!currentSchedule.value) return
-  // 정합성: localStorage 의 done 마킹도 함께 해제
-  const target = currentSchedule.value.items.find(it => it.id === itemId)
-  if (target) {
-    if (target.itemType === 'project' && isProjectDone(target.itemId, target.date)) {
-      toggleProject(target.itemId, target.date)
-    } else if (target.itemType === 'routine' && isRoutineDone(target.itemId, target.date)) {
-      toggleRoutine(target.itemId, target.date)
-    }
-  }
-  const next = currentSchedule.value.items.filter(it => it.id !== itemId)
-  persistItems(next)
+  if (!draftItems.value) return
+  draftItems.value = draftItems.value.filter(it => it.id !== itemId)
 }
 
 function addItem(projectId: string) {
-  if (!currentSchedule.value || !addSheetDate.value) return
-  const newItem = {
+  if (!draftItems.value || !addSheetDate.value) return
+  draftItems.value = [...draftItems.value, {
     id: crypto.randomUUID(),
     itemType: 'project' as const,
     itemId: projectId,
     date: addSheetDate.value,
     curriculumWeek: null,
     note: '',
-  }
-  persistItems([...currentSchedule.value.items, newItem])
+  }]
   closeAddSheet()
+}
+
+// 다른 탭·뒤로가기로 나갈 때도 바꾼 내용이 있으면 묻는다
+const { bypass, resync } = useUnsavedGuard(
+  () => JSON.stringify(draftItems.value),
+  '바꾼 일정이 저장되지 않았어요.\n정말 나가시겠어요?',
+)
+
+function cancelEdit() {
+  if (dirty.value && !confirm('일정 조정을 취소할까요?\n바꾼 내용은 저장되지 않아요.')) return
+  bypass()
+  safeBack(router, '/career-achievement')
+}
+
+async function applyEdit() {
+  if (!dirty.value || !draftPlan.planId || !currentSchedule.value || !draftItems.value) return
+  if (!confirm('이대로 이번 주 일정을 수정할까요?')) return
+  const before = currentSchedule.value.items
+  const next = draftItems.value
+  saving.value = true
+  try {
+    const updated = await updateSchedule(draftPlan.planId, currentSchedule.value.weekStart, { items: next })
+    if (!updated) { alert('저장하지 못했어요. 잠시 후 다시 시도해 주세요.'); return }
+    // 정합성: 뺀 일정에 남아 있던 완료 표시는 함께 해제(예전엔 지우는 즉시 했다)
+    for (const it of before) {
+      if (next.some(n => n.id === it.id)) continue
+      if (it.itemType === 'project' && isProjectDone(it.itemId, it.date)) toggleProject(it.itemId, it.date)
+      else if (it.itemType === 'routine' && isRoutineDone(it.itemId, it.date)) toggleRoutine(it.itemId, it.date)
+    }
+    currentSchedule.value = updated
+    draftItems.value = [...updated.items]
+    resync()
+    bypass()
+    safeBack(router, '/career-achievement')
+  } finally {
+    saving.value = false
+  }
 }
 
 onMounted(async () => {
@@ -324,6 +345,8 @@ onMounted(async () => {
         currentRange.value.weekStart,
         currentRange.value.weekEnd,
       )
+      draftItems.value = currentSchedule.value ? [...currentSchedule.value.items] : null
+      resync() // 불러온 상태가 기준(이걸 안 하면 아무것도 안 바꿔도 나갈 때 묻는다)
     }
   } finally {
     loading.value = false
@@ -634,9 +657,28 @@ onMounted(async () => {
     padding: 4px 0;
   }
 
-  /* 시작하기 CTA */
+  /* 취소 / 수정하기 */
   &__footer {
     padding: 16px 20px 32px;
+  }
+  &__footer--two {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 10px;
+    // 하단 탭(BottomNav)에 가리지 않게
+    padding-bottom: 104px;
+  }
+
+  &__cancel {
+    padding: 18px;
+    border: 1px solid #DADADA;
+    border-radius: 16px;
+    background: #fff;
+    color: #555;
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
+    &:disabled { opacity: 0.5; }
   }
 
   &__start {
@@ -654,6 +696,7 @@ onMounted(async () => {
     transition: transform 0.08s, opacity 0.12s;
 
     &:active { transform: scale(0.985); opacity: 0.9; }
+    &:disabled { opacity: 0.45; box-shadow: none; cursor: default; }
   }
 }
 

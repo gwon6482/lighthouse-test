@@ -119,7 +119,7 @@
       <!-- 마무리 CTA: 이번 주 일정 조정 페이지로 이동 -->
       <div class="wr__footer">
         <button class="wr__start" type="button" @click="goToSchedule">
-          이번 주 일정 조정하기 <AppIcon name="ui-arrow-right" />
+          주간 일정 조정하기 <AppIcon name="ui-arrow-right" />
         </button>
       </div>
 
