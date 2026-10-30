@@ -1,5 +1,5 @@
 <template>
-  <!-- 진로정보(하단 탭, 2026-10-29 기획회의) — 다양한 검사 · 진로백과 바로가기 · 진로·채용 소식 -->
+  <!-- 진로정보(하단 탭, 2026-10-29 기획회의) — 진로검사(여러 검사, 지금 더미) · 진로백과 바로가기 · 진로·채용 소식 -->
   <div class="ci">
     <header class="ci-hero">
       <h1 class="ci-hero__title">진로정보</h1>
@@ -12,29 +12,21 @@
       </form>
     </header>
 
-    <!-- 검사 -->
-    <section class="ci-sec">
-      <h2 class="ci-sec__title">검사</h2>
-      <div class="ci-test">
-        <div class="ci-test__head">
-          <span class="ci-test__chip"><AppIcon name="service-test" /></span>
-          <div class="ci-test__who">
-            <strong>자기이해 검사</strong>
-            <span v-if="latest?.T1_result?.full_name">최근 결과 · {{ latest.T1_result.full_name }}</span>
-            <span v-else>약 10분 · 무료</span>
+    <!-- 진로검사 — 홈 '다가오는 일정'처럼 옆으로 넘기는 세로 카드(2026-10-30). ⚠️ 지금은 **더미**(준비 중) — 자기이해 검사는 마이페이지로 옮겼다 -->
+    <section class="ci-sec ci-sec--flush">
+      <h2 class="ci-sec__title">진로검사</h2>
+      <div class="ci-tests">
+        <div v-for="t in TESTS" :key="t.name" class="ci-tcard" :style="{ '--tc': t.color, '--tc-bg': t.bg }">
+          <div class="ci-tcard__top">
+            <span class="ci-tcard__chip"><AppIcon :name="t.icon" /></span>
+            <span class="ci-tcard__kind">{{ t.kind }}</span>
           </div>
-        </div>
-        <ul class="ci-test__areas">
-          <li v-for="a in AREAS" :key="a.name"><AppIcon :name="a.icon" /> {{ a.name }}</li>
-        </ul>
-        <div class="ci-test__actions">
-          <button v-if="latest" type="button" class="ci-btn ci-btn--ghost" @click="router.push(`/self-understanding/result/${latest.survey_id}`)">
-            내 결과 보기
-          </button>
-          <button type="button" class="ci-btn" @click="router.push('/self-understanding/intro')">{{ latest ? '다시 검사하기' : '검사 시작하기' }}</button>
+          <strong class="ci-tcard__name">{{ t.name }}</strong>
+          <p class="ci-tcard__desc">{{ t.desc }}</p>
+          <span class="ci-tcard__meta">{{ t.meta }}</span>
+          <span class="ci-tcard__soon">준비 중</span>
         </div>
       </div>
-      <p class="ci-note"><AppIcon name="ui-coming-soon" /> 다른 검사도 준비하고 있어요.</p>
     </section>
 
     <!-- 진로백과 바로가기 -->
@@ -101,7 +93,6 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
-import { req } from '@/shared/api'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { useEncyclopedia } from '../composables/useEncyclopedia'
 import { searchJobs, fetchJobRecruitments, fetchCareerNews, type CareerNewsItem } from '../encyclopedia.api'
@@ -112,12 +103,13 @@ const router = useRouter()
 const store = useAchievementStore()
 const { searchJob } = useEncyclopedia()
 
-const AREAS = [
-  { name: '성격', icon: AREA_ICON.personality },
-  { name: '재능', icon: 'result-talent' },
-  { name: '흥미', icon: 'result-interest' },
-  { name: '가치관', icon: 'result-values' },
-  { name: '업무환경', icon: AREA_ICON.environment },
+// 진로검사 목록 — ⚠️ 더미(2026-10-30, 사용자가 준 검사 목록에서 성격·강점·진로를 고루 5개). 실제 도입 땐 검사별 라이선스 확인(MBTI·CliftonStrengths 는 유료·상표)
+const TESTS = [
+  { kind: '성격', name: 'Big Five 성격검사', desc: '개방성·성실성·외향성·우호성·신경성, 다섯 가지 요인으로 나를 봐요', meta: '약 15분 · 50문항', icon: AREA_ICON.personality, color: '#7B4FD6', bg: '#EEE4FF' },
+  { kind: '성격', name: 'MBTI', desc: '16가지 성격 유형으로 나의 선호를 알아봐요', meta: '약 12분 · 93문항', icon: 'feel-blank', color: '#3E63DD', bg: '#E2E9FF' },
+  { kind: '강점', name: 'CliftonStrengths', desc: '34개 재능 테마 중 나의 강점 다섯 가지를 찾아요', meta: '약 30분 · 177문항', icon: 'result-talent', color: '#E8590C', bg: '#FFE6D5' },
+  { kind: '진로', name: 'Holland 직업흥미검사', desc: 'RIASEC 여섯 가지 흥미 유형과 어울리는 직업을 알려 줘요', meta: '약 15분 · 60문항', icon: 'result-interest', color: '#129447', bg: '#D9F5E3' },
+  { kind: '진로', name: '직업가치관검사', desc: '일에서 내가 중요하게 여기는 가치를 찾아요', meta: '약 20분 · 78문항', icon: 'result-values', color: '#B07800', bg: '#FFF1C2' },
 ]
 
 const query = ref('')
@@ -128,8 +120,6 @@ async function search() {
   router.push('/career-encyclopedia')
 }
 
-// 최근 검사 결과
-const latest = ref<any | null>(null)
 
 // 목표 직업 — 진행 중 계획의 targetJob. 직업 코드는 이름 검색으로 찾는다(같은 이름이 먼저)
 const targetJob = computed(() => store.plan?.targetJob?.trim() ?? '')
@@ -178,9 +168,7 @@ const newsDate = (iso: string) => {
 
 onMounted(async () => {
   loadNews()
-  const [surveys] = await Promise.allSettled([req.get('/api/user/survey-results'), store.loadActivePlan()])
-  // 가장 최근 검사 — 서버는 오래된 순으로 준다
-  if (surveys.status === 'fulfilled') latest.value = [...(surveys.value.data.surveyResults ?? [])].sort((a: any, b: any) => String(b.submitted_at).localeCompare(String(a.submitted_at)))[0] ?? null
+  await store.loadActivePlan()
 })
 // 목표 직업은 계획을 다 읽어야 생긴다 — 채워지는(바뀌는) 때에 맞춰 채용을 불러온다
 watch(targetJob, loadTargetJob, { immediate: true })

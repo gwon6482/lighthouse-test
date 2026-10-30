@@ -37,7 +37,30 @@
 }
 .ci-empty { margin: 0; padding: 16px; border-radius: $radius-lg; background: $color-surface; font-size: $fs-sm; color: $color-text-tertiary; }
 
-// 검사 카드
+// 진로검사 — 옆으로 넘기는 세로 카드(홈 '다가오는 일정'과 같은 방식: 세 번째 카드가 살짝 잘리고, 오른쪽 끝 여백은 ::after)
+.ci-sec--flush { padding-left: 0; padding-right: 0; }
+.ci-sec--flush .ci-sec__title { padding: 0 $space-lg; }
+.ci-tests {
+  display: flex; gap: 10px; padding: 0 0 4px $space-lg;
+  overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: $space-lg;
+  scrollbar-width: none; user-select: none; -webkit-user-select: none;
+  &::-webkit-scrollbar { display: none; }
+  &::after { content: ''; flex: 0 0 ($space-lg - 10px); }
+}
+.ci-tcard {
+  position: relative; flex: 0 0 41%; scroll-snap-align: start;
+  display: grid; align-content: start; gap: 6px; min-height: 196px;
+  padding: 14px; border-radius: $radius-card; background: $color-surface; box-shadow: $shadow-card;
+  &__top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  &__chip { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 22px; background: var(--tc-bg); color: var(--tc); }
+  &__kind { padding: 2px 8px; border-radius: $radius-pill; background: var(--tc-bg); color: var(--tc); font-size: 11px; font-weight: $fw-bold; }
+  &__name { font-size: $fs-md; font-weight: $fw-bold; line-height: 1.35; word-break: keep-all; }
+  &__desc { margin: 0; font-size: $fs-xs; line-height: 1.45; color: $color-text-secondary; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  &__meta { margin-top: auto; font-size: 11px; color: $color-text-tertiary; }
+  &__soon { justify-self: start; padding: 3px 8px; border-radius: $radius-pill; background: $color-surface-alt; font-size: 11px; font-weight: $fw-semibold; color: $color-text-tertiary; }
+}
+
+// 검사 카드(자기이해 검사 — 지금은 마이페이지 '내 검사'에서 쓴다)
 .ci-test {
   padding: 18px; border-radius: $radius-card; background: $color-surface; display: grid; gap: 14px;
   &__head { display: flex; align-items: center; gap: 12px; }

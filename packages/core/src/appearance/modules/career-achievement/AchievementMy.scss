@@ -93,6 +93,14 @@
   display: block; width: 100%; padding: 14px 16px; border: 0; background: none;
   font: inherit; font-size: $fs-md; font-weight: $fw-medium; color: $color-text; text-align: left; text-decoration: none; cursor: pointer;
 }
+// 내 검사 카드 안 '지난 결과'
+.mp-past {
+  display: grid; gap: 2px; padding-top: 12px; border-top: 1px solid $color-border;
+  &__label { font-size: $fs-2xs; font-weight: $fw-semibold; color: $color-text-tertiary; margin-bottom: 2px; }
+  &__item { display: flex; align-items: center; gap: 4px; padding: 6px 0; border: 0; background: none; font: inherit; font-size: $fs-sm; color: $color-text-secondary; text-align: left; cursor: pointer;
+    .app-icon { margin-left: auto; color: $color-text-placeholder; } }
+}
+
 // 기능 메뉴 줄 — 아이콘 칩 없이 작은 아이콘 + 이름 + ›. 내용 카드(.mp-row)와 구분된다
 .mp-link--menu {
   display: flex; align-items: center; gap: 10px;

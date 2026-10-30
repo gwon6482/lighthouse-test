@@ -27,23 +27,36 @@
       </div>
     </section>
 
-    <!-- 내 검사결과 — 제목은 유형 이름(예전엔 내부 ID SURV… 를 그대로 보였다) -->
+    <!-- 내 검사 — 자기이해 검사 카드(2026-10-30 진로정보 탭에서 옮겨 와 예전 '내 검사결과' 목록을 대신한다).
+         스타일은 진로정보와 같은 .ci-test(전역 CareerInfo.scss) -->
     <section id="mp-surveys" class="mp-sec">
-      <h2 class="mp-sec__title">내 검사결과</h2>
+      <h2 class="mp-sec__title">내 검사</h2>
       <div v-if="loadingSurveys" class="mp-empty">불러오는 중...</div>
-      <p v-else-if="!surveyResults.length" class="mp-empty">아직 완료한 검사가 없어요.</p>
-      <ul v-else class="mp-list">
-        <li v-for="(r, i) in surveyResults" :key="r.survey_id">
-          <button type="button" class="mp-row" @click="router.push(`/self-understanding/result/${r.survey_id}`)">
-            <span class="mp-row__chip mp-row__chip--green"><AppIcon name="area-personality" /></span>
-            <span class="mp-row__body">
-              <span class="mp-row__title">{{ r.T1_result?.full_name || '자기이해 검사' }}<em v-if="i === 0" class="mp-row__badge">최근</em></span>
-              <span class="mp-row__sub">{{ formatDate(r.submitted_at) }}</span>
-            </span>
-            <AppIcon name="ui-chevron-right" class="mp-row__arrow" />
-          </button>
-        </li>
-      </ul>
+      <div v-else class="ci-test">
+        <div class="ci-test__head">
+          <span class="ci-test__chip"><AppIcon name="service-test" /></span>
+          <div class="ci-test__who">
+            <strong>자기이해 검사</strong>
+            <span v-if="latestSurvey?.T1_result?.full_name">최근 결과 · {{ latestSurvey.T1_result.full_name }} · {{ formatDate(latestSurvey.submitted_at) }}</span>
+            <span v-else>약 10분 · 무료</span>
+          </div>
+        </div>
+        <ul class="ci-test__areas">
+          <li v-for="a in AREAS" :key="a.name"><AppIcon :name="a.icon" /> {{ a.name }}</li>
+        </ul>
+        <div class="ci-test__actions">
+          <button v-if="latestSurvey" type="button" class="ci-btn ci-btn--ghost" @click="router.push(`/self-understanding/result/${latestSurvey.survey_id}`)">내 결과 보기</button>
+          <button type="button" class="ci-btn" @click="router.push('/self-understanding/intro')">{{ latestSurvey ? '다시 검사하기' : '검사 시작하기' }}</button>
+        </div>
+        <!-- 지난 결과 — 예전 목록에 있던 것을 카드 안에 작게 -->
+        <div v-if="surveyResults.length > 1" class="mp-past">
+          <span class="mp-past__label">지난 결과</span>
+          <button
+            v-for="r in surveyResults.slice(1)" :key="r.survey_id" type="button" class="mp-past__item"
+            @click="router.push(`/self-understanding/result/${r.survey_id}`)"
+          >{{ r.T1_result?.full_name || '자기이해 검사' }} · {{ formatDate(r.submitted_at) }} <AppIcon name="ui-chevron-right" /></button>
+        </div>
+      </div>
     </section>
 
     <!-- 관심 직업(북마크) -->
@@ -109,6 +122,7 @@ import { useAchievementStore } from '@/shared/stores/achievement'
 import { req } from '@/shared/api'
 import AccountDeleteSheet from '../components/AccountDeleteSheet.vue'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
+import { AREA_ICON } from '@/modules/survey/surveyIcons'
 import { useAchievementEntries } from '@/modules/career-achievement/composables/useAchievementEntries'
 
 const router = useRouter()
@@ -139,6 +153,16 @@ const surveyResults = ref<any[]>([])
 const bookmarks = ref<any[]>([])
 const loadingSurveys = ref(true)
 const loadingBookmarks = ref(true)
+
+// 자기이해 검사 영역(진로정보에서 옮겨 온 카드)
+const AREAS = [
+  { name: '성격', icon: AREA_ICON.personality },
+  { name: '재능', icon: 'result-talent' },
+  { name: '흥미', icon: 'result-interest' },
+  { name: '가치관', icon: 'result-values' },
+  { name: '업무환경', icon: AREA_ICON.environment },
+]
+const latestSurvey = computed(() => surveyResults.value[0] ?? null) // 최근순으로 정렬해 둔다
 
 // 북마크의 분류는 primary/secondary 로 온다(예전 코드는 large/medium 을 읽어 '·'만 보였다)
 const jobClass = (job: any) => [job.classification?.primary ?? job.classification?.large, job.classification?.secondary ?? job.classification?.medium].filter(Boolean).join(' · ')
