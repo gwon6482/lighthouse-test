@@ -243,6 +243,25 @@ $ah-overlap: 44px;
   }
 }
 
+// 주간결산 팝업
+.ah-pop {
+  position: fixed; inset: 0; z-index: 2000;
+  display: grid; place-items: end center;
+  padding: 0 $space-lg max(24px, env(safe-area-inset-bottom));
+  background: rgba(0, 0, 0, 0.45);
+  &__panel {
+    width: 100%; max-width: 420px; display: grid; justify-items: center; gap: 8px;
+    padding: 26px 20px 18px; border-radius: 24px; background: $color-surface; text-align: center;
+    animation: ah-rise 0.35s $ease-standard both;
+  }
+  &__icon { width: 60px; height: 60px; border-radius: 18px; display: grid; place-items: center; font-size: 32px; background: $color-primary; margin-bottom: 4px; }
+  &__title { margin: 0; font-size: 20px; font-weight: $fw-bold; letter-spacing: $ls-heading; }
+  &__desc { margin: 0 0 10px; font-size: $fs-sm; line-height: 1.55; color: $color-text-secondary; }
+  &__go { width: 100%; padding: 15px; border: 0; border-radius: $radius-lg; background: $color-text; color: $color-surface; font: inherit; font-size: $fs-base; font-weight: $fw-bold; cursor: pointer; }
+  &__later { width: 100%; padding: 12px; border: 0; border-radius: $radius-lg; background: none; font: inherit; font-size: $fs-md; font-weight: $fw-semibold; color: $color-text-secondary; cursor: pointer; }
+  &__note { margin: 0; font-size: $fs-2xs; color: $color-text-tertiary; }
+}
+
 .ah-goal {
   display: grid;
   grid-template-columns: 1fr auto;

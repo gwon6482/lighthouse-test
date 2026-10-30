@@ -153,6 +153,7 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import { useWeekReview, reviewDraft } from '../composables/useWeekReview'
 import { PACES } from '@/modules/career-design/composables/usePlanPace'
 import { parsePlanDate, daysBetween } from '../lib/planBoard'
+import { reviewState } from '../composables/useReviewState'
 
 const route = useRoute()
 const router = useRouter()
@@ -193,7 +194,8 @@ const canNext = computed(() => (step.value === 3 ? reviewDraft.satisfaction > 0 
 const go = (n: number) => router.replace({ name: 'Career Achievement Review', params: { step: String(n) } })
 const close = () => router.push({ name: 'Career Achievement' })
 function finish() {
-  // 시안 — 저장·속도 적용은 4단계(API) 작업에서
+  // 결산 마침 표시(팝업·버튼이 이번 주엔 다시 안 나온다). 평가 저장·속도 적용은 4단계(API) 작업에서
+  if (plan.value && range.value) reviewState(plan.value.planId, range.value.weekStart).markDone()
   router.push({ name: 'Career Achievement' })
 }
 

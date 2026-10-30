@@ -101,7 +101,7 @@
 
       <!-- 주간 결산 — 결산일에만, 오늘 할 일 바로 아래(2026-10-30 사용자). 평소엔 안 보인다.
            추후: 앱 진입 때 결산 팝업 + 앱 푸시 예정 -->
-      <div v-if="review?.kind === 'today'" class="ah-review">
+      <div v-if="showReviewButton" class="ah-review">
         <button type="button" class="ah-review__btn" @click="router.push({ name: 'Career Achievement Review', params: { step: '1' } })">
           <AppIcon name="ui-weekly-review" /> 주간 결산 시작하기
         </button>
@@ -112,8 +112,8 @@
         <div class="ah-week" role="link" tabindex="0" @click="goRoadmap" @keydown.enter="goRoadmap">
           <div class="ah-week__head">
             <h2 class="ah-week__title">이번 주 목표<span v-if="weekNumber"> · {{ weekNumber }}주차</span></h2>
-            <span v-if="review" class="ah-week__badge" :class="{ 'ah-week__badge--today': review.kind === 'today' }">
-              {{ review.kind === 'today' ? '오늘 결산' : `결산 D-${review.days}` }}
+            <span v-if="review && !reviewDone" class="ah-week__badge" :class="{ 'ah-week__badge--today': review.kind !== 'left' }">
+              {{ review.kind === 'today' ? '오늘 결산' : review.kind === 'last' ? '결산 오늘까지' : `결산 D-${review.days}` }}
             </span>
           </div>
           <ul class="ah-week__list">
@@ -151,17 +151,30 @@
       </section>
 
     </template>
+
+    <!-- 주간결산 팝업 — 한 주에 한 번(전날 다 했을 때 / 못 했으면 시작일 첫 접속) -->
+    <div v-if="promptOpen" class="ah-pop" role="dialog" aria-modal="true" aria-labelledby="ah-pop-title">
+      <div class="ah-pop__panel">
+        <span class="ah-pop__icon"><AppIcon name="ui-weekly-review" /></span>
+        <h2 id="ah-pop-title" class="ah-pop__title">한 주를 마무리할 시간이에요</h2>
+        <p class="ah-pop__desc">이번 주를 돌아보고, 다음 주 속도를 정해 봐요.<br>5단계 · 약 2분</p>
+        <button type="button" class="ah-pop__go" @click="startReview">주간결산 시작하기</button>
+        <button type="button" class="ah-pop__later" @click="promptOpen = false">나중에 하기</button>
+        <p class="ah-pop__note">{{ moment?.day === 'eve' ? '내일 하루 동안 홈에서 다시 시작할 수 있어요' : '오늘이 지나면 이번 주 결산은 건너뛰어요' }}</p>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 // 진로달성 메인 — 설계를 마친 뒤의 홈(2026-10-28 개편, 사용자와 항목별로 정함 → tasks/career-achievement-redesign.md)
 // 예전 실데이터 화면은 CareerAchievementPage copy.vue, 팀원 더미 시안 컴포넌트는 components/(TaskCard 등)
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { usePlanBoard } from '../composables/usePlanBoard'
-import { categoryColor } from '../lib/planBoard'
+import { categoryColor, reviewMoment, shouldPromptReview } from '../lib/planBoard'
+import { reviewState } from '../composables/useReviewState'
 import { methodIcon } from '@/modules/career-design/composables/projectMethods'
 import type { Project } from '@/modules/career-design/types/career-design'
 
@@ -170,7 +183,7 @@ const goRoadmap = () => router.push({ name: 'Career Achievement Roadmap' })
 const RING_LEN = 2 * Math.PI * 27
 
 const {
-  loading, plan, phase, load,
+  loading, plan, phase, load, today,
   streak, progress, dDay,
   userName, headline, message, todayTotal, todayDone,
   previews,
@@ -212,6 +225,25 @@ const visiblePending = computed(() => showAll.value ? pending.value : pending.va
 const hiddenCount = computed(() => pending.value.length - visiblePending.value.length)
 
 // 링은 0에서 차오르게 — 첫 그림을 0으로 그린 뒤 한 프레임 뒤에 값을 준다
+// ── 주간결산 시점 ──
+const moment = computed(() => plan.value ? reviewMoment(today.value, plan.value.startDate, plan.value.reviewDay, phase.value) : null)
+const rs = computed(() => (plan.value && moment.value ? reviewState(plan.value.planId, moment.value.weekStart) : null))
+const reviewDone = computed(() => !!rs.value?.done.value)
+// 버튼은 시작일 하루만(미뤘을 때), 결산을 마쳤으면 없다
+const showReviewButton = computed(() => moment.value?.day === 'start' && !reviewDone.value)
+const promptOpen = ref(false)
+watch([moment, todayTotal, todayDone, loading], () => {
+  if (loading.value || !rs.value) return
+  if (shouldPromptReview(moment.value, { todayTotal: todayTotal.value, todayDone: todayDone.value, prompted: rs.value.prompted.value, done: rs.value.done.value })) {
+    promptOpen.value = true
+    rs.value.markPrompted()
+  }
+}, { immediate: true })
+function startReview() {
+  promptOpen.value = false
+  router.push({ name: 'Career Achievement Review', params: { step: '1' } })
+}
+
 const shown = ref(false)
 onMounted(async () => {
   await load()

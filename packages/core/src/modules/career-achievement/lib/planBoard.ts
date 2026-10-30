@@ -109,11 +109,14 @@ export function streakCount(
 const DOW: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토']
 export function reviewBadge(
   reviewDay: DayOfWeek | '', today: Date, phase: PlanPhase,
-): { kind: 'today' } | { kind: 'left'; days: number } | null {
+): { kind: 'today' } | { kind: 'last' } | { kind: 'left'; days: number } | null {
   if (!reviewDay || phase !== 'running') return null
-  const target = DOW.indexOf(reviewDay)
-  if (target < 0) return null
-  const left = (target - today.getDay() + 7) % 7
+  const start = DOW.indexOf(reviewDay)
+  if (start < 0) return null
+  // 결산은 시작 요일 '전날'(2026-10-30 사용자). 시작일 당일은 미룬 결산의 마지막 날
+  const eve = (start + 6) % 7
+  if (today.getDay() === start) return { kind: 'last' }
+  const left = (eve - today.getDay() + 7) % 7
   return left === 0 ? { kind: 'today' } : { kind: 'left', days: left }
 }
 
@@ -181,4 +184,35 @@ export function roadmapStops(
     out.push({ project: p, startWeek: start, endWeek: end, status, done, total, weeks })
   }
   return out.sort((a, b) => a.startWeek - b.startWeek || a.endWeek - b.endWeek)
+}
+
+// ── 주간결산 시점(2026-10-30 사용자) ──
+// 시작 요일 S 의 전날(S-1 = 그 주 마지막 날)에 결산한다.
+//  · S-1 에 그날 할 일을 다 하면 그때 팝업(할 일이 없는 날이면 그날 첫 접속 때)
+//  · S-1 에 다 못 했으면 S 에 처음 들어올 때 팝업
+//  · 팝업은 한 주에 한 번. '나중에 하기'면 S 하루만 홈에 버튼
+//  · S 가 지나면 건너뜀(아무 기록도 남지 않는다)
+// 반환: 결산할 주의 시작일(weekStart, 키로 쓴다)과 오늘의 역할
+export type ReviewMoment = { weekStart: string; day: 'eve' | 'start' } | null
+export function reviewMoment(today: Date, startDate: string, reviewDay: DayOfWeek | '', phase: PlanPhase): ReviewMoment {
+  if (!reviewDay || phase === 'before') return null
+  const s = parsePlanDate(startDate)
+  if (!s) return null
+  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const startIdx = DOW.indexOf(reviewDay)
+  const isStart = t.getDay() === startIdx
+  const isEve = (t.getDay() + 1) % 7 === startIdx
+  if (!isStart && !isEve) return null
+  // 결산할 주의 첫날 = (eve 면 오늘, start 면 어제)가 든 주의 시작 요일
+  const last = new Date(t); if (isStart) last.setDate(last.getDate() - 1)
+  const ws = new Date(last); ws.setDate(ws.getDate() - ((ws.getDay() - startIdx + 7) % 7))
+  if (daysBetween(s, last) < 0) return null // 계획 시작 전 주는 결산할 게 없다
+  const key = `${ws.getFullYear()}-${String(ws.getMonth() + 1).padStart(2, '0')}-${String(ws.getDate()).padStart(2, '0')}`
+  return { weekStart: key, day: isStart ? 'start' : 'eve' }
+}
+// 지금 팝업을 띄울까 — prompted(이번 주 이미 띄움)·done(결산 마침)이면 안 띄운다
+export function shouldPromptReview(m: ReviewMoment, o: { todayTotal: number; todayDone: number; prompted: boolean; done: boolean }): boolean {
+  if (!m || o.prompted || o.done) return false
+  if (m.day === 'start') return true
+  return o.todayTotal === 0 || o.todayDone >= o.todayTotal
 }

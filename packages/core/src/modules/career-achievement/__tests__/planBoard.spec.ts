@@ -47,11 +47,11 @@ describe('planBoard', () => {
     expect(n).toBe(2)
   })
 
-  it('결산 배지', () => {
+  it('결산 배지 — 결산은 시작 요일 전날, 시작일은 마지막 날', () => {
     // 2026-10-28 = 수요일
-    expect(reviewBadge('수', d('2026-10-28'), 'running')).toEqual({ kind: 'today' })
-    expect(reviewBadge('금', d('2026-10-28'), 'running')).toEqual({ kind: 'left', days: 2 })
-    expect(reviewBadge('월', d('2026-10-28'), 'running')).toEqual({ kind: 'left', days: 5 })
+    expect(reviewBadge('목', d('2026-10-28'), 'running')).toEqual({ kind: 'today' })     // 목 시작 → 수 결산
+    expect(reviewBadge('수', d('2026-10-28'), 'running')).toEqual({ kind: 'last' })      // 수 시작 → 오늘이 시작일
+    expect(reviewBadge('금', d('2026-10-28'), 'running')).toEqual({ kind: 'left', days: 1 }) // 금 시작 → 목 결산
     expect(reviewBadge('', d('2026-10-28'), 'running')).toBeNull()
     expect(reviewBadge('금', d('2026-10-28'), 'finished')).toBeNull()
   })
@@ -79,5 +79,27 @@ describe('roadmapStops', () => {
     expect(stops.map((s) => s.project.id)).toEqual(['c', 'a', 'b', 'late'])
     expect(stops.map((s) => s.status)).toEqual(['done', 'past', 'now', 'next'])
     expect(stops[1]).toMatchObject({ startWeek: 1, endWeek: 3, done: 0, total: 6 })
+  })
+})
+
+describe('주간결산 시점', () => {
+  it('시작 요일이 금요일이면 목요일이 전날, 금요일이 시작일', async () => {
+    const { reviewMoment } = await import('../lib/planBoard')
+    // 2026-10-29 = 목, 10-30 = 금 → 결산할 주는 10/23(금)~10/29(목)
+    expect(reviewMoment(d('2026-10-29'), '2026-10-01', '금', 'running')).toEqual({ weekStart: '2026-10-23', day: 'eve' })
+    expect(reviewMoment(d('2026-10-30'), '2026-10-01', '금', 'running')).toEqual({ weekStart: '2026-10-23', day: 'start' })
+    expect(reviewMoment(d('2026-10-31'), '2026-10-01', '금', 'running')).toBeNull()   // 지나면 건너뜀
+    expect(reviewMoment(d('2026-10-29'), '2026-10-01', '', 'running')).toBeNull()
+    expect(reviewMoment(d('2026-09-25'), '2026-10-01', '금', 'running')).toBeNull()  // 시작 전 주
+  })
+  it('전날은 다 했을 때만, 시작일은 바로 — 한 주에 한 번, 마쳤으면 안 띄움', async () => {
+    const { shouldPromptReview } = await import('../lib/planBoard')
+    const eve = { weekStart: 'w', day: 'eve' as const }, start = { weekStart: 'w', day: 'start' as const }
+    expect(shouldPromptReview(eve, { todayTotal: 3, todayDone: 2, prompted: false, done: false })).toBe(false)
+    expect(shouldPromptReview(eve, { todayTotal: 3, todayDone: 3, prompted: false, done: false })).toBe(true)
+    expect(shouldPromptReview(eve, { todayTotal: 0, todayDone: 0, prompted: false, done: false })).toBe(true)
+    expect(shouldPromptReview(start, { todayTotal: 3, todayDone: 0, prompted: false, done: false })).toBe(true)
+    expect(shouldPromptReview(start, { todayTotal: 3, todayDone: 0, prompted: true, done: false })).toBe(false)
+    expect(shouldPromptReview(start, { todayTotal: 3, todayDone: 0, prompted: false, done: true })).toBe(false)
   })
 })
