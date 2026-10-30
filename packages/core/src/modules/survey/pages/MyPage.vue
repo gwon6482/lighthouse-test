@@ -70,6 +70,11 @@
     <section class="mp-sec">
       <h2 class="mp-sec__title">진로 관리</h2>
       <ul class="mp-links">
+        <li v-if="activePlanId">
+          <button type="button" class="mp-link mp-link--menu" @click="router.push(`/career-design/plan/${activePlanId}`)">
+            <AppIcon name="ui-template" class="mp-link__icon" /><span class="mp-link__label">내 진로계획 보기·수정</span><AppIcon name="ui-chevron-right" class="mp-link__arrow" />
+          </button>
+        </li>
         <li>
           <button type="button" class="mp-link mp-link--menu" @click="router.push({ name: 'Career Achievement Weekly Schedule' })">
             <AppIcon name="ui-calendar" class="mp-link__icon" /><span class="mp-link__label">이번 주 일정 조정</span><AppIcon name="ui-chevron-right" class="mp-link__arrow" />
@@ -155,6 +160,8 @@ function logout() {
 // 완료 기록 수(숫자 칸) — 기록 자체는 하단 탭 '로그'에서 본다(2026-10-29)
 const { feedSorted, entries } = useAchievementEntries()
 const records = computed(() => { void entries.value; return feedSorted().filter((e) => e.itemType === 'project') })
+// 진행 중 계획 — 계획 상세(보기·수정)로 가는 입구(메인 '내 진로계획' 타일을 뺀 뒤, 2026-10-30)
+const activePlanId = computed(() => achievementStore.plan?.planId ?? '')
 function jump(id: string) { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 
 onMounted(async () => {

@@ -11,24 +11,24 @@
     <template v-else>
       <!-- 레퍼런스 배치(2026-10-28): ①지표 띠 ②인사+오늘 요약 / ④오늘 할 일(경계에 걸친 카드) / ⑤이번 주 목표 / ③다가오는 일정 — 바로가기 타일은 뺐다(2026-10-30: 일정 조정은 마이페이지로, 내 진로계획은 삭제) -->
       <section class="ah-hero" :class="{ 'ah-hero--flat': phase !== 'running' }">
-        <!-- ① 기간을 가장 길게 보는 자리 — 오늘은 ②, 이번 주는 ⑤ 가 맡는다 -->
+        <!-- ① 기간을 가장 길게 보는 자리 — 오늘은 ②, 이번 주는 ⑤ 가 맡는다. 누르는 곳이 아니라 정보만(2026-10-30 사용자) -->
         <div class="ah-stats">
-          <button type="button" class="ah-stat" @click="router.push('/career-achievement/weekly-review')">
+          <div class="ah-stat">
             <span class="ah-stat__chip ah-stat__chip--streak"><AppIcon name="ui-repeat" /></span>
             <span class="ah-stat__label">연속 달성</span>
             <strong class="ah-stat__value">{{ streak }}일</strong>
-          </button>
-          <button type="button" class="ah-stat" @click="goRoadmap">
+          </div>
+          <div class="ah-stat">
             <span class="ah-stat__chip ah-stat__chip--progress"><AppIcon name="ui-target" /></span>
             <span class="ah-stat__label">전체 진행</span>
             <strong v-if="progress.done" class="ah-stat__value">{{ progress.percent }}%</strong>
             <span v-else class="ah-stat__hint">첫 항목을<br>완료해 보세요</span>
-          </button>
-          <button type="button" class="ah-stat" @click="goRoadmap">
+          </div>
+          <div class="ah-stat">
             <span class="ah-stat__chip ah-stat__chip--dday"><AppIcon name="ui-calendar" /></span>
             <span class="ah-stat__label">완료까지</span>
             <strong class="ah-stat__value">{{ dDay }}</strong>
-          </button>
+          </div>
         </div>
 
         <!-- ② 인사 + 오늘 요약 -->

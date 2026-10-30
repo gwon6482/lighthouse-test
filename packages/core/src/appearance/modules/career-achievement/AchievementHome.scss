@@ -47,10 +47,6 @@ $ah-overlap: 44px;
   align-content: start;
   gap: 2px;
   padding: 0 $space-sm;
-  border: 0;
-  background: none;
-  font: inherit;
-  color: inherit;
   text-align: center;
   & + & { border-left: 1px solid rgba(0, 0, 0, 0.08); }
   &__chip {
@@ -66,7 +62,6 @@ $ah-overlap: 44px;
   &__value { font-size: 17px; font-weight: $fw-bold; letter-spacing: $ls-tight; font-variant-numeric: tabular-nums; }
   &__hint { font-size: 11px; font-weight: $fw-medium; line-height: 1.35; color: rgba(0, 0, 0, 0.7); }
 }
-button.ah-stat { cursor: pointer; transition: transform $transition-fast; &:active { transform: scale(0.96); } }
 
 .ah-greet {
   display: flex;
