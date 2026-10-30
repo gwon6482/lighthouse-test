@@ -245,49 +245,15 @@ button.ah-stat { cursor: pointer; transition: transform $transition-fast; &:acti
   &__seg { flex: 1; height: 8px; border-radius: 4px; background: $color-border; transition: background $transition-slow; }
 }
 
-// ── ⑥ 바로가기 ───────────────────────────────
-.ah-tiles {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  padding: $space-xl $space-lg 0;
-}
-.ah-tile {
-  user-select: none;
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-  padding: 18px 8px;
-  border: 0;
-  border-radius: $radius-lg;
-  background: $color-surface;
-  font: inherit;
-  font-size: $fs-sm;
-  font-weight: $fw-semibold;
-  color: $color-text;
-  cursor: pointer;
-  transition: transform $transition-fast;
-  &:active { transform: scale(0.96); }
-  &__icon {
-    width: 48px; height: 48px; padding: 11px; border-radius: 16px;
-    font-size: 26px; box-sizing: border-box;
-  }
-  &--blue   &__icon { background: #E2E9FF; color: #3E63DD; }
-  &--green  &__icon { background: #D9F5E3; color: #129447; }
-  &--purple &__icon { background: #EEE4FF; color: #7B4FD6; }
-  &--orange &__icon { background: #FFE6D5; color: #E8590C; }
-}
-
 // ── 움직임 — 들어올 때 아래에서 살짝 떠오른다(순서대로). 움직임 줄이기 설정이면 끈다 ──
 @keyframes ah-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes ah-pop { 0% { transform: scale(1); } 40% { transform: scale(1.1); } 100% { transform: scale(1); } }
-.ah-stats, .ah-greet, .ah-today, .ah-sec, .ah-tiles { animation: ah-rise 0.5s $ease-standard both; }
+.ah-stats, .ah-greet, .ah-today, .ah-sec { animation: ah-rise 0.5s $ease-standard both; }
 .ah-today { animation-delay: 0.1s; }
 .ah-greet { animation-delay: 0.05s; }
 .ah-sec { animation-delay: 0.2s; }
 .ah-sec + .ah-sec { animation-delay: 0.28s; }
-.ah-tiles { animation-delay: 0.42s; }
 @media (prefers-reduced-motion: reduce) {
-  .ah-stats, .ah-greet, .ah-today, .ah-sec, .ah-tiles, .ah-ring--done { animation: none; }
+  .ah-stats, .ah-greet, .ah-today, .ah-sec, .ah-ring--done { animation: none; }
   .ah-ring__fill { transition: none; }
 }

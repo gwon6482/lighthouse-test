@@ -179,7 +179,8 @@ const newsDate = (iso: string) => {
 onMounted(async () => {
   loadNews()
   const [surveys] = await Promise.allSettled([req.get('/api/user/survey-results'), store.loadActivePlan()])
-  if (surveys.status === 'fulfilled') latest.value = surveys.value.data.surveyResults?.[0] ?? null
+  // 가장 최근 검사 — 서버는 오래된 순으로 준다
+  if (surveys.status === 'fulfilled') latest.value = [...(surveys.value.data.surveyResults ?? [])].sort((a: any, b: any) => String(b.submitted_at).localeCompare(String(a.submitted_at)))[0] ?? null
 })
 // 목표 직업은 계획을 다 읽어야 생긴다 — 채워지는(바뀌는) 때에 맞춰 채용을 불러온다
 watch(targetJob, loadTargetJob, { immediate: true })

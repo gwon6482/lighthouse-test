@@ -57,12 +57,25 @@
             <span class="mp-row__chip mp-row__chip--blue"><AppIcon name="service-encyclopedia" /></span>
             <span class="mp-row__body">
               <span class="mp-row__title">{{ job.title }} <JobGateBadges :job-code="job.jobCode" /></span>
-              <span class="mp-row__sub">{{ job.classification?.large }} · {{ job.classification?.medium }}</span>
+              <span v-if="jobClass(job)" class="mp-row__sub">{{ jobClass(job) }}</span>
             </span>
             <AppIcon name="ui-chevron-right" class="mp-row__arrow" />
           </button>
         </li>
       </ul>
+    </section>
+
+    <!-- 일정 — 이번 주 요일·항목 조정(2026-10-30 메인 타일에서 옮김) -->
+    <section class="mp-sec">
+      <h2 class="mp-sec__title">일정</h2>
+      <button type="button" class="mp-row" @click="router.push({ name: 'Career Achievement Weekly Schedule' })">
+        <span class="mp-row__chip mp-row__chip--blue"><AppIcon name="ui-calendar" /></span>
+        <span class="mp-row__body">
+          <span class="mp-row__title">이번 주 일정 조정</span>
+          <span class="mp-row__sub">요일·할 일을 이번 주 사정에 맞게 바꿔요</span>
+        </span>
+        <AppIcon name="ui-chevron-right" class="mp-row__arrow" />
+      </button>
     </section>
 
     <!-- 계정. 🚨 탈퇴는 **되돌릴 수 없다** — 맨 아래에 두고 약하게 강조한다.
@@ -122,6 +135,9 @@ const bookmarks = ref<any[]>([])
 const loadingSurveys = ref(true)
 const loadingBookmarks = ref(true)
 
+// 북마크의 분류는 primary/secondary 로 온다(예전 코드는 large/medium 을 읽어 '·'만 보였다)
+const jobClass = (job: any) => [job.classification?.primary ?? job.classification?.large, job.classification?.secondary ?? job.classification?.medium].filter(Boolean).join(' · ')
+
 const formatDate = (iso: string) => {
   if (!iso) return ''
   const d = new Date(iso)
@@ -151,7 +167,8 @@ onMounted(async () => {
     req.get('/api/user/survey-results'),
     req.get('/api/user/bookmarks'),
   ])
-  if (surveyRes.status === 'fulfilled')  surveyResults.value = surveyRes.value.data.surveyResults ?? []
+  // 최근 검사가 위로 — 서버는 오래된 순으로 준다(2026-10-30, 예전엔 첫 번째에 '최근'을 붙여 틀렸다)
+  if (surveyRes.status === 'fulfilled')  surveyResults.value = [...(surveyRes.value.data.surveyResults ?? [])].sort((a, b) => String(b.submitted_at).localeCompare(String(a.submitted_at)))
   if (bookmarkRes.status === 'fulfilled') bookmarks.value = bookmarkRes.value.data.bookmarkedJobs ?? []
   loadingSurveys.value = false
   loadingBookmarks.value = false

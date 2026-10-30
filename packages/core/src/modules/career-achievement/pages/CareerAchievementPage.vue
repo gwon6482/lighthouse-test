@@ -9,7 +9,7 @@
     </div>
 
     <template v-else>
-      <!-- 레퍼런스 배치(2026-10-28): ①지표 띠 ②인사+오늘 요약 / ④오늘 할 일(경계에 걸친 카드) / ⑤이번 주 목표 / ③다가오는 일정 / ⑥바로가기 -->
+      <!-- 레퍼런스 배치(2026-10-28): ①지표 띠 ②인사+오늘 요약 / ④오늘 할 일(경계에 걸친 카드) / ⑤이번 주 목표 / ③다가오는 일정 — 바로가기 타일은 뺐다(2026-10-30: 일정 조정은 마이페이지로, 내 진로계획은 삭제) -->
       <section class="ah-hero" :class="{ 'ah-hero--flat': phase !== 'running' }">
         <!-- ① 기간을 가장 길게 보는 자리 — 오늘은 ②, 이번 주는 ⑤ 가 맡는다 -->
         <div class="ah-stats">
@@ -146,15 +146,6 @@
       </div>
       </section>
 
-      <!-- ⑥ 바로가기 — 기록 모아보기는 하단 탭 '로그'로 옮겼다(2026-10-29) -->
-      <nav class="ah-tiles" aria-label="바로가기">
-        <button type="button" class="ah-tile ah-tile--blue" @click="router.push({ name: 'Career Achievement Weekly Schedule' })">
-          <AppIcon name="ui-calendar" class="ah-tile__icon" /><span>일정 조정</span>
-        </button>
-        <button type="button" class="ah-tile ah-tile--purple" @click="router.push('/career-design')">
-          <AppIcon name="ui-template" class="ah-tile__icon" /><span>내 진로계획</span>
-        </button>
-      </nav>
     </template>
   </div>
 </template>
