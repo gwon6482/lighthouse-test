@@ -1,6 +1,6 @@
 import { ref, computed, watch } from 'vue'
 import type { Project, Routine, DayOfWeek, TimelineSlot } from '@/modules/career-design/types/career-design'
-import { planWeekCount, weekOfDate, projectIdsActiveOnDate } from '@/modules/career-design/composables/usePlanTimeline'
+import { planWeekCount, weekOfDate, projectIdsActiveOnDate, type WeekStart } from '@/modules/career-design/composables/usePlanTimeline'
 import { getToday } from '@/shared/utils/dev-date'
 import {
   fetchAchievements, upsertAchievement, deleteAchievement,
@@ -109,9 +109,10 @@ export function useAchievement() {
     timeline: TimelineSlot[],
     startDate: string,
     endDate: string,
+    weekStart?: WeekStart,          // 계획의 시작 요일(reviewDay) — 주 경계(2026-10-30~)
   ): Project[] {
     if (!isDateInRange(today.value, startDate, endDate)) return []
-    const activeIds = projectIdsActiveOnDate(timeline, startDate, today.value, projects)
+    const activeIds = projectIdsActiveOnDate(timeline, startDate, today.value, projects, weekStart)
     return projects.filter(p => activeIds.has(p.id) && p.days.includes(todayDow.value))
   }
 
@@ -122,9 +123,10 @@ export function useAchievement() {
     timeline: TimelineSlot[],
     startDate: string,
     endDate: string,
+    weekStart?: WeekStart,          // 계획의 시작 요일(reviewDay) — 주 경계(2026-10-30~)
   ): Project[] {
     if (!isDateInRange(date, startDate, endDate)) return []
-    const activeIds = projectIdsActiveOnDate(timeline, startDate, date, projects)
+    const activeIds = projectIdsActiveOnDate(timeline, startDate, date, projects, weekStart)
     const dow = getDayOfWeek(date)
     return projects.filter(p => activeIds.has(p.id) && p.days.includes(dow))
   }
@@ -172,11 +174,12 @@ export function useAchievement() {
     timeline: TimelineSlot[],
     startDate: string,
     endDate: string,
+    weekStart?: WeekStart,          // 계획의 시작 요일(reviewDay) — 주 경계(2026-10-30~)
   ): number {
     const dow = getDayOfWeek(date)
     let count = routines.filter(r => r.days.includes(dow)).length
     if (isDateInRange(date, startDate, endDate)) {
-      const activeIds = projectIdsActiveOnDate(timeline, startDate, date, projects)
+      const activeIds = projectIdsActiveOnDate(timeline, startDate, date, projects, weekStart)
       count += projects.filter(p => activeIds.has(p.id) && p.days.includes(dow)).length
     }
     return count
@@ -192,10 +195,11 @@ export function useAchievement() {
     _timeline: TimelineSlot[],
     startDate = '',
     endDate = '',
+    weekStart?: WeekStart,
   ): { current: number; total: number; monthLabel: string } | null {
-    const total = planWeekCount(startDate, endDate)
+    const total = planWeekCount(startDate, endDate, weekStart)
     if (!total) return null
-    const cur = weekOfDate(startDate, today.value)
+    const cur = weekOfDate(startDate, today.value, weekStart)
     if (cur === null || cur > total) return null
     return { current: cur, total, monthLabel: `${cur}주차` }
   }
@@ -207,11 +211,12 @@ export function useAchievement() {
     timeline: TimelineSlot[],
     startDate: string,
     endDate: string,
+    weekStart?: WeekStart,
   ) {
     let planned = 0
     let done = 0
     for (const d of weekDates.value) {
-      planned += plannedCount(d, projects, routines, timeline, startDate, endDate)
+      planned += plannedCount(d, projects, routines, timeline, startDate, endDate, weekStart)
       done    += doneCount(d)
     }
     return { planned, done, percent: planned ? Math.round(done / planned * 100) : 0 }

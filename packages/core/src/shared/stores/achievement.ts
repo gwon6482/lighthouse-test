@@ -34,6 +34,7 @@ export const useAchievementStore = defineStore('achievement', () => {
       plan.value.timeline,
       plan.value.startDate,
       plan.value.endDate,
+      plan.value.reviewDay,
     )
     const routines = ach.todayRoutines(plan.value.routines)
     const pendingProjects = projects.filter(p => !ach.isProjectDone(p.id)).length

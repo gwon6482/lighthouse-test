@@ -10,7 +10,7 @@ import {
 
 // 주간일정 생성의 회귀 테스트.
 //
-// 주 경계가 "startDate 부터 7일 블록" → "월~일 달력 주" 로 바뀌면서(2026-08-27)
+// 주 경계가 "startDate 부터 7일 블록" → "월~일 달력 주"(2026-08-27) → **시작 요일(reviewDay)부터 7일**(2026-10-30) 로 바뀌면서
 // 첫 주가 계획 시작 **이전** 날짜를, 마지막 주가 종료 **이후** 날짜를 품게 됐다.
 // 그 날짜에 항목이 생기면 안 된다는 게 여기서 지키는 핵심이다.
 
@@ -38,23 +38,28 @@ const TIMELINE: TimelineSlot[] = [
 
 const ids = (items: { itemId: string }[]) => items.map(i => i.itemId).sort()
 
-describe('computeFirstWeekRange — 첫 주는 startDate 가 속한 달력 주', () => {
-  it('시작일이 월요일이면 그 날부터', () => {
-    expect(computeFirstWeekRange('2026-08-31', '일')).toEqual({
+describe('computeFirstWeekRange — 첫 주는 startDate 가 속한 주(시작 요일부터 7일)', () => {
+  it('시작 요일이 월요일이고 시작일도 월요일이면 그 날부터', () => {
+    expect(computeFirstWeekRange('2026-08-31', '월')).toEqual({
       weekStart: '2026-08-31', weekEnd: '2026-09-06',
     })
   })
 
-  it('시작일이 수요일이면 weekStart 는 이틀 앞선 월요일', () => {
-    expect(computeFirstWeekRange('2026-09-02', '일')).toEqual({
+  it('시작일이 수요일이면 weekStart 는 이틀 앞선 월요일(시작 요일 월)', () => {
+    expect(computeFirstWeekRange('2026-09-02', '월')).toEqual({
       weekStart: '2026-08-31', weekEnd: '2026-09-06',
     })
   })
 
-  it('reviewDay 는 주 경계가 아니다 — 무엇을 넣어도 같은 결과', () => {
-    const days: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
-    const results = days.map(r => JSON.stringify(computeFirstWeekRange('2026-09-02', r)))
-    expect(new Set(results).size).toBe(1)
+  it('시작 요일이 금요일이면 한 주는 금~목', () => {
+    // 2026-09-02(수) 시작 → 그 주의 금요일은 8.28
+    expect(computeFirstWeekRange('2026-09-02', '금')).toEqual({
+      weekStart: '2026-08-28', weekEnd: '2026-09-03',
+    })
+  })
+
+  it('시작 요일을 안 골랐으면(빈 값) 월요일', () => {
+    expect(computeFirstWeekRange('2026-09-02', '')).toEqual(computeFirstWeekRange('2026-09-02', '월'))
   })
 
   it('잘못된 날짜면 null', () => {
@@ -64,17 +69,23 @@ describe('computeFirstWeekRange — 첫 주는 startDate 가 속한 달력 주',
 
 describe('computeWeekRangeContaining', () => {
   it('첫 주 이전 날짜는 null', () => {
-    expect(computeWeekRangeContaining(d('2026-08-30'), '2026-08-31', '일')).toBeNull()
+    expect(computeWeekRangeContaining(d('2026-08-30'), '2026-08-31', '월')).toBeNull()
   })
 
   it('임의 날짜가 속한 주를 찾는다', () => {
-    expect(computeWeekRangeContaining(d('2026-09-10'), '2026-08-31', '일')).toEqual({
+    expect(computeWeekRangeContaining(d('2026-09-10'), '2026-08-31', '월')).toEqual({
       weekStart: '2026-09-07', weekEnd: '2026-09-13',
     })
   })
 
+  it('시작 요일이 금요일이면 금~목 주를 찾는다', () => {
+    // 2026-10-30(금) 은 그 날 시작하는 주, 10-29(목) 는 그 전 주의 끝
+    expect(computeWeekRangeContaining(d('2026-10-30'), '2026-10-01', '금')).toEqual({ weekStart: '2026-10-30', weekEnd: '2026-11-05' })
+    expect(computeWeekRangeContaining(d('2026-10-29'), '2026-10-01', '금')).toEqual({ weekStart: '2026-10-23', weekEnd: '2026-10-29' })
+  })
+
   it('찾은 주는 항상 7일', () => {
-    const r = computeWeekRangeContaining(d('2026-10-15'), '2026-08-31', '일')!
+    const r = computeWeekRangeContaining(d('2026-10-15'), '2026-08-31', '금')!
     const days = (d(r.weekEnd).getTime() - d(r.weekStart).getTime()) / 86_400_000 + 1
     expect(days).toBe(7)
   })
@@ -154,5 +165,20 @@ describe('dowOf — 요일 문자열', () => {
   it('월요일부터 일요일까지', () => {
     expect(dowOf(d('2026-08-31'))).toBe('월')
     expect(dowOf(d('2026-09-06'))).toBe('일')
+  })
+})
+
+describe('generateItemsForWeek — 시작 요일이 금요일인 계획', () => {
+  // 2026-10-01(목) 시작, 금요일 시작 → 1주차 = 9.25(금)~10.1(목), 2주차 = 10.2~10.8
+  const FRI = { ...PLAN, startDate: '2026-10-01', endDate: '2026-12-31', reviewDay: '금' as DayOfWeek }
+  const TL: TimelineSlot[] = [{ week: 2, projects: [FRI.projects[1]!] }]   // b(화, 2주): 2~3주차
+  it('2주차(10.2~10.8)에 b 가 화요일(10.6)에 잡힌다', () => {
+    const items = generateItemsForWeek(FRI, TL, '2026-10-02', '2026-10-08').filter((i) => i.itemType === 'project')
+    expect(items.map((i) => [i.itemId, i.date, i.curriculumWeek])).toEqual([['b', '2026-10-06', 1]])
+  })
+  it('1주차(9.25~10.1)엔 b 가 없고, 계획 시작 전(9.25~9.30)엔 아무것도 없다', () => {
+    const items = generateItemsForWeek(FRI, TL, '2026-09-25', '2026-10-01')
+    expect(items.some((i) => i.itemId === 'b')).toBe(false)
+    expect(items.every((i) => i.date >= '2026-10-01')).toBe(true)
   })
 })

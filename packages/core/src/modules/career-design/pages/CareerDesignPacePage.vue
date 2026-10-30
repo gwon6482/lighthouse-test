@@ -124,7 +124,7 @@ const startKey = computed(() => draftPlan.startDate || toDateKey(getToday()))
 const options = computed(() => PACES.map((p) => {
   const hours = hoursOf(p.key)
   const weeks = scheduleEndWeek(draftPlan.projects, hours)
-  return { ...p, hours, endLabel: weeks ? monthLabelOfWeek(startKey.value, weeks) : '-', monthsLabel: monthsLabel(weeks) }
+  return { ...p, hours, endLabel: weeks ? monthLabelOfWeek(startKey.value, weeks, draftPlan.reviewDay) : '-', monthsLabel: monthsLabel(weeks) }
 }))
 
 // ── 순서 드래그 ──

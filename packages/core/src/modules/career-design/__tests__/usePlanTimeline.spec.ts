@@ -338,3 +338,27 @@ describe('lastWeekOfMonth', () => {
     expect(lastWeekOfMonth('2026-10-19', 8)).toBe(11)  // 12월: 12.7 ~ 12.28
   })
 })
+
+describe('시작 요일 — 한 주는 계획의 reviewDay 부터 7일(2026-10-30~)', async () => {
+  const T = await import('../composables/usePlanTimeline')
+  const D = (s: string) => T.parseDateKey(s)!
+  it('weekStartOf: 금요일 시작이면 그 주 금요일', () => {
+    expect(T.toDateKey(T.weekStartOf(D('2026-10-29'), '금'))).toBe('2026-10-23')
+    expect(T.toDateKey(T.weekStartOf(D('2026-10-30'), '금'))).toBe('2026-10-30')
+    expect(T.toDateKey(T.weekStartOf(D('2026-10-30'), ''))).toBe('2026-10-26') // 안 골랐으면 월요일
+  })
+  it('weekOfDate·weekDateRange·planWeekCount 가 시작 요일을 따른다', () => {
+    // 10/01(목) 시작, 금요일 시작 → 1주차 9.25~10.1, 6주차 10.30~11.5
+    expect(T.weekOfDate('2026-10-01', D('2026-10-01'), '금')).toBe(1)
+    expect(T.weekOfDate('2026-10-01', D('2026-10-02'), '금')).toBe(2)
+    expect(T.weekOfDate('2026-10-01', D('2026-10-30'), '금')).toBe(6)
+    expect(T.weekDateRange('2026-10-01', 6, '금')).toEqual({ start: '2026-10-30', end: '2026-11-05' })
+    expect(T.planWeekCount('2026-10-01', '2027-02-07', '금')).toBe(20)
+    // 월요일 시작(예전과 같음)
+    expect(T.weekOfDate('2026-10-01', D('2026-10-30'))).toBe(5)
+  })
+  it('monthWeekOf 는 넘긴 날의 요일을 주의 첫 요일로 센다', () => {
+    expect(T.monthWeekOf(D('2026-10-30'))).toEqual({ year: 2026, month: 10, week: 5 }) // 10월 금요일: 2·9·16·23·30
+    expect(T.weeksInMonth(2026, 10, '금')).toBe(5)
+  })
+})

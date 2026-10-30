@@ -42,7 +42,7 @@ export function usePlanBoard() {
 
   const phase = computed(() => plan.value ? planPhase(plan.value.startDate, plan.value.endDate, today.value) : 'running')
   const dayNumber = computed(() => plan.value ? planDayNumber(plan.value.startDate, today.value) : null)
-  const weekNumber = computed(() => plan.value ? weekOfDate(plan.value.startDate, today.value) : null)
+  const weekNumber = computed(() => plan.value ? weekOfDate(plan.value.startDate, today.value, plan.value.reviewDay) : null)
 
   // ── 날짜별 항목: 그 주 일정(사용자가 조정했을 수 있다) 우선, 없으면 계획 배치로 만든다 ──
   function scheduleFor(key: string): WeeklySchedule | null {
@@ -77,7 +77,7 @@ export function usePlanBoard() {
   function todayFocus(p: Project): { text: string; allDone: boolean; weekIdx: number | null } {
     const pl = plan.value
     if (!pl) return { text: p.goal, allDone: false, weekIdx: null }
-    const wIdx = projectWeekIndexOn(pl.timeline, pl.startDate, p.id, today.value)
+    const wIdx = projectWeekIndexOn(pl.timeline, pl.startDate, p.id, today.value, pl.reviewDay)
     const cw = wIdx ? p.curriculum?.find((c) => c.week === wIdx) : undefined
     const entries = weekEntriesOf(cw)
     if (!cw || !entries.length) return { text: p.goal, allDone: false, weekIdx: wIdx }
@@ -137,7 +137,7 @@ export function usePlanBoard() {
     const out: WeekGoalBar[] = []
     for (const p of projectsActiveInWeek(pl.timeline, wk, pl.projects)) {
       const full = projectOf(p.id) ?? p
-      const wIdx = projectWeekIndexOn(pl.timeline, pl.startDate, full.id, today.value)
+      const wIdx = projectWeekIndexOn(pl.timeline, pl.startDate, full.id, today.value, pl.reviewDay)
       const cw = wIdx ? full.curriculum?.find((c) => c.week === wIdx) : undefined
       const n = weekEntriesOf(cw).length
       if (!cw || !n) continue
@@ -148,7 +148,7 @@ export function usePlanBoard() {
   const review = computed(() => plan.value ? reviewBadge(plan.value.reviewDay, today.value, phase.value) : null)
 
   // ── 로드맵 — 계획 전체를 프로젝트 정거장으로 ──
-  const totalWeeks = computed(() => plan.value ? planWeekCount(plan.value.startDate, plan.value.endDate) : 0)
+  const totalWeeks = computed(() => plan.value ? planWeekCount(plan.value.startDate, plan.value.endDate, plan.value.reviewDay) : 0)
   const roadmap = computed(() => {
     const pl = plan.value
     if (!pl) return []
@@ -158,8 +158,8 @@ export function usePlanBoard() {
   // 'M/D' — 계획 n주차의 월요일·일요일
   function weekSpanLabel(fromWeek: number, toWeek: number): string {
     const pl = plan.value
-    const a = pl && weekDateRange(pl.startDate, fromWeek)
-    const b = pl && weekDateRange(pl.startDate, toWeek)
+    const a = pl && weekDateRange(pl.startDate, fromWeek, pl.reviewDay)
+    const b = pl && weekDateRange(pl.startDate, toWeek, pl.reviewDay)
     if (!a || !b) return ''
     const md = (k: string) => { const d = parseDateKey(k)!; return `${d.getMonth() + 1}/${d.getDate()}` }
     return `${md(a.start)}~${md(b.end)}`

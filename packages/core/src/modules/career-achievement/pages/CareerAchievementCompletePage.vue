@@ -233,7 +233,7 @@ function advanceProjectCurriculum(project: Project, dateKey: string) {
   const target = new Date(y, m - 1, d)
 
   // 커리큘럼 N주차 = 계획주차 - 타임라인 시작주차 + 1
-  const wIdx = projectWeekIndexOn(draftTimeline.value, draftPlan.startDate, project.id, target)
+  const wIdx = projectWeekIndexOn(draftTimeline.value, draftPlan.startDate, project.id, target, draftPlan.reviewDay)
   if (wIdx === null) return
 
 

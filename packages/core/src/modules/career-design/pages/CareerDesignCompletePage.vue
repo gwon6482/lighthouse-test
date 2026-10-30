@@ -104,11 +104,11 @@
           <div class="cd-complete__tl-range">
             <div class="cd-complete__tl-range-item">
               <span class="cd-complete__tl-dot cd-complete__tl-dot--start" />
-              <span class="cd-complete__tl-range-label">{{ monthWeekLabel(draftPlan.startDate, 1) }}</span>
+              <span class="cd-complete__tl-range-label">{{ monthWeekLabel(draftPlan.startDate, 1, draftPlan.reviewDay) }}</span>
             </div>
             <div class="cd-complete__tl-range-bar" />
             <div class="cd-complete__tl-range-item">
-              <span class="cd-complete__tl-range-label">{{ monthWeekLabel(draftPlan.startDate, totalWeeks) }} · 총 {{ totalWeeks }}주</span>
+              <span class="cd-complete__tl-range-label">{{ monthWeekLabel(draftPlan.startDate, totalWeeks, draftPlan.reviewDay) }} · 총 {{ totalWeeks }}주</span>
               <span class="cd-complete__tl-dot cd-complete__tl-dot--end" />
             </div>
           </div>
@@ -318,14 +318,14 @@ function chipStyle(project: Project) {
 // 더 뒤에 놓고 싶으면 프로젝트를 고른 상태에서 '+ 한 달 더'로 한 달씩 늘린다(extraMonths)
 const extraMonths = ref(0)
 const totalWeeks = computed(() => {
-  if (draftPlan.endDate) return planWeekCount(draftPlan.startDate, draftPlan.endDate)
+  if (draftPlan.endDate) return planWeekCount(draftPlan.startDate, draftPlan.endDate, draftPlan.reviewDay)
   let last = 0
   for (const s of draftTimeline.value) {
     for (const p of s.projects) last = Math.max(last, projectEndWeek(s.week, resolveProject(p, draftPlan.projects)))
   }
   if (!last) return provisionalWeekCount(draftPlan.projects)
-  let end = lastWeekOfMonth(draftPlan.startDate, last)
-  for (let i = 0; i < extraMonths.value; i++) end = lastWeekOfMonth(draftPlan.startDate, end + 1)
+  let end = lastWeekOfMonth(draftPlan.startDate, last, draftPlan.reviewDay)
+  for (let i = 0; i < extraMonths.value; i++) end = lastWeekOfMonth(draftPlan.startDate, end + 1, draftPlan.reviewDay)
   return Math.min(PROVISIONAL_MAX_WEEKS, end)
 })
 const canAddMonth = computed(() => !draftPlan.endDate && totalWeeks.value < PROVISIONAL_MAX_WEEKS)
@@ -380,7 +380,7 @@ const weekRows = computed<WeekRow[]>(() => {
       }
     }
     // 주는 월요일이 속한 달에 귀속된다 → 달이 바뀌는 첫 행에만 월 헤더를 붙인다.
-    const range = weekDateRange(draftPlan.startDate, week)
+    const range = weekDateRange(draftPlan.startDate, week, draftPlan.reviewDay)
     const mw = range ? monthWeekOf(parseDateKey(range.start)!) : null
     const isNewMonth = !!mw && mw.month !== prevMonth
     if (mw) prevMonth = mw.month
@@ -388,8 +388,8 @@ const weekRows = computed<WeekRow[]>(() => {
     rows.push({
       week,
       label: mw ? `${mw.month}월 ${mw.week}주차` : `${week}주차`,
-      dateLabel: weekRangeLabel(draftPlan.startDate, week),
-      monthHeader: isNewMonth && mw ? `${mw.month}월 · ${weeksInMonth(mw.year, mw.month)}주` : '',
+      dateLabel: weekRangeLabel(draftPlan.startDate, week, draftPlan.reviewDay),
+      monthHeader: isNewMonth && mw ? `${mw.month}월 · ${weeksInMonth(mw.year, mw.month, draftPlan.reviewDay)}주` : '',
       bars,
       canPlace: !!sel && fitsInPlan(week, sel, totalWeeks.value),
       hours: bars.reduce((n, b) => n + projectHoursPerWeek(b.project), 0),

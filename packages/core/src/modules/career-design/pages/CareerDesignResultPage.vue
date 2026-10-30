@@ -75,7 +75,7 @@
             </div>
 
             <div class="cd-result__month-right">
-              <span class="cd-result__month-badge">{{ monthWeekLabel(draftPlan.startDate, slot.week) }} <em>{{ weekRangeLabel(draftPlan.startDate, slot.week) }}</em></span>
+              <span class="cd-result__month-badge">{{ monthWeekLabel(draftPlan.startDate, slot.week, draftPlan.reviewDay) }} <em>{{ weekRangeLabel(draftPlan.startDate, slot.week, draftPlan.reviewDay) }}</em></span>
 
               <div class="cd-result__projects">
                 <div

@@ -103,7 +103,7 @@
               <div v-if="si < filledSlots.length - 1" class="timeline__month-line" />
             </div>
             <div class="timeline__month-right">
-              <span class="timeline__month-badge">{{ monthWeekLabel(plan?.startDate ?? "", slot.week) }} <em>{{ weekRangeLabel(plan?.startDate ?? "", slot.week) }}</em></span>
+              <span class="timeline__month-badge">{{ monthWeekLabel(plan?.startDate ?? "", slot.week, plan?.reviewDay) }} <em>{{ weekRangeLabel(plan?.startDate ?? "", slot.week, plan?.reviewDay) }}</em></span>
               <div class="timeline__projects">
                 <div
                   v-for="project in liveProjects(slot)"

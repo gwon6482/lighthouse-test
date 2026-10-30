@@ -4,7 +4,7 @@
 //   숫자를 계산하게 하지 않고 "어떤 생활이면 언제 끝나는지"를 보고 고르게 한다.
 // ⚠️ 주당 시간 값(5·8·12·16·24)은 데이터 근거 없이 정한 출발값이다(생활 모습 설명에 맞춘 대략치). 사용 데이터로 다듬을 것.
 import type { Project, TimelineSlot } from '../types/career-design'
-import { autoSchedule, projectEndWeek, weekDateRange } from './usePlanTimeline'
+import { autoSchedule, projectEndWeek, weekDateRange, type WeekStart } from './usePlanTimeline'
 
 export interface Pace {
   key: 'light' | 'steady' | 'focus' | 'full' | 'allin'
@@ -50,8 +50,8 @@ export function scheduleEndWeek(projects: Project[], hours: number): number {
 }
 
 /** "2027년 6월" — 시작일 기준 그 주차의 마지막 날이 속한 달 */
-export function monthLabelOfWeek(startDate: string, week: number): string {
-  const end = weekDateRange(startDate, week)?.end
+export function monthLabelOfWeek(startDate: string, week: number, start?: WeekStart): string {
+  const end = weekDateRange(startDate, week, start)?.end
   if (!end) return ''
   const [y, m] = end.split('-')
   return `${y}년 ${Number(m)}월`
