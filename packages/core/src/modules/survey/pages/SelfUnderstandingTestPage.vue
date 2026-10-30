@@ -20,7 +20,7 @@
       </div>
 
       <!-- 질문 영역 -->
-      <main class="question-area">
+      <main class="question-area" :class="{ 'question-area--cover': isPartIntro }">
         <!-- T1, T21: 스케일 질문 -->
         <template v-if="currentPage.type === 'scale' && currentPage.questions">
           <template v-if="scaleType === 2">

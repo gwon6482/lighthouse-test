@@ -22,7 +22,7 @@
     <!-- 검사 절차 -->
     <div class="su-main__section">
       <h2 class="su-main__section-title">검사 절차</h2>
-      <p class="su-main__section-sub">총 3개 파트 · 약 10분 소요</p>
+      <p class="su-main__section-sub">총 3개 파트 · 약 20분 소요</p>
 
       <div class="su-main__parts">
         <div v-for="part in parts" :key="part.label" class="su-main__part-card">

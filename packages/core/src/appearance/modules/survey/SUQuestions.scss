@@ -24,8 +24,8 @@
   }
 
   .question-num {
-    font-weight: $fw-semibold;
-    color: $color-text-meta;
+    font-weight: $fw-regular; // 500 — 문장(400)보다 살짝만. 700 은 숫자가 튀었다
+    color: $color-text-body; // 문항 글씨와 같은 색
     margin-right: 4px;
   }
 
@@ -94,8 +94,8 @@
   }
 
   .question-num {
-    font-weight: $fw-semibold;
-    color: $color-text-meta;
+    font-weight: $fw-regular; // 500 — 문장(400)보다 살짝만. 700 은 숫자가 튀었다
+    color: $color-text-body; // 문항 글씨와 같은 색
     margin-right: 4px;
   }
 
@@ -225,8 +225,8 @@
   }
 
   .question-num {
-    font-weight: $fw-semibold;
-    color: $color-text-meta;
+    font-weight: $fw-regular; // 500 — 문장(400)보다 살짝만. 700 은 숫자가 튀었다
+    color: $color-text-body; // 문항 글씨와 같은 색
     margin-right: 4px;
   }
 

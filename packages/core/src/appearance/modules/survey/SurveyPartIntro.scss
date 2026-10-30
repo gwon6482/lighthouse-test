@@ -11,6 +11,17 @@
   flex-direction: column;
   gap: $space-xl;
 
+  // 데스크탑에서만 흰 박스로 감싼다 — 바탕 회색은 SelfUnderstandingTest.scss 의 .question-area--cover
+  // 모서리·테두리는 검사 방식 선택 카드(.select-button)와 같은 값
+  @media (min-width: 768px) {
+    max-width: 480px;
+    margin-top: 64px;
+    padding: 40px 40px 44px;
+    background: $color-surface;
+    border: 1.5px solid #EEEEEE;
+    border-radius: 16px;
+  }
+
   .pi-rule {
     width: 40px;
     height: 4px;
