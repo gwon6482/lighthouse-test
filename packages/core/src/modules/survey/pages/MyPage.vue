@@ -88,6 +88,11 @@
             <AppIcon name="ui-template" class="mp-link__icon" /><span class="mp-link__label">내 진로계획 보기·수정</span><AppIcon name="ui-chevron-right" class="mp-link__arrow" />
           </button>
         </li>
+        <li v-if="activePlanId">
+          <button type="button" class="mp-link mp-link--menu" @click="router.push({ name: 'Career Achievement Reviews' })">
+            <AppIcon name="ui-weekly-review" class="mp-link__icon" /><span class="mp-link__label">주간결산 모아보기</span><AppIcon name="ui-chevron-right" class="mp-link__arrow" />
+          </button>
+        </li>
         <li>
           <button type="button" class="mp-link mp-link--menu" @click="router.push({ name: 'Career Achievement Weekly Schedule' })">
             <AppIcon name="ui-calendar" class="mp-link__icon" /><span class="mp-link__label">주간 일정 조정</span><AppIcon name="ui-chevron-right" class="mp-link__arrow" />

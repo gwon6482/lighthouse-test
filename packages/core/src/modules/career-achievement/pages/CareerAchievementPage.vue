@@ -232,8 +232,8 @@ const reviewDone = computed(() => !!rs.value?.done.value)
 // 버튼은 시작일 하루만(미뤘을 때), 결산을 마쳤으면 없다
 const showReviewButton = computed(() => moment.value?.day === 'start' && !reviewDone.value)
 const promptOpen = ref(false)
-watch([moment, todayTotal, todayDone, loading], () => {
-  if (loading.value || !rs.value) return
+watch([moment, todayTotal, todayDone, loading, () => rs.value?.loaded.value], () => {
+  if (loading.value || !rs.value || !rs.value.loaded.value) return
   if (shouldPromptReview(moment.value, { todayTotal: todayTotal.value, todayDone: todayDone.value, prompted: rs.value.prompted.value, done: rs.value.done.value })) {
     promptOpen.value = true
     rs.value.markPrompted()

@@ -362,3 +362,27 @@ describe('시작 요일 — 한 주는 계획의 reviewDay 부터 7일(2026-10-3
     expect(T.weeksInMonth(2026, 10, '금')).toBe(5)
   })
 })
+
+describe('rescheduleFrom — 주간결산 속도 바꾸기', async () => {
+  const { rescheduleFrom } = await import('../composables/usePlanPace')
+  const P = (id: string, weeks: number, days = 3, duration = 60) => ({ id, name: id, weeks, days: ['월', '수', '금'].slice(0, days), duration, curriculum: [] }) as any
+  // a(1~2주) b(3~4주, 진행 중) c(5~6주) d(7~8주) — 4주차에 결산해 5주차부터 바꾼다
+  const ps = [P('a', 2), P('b', 2), P('c', 2), P('d', 2)]
+  const tl = [{ week: 1, projects: [ps[0]] }, { week: 3, projects: [ps[1]] }, { week: 5, projects: [ps[2]] }, { week: 7, projects: [ps[3]] }]
+  it('이미 시작한 프로젝트는 그대로, 안 한 것만 다시 놓는다', () => {
+    const r = rescheduleFrom(ps, tl, 4, 12)   // 4주차부터 — b 는 3주차에 시작해 진행 중
+    const at = (id: string) => r.timeline.find((s) => s.projects.some((p) => p.id === id))!.week
+    expect(at('a')).toBe(1); expect(at('b')).toBe(3)
+    // 주 12시간이면 c(3h) 는 b 가 남은 4주차에 같이 들어간다
+    expect(at('c')).toBe(4)
+  })
+  it('느린 속도면 하나씩 이어 놓여 늦게 끝난다', () => {
+    const slow = rescheduleFrom(ps, tl, 4, 3)
+    const fast = rescheduleFrom(ps, tl, 4, 24)
+    expect(slow.endWeek).toBeGreaterThan(fast.endWeek)
+  })
+  it('시간이 0분인 프로젝트도 60분으로 보고 계산한다', () => {
+    const zero = ps.map((p) => ({ ...p, duration: 0 }))
+    expect(rescheduleFrom(zero, tl, 4, 3).endWeek).toBe(rescheduleFrom(ps, tl, 4, 3).endWeek)
+  })
+})

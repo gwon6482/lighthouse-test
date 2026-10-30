@@ -7,9 +7,13 @@ import { useAchievementEntries } from './useAchievementEntries'
 import { computeWeekRangeContaining, parseDateKey, toDateKey } from './useWeeklySchedule'
 import { weekOfDate, weekStartOf, projectStartWeek, planWeekCount, weekDateRange } from '@/modules/career-design/composables/usePlanTimeline'
 import { weekEntriesOf } from '@/modules/career-design/composables/useProjectCurriculum'
-import { PACES, scheduleEndWeek, paceOfHours, DEFAULT_PACE_HOURS, type Pace } from '@/modules/career-design/composables/usePlanPace'
+import { PACES, paceOfHours, paceByKey, rescheduleFrom, DEFAULT_PACE_HOURS, type Pace } from '@/modules/career-design/composables/usePlanPace'
+import { req } from '@/shared/api'
+import { useAchievementStore } from '@/shared/stores/achievement'
+import { putWeeklyReview } from '../achievement.api'
+import { reviewState } from './useReviewState'
 import { categoryColor } from '../lib/planBoard'
-import type { DayOfWeek } from '@/modules/career-design/types/career-design'
+import type { DayOfWeek, TimelineSlot } from '@/modules/career-design/types/career-design'
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -122,24 +126,38 @@ export function useWeekReview() {
     })
     return Math.round(active.reduce((n, p) => n + ((p.days?.length ?? 0) * (withTime(p).duration ?? 0)) / 60, 0))
   })
+  // 지금 속도 — 계획에 저장된 속도(2026-10-30~)가 정본. 예전 계획은 결산 주의 주당 시간으로 짐작, 그것도 없으면 '꾸준히'
   const currentPace = computed<Pace>(() => {
+    const pl = plan.value
+    const saved = paceByKey(pl?.paceKey) ?? (pl?.paceHours ? paceOfHours(pl.paceHours) : undefined)
+    if (saved) return saved
     const h = weeklyHours.value
     if (!h) return paceOfHours(DEFAULT_PACE_HOURS)!
     return [...PACES].sort((a, b) => Math.abs(a.hours - h) - Math.abs(b.hours - h))[0]!
   })
   // 다음 주부터 남은 프로젝트를 그 속도로 다시 배치하면 언제 끝나는가
   const nextWeek = computed(() => (weekNo.value ?? 0) + 1)
+  // 그 속도로 다음 주부터 다시 배치하면(이미 시작한 프로젝트는 그대로) — 미리보기와 실제 적용이 같은 계산을 쓴다
   function endIfPace(pace: Pace) {
     const pl = plan.value
-    if (!pl) return { endDate: '', weeks: 0 }
-    const remaining = pl.projects.filter((p) => {
-      const sw = projectStartWeek(pl.timeline, p.id)
-      return sw === null || sw + (p.curriculum?.length || 2) - 1 >= nextWeek.value
-    })
-    const w = scheduleEndWeek(remaining.map(withTime), pace.hours)
-    const end = weekDateRange(pl.startDate, nextWeek.value + w - 1, pl.reviewDay)?.end ?? ''
-    return { endDate: end, weeks: w, remaining: remaining.length }
+    if (!pl) return { endDate: '', weeks: 0, remaining: 0, timeline: [] as TimelineSlot[] }
+    const r = rescheduleFrom(pl.projects, pl.timeline, nextWeek.value, pace.hours)
+    const remaining = pl.projects.filter((p) => { const sw = projectStartWeek(pl.timeline, p.id); return sw === null || sw >= nextWeek.value }).length
+    const end = weekDateRange(pl.startDate, r.endWeek, pl.reviewDay)?.end ?? ''
+    return { endDate: end, weeks: r.endWeek, remaining, timeline: r.timeline }
   }
+  // 지금 실제 타임라인이 끝나는 날 — 비교 기준(같은 속도로 '다시 계산한 날'과 비교하면 실제 배치와 어긋나
+  // 아무것도 안 바뀌는데 '늦어져요'로 나왔다, 2026-10-30)
+  const currentEnd = computed(() => {
+    const pl = plan.value
+    if (!pl) return ''
+    let last = 0
+    for (const sl of pl.timeline) for (const raw of sl.projects) {
+      const p = pl.projects.find((x) => x.id === raw.id) ?? raw
+      last = Math.max(last, sl.week + (p.weeks || p.curriculum?.length || 2) - 1)
+    }
+    return last ? (weekDateRange(pl.startDate, last, pl.reviewDay)?.end ?? '') : pl.endDate
+  })
   const recommendedPace = computed<Pace>(() => {
     const i = PACES.findIndex((p) => p.key === currentPace.value.key)
     if (reviewDraft.feel === 'tight') return PACES[Math.max(0, i - 1)]!
@@ -165,12 +183,47 @@ export function useWeekReview() {
     return out
   })
 
+  // ── 결산 마침 — 기록 저장 + (속도를 바꿨으면) 남은 계획 다시 배치 ──
+  const store = useAchievementStore()
+  async function finishReview(pace: Pace): Promise<boolean> {
+    const pl = plan.value; const r = range.value
+    if (!pl || !r) return false
+    const from = currentPace.value
+    const changed = pace.key !== from.key
+    const beforeEnd = currentEnd.value; const after = endIfPace(pace)
+    if (changed) {
+      // 1) 남은 프로젝트 재배치 → 2) 계획에 속도. 종료일은 재배치가 더 늦게 끝날 때만 늘린다(사용자가 정한 날을 당기지 않는다)
+      //    서버는 타임라인·기간이 바뀌면 이번 주부터 일정을 새로 만든다
+      await req.put(`/api/career-plan/${pl.planId}/timeline`, { timeline: after.timeline })
+      const extend = after.endDate && after.endDate > pl.endDate
+      await req.put(`/api/career-plan/${pl.planId}`, { paceKey: pace.key, paceHours: pace.hours, ...(extend ? { endDate: after.endDate } : {}) })
+    } else if (!pl.paceKey) {
+      await req.put(`/api/career-plan/${pl.planId}`, { paceKey: from.key, paceHours: from.hours }).catch(() => {}) // 예전 계획: 짐작한 속도를 저장해 둔다
+    }
+    await putWeeklyReview(pl.planId, r.weekStart, {
+      complete: true, weekEnd: r.weekEnd, weekNo: weekNo.value ?? undefined,
+      satisfaction: reviewDraft.satisfaction, note: reviewDraft.note, pledge: reviewDraft.pledge, feel: reviewDraft.feel,
+      paceFrom: from.key, paceTo: pace.key,
+      endDateFrom: changed ? beforeEnd : '', endDateTo: changed ? after.endDate : '',
+      stats: {
+        planned: planned.value, done: done.value, percent: percent.value, fullDays: fullDays.value, workDays: workDays.value,
+        minutes: minutes.value, photos: photos.value, streak: board.streak.value,
+        progressBefore: beforePercent.value, progressAfter: progress.value.percent, gainItems: weekGain.value.count,
+      },
+    })
+    reviewState(pl.planId, r.weekStart).markDone()
+    Object.assign(reviewDraft, { satisfaction: 0, note: '', pledge: '', feel: '', paceKey: '' })
+    if (changed) await store.loadActivePlan(true)
+    return true
+  }
+
   return {
     ...board,
+    finishReview,
     range, weekNo, rangeLabel, totalWeeks,
     days, planned, done, percent, fullDays, workDays, minutes, photos, headline,
     weekGain, beforePercent,
-    weeklyHours, currentPace, recommendedPace, endIfPace, nextWeek,
+    weeklyHours, currentPace, recommendedPace, endIfPace, nextWeek, currentEnd,
     nextDays,
   }
 }

@@ -22,6 +22,12 @@ export default [
     component: () => import('./pages/CareerAchievementReviewFlowPage.vue'),
   },
   {
+    // 주간결산 모아보기(2026-10-30) — 마이페이지 '진로 관리'
+    path: '/career-achievement/reviews',
+    name: 'Career Achievement Reviews',
+    component: () => import('./pages/CareerAchievementReviewsPage.vue'),
+  },
+  {
     path: '/career-achievement/weekly-review',
     name: 'Career Achievement Weekly Review',
     component: () => import('./pages/CareerAchievementWeeklyReviewPage.vue'),

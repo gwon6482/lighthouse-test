@@ -1,18 +1,25 @@
-// 주간결산 상태(한 주 단위) — 팝업을 띄웠는지, 결산을 마쳤는지.
-// ⚠️ 임시로 이 기기(localStorage)에만 둔다(2026-10-30 시안). 4단계 API 작업에서 서버(그 주 weekly-schedule 의 결산 기록)로 옮긴다
+// 주간결산 상태(한 주 단위) — 팝업을 띄웠는지, 결산을 마쳤는지. 서버 weekly_reviews 가 정본(2026-10-30~)
+// (시안 때는 기기 localStorage 에 뒀다)
 import { ref, type Ref } from 'vue'
+import { fetchWeeklyReview, putWeeklyReview } from '../achievement.api'
 
-const cache = new Map<string, { prompted: Ref<boolean>; done: Ref<boolean>; markPrompted: () => void; markDone: () => void }>()
-const read = (k: string) => { try { return localStorage.getItem(k) === '1' } catch { return false } }
-const write = (k: string) => { try { localStorage.setItem(k, '1') } catch { /* 저장 못 해도 화면은 된다 */ } }
+interface State { loaded: Ref<boolean>; prompted: Ref<boolean>; done: Ref<boolean>; markPrompted: (extra?: Record<string, unknown>) => void; markDone: () => void }
+const cache = new Map<string, State>()
 
-export function reviewState(planId: string, weekStart: string) {
+export function reviewState(planId: string, weekStart: string): State {
   const key = `${planId}:${weekStart}`
   let s = cache.get(key)
   if (!s) {
-    const pk = `lh_review_prompted_${key}`, dk = `lh_review_done_${key}`
-    const prompted = ref(read(pk)), done = ref(read(dk))
-    s = { prompted, done, markPrompted: () => { prompted.value = true; write(pk) }, markDone: () => { done.value = true; write(dk) } }
+    const loaded = ref(false), prompted = ref(false), done = ref(false)
+    fetchWeeklyReview(planId, weekStart)
+      .then((r) => { prompted.value = !!r?.promptedAt; done.value = !!r?.completedAt })
+      .catch(() => { /* 못 읽으면 안 띄운다 — 아래 loaded 를 true 로 두지 않는다 */ })
+      .finally(() => { loaded.value = true })
+    s = {
+      loaded, prompted, done,
+      markPrompted: (extra = {}) => { prompted.value = true; putWeeklyReview(planId, weekStart, { prompted: true, ...extra }).catch(() => {}) },
+      markDone: () => { done.value = true },
+    }
     cache.set(key, s)
   }
   return s

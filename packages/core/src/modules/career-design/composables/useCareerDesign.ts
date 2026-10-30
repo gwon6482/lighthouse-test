@@ -1408,6 +1408,9 @@ export function useCareerDesign() {
         targetJob: draftPlan.targetJob,
         startDate: draftPlan.startDate,
         endDate:   draftPlan.endDate,
+        // 진행 속도도 서버에(2026-10-30~) — 주간결산에서 '지금 속도'로 쓰고 바꿀 수 있다
+        ...(draftPlan.paceKey ? { paceKey: draftPlan.paceKey } : {}),
+        ...(draftPlan.weeklyHours ? { paceHours: draftPlan.weeklyHours } : {}),
       }
       if (draftPlan.planId) {
         await req.put(`/api/career-plan/${draftPlan.planId}`, payload)
@@ -1588,6 +1591,8 @@ export function useCareerDesign() {
       draftPlan.startDate = plan.startDate ?? ''
       draftPlan.endDate   = plan.endDate   ?? ''
       draftPlan.reviewDay = plan.reviewDay ?? ''
+      draftPlan.paceKey   = plan.paceKey || undefined
+      draftPlan.weeklyHours = plan.paceHours ?? undefined
       draftPlan.projects  = plan.projects  ?? []
       draftPlan.routines  = plan.routines  ?? []
       draftTimeline.value = plan.timeline  ?? []

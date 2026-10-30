@@ -106,3 +106,18 @@
   &__next { flex: 2; padding: 16px; border: 0; border-radius: $radius-lg; background: $color-text; color: $color-surface; font: inherit; font-size: $fs-base; font-weight: $fw-bold; cursor: pointer;
     &:disabled { opacity: 0.35; cursor: default; } }
 }
+
+// 주간결산 모아보기
+.rvl-back { width: 36px; height: 36px; margin: -6px 0 -6px -10px; border: 0; background: none; display: grid; place-items: center; font-size: 22px; cursor: pointer; align-self: center; }
+.rvl { list-style: none; margin: 0; padding: $space-lg $space-lg 0; display: grid; gap: $space-md; }
+.rvl-card {
+  display: grid; gap: 12px; padding: 16px; border-radius: $radius-card; background: $color-surface;
+  &__head { display: flex; align-items: center; gap: 8px; strong { font-size: 16px; } span { font-size: $fs-xs; color: $color-text-secondary; font-variant-numeric: tabular-nums; } }
+  &__stars { margin-left: auto; display: inline-flex; gap: 1px; font-size: 13px; color: $color-border-strong; .on { color: #F5A524; } }
+  &__nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+    div { display: grid; gap: 2px; padding: 10px; border-radius: $radius-md; background: $color-surface-alt; }
+    b { font-size: $fs-md; font-variant-numeric: tabular-nums; } small { font-size: 11px; color: $color-text-secondary; } }
+  &__note { margin: 0; font-size: $fs-sm; line-height: 1.5; }
+  &__pledge { display: flex; align-items: center; gap: 6px; margin: 0; padding: 8px 10px; border-radius: $radius-md; background: $color-primary-tint; font-size: $fs-xs; font-weight: $fw-semibold; }
+  &__pace { margin: 0; font-size: $fs-xs; color: #C2410C; b { font-weight: $fw-bold; } }
+}

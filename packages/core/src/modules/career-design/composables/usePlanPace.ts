@@ -4,7 +4,7 @@
 //   숫자를 계산하게 하지 않고 "어떤 생활이면 언제 끝나는지"를 보고 고르게 한다.
 // ⚠️ 주당 시간 값(5·8·12·16·24)은 데이터 근거 없이 정한 출발값이다(생활 모습 설명에 맞춘 대략치). 사용 데이터로 다듬을 것.
 import type { Project, TimelineSlot } from '../types/career-design'
-import { autoSchedule, projectEndWeek, weekDateRange, type WeekStart } from './usePlanTimeline'
+import { autoSchedule, projectEndWeek, projectWeeks, projectHoursPerWeek, weekDateRange, type WeekStart } from './usePlanTimeline'
 
 export interface Pace {
   key: 'light' | 'steady' | 'focus' | 'full' | 'allin'
@@ -59,3 +59,50 @@ export function monthLabelOfWeek(startDate: string, week: number, start?: WeekSt
 
 /** "약 13개월" */
 export const monthsLabel = (weeks: number) => `약 ${Math.max(1, Math.round(weeks / 4.33))}개월`
+
+// ── 주간결산에서 속도 바꾸기(2026-10-30) — 남은 계획 다시 배치 ──
+// 규칙: fromWeek(다음 주) 전에 이미 시작한 프로젝트는 **그대로 둔다**(옮기면 커리큘럼 주차·완료 기록이 어긋난다).
+//       아직 시작 안 한 프로젝트(미배치 포함)만 원래 순서(시작 주차 → 미배치는 계획 순서)대로 fromWeek 부터 새 속도로 놓는다.
+//       진행 중인 프로젝트가 남은 주에 쓰는 시간은 미리 깔고 그 위에 얹는다.
+// 시간이 0인(서버 수정 전) 프로젝트는 fallbackMin 분으로 본다 — 안 그러면 '시간이 안 드는 프로젝트'가 된다
+export function rescheduleFrom(
+  projects: Project[], timeline: TimelineSlot[], fromWeek: number, hours: number, fallbackMin = 60,
+): { timeline: TimelineSlot[]; endWeek: number; moved: number } {
+  const timed = (p: Project) => (p.duration ? p : { ...p, duration: fallbackMin })
+  const startOf = new Map<string, number>()
+  for (const s of timeline) for (const p of s.projects) if (!startOf.has(p.id) || s.week < startOf.get(p.id)!) startOf.set(p.id, s.week)
+  const kept = projects.filter((p) => (startOf.get(p.id) ?? Infinity) < fromWeek)
+  const toPlace = projects
+    .filter((p) => !((startOf.get(p.id) ?? Infinity) < fromWeek))
+    .sort((a, b) => (startOf.get(a.id) ?? Infinity) - (startOf.get(b.id) ?? Infinity))
+  // 진행 중인 프로젝트가 fromWeek 이후에 쓰는 시간 = 미리 깔린 부하(0 = fromWeek)
+  const preload: number[] = []
+  for (const p of kept) {
+    const s = startOf.get(p.id)!
+    const end = projectEndWeek(s, p)
+    for (let w = Math.max(s, fromWeek); w <= end; w++) preload[w - fromWeek] = (preload[w - fromWeek] ?? 0) + projectHoursPerWeek(timed(p))
+  }
+  // autoSchedule 와 같은 규칙(순서 유지·예산 안 넘는 가장 이른 주) + 미리 깔린 부하
+  const load = [...preload]
+  let floor = 0
+  const placed: { week: number; project: Project }[] = []
+  for (const p of toPlace) {
+    const w = projectWeeks(p); const h = projectHoursPerWeek(timed(p))
+    let s = floor
+    for (;; s++) {
+      let ok = true
+      for (let k = 0; k < w; k++) { const l = load[s + k] ?? 0; if (l > 0 && l + h > hours) { ok = false; break } }
+      if (ok) break
+    }
+    for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
+    placed.push({ week: fromWeek + s, project: p })
+    floor = s
+  }
+  const slots: TimelineSlot[] = []
+  const put = (week: number, p: Project) => { let sl = slots.find((x) => x.week === week); if (!sl) { sl = { week, projects: [] }; slots.push(sl) } sl.projects.push(p) }
+  for (const p of kept) put(startOf.get(p.id)!, p)
+  for (const { week, project } of placed) put(week, project)
+  slots.sort((a, b) => a.week - b.week)
+  const endWeek = Math.max(0, ...kept.map((p) => projectEndWeek(startOf.get(p.id)!, p)), ...placed.map(({ week, project }) => projectEndWeek(week, project)))
+  return { timeline: slots, endWeek, moved: placed.filter(({ week, project }) => startOf.get(project.id) !== week).length }
+}

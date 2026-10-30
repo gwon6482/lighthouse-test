@@ -13,6 +13,8 @@ interface ActivePlan {
   startDate: string
   endDate: string
   reviewDay: DayOfWeek | ''
+  paceKey?: string          // 진행 속도(2026-10-30~ 서버 저장). 예전 계획은 비어 있다
+  paceHours?: number | null
   status: 'draft' | 'active' | 'completed'
   projects: Project[]
   routines: Routine[]
@@ -70,6 +72,8 @@ export const useAchievementStore = defineStore('achievement', () => {
         startDate: p.startDate ?? '',
         endDate:   p.endDate   ?? '',
         reviewDay: p.reviewDay ?? '',
+        paceKey:   p.paceKey   ?? '',
+        paceHours: p.paceHours ?? null,
         status:    p.status    ?? 'draft',
         projects:  p.projects  ?? [],
         routines:  p.routines  ?? [],

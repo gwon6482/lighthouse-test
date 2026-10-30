@@ -1,5 +1,5 @@
 <template>
-  <!-- 주간결산(2026-10-30 시안) — 단계마다 페이지(/career-achievement/review/1~5). ⚠️ 평가·템포는 아직 저장하지 않는다 -->
+  <!-- 주간결산(2026-10-30) — 단계마다 페이지(/career-achievement/review/1~5). 마지막에 기록 저장 + 속도를 바꿨으면 남은 계획 재배치 -->
   <div class="wv">
     <header class="wv-bar">
       <div class="wv-bar__row">
@@ -115,9 +115,9 @@
             </template>
             <template v-else>
               <strong>전체 계획이 다시 짜여요</strong>
-              <p>남은 프로젝트 {{ impact.remaining }}개를 {{ nextWeek }}주차부터 '{{ chosen.title }}' 속도로 다시 배치해요.</p>
+              <p>아직 시작 안 한 프로젝트 {{ impact.remaining }}개를 {{ nextWeek }}주차부터 '{{ chosen.title }}' 속도로 다시 배치해요. 진행 중인 프로젝트는 그대로예요.</p>
               <p class="wv-impact__date">완료 예정 {{ ymd(baseline.endDate) }} → <b>{{ ymd(impact.endDate) }}</b> <em>{{ diffLabel }}</em></p>
-              <p class="wv-impact__note">결산을 마칠 때 적용돼요. (시안 — 아직 실제로 바꾸지 않아요)</p>
+              <p class="wv-impact__note">마지막 단계에서 [다음 주 시작하기]를 누르면 적용돼요.</p>
             </template>
           </div>
         </template>
@@ -141,19 +141,18 @@
     <footer v-if="plan && range" class="wv-foot">
       <button v-if="step > 1" type="button" class="wv-foot__prev" @click="go(step - 1)">이전</button>
       <button v-if="step < 5" type="button" class="wv-foot__next" :disabled="!canNext" @click="go(step + 1)">다음</button>
-      <button v-else type="button" class="wv-foot__next" @click="finish">다음 주 시작하기</button>
+      <button v-else type="button" class="wv-foot__next" :disabled="saving" @click="finish">{{ saving ? '저장 중...' : '다음 주 시작하기' }}</button>
     </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { useWeekReview, reviewDraft } from '../composables/useWeekReview'
 import { PACES } from '@/modules/career-design/composables/usePlanPace'
 import { parsePlanDate, daysBetween } from '../lib/planBoard'
-import { reviewState } from '../composables/useReviewState'
 
 const route = useRoute()
 const router = useRouter()
@@ -163,7 +162,7 @@ const {
   range, weekNo, rangeLabel, totalWeeks,
   days, planned, done, percent, fullDays, workDays, minutes, photos, headline,
   weekGain, beforePercent,
-  currentPace, recommendedPace, endIfPace, nextWeek, nextDays,
+  currentPace, recommendedPace, endIfPace, nextWeek, nextDays, finishReview, currentEnd,
 } = useWeekReview()
 
 const SATISFACTION = [
@@ -179,24 +178,35 @@ function pickFeel(k: 'tight' | 'fit' | 'loose') {
 }
 const chosenKey = computed(() => reviewDraft.paceKey || recommendedPace.value.key)
 const chosen = computed(() => PACES.find((p) => p.key === chosenKey.value)!)
-const impact = computed(() => endIfPace(chosen.value) as { endDate: string; weeks: number; remaining: number })
+const impact = computed(() => endIfPace(chosen.value))
 const ymd = (s?: string) => { const d = parsePlanDate(s); return d ? `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}` : '-' }
 // 비교 기준 = 지금 속도로 남은 프로젝트를 다시 놓았을 때(같은 계산끼리 비교해야 늦어짐/빨라짐이 맞다)
-const baseline = computed(() => endIfPace(currentPace.value) as { endDate: string; weeks: number; remaining: number })
+const baseline = computed(() => ({ endDate: currentEnd.value }))
 const diffLabel = computed(() => {
   const a = parsePlanDate(baseline.value.endDate); const b = parsePlanDate(impact.value.endDate)
   if (!a || !b) return ''
   const w = Math.round(daysBetween(a, b) / 7)
-  return w === 0 ? '비슷해요' : w > 0 ? `${w}주 늦어져요` : `${-w}주 빨라져요`
+  return w === 0 ? '끝나는 때는 비슷해요' : w > 0 ? `${w}주 늦어져요` : `${-w}주 빨라져요`
 })
 
 const canNext = computed(() => (step.value === 3 ? reviewDraft.satisfaction > 0 : step.value === 4 ? !!reviewDraft.feel : true))
 const go = (n: number) => router.replace({ name: 'Career Achievement Review', params: { step: String(n) } })
 const close = () => router.push({ name: 'Career Achievement' })
-function finish() {
-  // 결산 마침 표시(팝업·버튼이 이번 주엔 다시 안 나온다). 평가 저장·속도 적용은 4단계(API) 작업에서
-  if (plan.value && range.value) reviewState(plan.value.planId, range.value.weekStart).markDone()
-  router.push({ name: 'Career Achievement' })
+const saving = ref(false)
+async function finish() {
+  if (saving.value) return
+  const changed = chosen.value.key !== currentPace.value.key
+  // 속도를 바꾸면 계획 전체가 다시 짜인다 — 한 번 더 알려 주고 확인(사용자: 알려 줘야 한다)
+  if (changed && !confirm(`속도를 '${chosen.value.title}'(으)로 바꾸면 남은 프로젝트 ${impact.value.remaining}개가 다시 배치되고\n완료 예정이 ${ymd(baseline.value.endDate)} → ${ymd(impact.value.endDate)}로 바뀌어요.\n적용할까요?`)) return
+  saving.value = true
+  try {
+    await finishReview(chosen.value)
+    router.push({ name: 'Career Achievement' })
+  } catch {
+    alert('결산을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
+  } finally {
+    saving.value = false
+  }
 }
 
 onMounted(load)
