@@ -7,6 +7,21 @@
   min-height: 100dvh;
   background: $color-surface-page;
 
+  // 데스크탑에서 양옆으로 퍼지지 않게 내용은 가운데 480px 한 줄 — 헤더·바탕만 화면 끝까지
+  > :not(.app-header) {
+    width: 100%;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+  }
+
+  // 소개 박스는 바깥 여백(좌우 $space-lg)이 있어 그만큼 좁힌다
+  > .su-main__intro {
+    width: calc(100% - #{$space-lg * 2});
+    max-width: 480px - $space-lg * 2;
+  }
+
   &__hero {
     padding: 28px $space-lg $space-xl;
     text-align: center;
@@ -22,7 +37,7 @@
 
   &__subtitle {
     font-size: $fs-sm;
-    color: $color-text-secondary;
+    color: $color-text-sub;
 
   }
 
@@ -47,7 +62,7 @@
 
   &__section-sub {
     font-size: $fs-2xs;
-    color: $color-text-tertiary;
+    color: $color-text-meta;
     margin-top: -4px;
     margin-left: 1px;
   }
@@ -83,7 +98,7 @@
   &__part-label {
     font-size: 11px;
     font-weight: $fw-semibold;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.5px;
   }
 
   &__part-title {
@@ -92,30 +107,25 @@
     color: $color-text;
   }
 
-  &__part-emoji {
-    font-size: 28px;
-    line-height: 1;
-  }
-
   &__part-desc {
     font-size: $fs-xs;
-    color: $color-text-secondary;
+    color: $color-text-sub;
     line-height: $lh-body;
   }
 
-  &__part-pills {
+  &__part-keywords {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
   }
 
-  &__pill {
+  // 요약 키워드 배지 — 색은 영역별 인라인(color·bg·line), 결과지 배지처럼 굵게
+  &__keyword {
     font-size: $fs-2xs;
-    font-weight: $fw-medium;
+    font-weight: $fw-semibold;
     padding: 3px 10px;
     border-radius: $radius-pill;
-    border: 1px solid $color-border;
-    color: $color-text-secondary;
-    background: $color-surface-alt;
+    border: 1px solid;
   }
 
   &__tips {
@@ -145,7 +155,7 @@
     display: flex;
     gap: 10px;
     font-size: $fs-xs;
-    color: $color-text-hover;
+    color: $color-text-body;
     line-height: $lh-body;
   }
 

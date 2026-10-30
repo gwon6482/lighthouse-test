@@ -1,6 +1,11 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
+// 데스크탑에서 헤더·문항·푸터가 양 끝으로 퍼지지 않게 내용은 가운데 640px 폭에 모은다 — 바탕·선은 화면 끝까지 (2026-10-30)
+// 좌우 여백 = 최소 20px, 화면이 넓으면 (폭 - 640px) / 2
+$survey-inner-x: #{'max(20px, calc((100% - 640px) / 2))'};
+$survey-mobile-max: 480px;
+
 .survey-test {
   min-height: 100dvh;
   display: flex;
@@ -53,17 +58,31 @@
     }
   }
 
+  /* 헤더 + 진행바 — 스크롤해도 위에 고정 */
+  .survey-top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
   /* 헤더 */
   .survey-header {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    padding: 18px 20px;
+    padding: 18px $survey-inner-x;
     background: $color-surface;
     border-bottom: 1px solid $color-border;
 
     &--geunmu {
-      padding: 12px 20px;
+      padding: 12px $survey-inner-x;
+    }
+
+    // 모바일은 한 줄이 빠듯해 인사말을 뺀다 — 이름이 길면 옆 글씨와 겹친다
+    @media (max-width: $survey-mobile-max) {
+      grid-template-columns: 1fr auto;
+
+      .survey-header__greeting { display: none; }
     }
 
     .part-info {
@@ -99,20 +118,15 @@
       text-align: center;
       font-size: $fs-xs;
       font-weight: $fw-regular;
-      color: $color-text-tertiary;
+      color: $color-text-meta; // 결과지 메타 회색 (#999 는 흐려서 바꿈, 2026-10-30)
       letter-spacing: -0.1px;
       margin: 0;
       white-space: nowrap;
-
-      strong {
-        font-weight: $fw-semibold;
-        color: $color-text;
-      }
     }
 
     .page-info {
       font-size: $fs-sm;
-      color: $color-text-hover;
+      color: $color-text-sub; // 결과지 보조 회색
       text-align: right;
     }
   }
@@ -129,19 +143,11 @@
     }
   }
 
-  .progress-text {
-    padding: $space-sm 20px;
-    font-size: $fs-2xs;
-    color: $color-text-secondary;
-    background: $color-surface;
-    text-align: right;
-  }
-
   /* 질문 영역 */
   .question-area {
     flex: 1;
     // padding: $space-lg 20px $space-sm;
-    padding: 0 20px;
+    padding: $space-sm $survey-inner-x 0;
     background: $color-surface;
     margin: 0;
     overflow-y: auto;
@@ -152,17 +158,19 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: $space-md $space-xl;
+    gap: $space-md;
+    padding: $space-md $survey-inner-x;
     background: $color-surface;
     border-top: 1px solid $color-border;
     position: sticky;
     bottom: 0;
 
     .nav-btn {
-      padding: $space-md 20px;
+      height: 48px;
+      padding: 0 $space-xl;
       border: none;
-      border-radius: 10px;
-      font-size: $fs-sm;
+      border-radius: $radius-md;
+      font-size: $fs-md;
       font-weight: $fw-medium;
       cursor: pointer;
       transition: background $transition-base;
@@ -181,16 +189,21 @@
 
       &.next,
       &.submit {
+        min-width: 140px;
         background: $color-text;
         color: $color-surface;
 
         &:hover:not(:disabled) { background: $color-text-hover; }
       }
-    }
 
-    .page-indicator {
-      font-size: $fs-sm;
-      color: $color-text-secondary;
+      // 모바일은 버튼이 문항보다 눈에 띄지 않게 작게
+      @media (max-width: $survey-mobile-max) {
+        height: 44px;
+
+        &.prev { min-width: 80px; padding: 0; }
+        &.next,
+        &.submit { min-width: 112px; }
+      }
     }
   }
 }

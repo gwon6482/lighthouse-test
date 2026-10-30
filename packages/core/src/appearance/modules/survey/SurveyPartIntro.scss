@@ -1,83 +1,59 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
+// 파트 표지 — 영역색 짧은 선 + 큰 제목 + 체크 목록 (2026-10-30)
+// 영역색은 컴포넌트가 --pi-area(글씨) · --pi-area-bg(바탕) 로 넘긴다
 .pi-wrap {
   max-width: 420px;
-  margin: 0 auto;
-  padding: $space-xl $space-lg 40px;
+  margin: 20px auto 0;
+  padding: $space-xl 20px 40px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: $space-xl;
 
-  /* 상단 메타 */
-  .pi-meta-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  .pi-rule {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--pi-area);
+  }
+
+  /* 메타 + 타이틀 */
+  .pi-meta {
+    font-size: $fs-xs;
+    font-weight: $fw-regular;
+    color: $color-text-meta;
+    margin-bottom: 6px;
   }
 
   .pi-label {
-    font-size: $fs-xs;
-    font-weight: $fw-medium;
-    color: $color-text-secondary;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-
-  .pi-badges {
-    display: flex;
-    gap: 6px;
-  }
-
-  .pi-badge {
-    font-size: $fs-2xs;
-    font-weight: $fw-regular;
-    padding: 3px 10px;
-    border-radius: $radius-pill;
-    border: 1px solid $color-border;
-    color: $color-text-secondary;
-    background: $color-surface-alt;
-  }
-
-  /* 히어로 */
-  .pi-hero {
-    display: flex;
-    flex-direction: column;
-    // gap: $space-sm;
-  }
-
-  .pi-emoji {
-    font-size: 40px;
-    line-height: 1;
-    margin-bottom: $space-sm;
+    font-weight: $fw-semibold;
+    color: var(--pi-area);
   }
 
   .pi-title {
-    font-size: 26px;
-    font-weight: $fw-semibold;
+    font-size: 30px;
+    font-weight: $fw-bold;
     color: $color-text;
-    line-height: 1.2;
-    margin-bottom: 2px;
+    line-height: $lh-heading;
+    letter-spacing: -0.6px;
+    margin-bottom: 6px;
   }
 
   .pi-desc {
     font-size: $fs-md;
-    color: $color-text-secondary;
-    margin-left: 1px; // optical alignment with title
+    color: $color-text-sub;
     line-height: $lh-body;
   }
 
-  /* 핵심 안내 */
+  /* 핵심 안내 — 체크 목록 */
   .pi-highlights {
     display: flex;
     flex-direction: column;
-    gap: $space-md;
-    padding: $space-lg;
+    gap: 14px;
     margin: 0;
+    padding: 0;
     list-style: none;
-    background: $color-surface-alt;
-    border-radius: $radius-lg;
-    border: 1px solid $color-border;
   }
 
   .pi-hi-item {
@@ -86,18 +62,24 @@
     align-items: flex-start;
   }
 
-  .pi-hi-dot {
+  .pi-hi-check {
     flex-shrink: 0;
-    width: 6px;
-    height: 6px;
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
     border-radius: 50%;
-    background: $color-text-secondary;
-    margin-top: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--pi-area);
+    background: var(--pi-area-bg);
   }
 
   .pi-hi-text {
     font-size: $fs-sm;
-    color: $color-text;
+    color: $color-text-body;
     line-height: $lh-body;
+    word-break: keep-all;
   }
 }

@@ -8,16 +8,16 @@
 
     <!-- 설문 내용 -->
     <template v-else-if="currentPage">
-      <!-- 헤더 -->
-      <SurveyHeader
-        v-if="currentPartInfo && currentPartPageInfo"
-        :currentPartInfo="currentPartInfo"
-        :currentPartPageInfo="currentPartPageInfo"
-        :userName="userName || undefined"
-      />
-
-      <!-- 진행바 -->
-      <SurveyProgressBar :progress="progress" />
+      <!-- 헤더 + 진행바 — 스크롤해도 위에 고정 -->
+      <div class="survey-top">
+        <SurveyHeader
+          v-if="currentPartInfo && currentPartPageInfo"
+          :currentPartInfo="currentPartInfo"
+          :currentPartPageInfo="currentPartPageInfo"
+          :isCover="isPartIntro"
+        />
+        <SurveyProgressBar :progress="progress" />
+      </div>
 
       <!-- 질문 영역 -->
       <main class="question-area">
@@ -81,9 +81,8 @@
 
       <!-- 네비게이션 -->
       <footer class="survey-footer">
+        <!-- 전체 페이지 번호는 두지 않는다 — 진행은 헤더의 파트 페이지 수와 진행바로 보여준다 -->
         <SurveyNavBtnPrev @goToPrevPage="handlePrev" />
-
-        <SurveyNavCurrentPage :currentPageIndex="currentPageIndex" :totalPages="totalPages" />
 
         <SurveyNavBtnNext
           v-if="!isLastPage"
@@ -114,7 +113,6 @@
  * 라우트: /self-understanding/test
  */
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
-import { computed } from 'vue'
 import { useSurvey } from '../composables/useSurvey'
 import { useAuthStore } from '@/shared/stores/auth'
 import { linkSurveyToUser } from '../survey.api'
@@ -130,14 +128,12 @@ import SurveyProgressBar from '../components/page/su-test-page/SurveyProgressBar
 import SurveyNavBtnNext from '../components/page/su-test-page/SurveyNavBtnNext.vue'
 import SurveyNavBtnSubmit from '../components/page/su-test-page/SurveyNavBtnSubmit.vue'
 import SurveyNavBtnPrev from '../components/page/su-test-page/SurveyNavBtnPrev.vue'
-import SurveyNavCurrentPage from '../components/page/su-test-page/SurveyNavCurrentPage.vue'
 import ScaleQuestion2 from '../components/page/su-test-page/su-questions/ScaleQuestion2.vue'
 import ScaleQuestion10 from '../components/page/su-test-page/su-questions/ScaleQuestion10.vue'
 import SurveyPartIntro from '../components/page/su-test-page/SurveyPartIntro.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const userName = computed(() => authStore.user?.name ?? authStore.user?.email ?? '')
 
 const {
   surveyId,
@@ -146,10 +142,10 @@ const {
   scaleType,
   answers,
   currentPage,
-  totalPages,
   currentPageIndex,
   currentPartInfo,
   currentPartPageInfo,
+  isPartIntro,
   progress,
   isLastPage,
   isCurrentPageComplete,

@@ -1,3 +1,5 @@
+import type { AreaColor } from '@/modules/survey/surveyIcons'
+
 export interface SurveyFormResponse {
   survey_id: string
   '2_values': number[]
@@ -10,7 +12,7 @@ export interface PartIntroData {
   partLabel: string        // 예: '파트 1'
   title: string            // 예: '성격 & 기질'
   description: string      // 한 줄 부제
-  icon: string        // 영역 아이콘 이름(surveyIcons.AREA_ICON)
+  color: AreaColor         // 영역 색(surveyIcons.AREA_COLOR)
   questionCount: string    // 예: '43문항', '총 103문항', '6개 항목'
   estimatedMinutes?: number // T3는 undefined (시간 표시 없음)
   highlights: string[]     // 핵심 안내 문구 목록

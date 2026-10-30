@@ -22,7 +22,7 @@
 
 <script setup lang="ts">
 import AppIcon from '@/shared/components/AppIcon.vue'
-const STEPS = ['자기이해', '직업 탐색', '진로계획', '진로달성'] as const
+const STEPS = ['자기 이해', '직업 탐색', '진로 계획', '진로 실현'] as const
 
 defineProps<{
   step: 0 | 1 | 2 | 3

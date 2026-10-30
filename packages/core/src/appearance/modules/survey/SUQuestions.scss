@@ -1,50 +1,57 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
+// 글씨 회색은 결과지 4단계(강조 $color-text · 본문 $color-text-body · 보조 $color-text-sub · 메타 $color-text-meta)만 쓴다 (2026-10-30)
+
 /* ScaleQuestion2 */
 .scale-question-2 {
-  padding: 32px 0;
+  padding: 28px 0;
   border-bottom: 1px solid $color-border;
 
   &:first-child { padding-top: 10px; }
   &:last-child  { border-bottom: none; }
 
+  // 문항 글씨는 베이직(ScaleQuestion5)과 같게
   .question-text {
     text-align: center;
-    font-size: $fs-base;
+    font-size: 17px;
     line-height: $lh-body;
-    color: $color-text;
-    margin-bottom: 18px;
+    color: $color-text-body; // 문항은 문장 — 결과지 본문 회색
+    word-break: keep-all;
+    margin-bottom: 20px;
+
+    @media (max-width: 480px) { font-size: $fs-base; }
   }
 
   .question-num {
-    font-weight: $fw-medium;
-    color: $color-text-hover;
+    font-weight: $fw-semibold;
+    color: $color-text-meta;
     margin-right: 4px;
   }
 
+  // X·O 를 한 묶음으로 붙이고 그림자 없이 평평하게 — 베이직 원 버튼과 같은 톤 (2026-10-30)
   .options {
     display: flex;
-    gap: 50px;
+    gap: $space-lg;
     justify-content: center;
     align-items: center;
   }
 
   .option-btn {
-    width: 120px;
-    height: 60px;
-    border-radius: 10px;
+    width: 136px;
+    height: 56px;
+    border-radius: $radius-lg;
     border: 2px solid;
     background: $color-surface;
     cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     transition: all $transition-base;
-    font-size: 30px;
+    font-size: 32px;
+    font-weight: $fw-semibold;
 
     &:hover {
       border-color: $color-text-secondary;
       background: $color-surface-alt;
-      color: $color-text-secondary;
+      color: $color-text-meta;
     }
 
     &.btn-O {
@@ -69,7 +76,7 @@
 
 /* ScaleQuestion5 */
 .scale-question-5 {
-  padding: 32px 0;
+  padding: 28px 0;
   border-bottom: 1px solid $color-border;
 
   &:first-child { padding-top: 10px; }
@@ -77,16 +84,25 @@
 
   .question-text {
     text-align: center;
-    font-size: $fs-base;
+    font-size: 17px;
     line-height: $lh-body;
-    color: $color-text;
-    margin-bottom: 18px;
+    color: $color-text-body; // 문항은 문장 — 결과지 본문 회색
+    word-break: keep-all; // "추구한 / 다" 처럼 단어 중간에서 꺾이지 않게
+    margin-bottom: 20px;
+
+    @media (max-width: 480px) { font-size: $fs-base; }
   }
 
   .question-num {
-    font-weight: $fw-medium;
-    color: $color-text-hover;
+    font-weight: $fw-semibold;
+    color: $color-text-meta;
     margin-right: 4px;
+  }
+
+  // 원 묶음 + 양 끝 라벨 — 같은 폭으로 가운데
+  .scale-track {
+    width: fit-content;
+    margin: 0 auto;
   }
 
   .options {
@@ -94,11 +110,31 @@
     gap: 28px;
     justify-content: center;
     align-items: center;
+
+    @media (max-width: 480px) { gap: 18px; }
+  }
+
+  // 라벨 가운데 = 양 끝 원(48px)의 가운데 → 끝에서 24px
+  .scale-ends {
+    position: relative;
+    height: 16px;
+    margin-top: $space-sm;
+    font-size: $fs-2xs;
+    color: $color-text-meta;
+    white-space: nowrap;
+  }
+
+  .scale-end {
+    position: absolute;
+    top: 0;
+
+    &--low  { left: 24px;  transform: translateX(-50%); }
+    &--high { right: 24px; transform: translateX(50%); }
   }
 
   .option-btn {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     border-radius: $radius-pill;
     border: 2px solid;
     background: $color-surface;
@@ -120,16 +156,16 @@
       --btn-color: #FF6B57;
       border-color: rgba(255, 107, 87, 0.4);
       color: #FF6B57;
-      width: 44px;
-      height: 44px;
+      width: 48px;
+      height: 48px;
     }
 
     &.btn-bad2 {
       --btn-color: #FF9A8B;
       border-color: rgba(255, 107, 87, 0.25);
       color: #FF9A8B;
-      width: 37px;
-      height: 37px;
+      width: 40px;
+      height: 40px;
     }
 
     &.btn-mid {
@@ -142,16 +178,16 @@
       --btn-color: #5DBA8A;
       border-color: rgba(31, 182, 106, 0.35);
       color: #5DBA8A;
-      width: 37px;
-      height: 37px;
+      width: 40px;
+      height: 40px;
     }
 
     &.btn-good {
       --btn-color: #{$color-success};
       border-color: rgba($color-success, 0.5);
       color: $color-success;
-      width: 44px;
-      height: 44px;
+      width: 48px;
+      height: 48px;
     }
 
     &.btn-bad,
@@ -170,60 +206,77 @@
 
 /* ScaleQuestion10 */
 .scale-question-10 {
-  padding: 32px 0;
+  padding: 28px 0;
   border-bottom: 1px solid $color-border;
 
   &:first-child { padding-top: 10px; }
   &:last-child  { border-bottom: none; }
 
+  // 문항 글씨는 베이직(ScaleQuestion5)과 같게
   .question-text {
     text-align: center;
-    font-size: $fs-base;
+    font-size: 17px;
     line-height: $lh-body;
-    color: $color-text;
-    margin-bottom: 18px;
+    color: $color-text-body; // 문항은 문장 — 결과지 본문 회색
+    word-break: keep-all;
+    margin-bottom: 20px;
+
+    @media (max-width: 480px) { font-size: $fs-base; }
   }
 
   .question-num {
-    font-weight: $fw-medium;
-    color: $color-text-hover;
+    font-weight: $fw-semibold;
+    color: $color-text-meta;
     margin-right: 4px;
   }
 
+  // 1~10 한 줄 — 두 줄(5×2)이면 6이 1 아래에 와서 이어진 정도로 읽히지 않았다 (2026-10-30)
+  .scale-track {
+    max-width: 476px; // 44px × 10 + 4px × 9
+    margin: 0 auto;
+  }
+
   .options {
-    display: grid;
-    grid-template-columns: repeat(5, 55px);
-    gap: 10px;
+    display: flex;
+    gap: 4px;
     justify-content: center;
   }
 
+  // 색은 칸마다 --sc-text·--sc-line·--sc-fill (scaleColors.ts)
   .option-btn {
-    width: 55px;
-    height: 55px;
-    border-radius: $radius-md;
-    border: 1.5px solid $color-border-strong;
+    flex: 1 1 0;
+    max-width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 10px;
+    border: 1.5px solid var(--sc-line);
     background: $color-surface;
-    color: $color-text;
-    font-size: 18px;
-    font-weight: $fw-regular;
+    color: var(--sc-text);
+    font-size: $fs-sm;
+    font-weight: $fw-medium;
     cursor: pointer;
     transition: all $transition-base;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     display: flex;
     align-items: center;
     justify-content: center;
 
-    &:hover {
-      border-color: $color-text-secondary;
-      background: $color-surface-page;
+    @media (hover: hover) {
+      &:hover:not(.selected) { background: $color-surface-alt; }
     }
 
     &.selected {
-      border-color: $color-text;
-      background: $color-text;
+      border-color: var(--sc-fill);
+      background: var(--sc-fill);
       color: $color-surface;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
     }
+  }
+
+  .scale-ends {
+    display: flex;
+    justify-content: space-between;
+    margin-top: $space-sm;
+    font-size: $fs-2xs;
+    color: $color-text-meta;
   }
 }
 
@@ -279,7 +332,7 @@
 
   .item-text {
     font-size: $fs-xs;
-    color: $color-text-hover;
+    color: $color-text-sub;
     margin-top: 4px;
     line-height: $lh-body;
   }
@@ -287,7 +340,7 @@
   .selected-count {
     margin-top: $space-lg;
     font-size: $fs-sm;
-    color: $color-text-hover;
+    color: $color-text-meta;
     text-align: right;
   }
 }
@@ -332,7 +385,7 @@
   .slot-label {
     display: block;
     font-size: $fs-2xs;
-    color: $color-text-secondary;
+    color: $color-text-sub;
     margin-bottom: 4px;
   }
 
@@ -385,7 +438,7 @@
 
   .item-text {
     font-size: $fs-sm;
-    color: $color-text;
+    color: $color-text-body;
     line-height: $lh-body;
     flex: 1;
   }
@@ -397,7 +450,7 @@
     border-radius: 4px;
     background: $color-surface;
     font-size: $fs-2xs;
-    color: $color-text-hover;
+    color: $color-text-sub;
     cursor: pointer;
   }
 
@@ -405,7 +458,7 @@
     padding: $space-md $space-lg;
     background: $color-surface-page;
     font-size: $fs-xs;
-    color: $color-text-hover;
+    color: $color-text-sub;
     line-height: $lh-body;
     border-top: 1px solid $color-border;
   }
@@ -439,14 +492,14 @@
 
 .part-label {
   font-size: 11px;
-  color: $color-text-secondary;
+  color: $color-text-sub;
   margin-bottom: 6px;
 }
 
 .part-question {
   font-size: $fs-md;
   font-weight: $fw-regular;
-  color: $color-text;
+  color: $color-text-body;
   margin-bottom: 0;
   line-height: $lh-body;
 }
@@ -471,7 +524,7 @@
 
   span {
     font-size: 11px;
-    color: $color-text-tertiary;
+    color: $color-text-meta;
     width: 20px;
     text-align: center;
   }
@@ -486,12 +539,12 @@
 
 .desc-label {
   font-size: 11px;
-  color: $color-text-secondary;
+  color: $color-text-sub;
   margin-bottom: 3px;
 }
 
 .desc-text {
   font-size: $fs-sm;
-  color: $color-text;
+  color: $color-text-body;
   line-height: $lh-body;
 }

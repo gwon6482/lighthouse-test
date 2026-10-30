@@ -4,14 +4,22 @@
       <span class="question-num">{{ questionNum }}.</span>
       {{ questionText }}
     </p>
-    <div class="options">
-      <button
-        v-for="option in options"
-        :key="option.value"
-        type="button"
-        :class="['option-btn', option.colorClass, { selected: modelValue === option.value }]"
-        @click="selectOption(option.value)"
-      ></button>
+    <!-- 원 묶음과 양 끝 라벨을 같은 폭으로 묶는다 — 라벨은 양 끝 원의 가운데 아래 -->
+    <div class="scale-track">
+      <div class="options">
+        <button
+          v-for="option in options"
+          :key="option.value"
+          type="button"
+          :aria-label="option.label"
+          :class="['option-btn', option.colorClass, { selected: modelValue === option.value }]"
+          @click="selectOption(option.value)"
+        ></button>
+      </div>
+      <div class="scale-ends" aria-hidden="true">
+        <span class="scale-end scale-end--low">그렇지 않다</span>
+        <span class="scale-end scale-end--high">그렇다</span>
+      </div>
     </div>
   </div>
 </template>

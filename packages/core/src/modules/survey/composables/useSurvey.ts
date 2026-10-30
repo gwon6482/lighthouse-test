@@ -1,4 +1,4 @@
-import { AREA_ICON } from '@/modules/survey/surveyIcons'
+import { AREA_COLOR } from '@/modules/survey/surveyIcons'
 /**
  * useSurvey Composable
  *
@@ -145,21 +145,21 @@ export function useSurvey() {
       T1: {
         partLabel: '파트 1',
         title: '성격 & 기질',
-        description: '적성을 파악하는 데 가장 중요한 요소',
-        icon: AREA_ICON.personality,
+        description: '적성을 파악하는 기본 요소',
+        color: AREA_COLOR.personality,
         questionCount: '43문항',
         estimatedMinutes: 5,
         highlights: [
-          '외향성 · 기발함 · 성실성 · 우호성 · 자극추구 · 위험회피 · 사회적민감성 · 자율성 · 연대감, 9가지 요소를 측정해.',
-          '단순한 진로 추천을 넘어 스스로를 이해하는 중요한 지표가 돼.',
-          '정답은 없어. 지금의 나 그대로 솔직하게 답해줘.',
+          '외향성·기발함·성실성·우호성·자극 추구·위험 회피·사회적 민감성·자율성·연대감의 9가지 요소를 측정해요.',
+          '진로 추천을 넘어, 나를 이해하는 데 중요한 기준이 돼요.',
+          '정답은 없어요. 지금 내 모습 그대로 솔직하게 답해 주세요.',
         ],
       },
       T21: {
         partLabel: '파트 2',
         title: '좋아하는 일',
         description: '라이트하우스 검사의 핵심',
-        icon: AREA_ICON.likes,
+        color: AREA_COLOR.likes,
         questionCount: '총 103문항',  // T21(61) + T22(33) + T23(9)
         estimatedMinutes: 5,
         highlights: [
@@ -172,7 +172,7 @@ export function useSurvey() {
         partLabel: '파트 3',
         title: '업무 환경',
         description: '나의 진로 리스크를 미리 파악하는 검사',
-        icon: AREA_ICON.environment,
+        color: AREA_COLOR.environment,
         questionCount: '6개 항목',
         // estimatedMinutes 없음 — T3는 예상 시간 미표시
         highlights: [
@@ -287,10 +287,19 @@ export function useSurvey() {
     }
   })
 
-  // 진행률 (%)
+  // 파트 표지(partIntro)인지 — 표지에서는 페이지 수·진행률을 보여주지 않는다
+  const isPartIntro = computed(() => currentPage.value?.type === 'partIntro')
+
+  // 문항 페이지 수 / 지금까지 지나온 문항 페이지 수 — 표지는 세지 않는다
+  const totalQuestionPages = computed(() => allPages.value.filter((p) => p.type !== 'partIntro').length)
+  const questionPageNumber = computed(
+    () => allPages.value.slice(0, currentPageIndex.value + 1).filter((p) => p.type !== 'partIntro').length,
+  )
+
+  // 진행률 (%) — 표지에서는 직전 문항 페이지까지의 진행률에 머문다
   const progress = computed(() => {
-    if (totalPages.value === 0) return 0
-    return Math.round(((currentPageIndex.value + 1) / totalPages.value) * 100)
+    if (totalQuestionPages.value === 0) return 0
+    return Math.round((questionPageNumber.value / totalQuestionPages.value) * 100)
   })
 
   // 이전/다음 가능 여부
@@ -455,6 +464,7 @@ export function useSurvey() {
     totalPages,
     currentPartInfo,
     currentPartPageInfo,
+    isPartIntro,
     progress,
     canGoPrev,
     canGoNext,
