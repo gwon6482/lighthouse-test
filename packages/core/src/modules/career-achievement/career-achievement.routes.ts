@@ -16,6 +16,12 @@ export default [
     component: () => import('./pages/CareerAchievementCompletePage.vue'),
   },
   {
+    // 주간결산(2026-10-30 시안) — 단계마다 페이지 1~5. 예전 '지난 주 회고'(weekly-review)를 대신할 예정
+    path: '/career-achievement/review/:step(\\d)',
+    name: 'Career Achievement Review',
+    component: () => import('./pages/CareerAchievementReviewFlowPage.vue'),
+  },
+  {
     path: '/career-achievement/weekly-review',
     name: 'Career Achievement Weekly Review',
     component: () => import('./pages/CareerAchievementWeeklyReviewPage.vue'),

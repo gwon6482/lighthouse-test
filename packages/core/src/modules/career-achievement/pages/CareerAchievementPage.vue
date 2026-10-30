@@ -102,7 +102,7 @@
       <!-- 주간 결산 — 결산일에만, 오늘 할 일 바로 아래(2026-10-30 사용자). 평소엔 안 보인다.
            추후: 앱 진입 때 결산 팝업 + 앱 푸시 예정 -->
       <div v-if="review?.kind === 'today'" class="ah-review">
-        <button type="button" class="ah-review__btn" @click="router.push('/career-achievement/weekly-review')">
+        <button type="button" class="ah-review__btn" @click="router.push({ name: 'Career Achievement Review', params: { step: '1' } })">
           <AppIcon name="ui-weekly-review" /> 주간 결산 시작하기
         </button>
       </div>

@@ -189,5 +189,7 @@ export function usePlanBoard() {
     isProjectDone: ach.isProjectDone, isRoutineDone: ach.isRoutineDone,
     weekGoals, weekNumber, review,
     totalWeeks, roadmap, weekSpanLabel,
+    // 주간결산이 쓴다 — 날짜별 항목·완료 판정
+    itemsOn, itemDone, projectOf, routineOf, isItemDone,
   }
 }
