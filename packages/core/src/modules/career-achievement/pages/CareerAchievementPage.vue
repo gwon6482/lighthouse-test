@@ -99,7 +99,15 @@
         </template>
       </section>
 
-      <!-- ⑤ 이번 주 목표 — 이번 주에 배치된 프로젝트 모두. 결산일엔 버튼. 누르면 로드맵 -->
+      <!-- 주간 결산 — 결산일에만, 오늘 할 일 바로 아래(2026-10-30 사용자). 평소엔 안 보인다.
+           추후: 앱 진입 때 결산 팝업 + 앱 푸시 예정 -->
+      <div v-if="review?.kind === 'today'" class="ah-review">
+        <button type="button" class="ah-review__btn" @click="router.push('/career-achievement/weekly-review')">
+          <AppIcon name="ui-weekly-review" /> 주간 결산 시작하기
+        </button>
+      </div>
+
+      <!-- ⑤ 이번 주 목표 — 이번 주에 배치된 프로젝트 모두. 누르면 로드맵. 결산 버튼은 결산일에만 오늘 할 일 아래(.ah-review) -->
       <section v-if="weekGoals.length || review" class="ah-sec">
         <div class="ah-week" role="link" tabindex="0" @click="goRoadmap" @keydown.enter="goRoadmap">
           <div class="ah-week__head">
@@ -121,10 +129,6 @@
             </li>
           </ul>
           <p v-if="!weekGoals.length" class="ah-sec__empty">이번 주에 배치된 프로젝트가 없어요.</p>
-          <button
-            v-if="review?.kind === 'today'" type="button" class="ah-week__cta"
-            @click.stop="router.push('/career-achievement/weekly-review')"
-          >주간 결산 시작</button>
         </div>
       </section>
 

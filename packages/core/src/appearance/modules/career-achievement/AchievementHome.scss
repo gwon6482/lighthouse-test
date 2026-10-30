@@ -228,8 +228,21 @@ $ah-overlap: 44px;
   &__badge { flex: 0 0 auto; padding: 4px 10px; border-radius: $radius-pill; background: $color-primary-tint; color: $amber-700; font-size: $fs-2xs; font-weight: $fw-bold; }
   &__badge--today { background: $color-primary; color: $color-text; }
   &__list { list-style: none; margin: 0; padding: 0; display: grid; gap: $space-md; }
-  &__cta { padding: 13px; border: 0; border-radius: $radius-lg; background: $color-text; color: $color-surface; font: inherit; font-size: $fs-md; font-weight: $fw-semibold; cursor: pointer; }
 }
+// 주간 결산 버튼 — 결산일에만 오늘 할 일 카드 바로 아래
+.ah-review {
+  padding: $space-md $space-lg 0;
+  &__btn {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 15px; border: 0; border-radius: $radius-lg;
+    background: $color-text; color: $color-surface;
+    font: inherit; font-size: $fs-base; font-weight: $fw-bold; cursor: pointer;
+    transition: transform $transition-fast;
+    &:active { transform: scale(0.98); }
+    .app-icon { font-size: 20px; color: $color-primary; }
+  }
+}
+
 .ah-goal {
   display: grid;
   grid-template-columns: 1fr auto;
