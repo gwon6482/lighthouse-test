@@ -35,7 +35,7 @@
       <div class="ci-links">
         <button v-if="targetJob" type="button" class="ci-link ci-link--yellow" @click="openTargetJob">
           <AppIcon name="ui-target" class="ci-link__icon" />
-          <span class="ci-link__text"><strong>{{ targetJob }}</strong><small>내 목표 직업</small></span>
+          <span class="ci-link__text"><strong>내 목표 직업</strong><small>{{ targetJob }}</small></span>
         </button>
         <button type="button" class="ci-link ci-link--green" @click="router.push('/career-encyclopedia/recommended')">
           <AppIcon name="ui-recommend" class="ci-link__icon" />
