@@ -65,17 +65,17 @@
       </ul>
     </section>
 
-    <!-- 일정 — 이번 주 요일·항목 조정(2026-10-30 메인 타일에서 옮김) -->
+    <!-- 기능 메뉴 — 내용(검사결과·관심 직업 카드)과 모양을 나눈다(2026-10-30 사용자: 기능 요소는 따로).
+         설정 목록 모양: 작은 아이콘 + 이름 + › -->
     <section class="mp-sec">
-      <h2 class="mp-sec__title">일정</h2>
-      <button type="button" class="mp-row" @click="router.push({ name: 'Career Achievement Weekly Schedule' })">
-        <span class="mp-row__chip mp-row__chip--blue"><AppIcon name="ui-calendar" /></span>
-        <span class="mp-row__body">
-          <span class="mp-row__title">이번 주 일정 조정</span>
-          <span class="mp-row__sub">요일·할 일을 이번 주 사정에 맞게 바꿔요</span>
-        </span>
-        <AppIcon name="ui-chevron-right" class="mp-row__arrow" />
-      </button>
+      <h2 class="mp-sec__title">진로 관리</h2>
+      <ul class="mp-links">
+        <li>
+          <button type="button" class="mp-link mp-link--menu" @click="router.push({ name: 'Career Achievement Weekly Schedule' })">
+            <AppIcon name="ui-calendar" class="mp-link__icon" /><span class="mp-link__label">이번 주 일정 조정</span><AppIcon name="ui-chevron-right" class="mp-link__arrow" />
+          </button>
+        </li>
+      </ul>
     </section>
 
     <!-- 계정. 🚨 탈퇴는 **되돌릴 수 없다** — 맨 아래에 두고 약하게 강조한다.
