@@ -98,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { req } from '@/shared/api'
@@ -137,6 +137,8 @@ const jobCode = ref('')
 const postings = ref<RecruitmentPosting[]>([])
 const loadingJobs = ref(false)
 async function loadTargetJob() {
+  jobCode.value = ''
+  postings.value = []
   if (!targetJob.value) return
   loadingJobs.value = true
   try {
@@ -178,6 +180,7 @@ onMounted(async () => {
   loadNews()
   const [surveys] = await Promise.allSettled([req.get('/api/user/survey-results'), store.loadActivePlan()])
   if (surveys.status === 'fulfilled') latest.value = surveys.value.data.surveyResults?.[0] ?? null
-  loadTargetJob()
 })
+// 목표 직업은 계획을 다 읽어야 생긴다 — 채워지는(바뀌는) 때에 맞춰 채용을 불러온다
+watch(targetJob, loadTargetJob, { immediate: true })
 </script>
