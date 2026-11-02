@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 일정관리 기록에 지난 태그 이후 커밋 목록을 넣으려고
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -47,3 +49,32 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id E3LGZIV007TKVC \
             --paths "/*"
+
+      # 어드민 '일정관리'에 출시 기록을 남긴다(2026-11-02). 배포는 이미 끝났으므로 실패해도 워크플로를 실패시키지 않는다.
+      # 키는 일정 전용(x-schedule-key — 일정 항목 조회·추가·수정만). 같은 태그로 다시 돌려도 source 가 같아 중복이 생기지 않는다
+      - name: Record release in admin schedule
+        if: success()
+        continue-on-error: true
+        env:
+          SCHEDULE_WRITE_KEY: ${{ secrets.SCHEDULE_WRITE_KEY }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [ -z "$SCHEDULE_WRITE_KEY" ]; then echo "SCHEDULE_WRITE_KEY 없음 — 기록 건너뜀"; exit 0; fi
+          PREV=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)
+          export PREV DAY=$(TZ=Asia/Seoul date +%F)
+          export COMMITS=$(git log --no-merges --format='- %s' ${PREV:+$PREV..}"$TAG" | head -15 | cut -c1-140)
+          python3 - <<'EOF' > body.json
+          import json, os
+          tag, prev = os.environ['TAG'], os.environ.get('PREV', '')
+          repo = 'https://github.com/gwon6482/lighthouse-test'
+          print(json.dumps({
+              'kind': 'record', 'category': 'app', 'title': f'앱 운영 릴리스 {tag}',
+              'startDate': os.environ['DAY'], 'done': True,
+              'memo': (f'{prev} 이후 커밋\n' if prev else '') + os.environ.get('COMMITS', ''),
+              'link': f'{repo}/compare/{prev}...{tag}' if prev else f'{repo}/releases/tag/{tag}',
+              'source': f'tag:lighthouse-test:{tag}',
+          }, ensure_ascii=False))
+          EOF
+          curl -sS -f -X POST https://api.lighthouse.career/api/admin/schedule/items \
+            -H "x-schedule-key: $SCHEDULE_WRITE_KEY" -H 'content-type: application/json' \
+            --data-binary @body.json -o /dev/null -w "일정관리 기록 %{http_code}\n"
