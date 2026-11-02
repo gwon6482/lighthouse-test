@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { authBoundaryAction } from '../authBoundary'
+import { authBoundaryAction, needsLogin } from '../authBoundary'
 
 // R5(인증 경계) 회귀 테스트.
 // 2026-09-17: 카카오 가입 직후 브라우저 뒤로가기 한 번에 로그아웃되는 사고가 있었다.
@@ -32,5 +32,24 @@ describe('authBoundaryAction — 로그인 화면에 닿았을 때', () => {
       .filter((c) => c.action === 'confirm-logout')
 
     expect(logoutCases).toEqual([{ token: true, wants: true, action: 'confirm-logout' }])
+  })
+})
+
+// 2026-11-02: 비로그인으로 검사 주소를 직접 치면 검사가 열렸다(루트 가드만 있었다).
+describe('needsLogin — 로그인 전용 경로 직접 진입', () => {
+  it('토큰 없이 검사 경로로 오면 로그인으로 보낸다', () => {
+    expect(needsLogin('/self-understanding', false)).toBe(true)
+    expect(needsLogin('/self-understanding/test', false)).toBe(true)
+    expect(needsLogin('/self-understanding/result/SURV1', false)).toBe(true)
+  })
+
+  it('로그인 상태면 막지 않는다', () => {
+    expect(needsLogin('/self-understanding/test', true)).toBe(false)
+  })
+
+  it('이름만 비슷한 다른 경로나 온보딩은 막지 않는다', () => {
+    expect(needsLogin('/self-understanding-guide', false)).toBe(false)
+    expect(needsLogin('/onboarding', false)).toBe(false)
+    expect(needsLogin('/onboarding/signup', false)).toBe(false)
   })
 })

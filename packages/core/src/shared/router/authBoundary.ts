@@ -22,3 +22,16 @@ export function authBoundaryAction(hasToken: boolean, wantsLogout: boolean): Aut
   // **표시가 있을 때만** 하는 쪽이 안전하다(잘못 bounce 해도 사용자는 앱에 남을 뿐이다).
   return wantsLogout ? 'confirm-logout' : 'bounce'
 }
+
+// 로그인해야 들어갈 수 있는 경로 — 토큰 없이 주소를 직접 쳐서 들어오면 온보딩(로그인)으로 보낸다.
+// 루트 가드('/')만으로는 `app.lighthouse.career/self-understanding` 같은 직접 진입을 막지 못했다(2026-11-02).
+//
+// 지금은 자기이해 검사만 막는다(사용자 결정 2026-11-02). 앱 화면 흐름에서 검사 입구는 전부 로그인 뒤에 있다.
+// ⚠️ 나중에 '검사 → 회원가입' 흐름(비로그인으로 검사 후 가입 유도)을 열 때는 여기서 그 경로를 빼면 된다.
+//    결과 화면의 비로그인 가입 유도(SelfUnderstandingResultPage 의 SignUpModal)는 그때를 위해 남겨 뒀다.
+const LOGIN_REQUIRED_PREFIXES = ['/self-understanding']
+
+export function needsLogin(path: string, hasToken: boolean): boolean {
+  if (hasToken) return false
+  return LOGIN_REQUIRED_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`))
+}

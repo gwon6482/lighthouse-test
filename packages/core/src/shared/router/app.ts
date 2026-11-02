@@ -15,7 +15,7 @@ import stubRoutes from './stubRoutes'
 import { makeRouter } from './createRouter'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useAchievementStore } from '@/shared/stores/achievement'
-import { authBoundaryAction } from './authBoundary'
+import { authBoundaryAction, needsLogin } from './authBoundary'
 
 const router = makeRouter([
   ...onboardingRoutes,
@@ -47,6 +47,9 @@ router.beforeEach(async (to) => {
       return true
     }
   }
+
+  // 로그인 전용 경로에 토큰 없이 직접 들어오면 로그인으로(자세한 이유는 authBoundary.ts)
+  if (needsLogin(to.path, !!auth.token)) return '/onboarding'
 
   if (to.path !== '/') return true
 
