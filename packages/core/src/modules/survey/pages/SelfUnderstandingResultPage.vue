@@ -20,7 +20,7 @@
         </RouterLink>
       </template>
 
-      <RouterLink to="/encyclopedia" class="btn-encyclopedia">
+      <RouterLink to="/career-encyclopedia" class="btn-encyclopedia">
         진로백과 바로가기 <AppIcon name="ui-arrow-right" />
       </RouterLink>
     </section>

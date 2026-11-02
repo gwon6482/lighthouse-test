@@ -1,355 +1,209 @@
 <template>
-  <div class="lh-page result-page">
-    <!-- 로딩 -->
-    <div v-if="isLoading" class="result-loading">
-      <div class="result-loading-spinner"></div>
-      <p>결과를 분석하고 있어요...</p>
+  <!-- 결과지 디자인 정본은 랜딩 /survey 결과지(lighthouse-landing components/survey/ResearchResult.vue, 2026-10-26).
+       구성·색·글씨를 그대로 따른다 — 랜딩 쪽을 고치면 여기도 같이 고칠 것(레포가 달라 자동으로 맞춰지지 않는다).
+       앱에만 있는 것: 업무 환경 항목 아이콘, 진입 관문 배지, 추천 직업 누르기(묶음 직업 고르기), 하단 액션 슬롯 -->
+  <div class="rr">
+    <div v-if="isLoading" class="rr__state">
+      <div class="rr__spinner" />
+      <p>결과를 분석하고 있어요…</p>
     </div>
 
-    <!-- 에러 -->
-    <div v-else-if="error" class="result-error">
+    <div v-else-if="error" class="rr__state">
       <p>결과를 불러오지 못했어요.<br />잠시 후 다시 시도해주세요.</p>
-      <button @click="load">다시 시도</button>
+      <button type="button" class="rr__retry" @click="load">다시 시도</button>
     </div>
 
     <template v-else-if="analysis">
-      <!-- ─── 섹션 1: 요약 (T1 유형 카드) ─────────────────── -->
-      <section class="result-section">
-        <div class="result-preview-card">
-          <div class="rp-hero">
-            <p class="rp-type-label">나의 성격 유형</p>
-            <h1 class="rp-type-name">{{ analysis.personality_type?.full_name ?? '알 수 없음' }}</h1>
-            <img
-              v-if="t1ImgSrc"
-              :src="t1ImgSrc"
-              :alt="analysis.personality_type?.full_name ?? ''"
-              class="rp-type-img"
-            />
-            <p class="rp-type-sub">{{ analysis.personality_type?.description }}</p>
-            <div class="rp-tags" v-if="analysis.personality_type">
-              <span class="rptag y">{{ analysis.personality_type.base_name }}</span>
-              <span class="rptag s">{{ analysis.personality_type.modifier }}</span>
-            </div>
-          </div>
+      <!-- 1. 성격 유형 -->
+      <section class="rr__hero">
+        <p class="rr__hero-label">나의 성격 유형</p>
+        <h1 class="rr__hero-name">{{ analysis.personality_type?.full_name ?? '알 수 없음' }}</h1>
+        <img
+          v-if="t1ImgSrc"
+          class="rr__hero-img"
+          :src="t1ImgSrc"
+          :alt="analysis.personality_type?.full_name ?? ''"
+        />
+        <p class="rr__hero-desc">{{ analysis.personality_type?.description }}</p>
+        <div v-if="analysis.personality_type" class="rr__tags">
+          <span class="rr__tag rr__tag--y">{{ analysis.personality_type.base_name }}</span>
+          <span class="rr__tag rr__tag--s">{{ analysis.personality_type.modifier }}</span>
         </div>
       </section>
 
-      <!-- ─── 섹션 2: 성격/기질 (T1 바 차트) ──────────────── -->
-      <section class="m-sec white">
-        <PersonalityDistribution :factors="personalityFactors" />
-      </section>
-
-      <!-- ─── 섹션 3: 하고 싶은 일 ─────────────────────────── -->
-      <section class="m-sec gray">
-        <span class="m-lbl s">하고 싶은 일</span>
-        <h2 class="m-ttl">재능 · 가치관 · 관심</h2>
-
-        <div class="t2-groups">
-          <!-- T21 재능 Top3 -->
-          <div class="t2-group">
-            <p class="result-sub-label"><AppIcon name="result-talent" /> 재능 Top 3</p>
-            <div class="talent-list">
-              <div
-                v-for="(item, idx) in analysis.talent.top3"
-                :key="item.code"
-                class="talent-card"
-                :class="`prio-${idx + 1}`"
-              >
-                <span class="talent-rank">{{ idx + 1 }}순위</span>
-                <div class="talent-info">
-                  <span class="talent-name">{{ item.name }}</span>
-                  <div class="trait-bar-wrap talent-bar-wrap">
-                    <div
-                      class="trait-bar"
-                      :class="idx === 0 ? 'hi' : 'mi'"
-                      :style="{ width: `${Math.round((item.score ?? 0) * 100)}%` }"
-                    ></div>
-                  </div>
-                  <span class="talent-definition">{{
-                    item.definition || T21_DEFINITIONS[item.code]
-                  }}</span>
-                </div>
-                <span class="talent-score" :class="idx === 0 ? 'hi' : 'mi'">
-                  {{ Math.round((item.score ?? 0) * 100) }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- T23 가치관 -->
-          <div class="t2-group">
-            <p class="result-sub-label"><AppIcon name="result-values" /> 나의 가치관</p>
-            <div class="values-list">
-              <template
-                v-for="(prio, idx) in [
-                  analysis.values.priority_1,
-                  analysis.values.priority_2,
-                  analysis.values.priority_3,
-                ]"
-                :key="idx"
-              >
-                <div v-if="prio" class="value-card" :class="`prio-${idx + 1}`">
-                  <span class="value-rank">{{ idx + 1 }}순위</span>
-                  <div class="value-text">
-                    <span class="value-name">{{ prio.name }}</span>
-                    <span class="talent-definition">{{
-                      prio.definition || T23_DEFINITIONS[prio.code]
-                    }}</span>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-
-          <!-- T22 관심분야 -->
-          <div class="t2-group">
-            <p class="result-sub-label"><AppIcon name="result-interest" /> 관심 분야</p>
-            <!-- <p class="result-sub-label">🔍 관심 분야 ({{ analysis.interest.total }}개 선택)</p> -->
-            <div v-if="analysis.interest.total > 0" class="interest-tag-groups">
-              <div
-                v-for="(cat, key) in analysis.interest.by_category"
-                :key="key"
-                class="interest-tag-group"
-              >
+      <!-- 2. 성격 분포 -->
+      <section class="rr__sec">
+        <p class="rr__eyebrow rr__eyebrow--y">성격 & 기질</p>
+        <h2 class="rr__title">나의 성격 분포</h2>
+        <p class="rr__sub">9가지 성격 요소에서 나의 점수예요</p>
+        <div v-for="(f, i) in analysis.personality.all" :key="f.code" class="rr__pd">
+          <div class="rr__pd-head">
+            <span :class="['rr__pd-name', { 'is-top': i < 3 }]">
+              {{ f.name }}
+              <!-- 4위부터는 정의가 펼쳐져 있지 않다 — (?) 로 본다. 마우스: 올리면 말풍선 / 터치: 누르면 같은 말풍선(toggleTip) -->
+              <template v-if="i >= 3 && t1Definition(f)">
+                <button
+                  type="button"
+                  class="rr__pd-q"
+                  :aria-label="`${f.name} 뜻 보기`"
+                  :aria-expanded="openTip === f.code"
+                  :aria-describedby="`rr-pd-tip-${f.code}`"
+                  @click.stop="toggleTip(f.code)"
+                >?</button>
                 <span
-                  class="interest-cat-label"
-                  :style="{ color: INTEREST_CAT_COLORS[key]?.text ?? '#888' }"
-                  >{{ cat.name }}</span
-                >
-                <div class="interest-tag-row">
-                  <span
-                    v-for="item in cat.items"
-                    :key="item.field_id"
-                    class="interest-tag"
-                    :data-tooltip="item.definition || undefined"
-                    :style="{
-                      background: INTEREST_CAT_COLORS[key]?.bg ?? '#EFEFEB',
-                      color: INTEREST_CAT_COLORS[key]?.text ?? '#777',
-                      borderColor: INTEREST_CAT_COLORS[key]?.border ?? '#DDD',
-                    }"
-                    >{{ item.name }}</span
-                  >
-                </div>
-              </div>
-            </div>
-            <p v-else class="result-empty">선택한 관심 분야가 없어.</p>
+                  :id="`rr-pd-tip-${f.code}`"
+                  role="tooltip"
+                  :class="['rr__pd-tip', { 'is-open': openTip === f.code }]"
+                >{{ t1Definition(f) }}</span>
+              </template>
+            </span>
+            <span class="rr__pd-bar"><span class="rr__pd-fill" :style="{ width: pct(f.score) + '%', background: pdBar(i) }" /></span>
+            <span :class="['rr__pd-score', { 'is-top': i < 3 }]" :style="{ color: pdScore(i) }">{{ pct(f.score) }}</span>
           </div>
-
-          <!-- 좋아하는 일 요약 카드 -->
-          <div class="t2-group">
-            <p class="result-label">나는</p>
-            <div
-              v-if="
-                topInterestCategoryName || analysis.talent.top3.length || analysis.values.priority_1
-              "
-              class="like-card"
-            >
-              <p class="like-text">
-                <span v-if="topInterestCategoryName" class="lc-chip lc-chip--s">{{
-                  topInterestCategoryName
-                }}</span>
-                <template v-if="topInterestCategoryName"> 분야에서<br /></template>
-                <span v-if="analysis.talent.top3[0]" class="lc-chip lc-chip--y">{{
-                  analysis.talent.top3[0].name
-                }}</span>
-                <template v-if="analysis.talent.top3[0]"> 을 활용해<br /></template>
-                <span v-if="analysis.values.priority_1" class="lc-chip lc-chip--p">{{
-                  analysis.values.priority_1.name
-                }}</span>
-                <template v-if="analysis.values.priority_1">
-                  을 쫓는 일을 할 때 가장 빛나요.</template
-                >
-              </p>
-            </div>
-          </div>
+          <template v-if="i < 3">
+            <span v-if="f.top_percent != null" class="rr__pd-pct">상위 {{ f.top_percent }}%</span>
+            <p class="rr__pd-desc">{{ t1Definition(f) }}</p>
+          </template>
         </div>
       </section>
 
-      <!-- ─── 섹션 3.5: T2 기반 추천 직업 ─────────────────── -->
-      <!-- <section class="m-sec gray"> -->
-        <!-- 로딩 -->
-        <!-- <div v-if="t2Loading" class="t2rec-skeleton-list">
-          <div v-for="n in 3" :key="n" class="t2rec-skeleton" />
-        </div> -->
+      <!-- 3. 하고 싶은 일 -->
+      <section class="rr__sec rr__sec--gray">
+        <p class="rr__eyebrow rr__eyebrow--s">하고 싶은 일</p>
+        <h2 class="rr__title">재능 · 가치관 · 관심</h2>
 
-        <!-- 에러 -->
-        <!-- <p v-else-if="t2Error" class="t2rec-message">데이터를 불러오지 못했습니다.</p> -->
-
-        <!-- 결과 없음 -->
-        <!-- <p v-else-if="t2Jobs.length === 0" class="t2rec-message">추천 직업을 찾을 수 없습니다.</p> -->
-
-        <!-- 카드 리스트 -->
-        <!-- <div v-else class="t2rec-list">
-          <div
-            v-for="job in t2Jobs"
-            :key="job.jobCode"
-            class="t2rec-card"
-            @click="$emit('job-click', job.jobCode)"
-          >
-            <div class="t2rec-card-top">
-              <span class="t2rec-title">{{ job.title }} <JobGateBadges :job-code="job.jobCode" /></span>
-              <span class="t2rec-score">매칭도 {{ Math.round(job.t2_match_score * 100) }}%</span>
+        <p class="rr__label">재능 Top 3</p>
+        <div class="rr__cards">
+          <div v-for="(t, i) in analysis.talent.top3" :key="t.code" :class="['rr__card', `rr__card--p${i + 1}`]">
+            <span class="rr__rank">{{ i + 1 }}순위</span>
+            <div class="rr__card-body">
+              <span class="rr__card-name">{{ t.name }}</span>
+              <span class="rr__bar"><span :class="['rr__bar-fill', i === 0 ? 'is-hi' : 'is-mi']" :style="{ width: pct(t.score) + '%' }" /></span>
+              <span class="rr__card-def">{{ t.definition || T21_DEFINITIONS[t.code] }}</span>
             </div>
-            <p class="t2rec-class">
-              {{ job.classification.primary }} › {{ job.classification.secondary }}
+            <span :class="['rr__card-score', i === 0 ? 'is-hi' : 'is-mi']">{{ pct(t.score) }}</span>
+          </div>
+        </div>
+
+        <p class="rr__label">나의 가치관</p>
+        <div class="rr__cards">
+          <template v-for="(v, i) in valueList" :key="i">
+            <div v-if="v" :class="['rr__card', `rr__card--p${i + 1}`]">
+              <span class="rr__rank">{{ i + 1 }}순위</span>
+              <div class="rr__card-body">
+                <span class="rr__card-name">{{ v.name }}</span>
+                <span class="rr__card-def">{{ v.definition || T23_DEFINITIONS[v.code] }}</span>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <p class="rr__label">관심 분야</p>
+        <div v-if="analysis.interest.total > 0" class="rr__interest">
+          <div v-for="(cat, key) in analysis.interest.by_category" :key="key" class="rr__interest-group">
+            <span class="rr__interest-cat">{{ cat.name }}</span>
+            <div class="rr__interest-row">
+              <span v-for="item in cat.items" :key="item.field_id" class="rr__interest-tag">{{ item.name }}</span>
+            </div>
+          </div>
+        </div>
+        <p v-else class="rr__empty">선택한 관심 분야가 없어요.</p>
+
+        <template v-if="topInterestName || analysis.talent.top3[0] || analysis.values.priority_1">
+          <p class="rr__label">나는</p>
+          <div class="rr__like">
+            <p>
+              <!-- 분야 이름이 이미 '… 분야' 로 끝난다. 조사는 이름에 따라 을/를 -->
+              <template v-if="topInterestName"><span class="rr__chip">{{ topInterestName }}</span>에서<br /></template>
+              <template v-if="analysis.talent.top3[0]"><span class="rr__chip">{{ analysis.talent.top3[0].name }}</span>{{ objectJosa(analysis.talent.top3[0].name) }} 활용해<br /></template>
+              <template v-if="analysis.values.priority_1"><span class="rr__chip">{{ analysis.values.priority_1.name }}</span>{{ objectJosa(analysis.values.priority_1.name) }} 좇는 일을 할 때 가장 빛나요.</template>
             </p>
-            <p class="t2rec-label">
-              <span class="t2rec-pill t2rec-pill--interest">{{ t2LabelInterest }}</span>
-              분야에서<br />
-              <span class="t2rec-pill t2rec-pill--talent">{{ t2LabelTalent }}</span
-              >하며<br />
-              <span class="t2rec-pill t2rec-pill--value">{{ t2LabelValue }}</span
-              >을 추구하는 일
+          </div>
+        </template>
+      </section>
+
+      <!-- 4. 업무 환경 -->
+      <section class="rr__sec">
+        <p class="rr__eyebrow rr__eyebrow--g">업무 환경</p>
+        <h2 class="rr__title">나의 업무 환경 성향</h2>
+
+        <div v-if="t3AllNeutral" class="rr__env rr__env--neutral">
+          <p class="rr__env-head"><span class="rr__env-mk" aria-hidden="true"><AppIcon :name="ENV_JUDGE_ICON.neutral" :size="18" /></span><strong>환경 유연형</strong></p>
+          <p class="rr__env-text">특정 환경에 대한 강한 선호나 거부감이 없어요.</p>
+          <p class="rr__env-text">다양한 업무 환경에 무난하게 적응할 수 있는 유연한 성향이에요.</p>
+        </div>
+        <template v-else>
+          <div v-if="t3GoodTexts.length" class="rr__env rr__env--good">
+            <p class="rr__env-head"><span class="rr__env-mk" aria-hidden="true"><AppIcon :name="ENV_JUDGE_ICON.good" :size="18" /></span><strong>나에게 맞는 환경</strong></p>
+            <p v-for="t in t3GoodTexts" :key="t.part" class="rr__env-text">{{ t.text }}</p>
+            <ul v-if="t3WeVisible && t3WeRec.length" class="rr__we">
+              <li v-for="w in t3WeRec" :key="w.code"><AppIcon :name="T3_WE_ITEMS[w.code]?.icon ?? weIcon(w.code)" :size="14" />{{ T3_WE_ITEMS[w.code]?.name }}</li>
+            </ul>
+          </div>
+          <div v-if="t3BadTexts.length" class="rr__env rr__env--bad">
+            <p class="rr__env-head"><span class="rr__env-mk" aria-hidden="true"><AppIcon :name="ENV_JUDGE_ICON.bad" :size="18" /></span><strong>나에게 맞지 않는 환경</strong></p>
+            <p v-for="t in t3BadTexts" :key="t.part" class="rr__env-text">{{ t.text }}</p>
+            <ul v-if="t3WeVisible && t3WeNonRec.length" class="rr__we">
+              <li v-for="w in t3WeNonRec" :key="w.code"><AppIcon :name="T3_WE_ITEMS[w.code]?.icon ?? weIcon(w.code)" :size="14" />{{ T3_WE_ITEMS[w.code]?.name }}</li>
+            </ul>
+          </div>
+        </template>
+      </section>
+
+      <!-- 5. 추천 직업 -->
+      <section class="rr__sec">
+        <p class="rr__eyebrow rr__eyebrow--gold">종합 추천</p>
+        <h2 class="rr__title">나에게 맞는 직업 Top 5</h2>
+        <p class="rr__sub">성격·재능·관심·가치관·업무환경을 모두 고려한 추천이에요</p>
+
+        <div v-if="compLoading" class="rr__skeletons">
+          <div v-for="n in 3" :key="n" class="rr__skeleton" />
+        </div>
+        <p v-else-if="compError" class="rr__empty">데이터를 불러오지 못했습니다.</p>
+        <p v-else-if="compJobs.length === 0" class="rr__empty">추천 직업을 찾을 수 없습니다.</p>
+
+        <template v-else>
+        <div
+          v-for="(job, i) in compJobs"
+          :key="job.jobCode"
+          class="rr__job rr__job--link"
+          @click="openJob(job)"
+        >
+          <span :class="['rr__job-rank', `rr__job-rank--${i + 1}`]">{{ i + 1 }}</span>
+          <div class="rr__job-body">
+            <div class="rr__job-top">
+              <span class="rr__job-title">{{ job.title }}</span>
+              <JobGateBadges :job-code="job.jobCode" />
+              <!-- 묶음 직업: 고용24가 여러 직업을 한 직업으로 묶어 조사해 점수가 같은 경우
+                   추천이 한 자리로 접힌다. 탭하면 세부 직업을 고르게 한다. -->
+              <span v-if="(job.members?.length ?? 1) > 1" class="rr__job-group">유사 {{ job.members!.length }}개</span>
+              <span class="rr__job-score">{{ pct(job.match_score) }}%</span>
+            </div>
+            <p class="rr__job-class">{{ job.classification.primary }} › {{ job.classification.secondary }}</p>
+            <p v-if="(job.members?.length ?? 1) > 1" class="rr__job-members">
+              {{ job.members!.map((m) => m.title).join(' · ') }}
             </p>
-            <p class="t2rec-meta">
-              <span v-if="job.salary?.median"
-                >급여 중위 {{ job.salary.median.toLocaleString() }}만원</span
-              >
+            <div class="rr__job-bars">
+              <span class="rr__jl rr__jl--t1">성격/기질</span>
+              <span class="rr__jt"><span class="rr__jf rr__jf--t1" :style="{ width: pct(job.match_detail.T1) + '%' }" /></span>
+              <span class="rr__jv">{{ pct(job.match_detail.T1) }}</span>
+
+              <span class="rr__jl rr__jl--t2">재능/흥미/가치관</span>
+              <span class="rr__jt"><span class="rr__jf rr__jf--t2" :style="{ width: pct(calcT2Score(job.match_detail)) + '%' }" /></span>
+              <span class="rr__jv">{{ pct(calcT2Score(job.match_detail)) }}</span>
+
+              <span class="rr__jl rr__jl--t3">업무환경</span>
+              <span class="rr__jt"><span class="rr__jf rr__jf--t3" :style="{ width: pct(job.match_detail.T3) + '%' }" /></span>
+              <span class="rr__jv">{{ pct(job.match_detail.T3) }}</span>
+            </div>
+            <p v-if="job.salary?.median || job.jobSatisfaction" class="rr__job-meta">
+              <span v-if="job.salary?.median">급여 중위 {{ job.salary.median.toLocaleString() }}만원</span>
               <span v-if="job.salary?.median && job.jobSatisfaction"> · </span>
               <span v-if="job.jobSatisfaction">만족도 {{ job.jobSatisfaction }}%</span>
             </p>
           </div>
         </div>
-      </section> -->
-
-      <!-- ─── 섹션 4: 업무환경 ──────────────────────────────── -->
-      <section class="m-sec white">
-        <span class="m-lbl" style="color: #2e8fcc">업무 환경</span>
-        <h2 class="m-ttl">나의 업무 환경 성향</h2>
-
-        <!-- 6개 파트 전체 레벨 3: 환경 유연형 안내 -->
-        <div v-if="t3AllNeutral" class="env-block env-block--neutral">
-          <p class="env-block-header">
-            <span class="env-block-icon"><AppIcon :name="ENV_JUDGE_ICON.neutral" /></span>
-            <span class="env-block-title">환경 유연형</span>
-          </p>
-          <p class="env-block-text">특정 환경에 대한 강한 선호나 거부감이 없어요.</p>
-          <p class="env-block-text">
-            다양한 업무 환경에 무난하게 적응할 수 있는 유연한 성향이에요.
-          </p>
-        </div>
-
-        <!-- 일부라도 레벨 3이 아닐 때: 기존 로직 -->
-        <template v-else>
-          <div v-if="t3GoodTexts.length > 0" class="env-block env-block--rec">
-            <p class="env-block-header">
-              <span class="env-block-icon"><AppIcon :name="ENV_JUDGE_ICON.good" /></span>
-              <span class="env-block-title">나에게 맞는 환경</span>
-            </p>
-            <p v-for="item in t3GoodTexts" :key="item.part" class="env-block-text">
-              {{ item.text }}
-            </p>
-            <div v-if="t3WeVisible && t3WeRec.length > 0" class="env-we-list">
-              <div v-for="item in t3WeRec" :key="item.code" class="env-we-item">
-                <span class="env-we-icon"><AppIcon :name="T3_WE_ITEMS[item.code]?.icon ?? weIcon(item.code)" /></span>
-                <div class="env-we-info">
-                  <span class="env-we-name">{{ T3_WE_ITEMS[item.code]?.name }}</span>
-                  <p class="env-we-desc">{{ T3_WE_ITEMS[item.code]?.description }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="t3BadTexts.length > 0" class="env-block env-block--non">
-            <p class="env-block-header">
-              <span class="env-block-icon"><AppIcon :name="ENV_JUDGE_ICON.bad" /></span>
-              <span class="env-block-title">나에게 맞지 않는 환경</span>
-            </p>
-            <p v-for="item in t3BadTexts" :key="item.part" class="env-block-text">
-              {{ item.text }}
-            </p>
-            <div v-if="t3WeVisible && t3WeNonRec.length > 0" class="env-we-list">
-              <div v-for="item in t3WeNonRec" :key="item.code" class="env-we-item">
-                <span class="env-we-icon"><AppIcon :name="T3_WE_ITEMS[item.code]?.icon ?? weIcon(item.code)" /></span>
-                <div class="env-we-info">
-                  <span class="env-we-name">{{ T3_WE_ITEMS[item.code]?.name }}</span>
-                  <p class="env-we-desc">{{ T3_WE_ITEMS[item.code]?.description }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </template>
-      </section>
-
-      <!-- ─── 섹션 4.5: 종합 추천 직업 Top5 ─────────────────── -->
-      <section class="m-sec white">
-        <span class="m-lbl" style="color: #3d7fe8">종합 추천</span>
-        <h2 class="m-ttl">나에게 맞는 직업 Top 5</h2>
-        <p class="m-sub">성격·재능·관심·가치관·업무환경을 모두 고려한 추천이에요</p>
-
-        <div v-if="compLoading" class="t2rec-skeleton-list">
-          <div v-for="n in 3" :key="n" class="t2rec-skeleton" />
-        </div>
-
-        <p v-else-if="compError" class="t2rec-message">데이터를 불러오지 못했습니다.</p>
-        <p v-else-if="compJobs.length === 0" class="t2rec-message">추천 직업을 찾을 수 없습니다.</p>
-
-        <div v-else class="comp-list">
-          <div
-            v-for="(job, idx) in compJobs"
-            :key="job.jobCode"
-            class="comp-card"
-            @click="openJob(job)"
-          >
-            <div class="comp-rank" :class="`comp-rank--${idx + 1}`">{{ idx + 1 }}</div>
-            <div class="comp-body">
-              <div class="comp-top">
-                <span class="comp-title">{{ job.title }}</span>
-                <JobGateBadges :job-code="job.jobCode" />
-                <!-- 묶음 직업: 고용24가 여러 직업을 한 직업으로 묶어 조사해 점수가 같은 경우
-                     추천이 한 자리로 접힌다. 탭하면 세부 직업을 고르게 한다. -->
-                <span v-if="(job.members?.length ?? 1) > 1" class="comp-group">유사 {{ job.members!.length }}개</span>
-                <span class="comp-total-score">{{ Math.round(job.match_score * 100) }}%</span>
-              </div>
-              <p class="comp-class">
-                {{ job.classification.primary }} › {{ job.classification.secondary }}
-              </p>
-
-              <div class="comp-bars">
-                <span class="comp-bar-lbl comp-bar-lbl--t1">성격/기질</span>
-                <div class="comp-bar-track">
-                  <div
-                    class="comp-bar-fill comp-bar-fill--t1"
-                    :style="{ width: `${Math.round(job.match_detail.T1 * 100)}%` }"
-                  ></div>
-                </div>
-                <span class="comp-bar-val comp-bar-val--t1">{{
-                  Math.round(job.match_detail.T1 * 100)
-                }}</span>
-
-                <span class="comp-bar-lbl comp-bar-lbl--t2">재능/흥미/가치관</span>
-                <div class="comp-bar-track">
-                  <div
-                    class="comp-bar-fill comp-bar-fill--t2"
-                    :style="{ width: `${Math.round(calcT2Score(job.match_detail) * 100)}%` }"
-                  ></div>
-                </div>
-                <span class="comp-bar-val comp-bar-val--t2">{{
-                  Math.round(calcT2Score(job.match_detail) * 100)
-                }}</span>
-
-                <span class="comp-bar-lbl comp-bar-lbl--t3">업무환경</span>
-                <div class="comp-bar-track">
-                  <div
-                    class="comp-bar-fill comp-bar-fill--t3"
-                    :style="{ width: `${Math.round(job.match_detail.T3 * 100)}%` }"
-                  ></div>
-                </div>
-                <span class="comp-bar-val comp-bar-val--t3">{{
-                  Math.round(job.match_detail.T3 * 100)
-                }}</span>
-              </div>
-
-              <p class="comp-meta">
-                <span v-if="job.salary?.median"
-                  >급여 중위 {{ job.salary.median.toLocaleString() }}만원</span
-                >
-                <span v-if="job.salary?.median && job.jobSatisfaction"> · </span>
-                <span v-if="job.jobSatisfaction">만족도 {{ job.jobSatisfaction }}%</span>
-              </p>
-            </div>
-          </div>
-        </div>
       </section>
 
       <!-- 하단 액션(래퍼가 주입): 일반=CTA / 온보딩=다음으로 -->
@@ -369,7 +223,7 @@
 <script setup lang="ts">
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { ENV_JUDGE_ICON, weIcon } from '@/modules/survey/surveyIcons'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import {
   fetchSurveyAnalysis,
   fetchT2Recommend,
@@ -383,7 +237,6 @@ import type {
   T2RecommendJob,
   ComprehensiveRecommendJob,
 } from '../types/survey'
-import PersonalityDistribution from './PersonalityDistribution.vue'
 import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
@@ -430,16 +283,6 @@ const T21_DEFINITIONS: Record<string, string> = {
   I: '다른 사람의 감정, 의도, 동기를 이해하고 효과적으로 상호작용하는 능력.',
   N: '자신의 감정, 생각, 동기를 이해하고 자기 성찰을 하는 능력. 자기 인식.',
   A: '음악의 리듬, 음조, 가락 등을 이해하고 창조하는 능력. 악기 연주, 작곡.',
-}
-
-const INTEREST_CAT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  BUS: { bg: '#FFF3B0', text: '#B8900A', border: '#FFE566' },
-  COM: { bg: '#D4ECFA', text: '#2272B0', border: '#90D0F5' },
-  EDU: { bg: '#D4F5E2', text: '#1D7A48', border: '#7DDBA6' },
-  SAF: { bg: '#FFE8CC', text: '#B05A00', border: '#FFB870' },
-  SCI: { bg: '#EAD9FF', text: '#6B30C0', border: '#C090F5' },
-  SOC: { bg: '#FFD9E8', text: '#B0306A', border: '#FF90B8' },
-  TEC: { bg: '#CCF0F5', text: '#1A7A88', border: '#70D8E8' },
 }
 
 const T23_DEFINITIONS: Record<string, string> = {
@@ -741,14 +584,27 @@ const t1ImgSrc = computed(() => {
   return baseType ? (T1_IMG_MAP[baseType] ?? null) : null
 })
 
-const personalityFactors = computed(() =>
-  (analysis.value?.personality.all ?? []).map((item) => ({
-    name: item.name,
-    score: Math.round((item.score ?? 0) * 100),
-    percentile: item.top_percent ?? undefined,
-    description: item.definition || T1_DEFINITIONS[item.code] || '',
-  })),
-)
+// 결과지 공용 계산 — 랜딩 결과지와 같은 규칙
+const pct = (v: number | null | undefined) => Math.round((v ?? 0) * 100)
+// 성격 분포 막대·숫자 색: 1위 노랑 · 2~3위 하늘 · 4위부터 연하늘(숫자는 보조 회색)
+const pdBar = (i: number) => (i === 0 ? '#FFD100' : i < 3 ? '#5BB8F5' : '#A5D8F8')
+const pdScore = (i: number) => (i === 0 ? '#9A7400' : i < 3 ? '#2B69B6' : '#5F6670')
+const t1Definition = (f: { code: string; definition?: string | null }) => f.definition || T1_DEFINITIONS[f.code] || ''
+// 목적격 조사 을/를 — 받침 있으면 '을'. 한글이 아니면 '을(를)'
+const objectJosa = (w: string) => { const c = w.trim().slice(-1).charCodeAt(0) - 0xac00; return c < 0 || c > 11171 ? '을(를)' : c % 28 ? '을' : '를' }
+
+// 성격 4~9위 (?) 터치용 말풍선 — 한 번에 하나만. 같은 (?) 를 다시 누르거나 다른 곳을 누르면 닫힌다.
+// 마우스 기기는 CSS :hover 가 보여 주므로 누를 필요가 없다
+const openTip = ref<string | null>(null)
+const toggleTip = (code: string) => { openTip.value = openTip.value === code ? null : code }
+const closeTip = () => { openTip.value = null }
+onMounted(() => document.addEventListener('click', closeTip))
+onBeforeUnmount(() => document.removeEventListener('click', closeTip))
+
+const valueList = computed(() => {
+  const v = analysis.value?.values
+  return v ? [v.priority_1, v.priority_2, v.priority_3] : []
+})
 
 const t3GoodTexts = computed(() => analysis.value?.environment.texts?.good ?? [])
 const t3BadTexts = computed(() => analysis.value?.environment.texts?.bad ?? [])
@@ -885,7 +741,7 @@ const t2LabelValue = computed(() => {
 })
 
 // 좋아하는 일 카드용 — T22 최다 선택 카테고리명
-const topInterestCategoryName = computed(() => {
+const topInterestName = computed(() => {
   const cats = Object.values(analysis.value?.interest.by_category ?? {})
   if (cats.length === 0) return null
   return cats.reduce((a, b) => (a.items.length >= b.items.length ? a : b)).name
@@ -945,3 +801,393 @@ onMounted(() => {
   tryLinkSurvey()
 })
 </script>
+
+<style lang="scss" scoped>
+// 정본: 랜딩 lighthouse-landing components/survey/ResearchResult.vue 의 스타일(2026-10-26). 값·주석을 그대로 옮겼다.
+// 랜딩에만 있는 현재 직업 매칭도(.rr__cj*)는 뺐고, 앱에만 있는 것은 맨 아래 「앱 전용」에 모았다
+
+// ── 영역 색(2026-10-20 결과지 정리) ── 같은 영역은 어디서나 같은 색. 맑은 파스텔(채도는 높게, 밝기만 올림)
+//   성격 = 주황 · 재능·흥미·가치관 = 파랑 · 업무환경 = 청록. 강조(1위·게이지·주 버튼)는 브랜드 노랑
+//   색 글씨는 같은 색상의 진한 값(-text)을 쓴다 — 파스텔 글씨는 흐려서 읽기 어렵다
+//   노랑 글씨는 $c-gold, 파랑 글씨는 $c-b-text 하나로(2026-10-23 위쪽 구역까지 통일)
+// 파랑 영역은 하늘색 체계(2026-10-23) — 막대는 위쪽 원래 하늘색, 바탕은 '2순위' 배지의 연하늘 하나로
+$c-b: #5bb8f5;  $c-b-light: #a5d8f8;  $c-b-text: #2b69b6;  $c-b-tint: #e8f4fe;  $c-b-line: #b9def7;
+$c-g: #5fcca1;  $c-g-text: #297a67;  $c-g-tint: #dbf5ef;
+// 3색 그래프(매칭도 카드·Top 5 의 영역별 일치도) 전용 — 세 색을 같은 OKLCH 밝기(0.73)·채도(0.14)로 맞췄다(2026-10-26).
+//   위 영역 색보다 살짝 선명하다(파스텔이면 막대가 흐렸다). 다른 곳의 $c-b·$c-g 는 그대로 둔다
+$c-tri-1: #ef8959;  // 성격/기질
+$c-tri-2: #43b2f6;  // 재능/흥미/가치관
+$c-tri-3: #32c392;  // 업무환경
+$c-pri: #ffd100; $c-pri-tint: #fff6c2; $c-gold: #9a7400;
+$c-line: #eeeeee; $c-alt: #f5f5f5;
+// 글씨 회색은 역할별 4단계만 쓴다(2026-10-23) — 강조 · 본문 · 보조 · 메타
+//   메타도 흰 바탕 대비 4.5 이상(#999·#888 은 2.8~3.5 라 읽기 어려웠다)
+$c-text-1: #1a1a1a;  // 강조 — 제목, 이름, 핵심 수치
+$c-text-body: #333;  // 본문 — 설명 문장
+$c-text-2: #5f6670;  // 보조 — 부제, 카드 설명, 라벨
+$c-text-3: #767676;  // 메타 — 분류·급여, 순위, 작은 안내
+
+// 페이지 바탕·폭은 랜딩 /survey 의 .rs · .rs__main 과 같다
+.rr {
+  max-width: 640px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 16px 16px 48px;
+  background: #fafaf8;
+  color: $c-text-1;
+}
+
+.rr__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 50vh;
+  text-align: center;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: $c-text-2;
+}
+
+.rr__spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #eaeaea;
+  border-top-color: #1a1a1a;
+  border-radius: 50%;
+  animation: rr-spin 0.8s linear infinite;
+}
+@keyframes rr-spin { to { transform: rotate(360deg); } }
+
+.rr__retry {
+  padding: 12px 22px;
+  border-radius: 10px;
+  background: #1a1a1a;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+}
+
+.rr__hero {
+  padding: 28px 22px 24px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #fffdf0 0%, $c-b-tint 100%);
+  text-align: center;
+}
+
+.rr__hero-label { font-size: 0.875rem; color: $c-text-2; }
+// 결과지의 대표 결과 — 가장 큰 글씨. 넓은 카드에서는 같은 크기가 작아 보여 한 단계 더 키운다(560px = 매칭도 카드 두 칸 기준과 같다)
+.rr__hero-name {
+  margin-top: 6px;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.35;
+
+  @media (min-width: 560px) { font-size: 1.875rem; }  // 2rem 은 아래 구역이 작아 보였다
+}
+.rr__hero-img { max-width: 55%; max-height: 150px; margin: 16px auto 12px; object-fit: contain; }
+.rr__hero-desc { max-width: 380px; margin: 0 auto; font-size: 0.8125rem; line-height: 1.6; color: $c-text-body; }  // 넓은 화면에서 양끝까지 퍼지지 않게 가운데로 모은다(한 줄 약 29자). 모바일은 원래 이보다 좁다
+
+.rr__tags { display: flex; justify-content: center; gap: 6px; margin-top: 14px; }
+.rr__tag {
+  padding: 4px 12px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+
+  &--y { background: #fff3b0; color: $c-gold; border-color: #ffe566; }
+  &--s { background: $c-b-tint; color: $c-b-text; border-color: $c-b-line; }
+}
+
+.rr__sec {
+  margin-top: 14px;
+  padding: 24px 20px;
+  border-radius: 18px;
+  background: #fff;
+
+  &--gray { background: #f5f5f5; }
+}
+
+.rr__eyebrow {
+  margin-bottom: 8px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+
+  &--y { color: $c-gold; }
+  &--s { color: $c-b-text; }
+  &--g { color: $c-g-text; }
+  &--gold { color: $c-gold; }
+}
+
+.rr__title { font-size: 1.2rem; font-weight: 800; line-height: 1.35; }
+.rr__sub { margin-top: 4px; font-size: 0.85rem; color: $c-text-2; }
+.rr__label { margin: 26px 0 10px; font-size: 0.95rem; font-weight: 700; color: $c-text-1; }
+.rr__empty { margin-top: 12px; font-size: 0.9rem; color: $c-text-2; }
+
+// 성격 분포
+.rr__pd { padding: 12px 0; border-bottom: 1px solid #eceef0; &:last-child { border-bottom: 0; } }
+.rr__pd:first-of-type { margin-top: 14px; }
+.rr__pd-head { display: grid; grid-template-columns: 100px 1fr 30px; align-items: center; gap: 10px; }  // 이름 칸: 가장 긴 '사회적민감성' + (?) 가 99px
+.rr__pd-name {
+  position: relative;  // 말풍선(.rr__pd-tip) 기준
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 500;  // 4~9위 400 은 결과지에서 혼자 가늘어 보였다
+  color: $c-text-body;
+
+  &.is-top { font-weight: 800; color: $c-text-1; }
+}
+// (?) 버튼 — 글씨 크기는 작지만 누르는 영역은 넓힌다(::before 로 사방 8px)
+.rr__pd-q {
+  position: relative;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 1px solid #c9ccd1;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  color: $c-text-3;
+  cursor: help;
+
+  &::before { content: ''; position: absolute; inset: -8px; }
+  &:hover, &:focus-visible { border-color: $c-text-2; color: $c-text-1; }
+}
+// 말풍선 — 마우스 기기는 올리면(:hover), 터치 기기는 누르면(.is-open) 보인다.
+// :hover 는 (hover: hover) 에서만 건다 — 터치 기기는 :hover 가 붙었다 남는다
+.rr__pd-tip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 5;
+  width: 260px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(26, 26, 26, 0.82);  // $c-text-1 반투명 — 꽉 찬 검정은 무거웠다. 뒤 막대가 비쳐도 글씨는 흐려지지 않게 살짝 흐림
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.55;
+  color: #fff;
+  white-space: normal;
+
+  &.is-open { display: block; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .rr__pd-q:hover + .rr__pd-tip,
+  .rr__pd-q:focus-visible + .rr__pd-tip { display: block; }
+}
+.rr__pd-bar { height: 8px; border-radius: 999px; background: #e9eaed; overflow: hidden; }
+.rr__pd-fill { display: block; height: 100%; border-radius: 999px; }
+.rr__pd-score { font-size: 0.875rem; font-weight: 500; text-align: right; &.is-top { font-weight: 800; } }  // 4~9위는 이름(500)과 같은 무게
+.rr__pd-pct { display: inline-block; margin-top: 6px; font-size: 0.75rem; font-weight: 700; color: $c-gold; }
+.rr__pd-desc { margin-top: 4px; font-size: 0.8rem; line-height: 1.55; color: $c-text-2; }
+
+// 재능·가치관 카드
+.rr__cards { display: flex; flex-direction: column; gap: 8px; }
+.rr__card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1.5px solid #eaeaea;
+  border-radius: 14px;
+  background: #fff;
+
+  &--p1 { border-color: #ffd100; background: #fffdf0; .rr__rank { background: #ffd100; color: #1a1a1a; } }
+  &--p2 { border-color: $c-b-tint; .rr__rank { background: $c-b-tint; color: $c-b-text; } }
+  &--p3 .rr__rank { background: #eaeaea; color: $c-text-2; }
+}
+.rr__rank { flex: none; padding: 3px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 800; }
+.rr__card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.rr__card-name { font-size: 0.95rem; font-weight: 800; }
+.rr__card-def { font-size: 0.8rem; line-height: 1.55; color: $c-text-2; }
+.rr__card-score { flex: none; font-size: 1rem; font-weight: 800; &.is-hi { color: $c-gold; } &.is-mi { color: $c-b-text; } }
+.rr__bar { height: 6px; border-radius: 999px; background: #eaeaea; overflow: hidden; }
+.rr__bar-fill { display: block; height: 100%; border-radius: 999px; &.is-hi { background: #ffd100; } &.is-mi { background: $c-b; } }
+
+// 관심 분야
+.rr__interest { display: flex; flex-direction: column; gap: 14px; padding: 16px; border: 1px solid $c-b-line; border-radius: 14px; background: $c-b-tint; }
+.rr__interest-cat { display: block; margin-bottom: 6px; font-size: 0.75rem; font-weight: 700; color: $c-b-text; }
+.rr__interest-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.rr__interest-tag { padding: 4px 10px; border: 1px solid $c-b-line; border-radius: 999px; background: #fff; font-size: 0.8rem; font-weight: 600; color: $c-text-body; }  // 태그는 본문 회색 600 — 500 은 묻히고 검정 700 은 설명보다 튄다
+
+.rr__like {
+  padding: 18px;
+  border: 1px solid $c-b-line;
+  border-radius: 14px;
+  background: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+  line-height: 2;
+}
+// 핵심어만 굵게·파랑 — 이어지는 문장은 500으로 낮춰 핵심어가 먼저 읽히게
+.rr__chip { padding: 3px 6px; border-radius: 6px; background: $c-b-tint; color: $c-b-text; font-weight: 700; }
+
+// 업무 환경
+.rr__env {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 12px;
+
+  &--good { background: $c-g-tint; }
+  &--bad, &--neutral { background: $c-alt; }
+}
+.rr__env-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.95rem; }
+// 맞는/안 맞는 표시 — 상자 전체를 칠하지 않고 머리의 작은 원만 색
+.rr__env-mk {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 900;
+  color: #fff;
+  background: #9a9a9a;
+
+  .rr__env--good & { background: $c-g; }
+  .rr__env--bad & { background: #e5484d; }
+}
+.rr__env-text { font-size: 0.875rem; line-height: 1.65; color: $c-text-body; & + & { margin-top: 4px; } }
+.rr__we {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+
+  li { padding: 4px 10px; border-radius: 999px; background: #fff; font-size: 0.8rem; font-weight: 600; color: $c-text-body; }
+}
+
+// 추천 직업
+.rr__job {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid $c-line;
+  border-radius: 14px;
+}
+.rr__job-rank {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 900;
+  background: $c-alt;
+  color: $c-text-2;
+
+  &--1 { background: $c-pri; color: #1a1a1a; }   // 1위만 강조
+}
+.rr__job-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.rr__job-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rr__job-title { font-size: 0.95rem; font-weight: 700; line-height: 1.3; }
+.rr__job-group { padding: 2px 7px; border-radius: 999px; background: $c-b-tint; font-size: 0.7rem; font-weight: 600; color: $c-b-text; }
+.rr__job-score { margin-left: auto; padding: 2px 8px; border-radius: 20px; background: $c-pri-tint; color: $c-gold; font-size: 0.75rem; font-weight: 800; }
+.rr__job-class { font-size: 0.72rem; color: $c-text-3; }
+
+.rr__job-bars { padding-top: 3px; }  // 매칭도 카드: 위 해석 줄 → 막대 15px(Top 5 카드는 기본값 그대로)
+.rr__cj-field {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
+
+  ul { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  // 줄마다 연회색 상자 — 글씨만 있을 땐 위 설명에 묻혀 목록으로 안 보였다(2026-10-26)
+  li { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; background: $c-alt; font-size: 0.85rem; }
+}
+.rr__cj-field-h {
+  font-size: 0.85rem;
+  font-weight: 700;
+
+  span { display: block; margin-top: 5px; font-size: 0.75rem; font-weight: 500; color: $c-text-2; }  // 제목과 설명이 붙어 보이지 않게
+}
+.rr__cj-field-t { flex: 1; min-width: 0; font-size: 0.8rem; font-weight: 600; color: $c-text-1; }  // 400 검정은 이 카드에서 혼자 튀었다 — 이름은 600, 제목(700)보다 한 단계 작게
+.rr__cj-field-r { font-size: 0.75rem; color: $c-text-3; }
+.rr__cj-field-s { min-width: 36px; font-size: 0.8rem; font-weight: 700; text-align: right; color: $c-gold; }
+.rr__job-members { font-size: 0.75rem; line-height: 1.5; color: $c-text-2; }
+.rr__job-bars {
+  display: grid;
+  grid-template-columns: max-content 1fr 26px;
+  align-items: center;
+  row-gap: 5px;
+  column-gap: 8px;
+  margin-top: 6px;
+  padding-top: 4px;
+}
+.rr__jl {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: $c-text-body;  // 본문 회색 — 보조 회색이면 위 분류 줄과 같아 묻혔다. 오른쪽 수치(메타 회색)보다 한 단계 진하게
+
+  &::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; }
+  &--t1::before { background: $c-tri-1; }
+  &--t2::before { background: $c-tri-2; }
+  &--t3::before { background: $c-tri-3; }
+}
+.rr__jt { height: 6px; border-radius: 4px; background: $c-alt; overflow: hidden; }
+.rr__jf {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+
+  &--t1 { background: $c-tri-1; }
+  &--t2 { background: $c-tri-2; }
+  &--t3 { background: $c-tri-3; }
+}
+.rr__jv {
+  font-size: 0.7rem;
+  font-weight: 400;  // 라벨(500)보다 한 단계 가볍게 — 숫자는 획이 촘촘해 같은 굵기면 더 진해 보인다
+  text-align: right;
+  color: $c-text-body;  // 왼쪽 라벨(.rr__jl)과 같은 색 — 라벨·막대·수치를 한 줄로 읽히게
+}
+.rr__job-meta { margin-top: 6px; padding-top: 6px; border-top: 1px solid $c-line; font-size: 0.72rem; color: $c-text-3; }
+// ── 앱 전용 ──────────────────────────────────────────────
+// 맞는/안 맞는 표시는 자체 아이콘(원 모양이 이미 들어 있다) — 랜딩의 색 원 + ✓ ! ~ 글자 대신 아이콘에 같은 색
+.rr__env-mk {
+  width: auto;
+  height: auto;
+  background: none !important;
+  color: #9a9a9a;
+
+  .rr__env--good & { color: $c-g; }
+  .rr__env--bad & { color: #e5484d; }
+}
+// 업무 환경 항목 칩 앞 아이콘
+.rr__we li { display: inline-flex; align-items: center; gap: 5px; :deep(.app-icon) { color: $c-text-2; } }
+// 추천 직업은 눌러서 진로백과로 간다
+.rr__job--link {
+  cursor: pointer;
+  transition: border-color 0.15s;
+  &:hover { border-color: #d6d6d6; }
+  &:active { transform: scale(0.99); }
+}
+.rr__job-top :deep(.gate-badges) { order: 3; flex-basis: 100%; }  // 진입 관문 배지는 다음 줄로 — 한 줄에 두면 긴 직업명이 세로로 꺾였다(2026-10-27)
+.rr__skeletons { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.rr__skeleton { height: 120px; border-radius: 14px; background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: rr-shimmer 1.4s infinite; }
+@keyframes rr-shimmer { to { background-position: -200% 0; } }
+</style>
