@@ -1,62 +1,107 @@
 <template>
-  <div class="cas">
-    <header class="cas__header">
-      <button class="cas__back" @click="confirmExit"><AppIcon name="ui-back" /></button>
-      <span class="cas__header-title">집중 모드</span>
-      <span class="cas__header-spacer" />
-    </header>
+  <!-- 집중모드(2026-11-04 개편, C안 '채움') — 목표 시간 설정 → 3·2·1 → 화면 전체 타이머(노랑이 바닥부터 차오름) → 완료.
+       다른 시안(A 등대·B 다이얼)은 레포 docs/design/focus-mode-mockup.html — 팀 의견으로 바꿀 수 있다.
+       계산은 lib/focusTimer.ts, 스타일은 appearance/modules/career-achievement/AchievementFocus.scss -->
+  <div class="fm">
+    <div v-if="loading" class="fm-loading">불러오는 중...</div>
 
-    <div v-if="loading" class="cas__loading">불러오는 중...</div>
+    <div v-else-if="!item" class="fm-empty">
+      <p>항목을 찾을 수 없어요.</p>
+      <button type="button" @click="router.replace('/career-achievement')">돌아가기</button>
+    </div>
 
-    <template v-else-if="item">
-      <!-- 항목 정보 -->
-      <div class="cas__item">
-        <span
-          v-if="categoryInfo"
-          class="cas__item-cat"
-          :style="{ color: categoryInfo.color, background: `color-mix(in srgb, ${categoryInfo.color} 12%, white)` }"
-        >{{ categoryInfo.label }}</span>
-        <span v-else class="cas__item-cat cas__item-cat--routine">루틴</span>
-        <h2 class="cas__item-name">{{ item.name }}</h2>
-        <p v-if="projectGoal" class="cas__item-goal">{{ projectGoal }}</p>
-        <span class="cas__item-meta">계획 시간 · {{ item.duration }}분</span>
+    <!-- ① 목표 시간 설정 -->
+    <section v-else-if="phase === 'setup'" class="fm-setup">
+      <header class="fm-setup__bar">
+        <button type="button" class="fm-setup__x" aria-label="닫기" @click="exit"><AppIcon name="ui-close" /></button>
+        <b>집중 모드</b>
+        <span />
+      </header>
+      <div class="fm-setup__item">
+        <span class="fm-setup__chip" :style="chipStyle">{{ chipLabel }}</span>
+        <h2>{{ item.name }}</h2>
+        <p v-if="projectGoal">{{ projectGoal }}</p>
       </div>
 
-      <!-- 타이머 -->
-      <div class="cas__timer-box">
-        <div class="cas__timer">{{ formatted }}</div>
-        <div class="cas__timer-state">
-          <span v-if="!started">시작 버튼을 누르면 시간이 흐릅니다</span>
-          <span v-else-if="paused">일시정지됨</span>
-          <span v-else>진행 중</span>
+      <p class="fm-setup__label">목표 집중 시간</p>
+      <div class="fm-setup__goal">
+        <button type="button" class="fm-setup__step" aria-label="5분 줄이기" :disabled="goalMin <= FOCUS_MIN" @click="setGoal(goalMin - FOCUS_STEP)">−</button>
+        <div class="fm-setup__value fm-num">{{ goalMin }}<small>분</small></div>
+        <button type="button" class="fm-setup__step" aria-label="5분 늘리기" :disabled="goalMin >= FOCUS_MAX" @click="setGoal(goalMin + FOCUS_STEP)">+</button>
+      </div>
+      <p class="fm-setup__end">지금 시작하면 <b>{{ endAtLabel }}</b>에 끝나요</p>
+      <div class="fm-setup__presets">
+        <button v-for="m in FOCUS_PRESETS" :key="m" type="button" :class="{ on: goalMin === m }" @click="setGoal(m)">{{ m }}분</button>
+      </div>
+
+      <div class="fm-setup__opts">
+        <button type="button" class="fm-setup__opt" @click="keepAwake = !keepAwake">
+          화면 켜짐 유지 <span class="fm-tgl" :class="{ on: keepAwake }" />
+        </button>
+        <button type="button" class="fm-setup__opt" @click="notify = !notify">
+          목표 시간이 되면 진동 <span class="fm-tgl" :class="{ on: notify }" />
+        </button>
+      </div>
+      <button type="button" class="fm-setup__go" @click="countdown">집중 시작</button>
+    </section>
+
+    <!-- ② 3·2·1 -->
+    <section v-else-if="phase === 'count'" class="fm-count"><span :key="countN">{{ countN }}</span></section>
+
+    <!-- ③ 타이머 — 화면 어디든 누르면 잠시 멈춤 -->
+    <section v-else-if="phase === 'run'" class="fm-run" :class="{ paused, over: digits.over, filled: fill > 6 }" @click="pause">
+      <div class="fm-run__liquid" :style="{ height: `${fill}%` }">
+        <svg viewBox="0 0 1200 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 20 Q 75 0 150 20 T 300 20 T 450 20 T 600 20 T 750 20 T 900 20 T 1050 20 T 1200 20 V40 H0 Z" /></svg>
+      </div>
+      <!-- 같은 글자를 두 겹 — 노랑에 잠긴 부분만 검정으로 보이게 위 겹을 잘라 낸다 -->
+      <div v-for="layer in ['light', 'dark']" :key="layer" class="fm-run__layer" :class="`fm-run__layer--${layer}`"
+        :style="layer === 'dark' ? { clipPath: `inset(${100 - fill}% 0 0 0)` } : undefined">
+        <div class="fm-run__meta"><span>{{ paused ? '잠시 멈춤' : '집중 중' }}</span><span>목표 {{ goalMin }}분</span></div>
+        <div class="fm-run__name">{{ item.name }}</div>
+        <div class="fm-run__big fm-num" :class="{ long: digits.min.length > 2 }"><span class="m">{{ digits.min }}</span><span class="s">{{ digits.sec }}</span></div>
+        <div class="fm-run__cap">{{ digits.over ? '목표 시간 지남 · 계속 집중 중' : '남은 시간' }}</div>
+        <div class="fm-run__foot"><span>끝날 예정 {{ hm(endAt) }}</span><b class="fm-num">{{ percent }}%</b></div>
+      </div>
+      <p class="fm-run__hint">화면을 누르면 잠시 멈춰요</p>
+      <div class="fm-run__sheet" @click.stop>
+        <h4>잠시 멈췄어요</h4>
+        <p>지금까지 {{ clockLabel(elapsed) }} 집중했어요</p>
+        <div class="fm-run__row">
+          <button type="button" @click="finish">다 했어요</button>
+          <button type="button" class="p" @click="resume">이어서 집중</button>
         </div>
       </div>
+    </section>
 
-      <!-- 컨트롤 -->
-      <div class="cas__controls">
-        <button v-if="!started" class="cas__btn cas__btn--primary" @click="start">시작</button>
-        <template v-else>
-          <button class="cas__btn cas__btn--ghost" @click="togglePause">
-            {{ paused ? '재개' : '일시정지' }}
-          </button>
-          <button class="cas__btn cas__btn--primary" @click="finish">완료</button>
-        </template>
+    <!-- ④ 완료 — 판정하지 않는다(일찍 끝낸 건 일이 빨리 끝난 것일 수 있다) -->
+    <section v-else class="fm-done">
+      <div class="fm-done__huge fm-num">{{ Math.floor(elapsed / 60) }}<small>분</small></div>
+      <h3>집중을 마쳤어요</h3>
+      <p>{{ gap.line }}</p>
+      <div class="fm-done__stats">
+        <div><b class="fm-num">{{ clockLabel(elapsed) }}</b><small>집중한 시간</small></div>
+        <div><b class="fm-num">{{ gap.diff }}</b><small>목표 {{ goalMin }}분보다</small></div>
       </div>
-    </template>
-
-    <div v-else-if="!loading" class="cas__empty">
-      <p>항목을 찾을 수 없어요.</p>
-      <button class="cas__btn cas__btn--ghost" @click="router.replace('/career-achievement')">돌아가기</button>
-    </div>
+      <div class="fm-done__btns">
+        <button type="button" class="p" @click="toRecord">기록 남기기</button>
+        <button type="button" @click="resume">이어서 집중하기</button>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import AppIcon from '@/shared/components/AppIcon.vue'
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
-import type { Project, Routine, ProjectCategory } from '@/modules/career-design/types/career-design'
+import type { Project, Routine } from '@/modules/career-design/types/career-design'
+import { CATEGORY_META } from '../lib/planBoard'
+import {
+  FOCUS_PRESETS, FOCUS_MIN, FOCUS_MAX, FOCUS_STEP,
+  clampGoal, focusGap, focusDigits, clockLabel,
+} from '../lib/focusTimer'
+import { applyThemeColor, THEME_COLOR } from '@/shared/router/themeColor'
 
 const route = useRoute()
 const router = useRouter()
@@ -75,94 +120,153 @@ const loading = ref(true)
 
 const item = computed<Project | Routine | null>(() => {
   if (!itemId.value) return null
-  if (itemType.value === 'project') {
-    return draftPlan.projects.find(p => p.id === itemId.value) ?? null
-  }
+  if (itemType.value === 'project') return draftPlan.projects.find(p => p.id === itemId.value) ?? null
   return draftPlan.routines.find(r => r.id === itemId.value) ?? null
 })
-
-const categories: Record<ProjectCategory, { label: string; color: string }> = {
-  qualification: { label: '자격요건',   color: '#1DB95A' },
-  knowledge:     { label: '분야지식',   color: '#F47820' },
-  skill:         { label: '직무기술',   color: '#A855F7' },
-  portfolio:     { label: '포트폴리오', color: '#4480F5' },
-  experience:    { label: '실무경험', color: '#F0507E' },
-}
-
-const categoryInfo = computed(() => {
-  if (itemType.value !== 'project') return null
-  const cat = (item.value as Project | null)?.category
-  return cat ? categories[cat] : null
+const category = computed(() => {
+  const c = itemType.value === 'project' ? (item.value as Project | null)?.category : undefined
+  return c ? CATEGORY_META[c] : null
 })
-
-const projectGoal = computed(() => {
-  if (itemType.value !== 'project') return ''
-  return (item.value as Project | null)?.goal ?? ''
+const chipLabel = computed(() => category.value?.label ?? '루틴')
+const chipStyle = computed(() => {
+  const color = category.value?.color ?? '#FFD100'
+  return { color, background: `color-mix(in srgb, ${color} 18%, transparent)` }
 })
+const projectGoal = computed(() => (itemType.value === 'project' ? (item.value as Project | null)?.goal ?? '' : ''))
 
-// ── 카운트업 타이머 ─────────────────────────────────
-const elapsedSec = ref(0)
-const started = ref(false)
+// ── 설정 ──
+type Phase = 'setup' | 'count' | 'run' | 'done'
+const phase = ref<Phase>('setup')
+const goalMin = ref(25)
+const keepAwake = ref(true)
+const notify = ref(true)
+const setGoal = (m: number) => { goalMin.value = Math.min(FOCUS_MAX, Math.max(FOCUS_MIN, m)) }
+
+// ── 시간 — 시작 시각 기준으로 센다(앱을 잠깐 나갔다 와도 이어진다) ──
+const now = ref(Date.now())
+let ticker: number | null = null
+const accSec = ref(0)              // 멈추기 전까지 쌓인 시간
+let segStart = 0                    // 지금 구간 시작 시각
 const paused = ref(false)
-let intervalId: number | null = null
-
-function tick() {
-  if (!paused.value) elapsedSec.value += 1
-}
-
-function start() {
-  started.value = true
-  paused.value = false
-  if (intervalId === null) intervalId = window.setInterval(tick, 1000)
-}
-
-function togglePause() {
-  paused.value = !paused.value
-}
-
-function clearTimer() {
-  if (intervalId !== null) {
-    clearInterval(intervalId)
-    intervalId = null
-  }
-}
-
-const formatted = computed(() => {
-  const s = elapsedSec.value
-  const hh = String(Math.floor(s / 3600)).padStart(2, '0')
-  const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0')
-  const ss = String(s % 60).padStart(2, '0')
-  return `${hh}:${mm}:${ss}`
+const started = computed(() => phase.value === 'run' || phase.value === 'done')
+const elapsed = computed(() => accSec.value + (phase.value === 'run' && !paused.value ? (now.value - segStart) / 1000 : 0))
+const goalSec = computed(() => goalMin.value * 60)
+const digits = computed(() => focusDigits(elapsed.value, goalSec.value))
+const percent = computed(() => Math.floor((elapsed.value / goalSec.value) * 100))
+const fill = computed(() => Math.min(100, (elapsed.value / goalSec.value) * 100))
+const gap = computed(() => focusGap(elapsed.value, goalSec.value))
+// 지금 페이스면 끝날 시각(멈춘 동안은 그만큼 밀린다)
+const endAt = computed(() => new Date(now.value + Math.max(0, goalSec.value - elapsed.value) * 1000))
+const endAtLabel = computed(() => {
+  const d = new Date(now.value + goalSec.value * 1000)
+  return `${d.getHours() < 12 ? '오전' : '오후'} ${((d.getHours() + 11) % 12) + 1}:${String(d.getMinutes()).padStart(2, '0')}`
 })
+const hm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 
+function startTicker() {
+  if (ticker === null) ticker = window.setInterval(() => { now.value = Date.now() }, 250)
+}
+function stopTicker() {
+  if (ticker !== null) { clearInterval(ticker); ticker = null }
+}
+
+// 3·2·1
+const countN = ref(3)
+function countdown() {
+  phase.value = 'count'
+  countN.value = 3
+  const step = () => {
+    if (phase.value !== 'count') return
+    if (countN.value <= 1) return begin()
+    countN.value--
+    window.setTimeout(step, 800)
+  }
+  window.setTimeout(step, 800)
+}
+function begin() {
+  accSec.value = 0
+  reachedNotified = false
+  resume()
+}
+function resume() {
+  segStart = Date.now()
+  now.value = segStart
+  paused.value = false
+  phase.value = 'run'
+  startTicker()
+  void lockScreen()
+}
+function pause() {
+  if (paused.value) return
+  accSec.value = elapsed.value
+  paused.value = true
+  void unlockScreen()
+}
 function finish() {
-  clearTimer()
+  if (!paused.value) accSec.value = elapsed.value
+  paused.value = true
+  phase.value = 'done'
+  stopTicker()
+  void unlockScreen()
+}
+function toRecord() {
   bypassLeaveGuard = true
   router.replace({
     path: `/career-achievement/complete/${itemType.value}/${itemId.value}`,
-    query: { date: dateKey.value, elapsed: String(elapsedSec.value) },
+    query: { date: dateKey.value, elapsed: String(Math.floor(elapsed.value)) },
   })
 }
 
-let bypassLeaveGuard = false
+// 목표 시간 도달 — 진동 한 번(지원하는 기기만. iOS 사파리는 진동 API 가 없다)
+let reachedNotified = false
+watch(() => digits.value.over, (over) => {
+  if (!over || reachedNotified || phase.value !== 'run') return
+  reachedNotified = true
+  if (notify.value) navigator.vibrate?.([200, 100, 200])
+})
 
-function confirmExit() {
-  if (started.value && elapsedSec.value > 0) {
-    if (!confirm('진행 중인 기록이 사라져요. 정말 나가시겠어요?')) return
-  }
+// ── 화면 켜짐 유지(Wake Lock) — 지원 안 하는 브라우저는 조용히 넘어간다 ──
+type Sentinel = { release: () => Promise<void> }
+let wakeLock: Sentinel | null = null
+async function lockScreen() {
+  if (!keepAwake.value || wakeLock) return
+  try { wakeLock = await (navigator as any).wakeLock?.request('screen') ?? null } catch { wakeLock = null }
+}
+async function unlockScreen() {
+  const w = wakeLock
+  wakeLock = null
+  try { await w?.release() } catch { /* 이미 풀림 */ }
+}
+// 다른 앱에 다녀오면 잠금이 풀린다 — 돌아왔을 때 다시
+function onVisible() {
+  if (document.visibilityState !== 'visible') return
+  now.value = Date.now()
+  if (phase.value === 'run' && !paused.value) { wakeLock = null; void lockScreen() }
+}
+
+// 상단(노치) 색 — 어두운 화면, 노랑이 다 차오르면·완료 화면은 노랑
+watch([phase, fill], () => {
+  applyThemeColor(phase.value === 'done' || (phase.value === 'run' && fill.value > 93) ? THEME_COLOR.primary : THEME_COLOR.focus)
+}, { immediate: true })
+
+// ── 나가기 ──
+let bypassLeaveGuard = false
+const hasProgress = () => started.value && elapsed.value >= 1
+function exit() {
   bypassLeaveGuard = true
   router.back()
 }
-
 onBeforeRouteLeave((_to, _from, next) => {
-  if (!bypassLeaveGuard && started.value && elapsedSec.value > 0) {
-    if (!confirm('진행 중인 기록이 사라져요. 정말 나가시겠어요?')) return next(false)
+  if (!bypassLeaveGuard && hasProgress()) {
+    if (!confirm('집중한 기록이 사라져요. 정말 나가시겠어요?')) return next(false)
   }
-  clearTimer()
+  stopTicker()
+  void unlockScreen()
   next()
 })
 
 onMounted(async () => {
+  document.addEventListener('visibilitychange', onVisible)
   try {
     if (!draftPlan.planId) {
       const plans = await fetchMyPlans()
@@ -171,166 +275,13 @@ onMounted(async () => {
     }
   } finally {
     loading.value = false
+    goalMin.value = clampGoal(item.value?.duration)
   }
 })
 
-onBeforeUnmount(() => clearTimer())
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', onVisible)
+  stopTicker()
+  void unlockScreen()
+})
 </script>
-
-<style lang="scss">
-.cas {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  background: #F5F5F5;
-
-  &__header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    display: grid;
-    grid-template-columns: 44px 1fr 44px;
-    align-items: center;
-    height: 52px;
-    padding: 0 8px;
-    background: #fff;
-    border-bottom: 1px solid #EEEEE8;
-  }
-
-  &__back {
-    width: 36px;
-    height: 36px;
-    border: none;
-    background: transparent;
-    font-size: 20px;
-    color: #444;
-    cursor: pointer;
-  }
-
-  &__header-title {
-    text-align: center;
-    font-size: 14px;
-    font-weight: 700;
-    color: #222;
-  }
-
-  &__header-spacer { width: 44px; }
-
-  &__loading {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #aaa;
-  }
-
-  &__item {
-    margin: 24px 16px 0;
-    background: #fff;
-    border-radius: 16px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
-  }
-
-  &__item-cat {
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 10px;
-    border-radius: 8px;
-
-    &--routine {
-      background: #FFFBEC;
-      color: #CC9D00;
-    }
-  }
-
-  &__item-name {
-    font-size: 18px;
-    font-weight: 800;
-    color: #222;
-    margin: 0;
-  }
-
-  &__item-goal {
-    font-size: 13px;
-    color: #666;
-    margin: 0;
-    line-height: 1.5;
-  }
-
-  &__item-meta {
-    font-size: 12px;
-    color: #999;
-    margin-top: 4px;
-  }
-
-  &__timer-box {
-    flex: 1;
-    margin: 24px 16px;
-    background: linear-gradient(135deg, #FFC700 0%, #FFB300 100%);
-    border-radius: 24px;
-    padding: 56px 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    color: #fff;
-    box-shadow: 0 6px 20px rgba(255, 199, 0, 0.25);
-  }
-
-  &__timer {
-    font-size: 56px;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 2px;
-    line-height: 1;
-  }
-
-  &__timer-state {
-    font-size: 13px;
-    opacity: 0.9;
-    font-weight: 600;
-  }
-
-  &__controls {
-    display: flex;
-    gap: 10px;
-    margin: 0 16px 24px;
-  }
-
-  &__btn {
-    flex: 1;
-    height: 52px;
-    border-radius: 14px;
-    border: none;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-
-    &--primary {
-      background: #FFC700;
-      color: #fff;
-    }
-
-    &--ghost {
-      background: #fff;
-      color: #444;
-      border: 1px solid #ddd;
-    }
-  }
-
-  &__empty {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    color: #888;
-  }
-}
-</style>
