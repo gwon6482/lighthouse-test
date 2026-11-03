@@ -141,6 +141,7 @@ import type { WeeklySchedule } from '../composables/useWeeklySchedule'
 import { useAchievement } from '../composables/useAchievement'
 import { getToday } from '@/shared/utils/dev-date'
 import type { ProjectCategory, DayOfWeek } from '@/modules/career-design/types/career-design'
+import { uid } from '@/shared/utils/uid'
 
 const router = useRouter()
 const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
@@ -212,7 +213,7 @@ function addItem(projectId: string) {
   const sched = currentSchedule
   if (!sched.value || !addSheetDate.value) return
   const newItem = {
-    id: crypto.randomUUID(),
+    id: uid(),
     itemType: 'project' as const,
     itemId: projectId,
     date: addSheetDate.value,
@@ -504,7 +505,7 @@ onMounted(async () => {
       for (const m of missedProjects.value) {
         if (isCarriedOver(m)) continue
         toAdd.push({
-          id: crypto.randomUUID(),
+          id: uid(),
           itemType: 'project',
           itemId: m.itemId,
           date: m.targetDate,

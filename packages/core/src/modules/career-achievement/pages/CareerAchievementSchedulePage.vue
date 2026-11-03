@@ -154,6 +154,7 @@ import type { WeeklySchedule } from '../composables/useWeeklySchedule'
 import { useAchievement } from '../composables/useAchievement'
 import { getToday } from '@/shared/utils/dev-date'
 import type { ProjectCategory, DayOfWeek } from '@/modules/career-design/types/career-design'
+import { uid } from '@/shared/utils/uid'
 
 const router = useRouter()
 const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
@@ -283,7 +284,7 @@ function removeItem(itemId: string) {
 function addItem(projectId: string) {
   if (!draftItems.value || !addSheetDate.value) return
   draftItems.value = [...draftItems.value, {
-    id: crypto.randomUUID(),
+    id: uid(),
     itemType: 'project' as const,
     itemId: projectId,
     date: addSheetDate.value,

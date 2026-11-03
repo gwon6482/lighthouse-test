@@ -4,6 +4,7 @@ import type {
   Project, Routine, DayOfWeek, TimelineSlot,
 } from '@/modules/career-design/types/career-design'
 import { weekOfDate, projectsActiveInWeek, weekStartOf } from '@/modules/career-design/composables/usePlanTimeline'
+import { uid } from '@/shared/utils/uid'
 
 // 한 주의 확정된 일정 1건. BE WeeklySchedule.items 의 1요소.
 export interface WeeklyScheduleItem {
@@ -145,7 +146,7 @@ export function generateItemsForWeek(
       const curriculumWeek = startWeek === undefined ? null : planWeek - startWeek + 1
 
       out.push({
-        id: crypto.randomUUID(),
+        id: uid(),
         itemType: 'project',
         itemId: p.id,
         date: dateKey,
@@ -156,7 +157,7 @@ export function generateItemsForWeek(
     for (const r of plan.routines) {
       if (!r.days?.includes(dow)) continue
       out.push({
-        id: crypto.randomUUID(),
+        id: uid(),
         itemType: 'routine',
         itemId: r.id,
         date: dateKey,
