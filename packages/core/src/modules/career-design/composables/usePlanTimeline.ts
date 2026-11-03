@@ -213,8 +213,10 @@ export function provisionalWeekCount(projects: Pick<Project, 'weeks' | 'curricul
   return Math.min(PROVISIONAL_MAX_WEEKS, Math.max(PROVISIONAL_MIN_WEEKS, sum))
 }
 
-// 마지막 목표 설정에서 추천하는 종료일 = 배치한 프로젝트 중 가장 늦게 끝나는 주의 일요일. 배치가 없으면 ''
-export function suggestedEndDate(startDate: string, timeline: TimelineSlot[], projects?: Project[], start?: WeekStart): string {
+// 예상 완료일 = 배치한 프로젝트 중 가장 늦게 끝나는 주의 마지막 날. 배치가 없으면 ''.
+// ⭐ 2026-11-04~ 종료일은 사용자가 정하지 않는다 — 지금 배치(속도)대로 가면 끝나는 날이 곧 종료일이다(사용자 결정).
+//    계획 작성(useCareerDesign watch)·진로달성(achievement store)이 이 값을 endDate 로 쓴다
+export function projectedEndDate(startDate: string, timeline: TimelineSlot[], projects?: Project[], start?: WeekStart): string {
   let last = 0
   for (const slot of timeline) {
     for (const p of slot.projects) last = Math.max(last, projectEndWeek(slot.week, resolveProject(p, projects)))

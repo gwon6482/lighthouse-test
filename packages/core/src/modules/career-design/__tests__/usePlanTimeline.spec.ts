@@ -1,4 +1,4 @@
-import { autoSchedule, projectHoursPerWeek, suggestedEndDate, provisionalWeekCount, lastWeekOfMonth } from '../composables/usePlanTimeline'
+import { autoSchedule, projectHoursPerWeek, projectedEndDate, provisionalWeekCount, lastWeekOfMonth } from '../composables/usePlanTimeline'
 import { describe, it, expect } from 'vitest'
 import type { Project, TimelineSlot } from '../types/career-design'
 import {
@@ -325,7 +325,7 @@ describe('autoSchedule', () => {
     const r = autoSchedule(ps, 3) // 하나씩 → a 1~3주, b 4~5주
     expect(Math.max(...r.map(x => x.week + projectWeeks(x.project) - 1))).toBeLessThanOrEqual(provisionalWeekCount(ps))
     const slots: TimelineSlot[] = r.map(x => ({ week: x.week, projects: [x.project] }))
-    expect(suggestedEndDate('2026-10-19', slots, ps)).toBe('2026-11-22') // 5주차 = 11.16(월)~11.22(일)
+    expect(projectedEndDate('2026-10-19', slots, ps)).toBe('2026-11-22') // 5주차 = 11.16(월)~11.22(일)
   })
 })
 

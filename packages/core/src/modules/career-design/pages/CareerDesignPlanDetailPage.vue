@@ -228,6 +228,7 @@
 </template>
 
 <script setup lang="ts">
+import { projectedEndDate } from '../composables/usePlanTimeline'
 import { DESIGN_STEP_PATH, type DesignStepKey } from '../composables/useDesignSteps'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { weekEntriesOf } from '../composables/useProjectCurriculum'
@@ -356,10 +357,12 @@ const unplacedProjects = computed(() =>
 
 const periodLabel = computed(() => {
   if (!plan.value) return ''
-  const { startDate, endDate } = plan.value
+  const { startDate } = plan.value
   if (!startDate) return ''
+  // 종료일 = 예상 완료일(배치에서 계산, 2026-11-04~). 저장된 값은 배치가 없을 때만
+  const endDate = projectedEndDate(startDate, plan.value.timeline ?? [], plan.value.projects ?? [], plan.value.reviewDay ?? '') || plan.value.endDate
   const fmt = (d: string) => { const [y, m] = d.split('-'); return `${y}.${m}` }
-  return endDate ? `${fmt(startDate)} ~ ${fmt(endDate)}` : fmt(startDate)
+  return endDate ? `${fmt(startDate)} ~ ${fmt(endDate)} (예상 완료)` : fmt(startDate)
 })
 
 const categoriesWithCount = computed(() => {

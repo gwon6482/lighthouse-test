@@ -253,7 +253,7 @@ import CdStepIndicator from '../components/CdStepIndicator.vue'
 import { useDesignSteps } from '../composables/useDesignSteps'
 import type { Project, ProjectCategory } from '../types/career-design'
 import {
-  planWeekCount, provisionalWeekCount, weekRangeLabel, projectWeeks, projectEndWeek, fitsInPlan,
+  provisionalWeekCount, weekRangeLabel, projectWeeks, projectEndWeek, fitsInPlan,
   weekDateRange, monthWeekOf, monthWeekLabel, weeksInMonth, parseDateKey, resolveProject,
   projectHoursPerWeek, lastWeekOfMonth, PROVISIONAL_MAX_WEEKS,
 } from '../composables/usePlanTimeline'
@@ -322,8 +322,8 @@ function chipStyle(project: Project) {
 // 이미 배치돼 있으면 '마지막 배치 주가 속한 달 끝'까지만 보여 준다(2026-10-22 사용자).
 // 더 뒤에 놓고 싶으면 프로젝트를 고른 상태에서 '+ 한 달 더'로 한 달씩 늘린다(extraMonths)
 const extraMonths = ref(0)
+// 종료일은 예상 완료일(배치에서 계산)이라 여기서 범위를 막지 않는다(2026-11-04~)
 const totalWeeks = computed(() => {
-  if (draftPlan.endDate) return planWeekCount(draftPlan.startDate, draftPlan.endDate, draftPlan.reviewDay)
   let last = 0
   for (const s of draftTimeline.value) {
     for (const p of s.projects) last = Math.max(last, projectEndWeek(s.week, resolveProject(p, draftPlan.projects)))
@@ -333,7 +333,7 @@ const totalWeeks = computed(() => {
   for (let i = 0; i < extraMonths.value; i++) end = lastWeekOfMonth(draftPlan.startDate, end + 1, draftPlan.reviewDay)
   return Math.min(PROVISIONAL_MAX_WEEKS, end)
 })
-const canAddMonth = computed(() => !draftPlan.endDate && totalWeeks.value < PROVISIONAL_MAX_WEEKS)
+const canAddMonth = computed(() => totalWeeks.value < PROVISIONAL_MAX_WEEKS)
 
 type BarPos = 'only' | 'start' | 'middle' | 'end'
 interface WeekRow {
@@ -424,7 +424,7 @@ const periodLabel = computed(() => {
   const { startDate, endDate } = draftPlan
   if (!startDate) return ''
   const fmt = (d: string) => { const [y, m] = d.split('-'); return `${y}.${m}` }
-  return endDate ? `${fmt(startDate)} ~ ${fmt(endDate)}` : fmt(startDate)
+  return endDate ? `${fmt(startDate)} ~ ${fmt(endDate)} (예상 완료)` : fmt(startDate)
 })
 
 // ── 선택 → 추가 ───────────────────────────────────
@@ -490,7 +490,7 @@ const autoWeeks = computed(() => {
 
 onMounted(() => {
   // 속도 화면을 거치지 않고 비어 있는 채로 들어오면(예전 임시 계획 등) 기본 속도로 채워 둔다
-  if (!draftTimeline.value.length && draftPlan.projects.length && !draftPlan.endDate) {
+  if (!draftTimeline.value.length && draftPlan.projects.length) {
     draftPlan.weeklyHours = draftPlan.weeklyHours ?? DEFAULT_PACE_HOURS
     draftTimeline.value = buildTimeline(draftPlan.projects, draftPlan.weeklyHours)
     draftPlan.timelineManual = false

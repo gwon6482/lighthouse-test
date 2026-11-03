@@ -2,6 +2,8 @@ import { ref, reactive, watch } from 'vue'
 import type { CareerPlan, Project, Routine, DraftPlan, TimelineSlot } from '../types/career-design'
 import { req } from '@/shared/api'
 import { DEFAULT_WEEKS } from './useProjectCurriculum'
+import { projectedEndDate, toDateKey } from './usePlanTimeline'
+import { getToday } from '@/shared/utils/dev-date'
 
 const DUMMY_PLANS: CareerPlan[] = [
   // ──────────────────────────────────────────────
@@ -1349,6 +1351,16 @@ watch(
   [draftPlan, draftRoutine, draftProject, draftTimeline, editingProjectId, editingRoutineId],
   persistDraft,
   { deep: true },
+)
+
+// 종료일 = 예상 완료일(2026-11-04~, 사용자가 정하지 않는다). 프로젝트·배치·시작일·시작 요일이 바뀌면 다시 계산한다
+watch(
+  () => [draftTimeline.value, draftPlan.projects, draftPlan.startDate, draftPlan.reviewDay] as const,
+  () => {
+    const start = draftPlan.startDate || toDateKey(getToday())
+    draftPlan.endDate = projectedEndDate(start, draftTimeline.value, draftPlan.projects, draftPlan.reviewDay)
+  },
+  { deep: true, immediate: true },
 )
 
 async function fetchPublicPlans(q?: string): Promise<void> {

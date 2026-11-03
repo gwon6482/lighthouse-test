@@ -40,24 +40,22 @@
             <span class="cd-plan-write__plabel">기간</span>
             <div class="cd-plan-write__date-row">
               <div class="cd-plan-write__date-fixed" aria-readonly="true">
-                <span class="cd-plan-write__date-fixed-label">오늘</span>
-                <span class="cd-plan-write__date-fixed-value">{{ todayLabel }}</span>
+                <span class="cd-plan-write__date-fixed-label">{{ editing ? '시작' : '오늘' }}</span>
+                <span class="cd-plan-write__date-fixed-value">{{ editing ? fmtDate(draftPlan.startDate) : todayLabel }}</span>
               </div>
               <span class="cd-plan-write__date-tilde">~</span>
-              <CdDatePicker v-model="draftPlan.endDate" :min="endMin" placeholder="종료일" />
+              <!-- 종료일은 정하지 않는다 — 지금 배치(속도)대로 가면 끝나는 예상 완료일(2026-11-04~) -->
+              <div class="cd-plan-write__date-fixed" aria-readonly="true">
+                <span class="cd-plan-write__date-fixed-label">예상 완료</span>
+                <span class="cd-plan-write__date-fixed-value">{{ draftPlan.endDate ? fmtDate(draftPlan.endDate) : '-' }}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- 타임라인 기준 추천 종료일 — 배치한 프로젝트가 모두 끝나는 날 -->
-        <p v-if="suggestedEnd" class="cd-plan-write__suggest">
-          <template v-if="draftPlan.endDate === suggestedEnd">
-            타임라인에 배치한 프로젝트가 모두 끝나는 날({{ fmtDate(suggestedEnd) }})로 정했어요.
-          </template>
-          <template v-else>
-            타임라인 기준으로는 {{ fmtDate(suggestedEnd) }}에 모두 끝나요.
-            <button type="button" class="cd-plan-write__suggest-btn" @click="draftPlan.endDate = suggestedEnd">이 날짜로</button>
-          </template>
+        <p class="cd-plan-write__suggest">
+          <template v-if="draftPlan.endDate">타임라인에 배치한 프로젝트가 모두 끝나는 날이에요. 속도나 배치를 바꾸면 함께 바뀌어요.</template>
+          <template v-else>타임라인에 프로젝트를 배치하면 예상 완료일이 정해져요.</template>
         </p>
 
         <button class="cd-plan-write__duty-link" @click="router.push('/career-encyclopedia')">
@@ -83,13 +81,11 @@ import { useUnsavedGuard } from '@/shared/composables/useUnsavedGuard'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import CdStepIndicator from '../components/CdStepIndicator.vue'
 import { useDesignSteps } from '../composables/useDesignSteps'
-import CdDatePicker from '../components/CdDatePicker.vue'
 import { getToday } from '@/shared/utils/dev-date'
-import { suggestedEndDate } from '../composables/usePlanTimeline'
 
 const router = useRouter()
 const { prevPath, nextPath, editing } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
-const { draftPlan, draftTimeline, finalizePlan } = useCareerDesign()
+const { draftPlan, finalizePlan } = useCareerDesign()
 
 // ⚠️ 2026-10-20 순서 변경: 목표 설정은 진로설계의 **맨 마지막** 단계다
 //   (진로계획 세우기 → 프로젝트 구성 → 타임라인 → 루틴 → 주간 리뷰 요일 → 목표 설정 → 계획 완성).
@@ -104,12 +100,10 @@ function toDateKey(d: Date): string {
   return `${y}-${m}-${dd}`
 }
 const todayKey = computed(() => toDateKey(getToday()))
-const suggestedEnd = computed(() => suggestedEndDate(todayKey.value, draftTimeline.value, draftPlan.projects, draftPlan.reviewDay))
 const fmtDate = (k: string) => k.replace(/-/g, '.')
 const saving = ref(false)
-const endMin   = computed(() => draftPlan.startDate || todayKey.value)
 
-// 완료(종료)날짜를 지정해야 다음 단계로 진행 가능
+// 예상 완료일이 있어야(= 타임라인에 배치가 있어야) 다음으로
 const canProceed = computed(() => !!draftPlan.endDate)
 
 const todayLabel = computed(() => {
@@ -120,9 +114,8 @@ const todayLabel = computed(() => {
 
 // 시작일은 오늘로 고정. 타임라인 슬롯은 '몇 주차'로 저장돼 있어, 시작일이 바뀌어도 배치 순서·간격은 그대로다
 onMounted(() => {
-  draftPlan.startDate = todayKey.value
-  // 종료일을 아직 안 정했으면 타임라인 기준 추천값으로 채운다(바꿀 수 있다)
-  if (!draftPlan.endDate && suggestedEnd.value) draftPlan.endDate = suggestedEnd.value
+  // 새 계획만 시작일을 오늘로. ⚠️ 수정 중엔 그대로 둔다 — 오늘로 바꾸면 진행 중인 계획의 주차·기록이 전부 밀린다
+  if (!editing.value) draftPlan.startDate = todayKey.value // 종료일(예상 완료일)은 useCareerDesign 이 따라 계산한다
 })
 
 // 미저장 이탈 가드 (R2) — 개요 입력(이름/목표직업/기간) 변경 시 이탈 경고.

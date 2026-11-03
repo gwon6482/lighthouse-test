@@ -346,7 +346,7 @@ const periodLabel = computed(() => {
   const { startDate, endDate } = draftPlan
   if (!startDate) return ''
   const fmt = (d: string) => { const [y, m] = d.split('-'); return `${y}.${m}` }
-  return endDate ? `${fmt(startDate)} ~ ${fmt(endDate)}` : fmt(startDate)
+  return endDate ? `${fmt(startDate)} ~ ${fmt(endDate)} (예상 완료)` : fmt(startDate)
 })
 </script>
 

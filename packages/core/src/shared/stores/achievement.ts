@@ -5,6 +5,7 @@ import { useAchievement } from '@/modules/career-achievement/composables/useAchi
 import { useAchievementEntries } from '@/modules/career-achievement/composables/useAchievementEntries'
 import { useCurriculumCompletion } from '@/modules/career-achievement/composables/useCurriculumCompletion'
 import type { Project, Routine, DayOfWeek, TimelineSlot } from '@/modules/career-design/types/career-design'
+import { projectedEndDate } from '@/modules/career-design/composables/usePlanTimeline'
 
 interface ActivePlan {
   planId: string
@@ -70,7 +71,8 @@ export const useAchievementStore = defineStore('achievement', () => {
         name:      p.name      ?? '',
         targetJob: p.targetJob ?? '',
         startDate: p.startDate ?? '',
-        endDate:   p.endDate   ?? '',
+        // 종료일 = 예상 완료일(배치에서 계산, 2026-11-04~). 저장된 값은 배치가 없을 때만 쓴다 — 예전 계획도 바로 맞춰진다
+        endDate:   projectedEndDate(p.startDate ?? '', p.timeline ?? [], p.projects ?? [], p.reviewDay ?? '') || (p.endDate ?? ''),
         reviewDay: p.reviewDay ?? '',
         paceKey:   p.paceKey   ?? '',
         paceHours: p.paceHours ?? null,

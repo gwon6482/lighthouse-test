@@ -192,11 +192,10 @@ export function useWeekReview() {
     const changed = pace.key !== from.key
     const beforeEnd = currentEnd.value; const after = endIfPace(pace)
     if (changed) {
-      // 1) 남은 프로젝트 재배치 → 2) 계획에 속도. 종료일은 재배치가 더 늦게 끝날 때만 늘린다(사용자가 정한 날을 당기지 않는다)
+      // 1) 남은 프로젝트 재배치 → 2) 계획에 속도·종료일. 종료일은 예상 완료일이라 재배치 결과 그대로(당겨질 수도 있다, 2026-11-04~)
       //    서버는 타임라인·기간이 바뀌면 이번 주부터 일정을 새로 만든다
       await req.put(`/api/career-plan/${pl.planId}/timeline`, { timeline: after.timeline })
-      const extend = after.endDate && after.endDate > pl.endDate
-      await req.put(`/api/career-plan/${pl.planId}`, { paceKey: pace.key, paceHours: pace.hours, ...(extend ? { endDate: after.endDate } : {}) })
+      await req.put(`/api/career-plan/${pl.planId}`, { paceKey: pace.key, paceHours: pace.hours, ...(after.endDate ? { endDate: after.endDate } : {}) })
     } else if (!pl.paceKey) {
       await req.put(`/api/career-plan/${pl.planId}`, { paceKey: from.key, paceHours: from.hours }).catch(() => {}) // 예전 계획: 짐작한 속도를 저장해 둔다
     }
