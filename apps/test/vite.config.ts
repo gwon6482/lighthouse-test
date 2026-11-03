@@ -58,6 +58,9 @@ export default defineConfig({
     },
   },
   server: {
+    // 같은 네트워크의 폰에서 'http://<맥 이름>.local:5173' 으로 열 수 있게(2026-11-03).
+    // 아이폰 핫스팟이 IPv6 전용이면 맥 IPv4 가 192.0.0.2(폰에서 못 닿음)라 IP 대신 맥 이름을 쓴다. Vite 는 모르는 호스트 이름을 403 으로 막는다
+    allowedHosts: ['.local'],
     proxy: {
       // 아직 배포 안 된 API 를 로컬에서 볼 때(2026-10-29): LOCAL_API=http://localhost:8098 LOCAL_API_PATHS=/api/news pnpm dev
       // 지정한 경로만 로컬 API 로, 나머지(로그인·계획 등)는 그대로 운영 API — 로컬 API 는 운영 토큰을 못 읽어서 전부 돌리면 로그아웃된다

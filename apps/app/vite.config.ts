@@ -58,6 +58,9 @@ export default defineConfig({
     },
   },
   server: {
+    // 같은 네트워크의 폰에서 'http://<맥 이름>.local:5173' 으로 열 수 있게(2026-11-03).
+    // 아이폰 핫스팟이 IPv6 전용이면 맥 IPv4 가 192.0.0.2(폰에서 못 닿음)라 IP 대신 맥 이름을 쓴다. Vite 는 모르는 호스트 이름을 403 으로 막는다
+    allowedHosts: ['.local'],
     proxy: {
       '/api': {
         target: 'https://api.lighthouse.career',
