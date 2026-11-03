@@ -10,6 +10,7 @@ export default [
     path: '/career-achievement/start/:type/:id',
     name: 'Career Achievement Start',
     component: () => import('./pages/CareerAchievementStartPage.vue'),
+    meta: { themeColor: THEME_COLOR.focus },
   },
   {
     path: '/career-achievement/complete/:type/:id',

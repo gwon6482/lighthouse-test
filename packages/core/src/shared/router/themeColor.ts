@@ -4,6 +4,7 @@
 export const THEME_COLOR = {
   heroYellow: '#FFDF3D', // 진로달성 홈·진로정보·마이 노란 머리 그라데이션 시작색(AchievementHome .ah-hero 등)
   primary: '#FFD100',    // 로드맵 고정 바·로그 머리($color-primary)
+  focus: '#121212',      // 집중모드 어두운 바탕(AchievementFocus $fm-bg) — 노랑이 다 차면 화면에서 primary 로 바꾼다
   default: '#ffffff',    // index.html · manifest theme_color 와 같다
 } as const
 

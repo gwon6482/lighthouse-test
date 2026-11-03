@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>집중모드 시안</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root {
+  --brand: #FFD100;
+  --brand-deep: #F5A800;
+  --ink: #141414;
+  --page: #EDEBE6;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: Pretendard, -apple-system, sans-serif;
+  background: var(--page); color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  padding: 36px 24px 64px;
+}
+button { font: inherit; border: 0; background: none; color: inherit; cursor: pointer; }
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: -0.02em; }
+
+/* ── 페이지 머리 ── */
+.page-head { max-width: 1240px; margin: 0 auto 28px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.page-head h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; }
+.page-head p { margin-top: 6px; font-size: 14px; color: #6b6b6b; line-height: 1.6; }
+.speed { display: inline-flex; padding: 4px; border-radius: 999px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+.speed button { padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; color: #777; }
+.speed button.on { background: var(--ink); color: #fff; }
+.speed-label { font-size: 12px; color: #888; margin-right: 8px; }
+
+.grid { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 40px 24px; justify-items: center; }
+.col h2 { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; }
+.col h2 .tag { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--ink); color: var(--brand); }
+.col .desc { margin: 6px 0 16px; font-size: 13px; color: #6b6b6b; line-height: 1.6; max-width: 360px; min-height: 42px; }
+
+/* ── 폰 ── */
+.phone {
+  position: relative; width: 360px; height: 760px; border-radius: 46px; overflow: hidden;
+  background: #000; box-shadow: 0 0 0 10px #1c1c1c, 0 0 0 11px #3a3a3a, 0 30px 60px rgba(0,0,0,.25);
+  isolation: isolate;
+}
+.phone .notch { position: absolute; top: 10px; left: 50%; width: 110px; height: 30px; margin-left: -55px; border-radius: 20px; background: #000; z-index: 50; }
+.status { position: absolute; top: 0; left: 0; right: 0; height: 50px; padding: 16px 28px 0; display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; z-index: 40; pointer-events: none; }
+.screen { position: absolute; inset: 0; transition: opacity .45s ease, transform .45s ease; }
+.screen.hidden { opacity: 0; pointer-events: none; transform: scale(1.02); }
+
+/* ── 설정 화면(공통 골격, 테마별 색) ── */
+.setup { display: flex; flex-direction: column; padding: 58px 22px 28px; }
+.setup .bar { display: flex; align-items: center; justify-content: space-between; height: 40px; }
+.setup .bar b { font-size: 16px; font-weight: 700; }
+.setup .x { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; opacity: .7; }
+.setup .item { margin-top: 18px; padding: 18px; border-radius: 20px; }
+.setup .chip { display: inline-block; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px; }
+.setup .item h3 { margin-top: 10px; font-size: 19px; font-weight: 700; letter-spacing: -0.03em; }
+.setup .item p { margin-top: 4px; font-size: 13px; opacity: .65; }
+.setup .goal-label { margin-top: 28px; font-size: 13px; font-weight: 600; opacity: .7; text-align: center; }
+.setup .goal { margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 22px; }
+.setup .goal .v { min-width: 150px; text-align: center; font-size: 64px; font-weight: 800; line-height: 1; }
+.setup .goal .v small { font-size: 22px; font-weight: 700; margin-left: 2px; }
+.setup .step { width: 48px; height: 48px; border-radius: 50%; font-size: 24px; font-weight: 500; display: grid; place-items: center; transition: transform .15s; }
+.setup .step:active { transform: scale(.92); }
+.setup .end-at { margin-top: 10px; text-align: center; font-size: 13px; opacity: .6; }
+.setup .presets { margin-top: 20px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.setup .presets button { padding: 9px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; transition: all .15s; }
+.setup .opts { margin-top: auto; display: grid; gap: 2px; border-radius: 16px; overflow: hidden; }
+.setup .opt { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; font-size: 14px; font-weight: 500; }
+.tgl { width: 44px; height: 26px; border-radius: 999px; position: relative; transition: background .2s; }
+.tgl::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.tgl.on::after { transform: translateX(18px); }
+.setup .go { margin-top: 14px; height: 58px; border-radius: 18px; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform .15s; }
+.setup .go:active { transform: scale(.98); }
+
+/* ── 카운트다운 ── */
+.count { display: grid; place-items: center; z-index: 30; }
+.count span { font-size: 140px; font-weight: 800; animation: pop .9s ease both; }
+@keyframes pop { 0% { transform: scale(.6); opacity: 0; } 30% { transform: scale(1); opacity: 1; } 80% { opacity: 1; } 100% { transform: scale(1.15); opacity: 0; } }
+
+/* ── 공통: 완료 화면 ── */
+.done { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60px 28px 34px; z-index: 20; }
+.done h3 { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.35; }
+.done p { margin-top: 8px; font-size: 14px; opacity: .7; line-height: 1.6; }
+.done .stats { margin-top: 26px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+.done .stats div { padding: 14px; border-radius: 16px; }
+.done .stats b { display: block; font-size: 22px; font-weight: 800; }
+.done .stats small { font-size: 12px; opacity: .65; }
+.done .btns { margin-top: auto; width: 100%; display: grid; gap: 8px; }
+.done .btns button { height: 54px; border-radius: 16px; font-size: 16px; font-weight: 700; }
+
+/* ═════════════ A. 등대 ═════════════ */
+.A { color: #fff; }
+.A .setup, .A .run, .A .done { background: radial-gradient(120% 70% at 50% 0%, #22365C 0%, #0F1A30 55%, #0A1222 100%); }
+.A .setup .item { background: rgba(255,255,255,.07); }
+.A .setup .chip { background: rgba(255,209,0,.16); color: var(--brand); }
+.A .setup .step { background: rgba(255,255,255,.1); }
+.A .setup .presets button { background: rgba(255,255,255,.08); color: rgba(255,255,255,.75); }
+.A .setup .presets button.on { background: var(--brand); color: var(--ink); }
+.A .setup .opts { background: rgba(255,255,255,.06); }
+.A .setup .opt { background: rgba(255,255,255,.04); }
+.A .tgl { background: rgba(255,255,255,.2); } .A .tgl.on { background: var(--brand); }
+.A .setup .go { background: var(--brand); color: var(--ink); box-shadow: 0 10px 30px rgba(255,209,0,.25); }
+.A .setup .mini-logo { width: 26px; margin: 0 auto; display: block; }
+.A .count { background: rgba(10,18,34,.92); color: var(--brand); }
+
+.A .stars { position: absolute; inset: 0 0 40% 0; pointer-events: none; }
+.A .stars i { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff; animation: twinkle 3s ease-in-out infinite; }
+@keyframes twinkle { 50% { opacity: .2; } }
+.A .run { overflow: hidden; }
+.A .run .top { position: absolute; top: 60px; left: 0; right: 0; text-align: center; z-index: 5; }
+.A .run .pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 999px; background: rgba(255,255,255,.08); font-size: 12px; font-weight: 600; color: rgba(255,255,255,.8); backdrop-filter: blur(8px); }
+.A .run .pill i { width: 6px; height: 6px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 8px var(--brand); }
+.A .run .time { margin-top: 22px; font-size: 68px; font-weight: 700; line-height: 1; transition: color .4s; }
+.A .run .sub { margin-top: 8px; font-size: 13px; color: rgba(255,255,255,.55); }
+.A .run.over .time { color: var(--brand); }
+.A .stage { position: absolute; left: 50%; top: 300px; width: 300px; height: 300px; margin-left: -150px; }
+.A .ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+.A .ring circle { fill: none; stroke-width: 4; }
+.A .ring .track { stroke: rgba(255,255,255,.08); }
+.A .ring .bar { stroke: var(--brand); stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(255,209,0,.6)); transition: stroke-dashoffset .3s linear; }
+.A .ring .knob { fill: #fff; stroke: none; filter: drop-shadow(0 0 6px rgba(255,209,0,.9)); }
+.A .halo { position: absolute; left: 50%; top: 50%; width: 220px; height: 220px; margin: -110px 0 0 -110px; border-radius: 50%; background: radial-gradient(circle, rgba(255,209,0,.55) 0%, rgba(255,209,0,.12) 45%, transparent 70%); transition: opacity .6s; }
+.A .logo { position: absolute; left: 50%; top: 50%; width: 132px; margin: -82px 0 0 -66px; z-index: 3; filter: drop-shadow(0 8px 20px rgba(0,0,0,.4)); animation: bob 5s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-5px); } }
+.A .beam { position: absolute; left: 50%; top: calc(50% - 82px + 32px); width: 900px; height: 900px; margin: -450px 0 0 -450px; z-index: 7; pointer-events: none; border-radius: 50%; /* 빛이 맨 위 — 로고·링·숫자·파도 위로 지나간다(버튼만 위) */
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(255,226,120,.5) 6deg, rgba(255,226,120,.0) 20deg, transparent 180deg, rgba(255,226,120,.5) 186deg, rgba(255,226,120,0) 200deg, transparent 360deg);
+  -webkit-mask: radial-gradient(circle, #000 0%, rgba(0,0,0,.6) 30%, transparent 62%); mask: radial-gradient(circle, #000 0%, rgba(0,0,0,.6) 30%, transparent 62%);
+  animation: sweep 7s linear infinite; transition: opacity .6s; mix-blend-mode: screen; }
+@keyframes sweep { to { transform: rotate(360deg); } }
+.A .run.paused .beam, .A .run.paused .logo, .A .run.paused .wave { animation-play-state: paused; }
+.A .sea { position: absolute; left: 0; right: 0; bottom: 0; height: 190px; z-index: 4; }
+.A .wave { position: absolute; left: 0; bottom: 0; width: 200%; height: 100%; animation: drift 9s linear infinite; }
+.A .wave.w2 { animation-duration: 14s; animation-direction: reverse; opacity: .7; }
+@keyframes drift { to { transform: translateX(-50%); } }
+.A .ctrls { position: absolute; left: 0; right: 0; bottom: 38px; z-index: 8; display: flex; justify-content: center; align-items: center; gap: 18px; }
+.A .ctrls .c { width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.12); backdrop-filter: blur(10px); display: grid; place-items: center; }
+.A .ctrls .c.main { width: 74px; height: 74px; background: var(--brand); color: var(--ink); box-shadow: 0 8px 26px rgba(255,209,0,.35); }
+.A .ctrls small { position: absolute; bottom: -22px; left: 0; right: 0; text-align: center; font-size: 11px; color: rgba(255,255,255,.5); }
+.A .keep { position: absolute; left: 0; right: 0; bottom: 140px; text-align: center; font-size: 12px; color: rgba(255,255,255,.45); z-index: 6; }
+.A .done .logo-done { width: 120px; margin-bottom: 24px; filter: drop-shadow(0 0 30px rgba(255,209,0,.6)); }
+.A .done .stats div { background: rgba(255,255,255,.07); }
+.A .done .stats b { color: var(--brand); }
+.A .done .btns .p { background: var(--brand); color: var(--ink); }
+.A .done .btns .s { background: rgba(255,255,255,.08); color: #fff; }
+
+/* ═════════════ B. 다이얼 ═════════════ */
+.B { color: var(--ink); }
+.B .setup, .B .run, .B .done { background: linear-gradient(180deg, #FFFDF5 0%, #FFFFFF 40%, #F7F6F2 100%); }
+.B .setup .item { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 6px 20px rgba(0,0,0,.04); }
+.B .setup .chip { background: #FFF1E6; color: #F47820; }
+.B .setup .step { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.B .setup .presets button { background: #fff; color: #555; box-shadow: inset 0 0 0 1px #eee; }
+.B .setup .presets button.on { background: var(--ink); color: #fff; box-shadow: none; }
+.B .setup .opts { background: #eee; }
+.B .setup .opt { background: #fff; }
+.B .tgl { background: #ddd; } .B .tgl.on { background: var(--brand); }
+.B .setup .go { background: var(--ink); color: #fff; }
+.B .count { background: rgba(255,255,255,.95); color: var(--ink); }
+.B .run .head { position: absolute; top: 58px; left: 22px; right: 22px; display: flex; align-items: center; justify-content: space-between; }
+.B .run .head .chip { font-size: 12px; font-weight: 700; padding: 7px 12px; border-radius: 999px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.08); display: inline-flex; gap: 6px; align-items: center; }
+.B .run .head .chip i { width: 7px; height: 7px; border-radius: 50%; background: #F47820; }
+.B .run .head .pct { font-size: 13px; font-weight: 700; color: #999; }
+.B .dial { position: absolute; left: 50%; top: 130px; width: 320px; height: 320px; margin-left: -160px; }
+.B .dial svg { position: absolute; inset: 0; }
+.B .dial .face { position: absolute; inset: 34px; border-radius: 50%; background: #fff; box-shadow: 0 20px 50px rgba(245,168,0,.18), 0 2px 6px rgba(0,0,0,.06), inset 0 -6px 16px rgba(0,0,0,.03); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.B .dial .lab { font-size: 13px; font-weight: 600; color: #999; }
+.B .dial .t { margin-top: 6px; font-size: 58px; font-weight: 800; line-height: 1; }
+.B .dial .g { margin-top: 10px; font-size: 13px; color: #aaa; font-weight: 500; }
+.B .run.over .dial .t { color: #F08A00; }
+.B .tl { position: absolute; left: 26px; right: 26px; top: 486px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+.B .tl div { text-align: center; }
+.B .tl b { display: block; font-size: 17px; font-weight: 700; }
+.B .tl small { font-size: 12px; color: #999; }
+.B .tl .line { width: 70px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, #ddd, var(--brand)); }
+.B .ctrls { position: absolute; left: 0; right: 0; bottom: 48px; display: flex; align-items: center; justify-content: center; gap: 14px; }
+.B .ctrls .c { height: 56px; padding: 0 22px; border-radius: 999px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.08); display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; }
+.B .ctrls .c.main { width: 76px; height: 76px; padding: 0; justify-content: center; border-radius: 50%; background: linear-gradient(135deg, #FFD100, #FFB000); box-shadow: 0 12px 28px rgba(255,176,0,.4); }
+.B .done .medal { width: 120px; height: 120px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--brand), #FFB000, var(--brand)); box-shadow: 0 16px 40px rgba(255,176,0,.35); margin-bottom: 26px; font-size: 50px; }
+.B .done .stats div { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+.B .done .btns .p { background: var(--ink); color: #fff; }
+.B .done .btns .s { background: #fff; box-shadow: inset 0 0 0 1px #e6e6e6; }
+
+/* ═════════════ C. 채움 ═════════════ */
+.C { color: #fff; }
+.C .setup, .C .done { background: #121212; }
+.C .setup .item { background: #1E1E1E; }
+.C .setup .chip { background: rgba(68,128,245,.18); color: #7FA8FF; }
+.C .setup .step { background: #262626; }
+.C .setup .presets button { background: #1E1E1E; color: #aaa; }
+.C .setup .presets button.on { background: var(--brand); color: var(--ink); }
+.C .setup .opts { background: #1A1A1A; }
+.C .setup .opt { background: #1E1E1E; }
+.C .tgl { background: #3a3a3a; } .C .tgl.on { background: var(--brand); }
+.C .setup .go { background: var(--brand); color: var(--ink); }
+.C .count { background: #121212; color: var(--brand); }
+.C .run { background: #121212; overflow: hidden; cursor: pointer; }
+.C .liquid { position: absolute; left: 0; right: 0; bottom: 0; height: 0%; background: var(--brand); transition: height .4s linear; }
+.C .liquid svg { position: absolute; left: 0; bottom: 100%; width: 200%; height: 22px; margin-bottom: -1px; animation: drift 4s linear infinite; }
+.C .run.paused .liquid svg { animation-play-state: paused; }
+.C .layer { position: absolute; inset: 0; padding: 62px 26px 40px; display: flex; flex-direction: column; pointer-events: none; }
+.C .layer.dark { color: var(--ink); }
+.C .layer .meta { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
+.C .layer .meta span:last-child { opacity: .7; }
+.C .layer .name { margin-top: 6px; font-size: 20px; font-weight: 700; letter-spacing: -0.03em; }
+.C .layer .big { margin-top: 40px; font-size: 168px; font-weight: 800; line-height: .86; letter-spacing: -0.06em; }
+.C .layer .big span { display: block; }
+.C .layer .big .s { opacity: .35; }
+.C .layer .cap { margin-top: 18px; font-size: 14px; font-weight: 600; opacity: .7; }
+.C .layer .foot { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; font-size: 13px; font-weight: 600; }
+.C .layer .foot b { font-size: 40px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+.C .run.over .layer:not(.dark) .big .m { color: var(--brand); }
+.C .sheet { position: absolute; left: 12px; right: 12px; bottom: 12px; padding: 18px; border-radius: 26px; background: rgba(18,18,18,.86); backdrop-filter: blur(14px); color: #fff; transform: translateY(120%); transition: transform .35s cubic-bezier(.2,.9,.3,1); z-index: 10; cursor: default; }
+.C .run.paused .sheet { transform: none; }
+.C .sheet h4 { font-size: 17px; font-weight: 700; }
+.C .sheet p { margin-top: 4px; font-size: 13px; color: #999; }
+.C .sheet .row { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.C .sheet button { height: 52px; border-radius: 14px; font-size: 15px; font-weight: 700; background: #2a2a2a; }
+.C .sheet button.p { background: var(--brand); color: var(--ink); }
+.C .hint { position: absolute; left: 0; right: 0; bottom: 18px; text-align: center; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.4); z-index: 5; transition: opacity .3s; }
+.C .run.filled .hint { color: rgba(0,0,0,.45); }
+.C .run.paused .hint { opacity: 0; }
+.C .done { background: var(--brand); color: var(--ink); }
+.phone.C:has(.run.full:not(.hidden)) .status, .phone.C:has(.done:not(.hidden)) .status { color: var(--ink); transition: color .3s; }
+.B .status { color: var(--ink); }
+.C .done .huge { font-size: 96px; font-weight: 800; letter-spacing: -0.06em; line-height: .9; }
+.C .done .stats div { background: rgba(0,0,0,.08); }
+.C .done .btns .p { background: var(--ink); color: #fff; }
+.C .done .btns .s { background: rgba(0,0,0,.08); }
+
+.note { max-width: 1240px; margin: 44px auto 0; padding: 20px 22px; border-radius: 18px; background: #fff; font-size: 13px; line-height: 1.8; color: #555; }
+.note b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <div>
+    <h1>집중모드 시안 3종</h1>
+    <p>목표 시간을 정하고 <b>집중 시작</b> → 3·2·1 → 화면을 꽉 채우는 타이머 → 목표를 넘기면 '초과 집중' → 완료.<br>각 폰 화면을 직접 눌러 보세요. 오른쪽에서 시간을 빠르게 돌릴 수 있어요.</p>
+  </div>
+  <div><span class="speed-label">시연 속도</span><span class="speed" id="speed"><button data-s="1" class="on">실제</button><button data-s="30">30배</button><button data-s="120">120배</button></span></div>
+</div>
+
+<div class="grid">
+  <section class="col">
+    <h2><span class="tag">A</span>등대 — 로고 캐릭터</h2>
+    <p class="desc">밤바다 위 등대. 집중할수록 링이 차오르고 등대 불빛이 점점 밝게 돈다. 목표를 넘기면 숫자가 노랗게 바뀐다.</p>
+    <div class="phone A" data-v="A"></div>
+  </section>
+  <section class="col">
+    <h2><span class="tag">B</span>다이얼 — 밝은 시계</h2>
+    <p class="desc">눈금 다이얼에 노랑→주황 호가 돈다. 시작·종료 예정 시각을 같이 보여 줘서 '언제 끝나는지'가 바로 보인다.</p>
+    <div class="phone B" data-v="B"></div>
+  </section>
+  <section class="col">
+    <h2><span class="tag">C</span>채움 — 초대형 숫자</h2>
+    <p class="desc">브랜드 노랑이 바닥부터 화면을 채워 올라온다. 장식 없이 숫자만 크게. 화면 어디든 탭하면 일시정지.</p>
+    <div class="phone C" data-v="C"></div>
+  </section>
+</div>
+
+<div class="note">
+  <b>공통으로 바뀌는 점</b> · 목표 집중 시간을 고른다(기본값 = 계획에 정한 1회 시간, 5분 단위, 프리셋 15·25·50·90) · 시작하면 상단 바·하단 탭 없이 전체 화면 · 목표를 채워도 멈추지 않고 '초과 집중'으로 이어간다 · 끝내면 판정하지 않고 <b>집중한 시간 · 목표보다 몇 분 빨리/늦게</b>만 보여 준다(일이 일찍 끝나서 누르는 경우가 더 많다) · 중간에 누르는 버튼도 '끝내기' 대신 '다 했어요'<br>
+  <b>실제 구현 때 정할 것</b> · 화면 꺼짐 방지(Wake Lock) · 목표 도달 알림(진동·소리) · 앱을 나갔다 와도 시간이 이어지게 시작 시각 기준 계산(지금 방식) · 일시정지 시간 기록 여부
+</div>
+
+<template id="tpl">
+  <div class="notch"></div>
+  <div class="status"><span>9:41</span><span>●●● ◐</span></div>
+
+  <!-- 설정 -->
+  <div class="screen setup">
+    <div class="bar"><button class="x">✕</button><b>집중 모드</b><span style="width:36px"></span></div>
+    <div class="item">
+      <span class="chip">분야지식</span>
+      <h3>영업과 마케팅 원론 탐구</h3>
+      <p>1주차 · 마케팅 믹스와 시장 분석</p>
+    </div>
+    <div class="goal-label">목표 집중 시간</div>
+    <div class="goal">
+      <button class="step" data-d="-5">−</button>
+      <div class="v num"><span class="gv">50</span><small>분</small></div>
+      <button class="step" data-d="5">+</button>
+    </div>
+    <div class="end-at">지금 시작하면 <b class="ea">--:--</b>에 끝나요</div>
+    <div class="presets">
+      <button data-m="15">15분</button><button data-m="25">25분</button><button data-m="50" class="on">50분</button><button data-m="90">90분</button>
+    </div>
+    <div class="opts">
+      <div class="opt">화면 켜짐 유지 <span class="tgl on"></span></div>
+      <div class="opt">목표 시간이 되면 알림 <span class="tgl on"></span></div>
+    </div>
+    <button class="go">집중 시작</button>
+  </div>
+
+  <div class="screen count hidden"><span></span></div>
+  <div class="screen run hidden"></div>
+  <div class="screen done hidden"></div>
+</template>
+
+<script>
+const LOGO = `<svg viewBox="0 0 407 485" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M347.429 59.5475C308.968 21.1022 257.858 0 203.5 0C149.142 0 98.0321 21.1876 59.5714 59.5475C21.1107 97.9928 0 149.082 0 203.418C0 301.924 68.802 384.709 164.783 403.163V474.671C164.783 477.576 166.065 480.31 168.287 482.19C169.996 483.642 172.219 484.411 174.441 484.411C175.039 484.411 175.723 484.411 176.321 484.24C309.993 457.755 407 339.686 407 203.504C407 149.168 385.804 98.0782 347.429 59.6329V59.5475Z" fill="black"/><path d="M184.097 462.54V405.47C199.139 405.726 214.353 401.967 227.6 394.62C232.301 391.971 233.925 386.076 231.275 381.463C228.626 376.764 222.729 375.141 218.113 377.789C207.772 383.599 195.806 386.418 184.097 386.162V339.088C184.097 333.705 179.738 329.434 174.439 329.434H156.918L182.558 184.11H224.438L267.172 426.401C242.215 442.89 214.267 455.278 184.097 462.711V462.54Z" fill="white"/><path d="M182.648 87.144L203.503 70.4844L224.357 87.144H182.648Z" fill="white"/><path d="M222.9 106.536H184.098V135.584H222.9V106.536Z" fill="#FFE98A" class="lamp"/><path d="M242.217 154.978H164.697V164.632H242.217V154.978Z" fill="white"/><path d="M284.694 413.672L244.182 183.94H252.046C257.43 183.94 261.703 179.583 261.703 174.286V145.238C261.703 139.856 257.345 135.584 252.046 135.584H242.388V106.537H252.046C256.148 106.537 259.823 103.974 261.191 100.044C262.558 96.1992 261.276 91.8421 258.114 89.279L209.653 50.492C206.149 47.6727 201.106 47.6727 197.517 50.492L149.056 89.279C145.808 91.8421 144.612 96.1992 145.979 100.044C147.347 103.888 151.022 106.537 155.125 106.537H164.782V135.584H155.125C149.74 135.584 145.467 139.941 145.467 145.238V174.286C145.467 179.668 149.825 183.94 155.125 183.94H162.988L135.894 337.209C135.381 340.028 136.151 342.933 138.031 345.154C139.911 347.375 142.561 348.657 145.467 348.657H164.868V383.257C79.9979 365.145 19.4863 291.245 19.4863 203.333C19.4863 154.209 38.6312 107.989 73.4168 73.2174C108.202 38.4458 154.441 19.3086 203.585 19.3086C252.729 19.3086 298.968 38.4458 333.753 73.2174C368.539 107.989 387.684 154.209 387.684 203.333C387.684 287.571 347.855 364.291 284.78 413.672H284.694Z" fill="#FFD100"/><path d="M199.655 259.548C193.245 259.548 188.031 264.759 188.031 271.167C188.031 277.574 193.245 282.786 199.655 282.786C206.065 282.786 211.279 277.574 211.279 271.167C211.279 264.759 206.065 259.548 199.655 259.548Z" fill="black"/></svg>`;
+
+const ICON = {
+  pause: '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>',
+  play: '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
+  stop: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>',
+  plus: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+};
+
+let SPEED = 1;
+document.querySelectorAll('#speed button').forEach((b) => b.onclick = () => {
+  document.querySelectorAll('#speed button').forEach((x) => x.classList.toggle('on', x === b));
+  SPEED = Number(b.dataset.s);
+  phones.forEach((p) => p.rebase());
+});
+
+const pad = (n) => String(n).padStart(2, '0');
+const mmss = (sec) => { sec = Math.max(0, Math.floor(sec)); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60; return h ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`; };
+const clock = (d) => `${d.getHours() < 12 ? '오전' : '오후'} ${((d.getHours() + 11) % 12) + 1}:${pad(d.getMinutes())}`;
+const hm = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const wave = (fill) => `<svg viewBox="0 0 1200 40" preserveAspectRatio="none"><path fill="${fill}" d="M0 20 Q 75 0 150 20 T 300 20 T 450 20 T 600 20 T 750 20 T 900 20 T 1050 20 T 1200 20 V40 H0 Z"/></svg>`;
+
+const RUN = {
+  A: () => `
+    <div class="stars"></div>
+    <div class="top">
+      <span class="pill"><i></i>영업과 마케팅 원론 탐구</span>
+      <div class="time num">50:00</div>
+      <div class="sub">목표 50분 · <span class="pc">0</span>% 밝혔어요</div>
+    </div>
+    <div class="stage">
+      <div class="halo"></div>
+      <div class="beam"></div>
+      <svg class="ring" viewBox="0 0 300 300"><circle class="track" cx="150" cy="150" r="140"/><circle class="bar" cx="150" cy="150" r="140"/><circle class="knob" r="7" cx="290" cy="150"/></svg>
+      <div class="logo">${LOGO}</div>
+    </div>
+    <div class="keep">화면이 켜진 채로 유지돼요</div>
+    <div class="sea">
+      <svg class="wave w2" viewBox="0 0 1200 190" preserveAspectRatio="none"><path fill="#16284A" d="M0 60 Q 75 30 150 60 T 300 60 T 450 60 T 600 60 T 750 60 T 900 60 T 1050 60 T 1200 60 V190 H0 Z"/></svg>
+      <svg class="wave" viewBox="0 0 1200 190" preserveAspectRatio="none"><path fill="#0B1528" d="M0 90 Q 75 65 150 90 T 300 90 T 450 90 T 600 90 T 750 90 T 900 90 T 1050 90 T 1200 90 V190 H0 Z"/></svg>
+    </div>
+    <div class="ctrls">
+      <button class="c stop" aria-label="다 했어요">${ICON.stop}</button>
+      <button class="c main toggle" aria-label="일시정지">${ICON.pause}</button>
+      <button class="c add" aria-label="10분 더">${ICON.plus}</button>
+    </div>`,
+  B: () => {
+    let ticks = '';
+    for (let i = 0; i < 60; i++) {
+      const major = i % 5 === 0; const a = i * 6 * Math.PI / 180; const r1 = 156, r2 = major ? 144 : 149;
+      ticks += `<line x1="${160 + r1 * Math.sin(a)}" y1="${160 - r1 * Math.cos(a)}" x2="${160 + r2 * Math.sin(a)}" y2="${160 - r2 * Math.cos(a)}" stroke="${major ? '#C9C4B8' : '#E3DFD5'}" stroke-width="${major ? 2 : 1.2}" stroke-linecap="round"/>`;
+    }
+    return `
+    <div class="head"><span class="chip"><i></i>영업과 마케팅 원론 탐구</span><span class="pct num"><span class="pc">0</span>%</span></div>
+    <div class="dial">
+      <svg viewBox="0 0 320 320">
+        <defs><linearGradient id="gB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD100"/><stop offset="1" stop-color="#FF8A00"/></linearGradient></defs>
+        ${ticks}
+        <circle cx="160" cy="160" r="134" fill="none" stroke="#EFECE4" stroke-width="10"/>
+        <circle class="bar" cx="160" cy="160" r="134" fill="none" stroke="url(#gB)" stroke-width="10" stroke-linecap="round" transform="rotate(-90 160 160)"/>
+        <circle class="knob" r="11" cx="160" cy="26" fill="#fff" stroke="#FFB000" stroke-width="4" style="filter:drop-shadow(0 3px 6px rgba(255,138,0,.4))"/>
+      </svg>
+      <div class="face"><span class="lab">남은 시간</span><span class="t num">50:00</span><span class="g num">목표 50:00</span></div>
+    </div>
+    <div class="tl"><div><b class="num st">--:--</b><small>시작</small></div><span class="line"></span><div><b class="num et">--:--</b><small>끝날 예정</small></div></div>
+    <div class="ctrls">
+      <button class="c stop">${ICON.stop}다 했어요</button>
+      <button class="c main toggle" aria-label="일시정지">${ICON.pause}</button>
+      <button class="c add">${ICON.plus}10분</button>
+    </div>`;
+  },
+  C: () => {
+    const layer = (cls) => `
+      <div class="layer ${cls}">
+        <div class="meta"><span>집중 중</span><span class="num">목표 50분</span></div>
+        <div class="name">영업과 마케팅<br>원론 탐구</div>
+        <div class="big num"><span class="m">50</span><span class="s">00</span></div>
+        <div class="cap">남은 시간</div>
+        <div class="foot"><span>끝날 예정 <span class="et num">--:--</span></span><b class="num"><span class="pc">0</span>%</b></div>
+      </div>`;
+    return `
+    <div class="liquid">${wave('#FFD100')}</div>
+    ${layer('')}
+    <div class="clip" style="position:absolute;inset:0;pointer-events:none">${layer('dark')}</div>
+    <div class="hint">화면을 탭하면 잠시 멈춰요</div>
+    <div class="sheet">
+      <h4>잠시 멈췄어요</h4>
+      <p class="num">지금까지 <span class="el">0분</span> 집중했어요</p>
+      <div class="row"><button class="stop">다 했어요</button><button class="p toggle">이어서 집중</button></div>
+    </div>`;
+  },
+};
+
+// 완료 화면은 판정하지 않는다 — 목표보다 일찍 끝낸 건 포기가 아니라 '빨리 끝낸 것'일 수 있다(사용자 의견 2026-11-04)
+const BTNS = `<div class="btns"><button class="p">기록 남기기</button><button class="s again">다시 집중하기</button></div>`;
+const DONE = {
+  A: (r) => `<div class="logo-done">${LOGO}</div><h3>오늘의 등대에<br>불이 켜졌어요</h3><p>${r.line}</p>${stats(r)}${BTNS}`,
+  B: (r) => `<div class="medal"><svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h3>집중을 마쳤어요</h3><p>${r.line}</p>${stats(r)}${BTNS}`,
+  C: (r) => `<div class="huge num">${r.min}<span style="font-size:36px">분</span></div><h3 style="margin-top:18px">집중을 마쳤어요</h3><p>${r.line}</p>${stats(r)}${BTNS}`,
+};
+const stats = (r) => `<div class="stats"><div><b class="num">${mmss(r.el)}</b><small>집중한 시간</small></div><div><b class="num">${r.diff}</b><small>목표 ${r.goalMin}분보다</small></div></div>`;
+// 목표와의 차이 — 1분 안쪽이면 '딱 맞게'
+const dur = (sec) => { const m = Math.round(sec / 60); return m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ''}` : `${m}분`; };
+function gap(el, goal) {
+  const d = el - goal;
+  if (Math.abs(d) < 60) return { diff: '딱 맞게', line: `목표 시간에 딱 맞춰 끝냈어요` };
+  return d < 0
+    ? { diff: `${dur(-d)} 빨리`, line: `목표 ${dur(goal)}보다 ${dur(-d)} 빨리 했어요` }
+    : { diff: `${dur(d)} 늦게`, line: `목표 ${dur(goal)}보다 ${dur(d)} 늦게 했어요` };
+}
+
+class Phone {
+  constructor(el) {
+    this.el = el; this.v = el.dataset.v; this.goalMin = 50;
+    el.append(document.getElementById('tpl').content.cloneNode(true));
+    this.$ = (s) => el.querySelector(s);
+    this.setup = this.$('.setup'); this.count = this.$('.count'); this.run = this.$('.run'); this.done = this.$('.done');
+    if (this.v === 'A') this.setup.querySelector('.bar span').outerHTML = `<span style="width:36px"><span class="mini-logo">${LOGO}</span></span>`;
+    this.setup.querySelectorAll('.step').forEach((b) => b.onclick = () => this.setGoal(this.goalMin + Number(b.dataset.d)));
+    this.setup.querySelectorAll('.presets button').forEach((b) => b.onclick = () => this.setGoal(Number(b.dataset.m)));
+    this.setup.querySelectorAll('.tgl').forEach((t) => t.parentElement.onclick = () => t.classList.toggle('on'));
+    this.$('.go').onclick = () => this.countdown();
+    this.setGoal(50);
+    setInterval(() => { if (!this.started) this.$('.ea').textContent = clock(new Date(Date.now() + this.goalMin * 60000)); }, 1000);
+  }
+  show(scr) { [this.setup, this.count, this.run, this.done].forEach((s) => s.classList.toggle('hidden', s !== scr)); }
+  setGoal(m) {
+    this.goalMin = Math.min(180, Math.max(5, m));
+    this.$('.gv').textContent = this.goalMin;
+    this.setup.querySelectorAll('.presets button').forEach((b) => b.classList.toggle('on', Number(b.dataset.m) === this.goalMin));
+    this.$('.ea').textContent = clock(new Date(Date.now() + this.goalMin * 60000));
+  }
+  countdown() {
+    this.show(this.count);
+    const span = this.count.querySelector('span');
+    let n = 3;
+    const step = () => {
+      if (!n) return this.start();
+      span.textContent = n; span.style.animation = 'none'; void span.offsetWidth; span.style.animation = '';
+      n--; setTimeout(step, 800);
+    };
+    step();
+  }
+  start() {
+    this.run.innerHTML = RUN[this.v]();
+    this.run.className = 'screen run';
+    if (this.v === 'A') {
+      const st = this.run.querySelector('.stars');
+      for (let i = 0; i < 40; i++) { const s = document.createElement('i'); s.style.left = Math.random() * 100 + '%'; s.style.top = Math.random() * 100 + '%'; s.style.opacity = .3 + Math.random() * .7; s.style.animationDelay = Math.random() * 3 + 's'; st.append(s); }
+    }
+    this.run.querySelectorAll('.toggle').forEach((b) => b.onclick = (e) => { e.stopPropagation(); this.toggle(); });
+    this.run.querySelectorAll('.stop').forEach((b) => b.onclick = (e) => { e.stopPropagation(); this.finish(); });
+    this.run.querySelectorAll('.add').forEach((b) => b.onclick = (e) => { e.stopPropagation(); this.goalMin += 10; this.render(); });
+    if (this.v === 'C') { this.run.onclick = () => { if (!this.paused) this.toggle(); }; this.run.querySelector('.sheet').onclick = (e) => e.stopPropagation(); }
+    this.started = true; this.paused = false; this.acc = 0; this.base = performance.now(); this.startedAt = new Date();
+    this.show(this.run);
+    cancelAnimationFrame(this.raf);
+    const loop = () => { this.render(); this.raf = requestAnimationFrame(loop); };
+    loop();
+  }
+  elapsed() { return this.acc + (this.paused ? 0 : (performance.now() - this.base) / 1000 * SPEED); }
+  rebase() { if (!this.started) return; this.acc = this.elapsed(); this.base = performance.now(); }
+  toggle() {
+    if (this.paused) { this.paused = false; this.base = performance.now(); }
+    else { this.acc = this.elapsed(); this.paused = true; }
+    this.run.classList.toggle('paused', this.paused);
+    this.run.querySelectorAll('.c.toggle, .ctrls .main').forEach((b) => b.innerHTML = this.paused ? ICON.play : ICON.pause);
+  }
+  render() {
+    const el = this.elapsed(), goal = this.goalMin * 60, left = goal - el, over = left < 0;
+    const p = Math.min(1, el / goal), pc = Math.floor(el / goal * 100);
+    const r = this.run; const q = (s) => r.querySelectorAll(s);
+    r.classList.toggle('over', over);
+    q('.pc').forEach((x) => x.textContent = pc);
+    const endAt = new Date(this.startedAt.getTime() + goal * 1000 + (this.pauseMs || 0));
+    if (this.v === 'A') {
+      r.querySelector('.time').textContent = over ? '+' + mmss(-left) : mmss(left);
+      r.querySelector('.sub').innerHTML = over ? `목표 ${this.goalMin}분 달성 · 초과 집중 중` : `목표 ${this.goalMin}분 · <span class="pc">${pc}</span>% 밝혔어요`;
+      const C = 2 * Math.PI * 140, bar = r.querySelector('.bar');
+      bar.style.strokeDasharray = C; bar.style.strokeDashoffset = C * (1 - p);
+      const a = p * 2 * Math.PI; const k = r.querySelector('.knob');
+      k.setAttribute('cx', 150 + 140 * Math.cos(a)); k.setAttribute('cy', 150 + 140 * Math.sin(a));
+      r.querySelector('.beam').style.opacity = .25 + .75 * p;
+      r.querySelector('.halo').style.opacity = .35 + .65 * p;
+    } else if (this.v === 'B') {
+      r.querySelector('.t').textContent = over ? '+' + mmss(-left) : mmss(left);
+      r.querySelector('.lab').textContent = over ? '초과 집중' : '남은 시간';
+      r.querySelector('.g').textContent = over ? `목표 ${mmss(goal)} 달성!` : `목표 ${mmss(goal)}`;
+      const C = 2 * Math.PI * 134, bar = r.querySelector('.bar');
+      bar.style.strokeDasharray = C; bar.style.strokeDashoffset = C * (1 - p);
+      const a = p * 2 * Math.PI; const k = r.querySelector('.knob');
+      k.setAttribute('cx', 160 + 134 * Math.sin(a)); k.setAttribute('cy', 160 - 134 * Math.cos(a));
+      r.querySelector('.st').textContent = hm(this.startedAt); r.querySelector('.et').textContent = hm(endAt);
+    } else {
+      const t = over ? -left : left; const m = Math.floor(t / 60), s = Math.floor(t % 60);
+      q('.big .m').forEach((x) => x.textContent = (over ? '+' : '') + pad(m)); q('.big .s').forEach((x) => x.textContent = pad(s));
+      q('.cap').forEach((x) => x.textContent = over ? '목표 달성 · 초과 집중 중' : '남은 시간');
+      q('.et').forEach((x) => x.textContent = hm(endAt));
+      const h = p * 100;
+      r.querySelector('.liquid').style.height = h + '%';
+      r.querySelector('.clip').style.clipPath = `inset(${100 - h}% 0 0 0)`;
+      r.classList.toggle('filled', h > 6);
+      r.classList.toggle('full', h > 93);
+      r.querySelector('.el').textContent = `${Math.floor(el / 60)}분 ${Math.floor(el % 60)}초`;
+    }
+  }
+  finish() {
+    cancelAnimationFrame(this.raf);
+    const el = this.elapsed(), goal = this.goalMin * 60;
+    this.started = false;
+    const res = { el, goalMin: this.goalMin, min: Math.floor(el / 60), ...gap(el, goal) };
+    this.done.innerHTML = DONE[this.v](res);
+    this.done.querySelector('.again').onclick = () => this.show(this.setup);
+    this.done.querySelector('.p').onclick = () => this.show(this.setup);
+    this.show(this.done);
+  }
+}
+const phones = [...document.querySelectorAll('.phone')].map((el) => new Phone(el));
+document.querySelectorAll('.setup .x').forEach((b) => b.onclick = () => {});
+</script>
+</body>
+</html>
