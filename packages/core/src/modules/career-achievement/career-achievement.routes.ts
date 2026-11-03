@@ -1,9 +1,10 @@
+import { THEME_COLOR } from '@/shared/router/themeColor'
 export default [
   {
     path: '/career-achievement',
     name: 'Career Achievement',
     component: () => import('./pages/CareerAchievementPage.vue'),
-    meta: { showBottomNav: true },
+    meta: { showBottomNav: true, themeColor: THEME_COLOR.heroYellow },
   },
   {
     path: '/career-achievement/start/:type/:id',
@@ -37,14 +38,14 @@ export default [
     path: '/career-achievement/roadmap',
     name: 'Career Achievement Roadmap',
     component: () => import('./pages/CareerAchievementRoadmapPage.vue'),
-    meta: { showBottomNav: true },
+    meta: { showBottomNav: true, themeColor: THEME_COLOR.primary },
   },
   {
     // 하단 탭 '로그'(2026-10-29 기획회의) — 진로 달성 기록을 한 번에. 예전 '기록 모아보기'(메인 타일·마이페이지 미리보기)를 대신한다
     path: '/career-achievement/records',
     name: 'Career Achievement Records',
     component: () => import('./pages/CareerAchievementRecordsPage.vue'),
-    meta: { showBottomNav: true },
+    meta: { showBottomNav: true, themeColor: THEME_COLOR.primary },
   },
   {
     path: '/career-achievement/weekly-schedule',

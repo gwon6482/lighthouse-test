@@ -1,10 +1,11 @@
+import { THEME_COLOR } from '@/shared/router/themeColor'
 export default [
   {
     // 하단 탭 '진로정보'(2026-10-29 기획회의) — 검사 · 진로백과 바로가기 · 진로·채용 소식
     path: '/career-info',
     name: 'Career Info',
     component: () => import('./pages/CareerInfoPage.vue'),
-    meta: { showBottomNav: true },
+    meta: { showBottomNav: true, themeColor: THEME_COLOR.heroYellow },
   },
   {
     path: '/career-encyclopedia',

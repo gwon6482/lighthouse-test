@@ -1,3 +1,4 @@
+import { THEME_COLOR } from '@/shared/router/themeColor'
 export default [
   {
     path: '/',
@@ -62,6 +63,6 @@ export default [
     path: '/mypage',
     name: 'MyPage',
     component: () => import('./pages/MyPage.vue'),
-    meta: { showBottomNav: true },
+    meta: { showBottomNav: true, themeColor: THEME_COLOR.heroYellow },
   },
 ]

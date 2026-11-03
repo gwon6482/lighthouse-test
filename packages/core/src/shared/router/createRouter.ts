@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { isChunkLoadError, shouldReloadForChunk } from './chunkReload'
+import { applyThemeColor } from './themeColor'
 
 // 공통 라우터 팩토리 — test/app 셸이 각자 라우트 목록을 넘겨 생성한다.
 export function makeRouter(routes: RouteRecordRaw[]) {
@@ -10,7 +11,8 @@ export function makeRouter(routes: RouteRecordRaw[]) {
   })
 
   // 라우트 이동 시 줌 초기화 (iOS 입력 포커스 후 줌 복원)
-  router.afterEach(() => {
+  router.afterEach((to) => {
+    applyThemeColor(to.meta.themeColor) // 상단(노치) 색을 화면 머리 색에 맞춘다 — themeColor.ts
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
     }
