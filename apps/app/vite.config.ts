@@ -24,6 +24,9 @@ export default defineConfig({
     vueDevTools(),
     VitePWA({
       registerType: 'autoUpdate',
+      // 개발 서버도 manifest 를 내보낸다(2026-11-03). 없으면 iOS '홈 화면에 추가'가 추가할 때 열린 페이지의
+      // 폴더를 앱 범위로 잡아서, 그 밖으로 이동하면 '완료' 버튼 달린 브라우저 창으로 열렸다. 운영·스테이징은 원래 scope '/'
+      devOptions: { enabled: true, suppressWarnings: true },
       includeAssets: ['favicon.ico', 'apple-icon-180.png'],
       manifest: {
         name: 'Lighthouse',
