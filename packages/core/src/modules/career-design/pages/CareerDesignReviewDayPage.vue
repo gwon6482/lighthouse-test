@@ -3,8 +3,9 @@
     <CdYellowHeader
       title="주간 리뷰 요일"
       subtitle="매주 한 주를 돌아보고 다음 주를 계획할 요일을 정해주세요"
-      back-to="/career-design/plan/routines"
+      :back-to="prevPath('reviewDay')"
     />
+    <CdStepIndicator step="reviewDay" />
 
     <div class="cd-rday__body">
       <section class="cd-rday__section">
@@ -51,10 +52,13 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
+import CdStepIndicator from '../components/CdStepIndicator.vue'
+import { useDesignSteps } from '../composables/useDesignSteps'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import type { DayOfWeek } from '../types/career-design'
 
 const router = useRouter()
+const { prevPath, nextPath } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
 const { draftPlan, syncPlanReviewDay } = useCareerDesign()
 
 const DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
@@ -65,7 +69,7 @@ function select(d: DayOfWeek) {
 }
 
 function goPrev() {
-  router.push('/career-design/plan/routines')
+  router.push(prevPath('reviewDay'))
 }
 
 async function goNext() {
@@ -73,7 +77,7 @@ async function goNext() {
   saving.value = true
   try {
     await syncPlanReviewDay() // 계획 ID 가 생기기 전이면 서버로 안 간다 — 목표 설정에서 한꺼번에 올린다
-    router.push('/career-design/plan/new')
+    router.push(nextPath('reviewDay'))
   } finally {
     saving.value = false
   }

@@ -1385,6 +1385,7 @@ export function useCareerDesign() {
     draftPlan.timelineManual = undefined
     draftPlan.paceKey = undefined
     draftPlan.dailyHours = undefined
+    draftPlan.editing = undefined
     draftPlan.timeline = []
     draftTimeline.value = []
   }
@@ -1596,6 +1597,7 @@ export function useCareerDesign() {
       draftPlan.projects  = plan.projects  ?? []
       draftPlan.routines  = plan.routines  ?? []
       draftTimeline.value = plan.timeline  ?? []
+      draftPlan.editing   = true // 계획 상세에서 '수정'으로 불렀다 — 단계 흐름이 수정 모드가 된다
       return true
     } catch {
       return false

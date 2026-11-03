@@ -3,8 +3,9 @@
     <CdYellowHeader
       title="진로계획 구성하기"
       :subtitle="`${draftPlan.targetJob || '목표 직업'}을 위한 프로젝트를 추가해 보세요`"
-      back-to="/career-design/templates"
+      :back-to="prevPath('projects')"
     />
+    <CdStepIndicator step="projects" />
 
     <div class="cd-projects__body">
       <div class="cd-projects__section">
@@ -104,12 +105,15 @@ import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { DEFAULT_WEEKS } from '../composables/useProjectCurriculum'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
+import CdStepIndicator from '../components/CdStepIndicator.vue'
+import { useDesignSteps } from '../composables/useDesignSteps'
 import CdHelperSuggest from '../components/CdHelperSuggest.vue'
 import type { Project, ProjectCategory } from '../types/career-design'
 import { methodDef, methodIcon } from '../composables/projectMethods'
 import AppIcon from '@/shared/components/AppIcon.vue'
 
 const router = useRouter()
+const { prevPath, nextPath } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
 const { draftPlan, draftProject, editingProjectId, resetDraftProject, syncDeleteProject } = useCareerDesign()
 
 const selectedCategory = ref<ProjectCategory>('knowledge')
@@ -179,11 +183,11 @@ async function deleteProject(projectId: string) {
 }
 
 function goPrev() {
-  router.push('/career-design/templates')
+  router.push(prevPath('projects'))
 }
 
 function goNext() {
-  router.push('/career-design/plan/pace')
+  router.push(nextPath('projects'))
 }
 </script>
 

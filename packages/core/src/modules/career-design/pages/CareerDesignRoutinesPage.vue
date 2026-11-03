@@ -3,8 +3,9 @@
     <CdYellowHeader
       title="루틴 만들기"
       subtitle="정해진 요일마다 반복할 일을 정해보세요"
-      back-to="/career-design/complete"
+      :back-to="prevPath('routines')"
     />
+    <CdStepIndicator step="routines" />
 
     <div class="cd-routines__body">
       <div class="cd-routines__section">
@@ -56,9 +57,12 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
+import CdStepIndicator from '../components/CdStepIndicator.vue'
+import { useDesignSteps } from '../composables/useDesignSteps'
 import type { Routine, DayOfWeek } from '../types/career-design'
 
 const router = useRouter()
+const { prevPath, nextPath } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
 const { draftPlan, draftRoutine, editingRoutineId, resetDraftRoutine, syncDeleteRoutine } = useCareerDesign()
 
 const ALL_DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
@@ -92,11 +96,11 @@ async function deleteRoutine(routineId: string) {
 }
 
 function goPrev() {
-  router.push('/career-design/complete')
+  router.push(prevPath('routines'))
 }
 
 function goNext() {
-  router.push('/career-design/plan/review-day')
+  router.push(nextPath('routines'))
 }
 </script>
 

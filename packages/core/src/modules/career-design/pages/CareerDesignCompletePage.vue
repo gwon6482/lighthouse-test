@@ -1,6 +1,7 @@
 <template>
   <div class="cd-complete">
-    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" back-to="/career-design/plan/pace" />
+    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" :back-to="prevPath('timeline')" />
+    <CdStepIndicator step="timeline" />
 
     <div class="cd-complete__body">
       <!-- 계획 요약 -->
@@ -248,6 +249,8 @@ import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { weekEntriesOf, weekDescriptionOf } from '../composables/useProjectCurriculum'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
+import CdStepIndicator from '../components/CdStepIndicator.vue'
+import { useDesignSteps } from '../composables/useDesignSteps'
 import type { Project, ProjectCategory } from '../types/career-design'
 import {
   planWeekCount, provisionalWeekCount, weekRangeLabel, projectWeeks, projectEndWeek, fitsInPlan,
@@ -259,15 +262,17 @@ import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 
 const router = useRouter()
+const { prevPath, nextPath } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
 const { draftPlan, draftTimeline, syncTimeline } = useCareerDesign()
 
-function goPrev() {
-  router.push('/career-design/plan/pace')
+async function goPrev() {
+  await syncTimeline() // 수정 중 이전으로 가도 옮긴 배치를 잃지 않게
+  router.push(prevPath('timeline'))
 }
 
 async function goNext() {
   await syncTimeline()
-  router.push('/career-design/plan/routines')
+  router.push(nextPath('timeline'))
 }
 
 // ── 카테고리 ──────────────────────────────────────

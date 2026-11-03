@@ -3,8 +3,9 @@
     <CdYellowHeader
       title="얼마나 시간을 낼 수 있어요?"
       subtitle="생활에 맞는 속도를 고르면 타임라인을 채워 드려요"
-      back-to="/career-design/plan/projects"
+      :back-to="prevPath('pace')"
     />
+    <CdStepIndicator step="pace" />
 
     <div class="cd-pace__body">
       <!-- ① 생활 모습 카드 — 숫자 대신 '언제 끝나는지'를 보고 고른다 -->
@@ -93,6 +94,8 @@
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
+import CdStepIndicator from '../components/CdStepIndicator.vue'
+import { useDesignSteps } from '../composables/useDesignSteps'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { toDateKey } from '../composables/usePlanTimeline'
 import { PACES, DEFAULT_PACE_HOURS, ALLIN_DAILY, allinWeeklyHours, paceOfHours, buildTimeline, scheduleEndWeek, monthLabelOfWeek, monthsLabel } from '../composables/usePlanPace'
@@ -101,6 +104,7 @@ import type { ProjectCategory } from '../types/career-design'
 import AppIcon from '@/shared/components/AppIcon.vue'
 
 const router = useRouter()
+const { prevPath, nextPath } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
 const { draftPlan, draftTimeline } = useCareerDesign()
 
 const CAT_COLOR: Record<ProjectCategory, string> = {
@@ -231,7 +235,7 @@ function apply() {
   draftPlan.weeklyHours = hours
   draftTimeline.value = buildTimeline(draftPlan.projects, hours)
   draftPlan.timelineManual = false
-  router.push('/career-design/complete')
+  router.push(nextPath('pace'))
 }
 </script>
 

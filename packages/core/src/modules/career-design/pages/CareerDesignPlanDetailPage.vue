@@ -31,6 +31,11 @@
             :class="`summary-card__status--${plan.status || 'draft'}`"
           >{{ statusLabel(plan.status) }}</span>
         </div>
+        <!-- 목표·이름·기간 / 시작 요일 수정 바로가기 -->
+        <div class="summary-card__edits">
+          <button type="button" class="section__edit" @click="editAt('overview')">목표·기간 수정</button>
+          <button type="button" class="section__edit" @click="editAt('reviewDay')">시작 요일 수정</button>
+        </div>
         <div class="summary-card__target">
           <span class="summary-card__target-icon"><AppIcon name="ui-target" /></span>
           <span class="summary-card__target-job">{{ plan.targetJob || '목표 직업 미설정' }}</span>
@@ -65,7 +70,7 @@
 
       <!-- 카테고리 분포 -->
       <section v-if="plan.projects.length" class="section">
-        <h3 class="section__title">카테고리 분포</h3>
+        <div class="section__head"><h3 class="section__title">프로젝트 · 카테고리 분포</h3><button type="button" class="section__edit" @click="editAt('projects')">수정</button></div>
         <div class="cat-dist">
           <div
             v-for="cat in categoriesWithCount"
@@ -88,7 +93,7 @@
 
       <!-- 타임라인 -->
       <section class="section">
-        <h3 class="section__title">타임라인</h3>
+        <div class="section__head"><h3 class="section__title">타임라인</h3><button type="button" class="section__edit" @click="editAt('timeline')">수정</button></div>
         <div v-if="!filledSlots.length" class="section__empty">
           배치된 프로젝트가 없어요
         </div>
@@ -129,7 +134,7 @@
 
       <!-- 루틴 -->
       <section v-if="plan.routines.length" class="section">
-        <h3 class="section__title">매일의 루틴</h3>
+        <div class="section__head"><h3 class="section__title">매일의 루틴</h3><button type="button" class="section__edit" @click="editAt('routines')">수정</button></div>
         <div class="routines">
           <div
             v-for="routine in plan.routines"
@@ -223,6 +228,7 @@
 </template>
 
 <script setup lang="ts">
+import { DESIGN_STEP_PATH, type DesignStepKey } from '../composables/useDesignSteps'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { weekEntriesOf } from '../composables/useProjectCurriculum'
 import { ref, computed, onMounted } from 'vue'
@@ -277,10 +283,17 @@ onMounted(async () => {
   }
 })
 
-async function goEdit() {
+// 수정 — 계획을 작성 상태로 불러와 그 단계로 들어간다. 이전/다음으로 단계를 오가고 마지막은 '수정 완료'(useDesignSteps).
+// 예전엔 완성 화면으로 바로 가서 앞 단계로 가려면 헤더 뒤로가기를 눌러야 했다(2026-11-03)
+async function editAt(step: DesignStepKey) {
   if (!planId.value) return
   const ok = await loadPlanFromApi(planId.value)
-  if (ok) router.push('/career-design/result')
+  if (ok) router.push(DESIGN_STEP_PATH[step])
+  else alert('계획을 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
+}
+
+function goEdit() {
+  return editAt('projects')
 }
 
 async function onDelete() {
@@ -472,6 +485,28 @@ const closeProject = () => { selectedProject.value = null }
 }
 
 /* 요약 카드 */
+.section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  .section__title { margin-bottom: 0; }
+  margin-bottom: 12px;
+}
+.section__edit {
+  flex: none;
+  padding: 4px 10px;
+  border: 1px solid #e3e3e0;
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+}
+.summary-card__edits { display: flex; gap: 6px; justify-content: flex-end; margin: -2px 0 8px; }
+
 .summary-card {
   background: linear-gradient(135deg, #FFFBEC 0%, #FFF4D4 100%);
   border: 1px solid #FFE99A;

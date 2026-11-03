@@ -4,8 +4,9 @@
     <CdYellowHeader
       title="목표 설정"
       subtitle="마지막으로 목표 직업·계획 이름·기간을 정해요"
-      back-to="/career-design/plan/review-day"
+      :back-to="prevPath('overview')"
     />
+    <CdStepIndicator step="overview" />
 
     <div class="cd-plan-write__body">
 
@@ -68,7 +69,7 @@
     <!-- 하단 버튼 -->
     <div class="cd-plan-write__footer">
       <button class="cd-plan-write__btn-secondary" @click="goPrev">이전으로</button>
-      <button class="cd-plan-write__btn-primary" :disabled="!canProceed || saving" @click="goNext">{{ saving ? '저장 중…' : '계획 완성하기' }}</button>
+      <button class="cd-plan-write__btn-primary" :disabled="!canProceed || saving" @click="goNext">{{ saving ? '저장 중…' : editing ? '수정 마치기' : '계획 완성하기' }}</button>
     </div>
   </div>
 </template>
@@ -80,11 +81,14 @@ import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { useUnsavedGuard } from '@/shared/composables/useUnsavedGuard'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
+import CdStepIndicator from '../components/CdStepIndicator.vue'
+import { useDesignSteps } from '../composables/useDesignSteps'
 import CdDatePicker from '../components/CdDatePicker.vue'
 import { getToday } from '@/shared/utils/dev-date'
 import { suggestedEndDate } from '../composables/usePlanTimeline'
 
 const router = useRouter()
+const { prevPath, nextPath, editing } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
 const { draftPlan, draftTimeline, finalizePlan } = useCareerDesign()
 
 // ⚠️ 2026-10-20 순서 변경: 목표 설정은 진로설계의 **맨 마지막** 단계다
@@ -131,7 +135,7 @@ const { bypass } = useUnsavedGuard(() => JSON.stringify({
 }))
 
 function goPrev() {
-  router.push('/career-design/plan/review-day')
+  router.push(prevPath('overview'))
 }
 
 async function goNext() {
@@ -140,7 +144,7 @@ async function goNext() {
   bypass()
   await finalizePlan() // 비로그인이면 실패해도 로컬 임시 계획으로 결과 화면은 보인다(기존과 같음)
   saving.value = false
-  router.push('/career-design/result')
+  router.push(nextPath('overview'))
 }
 </script>
 

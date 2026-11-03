@@ -1,11 +1,16 @@
 <template>
   <div class="cd-result">
-    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" back-to="/career-design/plan/new" />
+    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" :back-to="lastStepPath" />
 
     <div class="cd-result__body">
       <!-- 완성 축하 -->
       <div class="cd-result__celebrate">
         <span class="cd-result__celebrate-emoji"><AppIcon name="ui-celebrate" /></span>
+        <template v-if="editing">
+          <h2 class="cd-result__celebrate-title">계획을 수정했어요</h2>
+          <p class="cd-result__celebrate-msg">바꾼 내용은 단계마다 바로 저장됐어요. 아래에서 한 번 더 확인해 보세요.</p>
+        </template>
+        <template v-else>
         <h2 class="cd-result__celebrate-title">진로계획 완성!</h2>
         <p class="cd-result__celebrate-msg">
           수고하셨습니다! <strong>{{ userName }}</strong>님의 진로계획이 완성되었어요!
@@ -14,6 +19,7 @@
           앞으로는 메인화면에서 매일매일 진로계획에 맞춰서 오늘의 할일을 알려드려요!
           일주일에 한번씩 리뷰하는 시간을 가지며 자유롭게 수정할 수 있어요!
         </p>
+        </template>
       </div>
 
       <!-- 요약 카드 -->
@@ -174,12 +180,15 @@
 
     <!-- 하단 버튼 -->
     <div class="cd-result__footer">
-      <button class="cd-result__btn-secondary" @click="router.push('/career-design/complete')">
-        계획 수정하기
+      <!-- 이전 단계(목표·기간)로 — 예전엔 '계획 수정하기'가 타임라인으로 건너뛰었다(2026-11-03) -->
+      <button class="cd-result__btn-secondary" @click="router.push(lastStepPath)">이전으로</button>
+      <!-- 수정 중: 계획 상세로 돌아간다 -->
+      <button v-if="editing" class="cd-result__btn-primary" :disabled="finishing" @click="finishEdit">
+        {{ finishing ? '저장 중...' : '저장하고 돌아가기' }}
       </button>
       <!-- /main/before 스테퍼(3단계)에서 진입한 경우: 설계 완료 → 복귀 -->
       <button
-        v-if="fromMainBefore"
+        v-else-if="fromMainBefore"
         class="cd-result__btn-primary"
         :disabled="finishing"
         @click="finishDesign"
@@ -205,6 +214,7 @@ import { weekRangeLabel, monthWeekLabel, resolveProject } from '../composables/u
 import { useWeeklySchedule } from '@/modules/career-achievement/composables/useWeeklySchedule'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useAchievementStore } from '@/shared/stores/achievement'
+import { useDesignSteps } from '../composables/useDesignSteps'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { Project, ProjectCategory, DayOfWeek } from '../types/career-design'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
@@ -212,7 +222,8 @@ import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 const achievementStore = useAchievementStore()
-const { draftPlan, draftTimeline } = useCareerDesign()
+const { draftPlan, draftTimeline, resetDraftPlan } = useCareerDesign()
+const { editing, lastStepPath, detailPath } = useDesignSteps()
 const { ensureFirstWeekSchedule } = useWeeklySchedule()
 
 // 진로계획이 완성된 시점에 첫 주 WeeklySchedule 을 자동 생성 (이미 있으면 no-op).
@@ -255,6 +266,16 @@ async function finishDesign() {
   finishing.value = false
   sessionStorage.removeItem('lh_plan_return')
   router.push('/main/before')
+}
+
+// 수정 마침 — 단계마다 이미 서버에 저장됐다. 진로달성이 바뀐 계획을 다시 읽게 하고 작성 중 상태를 비운 뒤 계획 상세로
+async function finishEdit() {
+  finishing.value = true
+  const back = detailPath.value
+  await achievementStore.loadActivePlan(true).catch(() => {})
+  resetDraftPlan()
+  finishing.value = false
+  router.push(back)
 }
 
 async function startNow() {
