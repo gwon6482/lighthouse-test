@@ -114,6 +114,7 @@
   display: grid; gap: 12px; padding: 16px; border-radius: $radius-card; background: $color-surface;
   &__head { display: flex; align-items: center; gap: 8px; strong { font-size: 16px; } span { font-size: $fs-xs; color: $color-text-secondary; font-variant-numeric: tabular-nums; } }
   &__stars { margin-left: auto; display: inline-flex; gap: 1px; font-size: 13px; color: $color-border-strong; .on { color: #F5A524; } }
+  &__head &__skip { margin-left: auto; color: $color-text-tertiary; } // 결산을 건너뛴 주 — 별 자리에
   &__nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
     div { display: grid; gap: 2px; padding: 10px; border-radius: $radius-md; background: $color-surface-alt; }
     b { font-size: $fs-md; font-variant-numeric: tabular-nums; } small { font-size: 11px; color: $color-text-secondary; } }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  objectJosa, planPhase, planDayNumber, dDayLabel, overallProgress,
+  objectJosa, planPhase, planDayNumber, dDayLabel, overallProgress, progressUpToWeek,
   streakCount, reviewBadge, todayMessage, journeyHeadline,
 } from '../lib/planBoard'
 
@@ -35,6 +35,18 @@ describe('planBoard', () => {
     const done = new Set(['a-1-0', 'a-2-1'])
     expect(overallProgress(projects, (p, w, i) => done.has(`${p}-${w}-${i}`))).toEqual({ done: 2, total: 4, percent: 50 })
     expect(overallProgress([], () => false).percent).toBe(0)
+  })
+
+  it('그 주차까지의 진행 — 그 주 뒤에 배치된 항목은 끝냈어도 세지 않는다', () => {
+    // a 는 계획 2주차 시작(커리큘럼 1주차 = 계획 2주차)
+    const projects = [{ id: 'a', curriculum: [{ week: 1, items: ['x', 'y'] }, { week: 2, items: ['z', 'w'] }] }] as any
+    const timeline = [{ week: 2, projects: [{ id: 'a' }] }, { week: 3, projects: [{ id: 'a' }] }] as any
+    const done = new Set(['a-1-0', 'a-2-0'])
+    const isDone = (p: string, w: number, i: number) => done.has(`${p}-${w}-${i}`)
+    expect(progressUpToWeek(projects, timeline, 1, isDone)).toBe(0)
+    expect(progressUpToWeek(projects, timeline, 2, isDone)).toBe(25)
+    expect(progressUpToWeek(projects, timeline, 3, isDone)).toBe(50)
+    expect(progressUpToWeek([], [], 3, isDone)).toBe(0)
   })
 
   it('연속 달성 — 할 일 없는 날은 건너뛰고, 오늘 미완료는 끊지 않는다', () => {

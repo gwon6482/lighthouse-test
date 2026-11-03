@@ -1,8 +1,8 @@
 // 진로달성 메인·로드맵이 같이 쓰는 계산(2026-10-28) — 화면과 무관한 순수 함수만 둔다.
 // 화면 연결은 composables/usePlanBoard.ts.
-import type { DayOfWeek, Project, ProjectCategory } from '@/modules/career-design/types/career-design'
+import type { DayOfWeek, Project, ProjectCategory, TimelineSlot } from '@/modules/career-design/types/career-design'
 import { weekEntriesOf } from '@/modules/career-design/composables/useProjectCurriculum'
-import { projectEndWeek } from '@/modules/career-design/composables/usePlanTimeline'
+import { projectEndWeek, projectStartWeek } from '@/modules/career-design/composables/usePlanTimeline'
 
 // 분류 색·라벨 — ⚠️ 같은 표가 여러 화면에 복제돼 있다(실무경험 추가 때 18곳). 새 화면은 여기 것을 쓴다
 export const CATEGORY_META: Record<ProjectCategory, { label: string; color: string }> = {
@@ -80,6 +80,28 @@ export function overallProgress(
     }
   }
   return { done, total, percent: total ? Math.floor((done / total) * 100) : 0 }
+}
+
+// 그 계획 주차까지의 전체 진행 — 결산을 건너뛴 주에 '전체 진행 a→b%'를 다시 그릴 때(2026-11-04).
+// 완료 시각은 저장하지 않으므로 '그 주까지 배치된 항목 중 완료한 것'으로 센다. 분모는 전체 항목(overallProgress 와 같다)
+export function progressUpToWeek(
+  projects: Pick<Project, 'id' | 'curriculum'>[],
+  timeline: TimelineSlot[],
+  week: number,
+  isItemDone: (projectId: string, week: number, idx: number) => boolean,
+): number {
+  let done = 0
+  let total = 0
+  for (const p of projects) {
+    const sw = projectStartWeek(timeline, p.id)
+    for (const cw of p.curriculum ?? []) {
+      const n = weekEntriesOf(cw).length
+      total += n
+      if (sw === null || sw + cw.week - 1 > week) continue
+      for (let i = 0; i < n; i++) if (isItemDone(p.id, cw.week, i)) done++
+    }
+  }
+  return total ? Math.floor((done / total) * 100) : 0
 }
 
 // 연속 달성 — 오늘부터 거슬러 올라가며 '계획된 일을 다 한 날'을 센다.
