@@ -42,3 +42,6 @@ test-responses/
 CODE_ANALYSIS/
 # 디자인 확인용 더미 사진(스톡) — 저장소에 올리지 않는다(2026-10-29)
 resource/
+
+# vite-plugin-pwa 개발 서버용 서비스워커 산출물(devOptions.enabled, 2026-11-03)
+dev-dist/
