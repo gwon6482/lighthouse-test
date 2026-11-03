@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>집중모드 라이트 시안</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Pretendard, -apple-system, sans-serif; background: #E9E7E1; color: #141414; -webkit-font-smoothing: antialiased; padding: 32px 24px 60px; }
+button { font: inherit; border: 0; background: none; color: inherit; }
+.num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+.lead { margin-top: 6px; font-size: 14px; color: #666; line-height: 1.6; }
+.board { margin-top: 26px; display: grid; grid-template-columns: 120px repeat(4, 300px); gap: 18px 20px; align-items: start; overflow-x: auto; padding-bottom: 8px; }
+.colhead { font-size: 15px; font-weight: 700; }
+.colhead small { display: block; margin-top: 4px; font-size: 12px; font-weight: 500; color: #777; line-height: 1.5; }
+.rowhead { font-size: 13px; font-weight: 700; color: #555; padding-top: 12px; }
+.slot { width: 300px; height: 634px; }
+.phone { width: 360px; height: 760px; transform: scale(.8333); transform-origin: 0 0; position: relative; border-radius: 46px; overflow: hidden; box-shadow: 0 0 0 9px #1c1c1c, 0 24px 50px rgba(0,0,0,.2); }
+.notch { position: absolute; top: 10px; left: 50%; width: 110px; height: 30px; margin-left: -55px; border-radius: 20px; background: #000; z-index: 50; }
+.status { position: absolute; top: 0; left: 0; right: 0; padding: 16px 28px 0; display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; z-index: 40; }
+
+/* ── 테마 변수 ── */
+.t-dark  { --bg: #121212; --card: #1E1E1E; --step: #262626; --chip-off: #1E1E1E; --chip-off-ink: #aaa; --ink: #fff; --sub: rgba(255,255,255,.6); --fill: #FFD100; --wave: #FFD100; --tgl: #3a3a3a; --sec: .35; --go: #FFD100; --go-ink: #141414; --sheet: rgba(18,18,18,.88); }
+.t-cream { --bg: #FAF7EF; --card: #FFFFFF; --step: #FFFFFF; --chip-off: #FFFFFF; --chip-off-ink: #666; --ink: #141414; --sub: rgba(20,20,20,.55); --fill: #FFD100; --wave: #FFD100; --tgl: #E2DED3; --sec: .28; --go: #141414; --go-ink: #fff; --sheet: rgba(255,255,255,.92); --shadow: 0 1px 3px rgba(0,0,0,.05), 0 6px 18px rgba(0,0,0,.04); }
+.t-white { --bg: #FFFFFF; --card: #F6F6F4; --step: #F2F2EF; --chip-off: #F2F2EF; --chip-off-ink: #666; --ink: #141414; --sub: rgba(20,20,20,.55); --fill: linear-gradient(180deg, #FFE45C 0%, #FFC700 100%); --wave: #FFE45C; --tgl: #E4E4E0; --sec: .25; --go: #FFD100; --go-ink: #141414; --sheet: rgba(255,255,255,.94); --shadow: none; }
+.t-tint  { --bg: #FFF7D1; --card: rgba(255,255,255,.75); --step: #FFFFFF; --chip-off: rgba(255,255,255,.7); --chip-off-ink: #6b5d1f; --ink: #2A2408; --sub: rgba(42,36,8,.6); --fill: #FFC93C; --wave: #FFC93C; --tgl: #EADFA8; --sec: .3; --go: #2A2408; --go-ink: #FFE45C; --sheet: rgba(255,251,234,.94); --shadow: 0 1px 2px rgba(120,90,0,.08); }
+
+.phone { background: var(--bg); color: var(--ink); }
+.t-dark .status { color: #fff; }
+
+/* 설정 */
+.setup { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 56px 20px 26px; }
+.setup .bar { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; height: 46px; }
+.setup .bar b { text-align: center; font-size: 16px; font-weight: 600; }
+.setup .bar span { font-size: 20px; opacity: .6; text-align: center; }
+.setup .item { margin-top: 10px; padding: 18px; border-radius: 20px; background: var(--card); box-shadow: var(--shadow, none); }
+.setup .chip { display: inline-block; padding: 4px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #1DB95A; background: rgba(29,185,90,.14); }
+.setup .item h3 { margin-top: 10px; font-size: 19px; font-weight: 700; letter-spacing: -0.03em; }
+.setup .lab { margin-top: 28px; text-align: center; font-size: 13px; font-weight: 500; color: var(--sub); }
+.setup .goal { margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 22px; }
+.setup .goal .v { min-width: 150px; text-align: center; font-size: 64px; font-weight: 800; line-height: 1; }
+.setup .goal .v small { font-size: 22px; font-weight: 700; }
+.setup .step { width: 48px; height: 48px; border-radius: 50%; background: var(--step); display: grid; place-items: center; font-size: 24px; box-shadow: var(--shadow, none); }
+.setup .end { margin-top: 10px; text-align: center; font-size: 13px; color: var(--sub); }
+.setup .end b { color: var(--ink); }
+.setup .pre { margin-top: 20px; display: flex; justify-content: center; gap: 8px; }
+.setup .pre span { padding: 9px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; background: var(--chip-off); color: var(--chip-off-ink); box-shadow: var(--shadow, none); }
+.setup .pre span.on { background: #FFD100; color: #141414; box-shadow: none; }
+.t-tint .setup .pre span.on { background: #2A2408; color: #FFE45C; }
+.setup .opts { margin-top: auto; display: grid; gap: 2px; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow, none); }
+.setup .opt { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: var(--card); font-size: 14px; font-weight: 500; }
+.tgl { width: 44px; height: 26px; border-radius: 999px; position: relative; background: #FFD100; }
+.t-tint .tgl { background: #2A2408; }
+.tgl::after { content: ""; position: absolute; top: 3px; left: 21px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.setup .go { margin-top: 14px; height: 58px; border-radius: 18px; background: var(--go); color: var(--go-ink); display: grid; place-items: center; font-size: 17px; font-weight: 700; }
+
+/* 진행 */
+.run { position: absolute; inset: 0; overflow: hidden; }
+.liquid { position: absolute; left: 0; right: 0; bottom: 0; height: 42%; background: var(--fill); }
+.liquid svg { position: absolute; left: 0; bottom: 100%; width: 200%; height: 22px; margin-bottom: -1px; animation: drift 4s linear infinite; }
+.liquid svg path { fill: var(--wave); }
+@keyframes drift { to { transform: translateX(-50%); } }
+.layer { position: absolute; inset: 0; padding: 62px 26px 44px; display: flex; flex-direction: column; }
+.layer.dark { color: #141414; clip-path: inset(58% 0 0 0); }
+.t-tint .layer.dark { color: #2A2408; }
+.meta { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
+.meta span:last-child { opacity: .6; }
+.name { margin-top: 6px; font-size: 20px; font-weight: 700; letter-spacing: -0.03em; }
+.big { margin-top: 44px; font-size: 168px; font-weight: 800; line-height: .86; letter-spacing: -0.06em; }
+.big span { display: block; }
+.big .s { opacity: var(--sec); }
+.cap { margin-top: 18px; font-size: 14px; font-weight: 600; opacity: .65; }
+.foot { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; font-size: 13px; font-weight: 600; }
+.foot b { font-size: 40px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+.hint { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; font-size: 12px; font-weight: 600; color: rgba(0,0,0,.45); }
+/* 라이트에선 물 위 숫자에 은은한 그림자 — 밝은 바탕에서도 무게감 */
+.t-cream .layer:not(.dark) .big .m, .t-white .layer:not(.dark) .big .m { text-shadow: 0 2px 0 rgba(0,0,0,.02); }
+
+/* 완료 */
+.done { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 70px 24px 26px; background: #FFD100; color: #141414; }
+.t-white .done { background: linear-gradient(180deg, #FFE45C 0%, #FFC700 100%); }
+.t-tint .done { background: #FFC93C; color: #2A2408; }
+.t-cream .done, .t-white .done { }
+.done .huge { font-size: 96px; font-weight: 800; letter-spacing: -0.06em; line-height: .9; }
+.done .huge small { font-size: 36px; }
+.done h3 { margin-top: 18px; font-size: 24px; font-weight: 800; }
+.done p { margin-top: 8px; font-size: 14px; opacity: .75; }
+.done .stats { margin-top: 26px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.done .stats div { padding: 14px; border-radius: 16px; background: rgba(0,0,0,.08); }
+.done .stats b { display: block; font-size: 22px; font-weight: 800; }
+.done .stats small { font-size: 12px; opacity: .65; }
+.done .btns { margin-top: auto; width: 100%; display: grid; gap: 8px; }
+.done .btns span { height: 54px; border-radius: 16px; display: grid; place-items: center; font-size: 16px; font-weight: 700; background: rgba(0,0,0,.08); }
+.done .btns span.p { background: #141414; color: #fff; }
+
+/* 완료 화면 라이트 변형 — 바탕은 테마, 노랑은 큰 숫자 뒤 원에만 */
+.done.soft { background: var(--bg); }
+.done.soft .badge { width: 170px; height: 170px; border-radius: 50%; display: grid; place-items: center; background: var(--fill); box-shadow: 0 18px 40px rgba(255,190,0,.3); }
+.done.soft .huge { font-size: 72px; }
+.done.soft .huge small { font-size: 26px; }
+.done.soft .stats div { background: var(--card); box-shadow: var(--shadow, none); }
+.t-white .done.soft .stats div { background: #F6F6F4; }
+
+.note { margin-top: 30px; max-width: 1360px; padding: 18px 20px; border-radius: 16px; background: #fff; font-size: 13px; line-height: 1.8; color: #555; }
+.note b { color: #141414; }
+</style>
+</head>
+<body>
+<h1>집중모드 — 라이트 컬러 비교</h1>
+<p class="lead">지금 스테이징(다크)과 라이트 3종을 같은 단계로 나란히 놓았습니다. 진행 화면은 목표 50분 중 21분(42%) 지점입니다.<br>완료 화면은 '노랑 가득'(지금 방식)과 '라이트 바탕 + 노랑 원' 두 가지를 같이 보여 드려요.</p>
+
+<div class="board" id="board"></div>
+
+<div class="note">
+  <b>공통</b> · 노랑이 바닥부터 차오르는 구조와 초대형 숫자는 그대로, 바탕색만 바뀝니다 · 라이트에서는 물 위·물속 글자가 모두 검정이라 다크보다 숫자 대비가 덜 극적이지만, 낮에 보기 편하고 앱의 다른 화면(흰 바탕)과 이어집니다<br>
+  <b>제 추천</b> · <b>L1 크림</b> — 앱의 흰 화면들과 자연스럽게 이어지면서 순백보다 눈이 덜 부시고, 노랑이 가장 선명하게 보입니다
+</div>
+
+<script>
+const T = [
+  ['t-dark', '현재 (다크)', '스테이징에 올라간 버전'],
+  ['t-cream', 'L1 크림', '따뜻한 아이보리 바탕 + 브랜드 노랑'],
+  ['t-white', 'L2 화이트', '순백 바탕 + 노랑 그라데이션 물'],
+  ['t-tint', 'L3 옐로 틴트', '연노랑 바탕 + 진한 노랑 물, 글자는 짙은 갈색'],
+];
+const status = (t) => `<div class="notch"></div><div class="status"><span>9:41</span><span>●●● ◐</span></div>`;
+const setup = () => `<div class="setup"><div class="bar"><span>✕</span><b>집중 모드</b><span></span></div>
+  <div class="item"><span class="chip">자격요건</span><h3>컴퓨터활용능력 1급</h3></div>
+  <div class="lab">목표 집중 시간</div>
+  <div class="goal"><span class="step">−</span><div class="v num">50<small>분</small></div><span class="step">+</span></div>
+  <div class="end">지금 시작하면 <b>오후 3:12</b>에 끝나요</div>
+  <div class="pre"><span>15분</span><span>25분</span><span class="on">50분</span><span>90분</span></div>
+  <div class="opts"><div class="opt">화면 켜짐 유지 <span class="tgl"></span></div><div class="opt">목표 시간이 되면 진동 <span class="tgl"></span></div></div>
+  <div class="go">집중 시작</div></div>`;
+const layer = (cls) => `<div class="layer ${cls}"><div class="meta"><span>집중 중</span><span>목표 50분</span></div><div class="name">컴퓨터활용능력 1급</div>
+  <div class="big num"><span class="m">29</span><span class="s">14</span></div><div class="cap">남은 시간</div>
+  <div class="foot"><span>끝날 예정 15:12</span><b class="num">42%</b></div></div>`;
+const run = () => `<div class="run"><div class="liquid"><svg viewBox="0 0 1200 40" preserveAspectRatio="none"><path d="M0 20 Q 75 0 150 20 T 300 20 T 450 20 T 600 20 T 750 20 T 900 20 T 1050 20 T 1200 20 V40 H0 Z"/></svg></div>${layer('')}${layer('dark')}<div class="hint">화면을 누르면 잠시 멈춰요</div></div>`;
+const stats = `<div class="stats"><div><b class="num">43:12</b><small>집중한 시간</small></div><div><b>7분 빨리</b><small>목표 50분보다</small></div></div>`;
+const btns = `<div class="btns"><span class="p">기록 남기기</span><span>이어서 집중하기</span></div>`;
+const done = () => `<div class="done"><div class="huge num">43<small>분</small></div><h3>집중을 마쳤어요</h3><p>목표 50분보다 7분 빨리 했어요</p>${stats}${btns}</div>`;
+const doneSoft = () => `<div class="done soft"><div class="badge"><div class="huge num">43<small>분</small></div></div><h3>집중을 마쳤어요</h3><p>목표 50분보다 7분 빨리 했어요</p>${stats}${btns}</div>`;
+
+const rows = [['설정', setup], ['진행 (42%)', run], ['완료 — 노랑 가득', done], ['완료 — 라이트 바탕', doneSoft]];
+const b = document.getElementById('board');
+let html = '<div></div>' + T.map(([, n, d]) => `<div class="colhead">${n}<small>${d}</small></div>`).join('');
+for (const [label, fn] of rows) {
+  html += `<div class="rowhead">${label}</div>`;
+  for (const [cls] of T) html += (label.includes('라이트 바탕') && cls === 't-dark') ? '<div class="slot"></div>' : `<div class="slot"><div class="phone ${cls}">${status()}${fn()}</div></div>`;
+}
+b.innerHTML = html;
+</script>
+</body>
+</html>

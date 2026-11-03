@@ -1,5 +1,5 @@
 <template>
-  <!-- 집중모드(2026-11-04 개편, C안 '채움') — 목표 시간 설정 → 3·2·1 → 화면 전체 타이머(노랑이 바닥부터 차오름) → 완료.
+  <!-- 집중모드(2026-11-04 개편, C안 '채움' · L1 크림) — 목표 시간 설정 → 3·2·1 → 화면 전체 타이머(노랑이 바닥부터 차오름) → 완료.
        다른 시안(A 등대·B 다이얼)은 레포 docs/design/focus-mode-mockup.html — 팀 의견으로 바꿀 수 있다.
        계산은 lib/focusTimer.ts, 스타일은 appearance/modules/career-achievement/AchievementFocus.scss -->
   <div class="fm">
@@ -75,7 +75,7 @@
 
     <!-- ④ 완료 — 판정하지 않는다(일찍 끝낸 건 일이 빨리 끝난 것일 수 있다) -->
     <section v-else class="fm-done">
-      <div class="fm-done__huge fm-num">{{ Math.floor(elapsed / 60) }}<small>분</small></div>
+      <div class="fm-done__badge"><div class="fm-done__huge fm-num">{{ Math.floor(elapsed / 60) }}<small>분</small></div></div>
       <h3>집중을 마쳤어요</h3>
       <p>{{ gap.line }}</p>
       <div class="fm-done__stats">
@@ -244,9 +244,9 @@ function onVisible() {
   if (phase.value === 'run' && !paused.value) { wakeLock = null; void lockScreen() }
 }
 
-// 상단(노치) 색 — 어두운 화면, 노랑이 다 차오르면·완료 화면은 노랑
+// 상단(노치) 색 — 크림 바탕, 노랑이 화면 끝까지 차오르면 노랑
 watch([phase, fill], () => {
-  applyThemeColor(phase.value === 'done' || (phase.value === 'run' && fill.value > 93) ? THEME_COLOR.primary : THEME_COLOR.focus)
+  applyThemeColor(phase.value === 'run' && fill.value > 93 ? THEME_COLOR.primary : THEME_COLOR.focus)
 }, { immediate: true })
 
 // ── 나가기 ──
