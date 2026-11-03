@@ -1,14 +1,14 @@
 <template>
   <div class="cd-result">
-    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" :back-to="lastStepPath" />
+    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" :back-to="lastStepPath" :cancel-edit="editing" />
 
     <div class="cd-result__body">
       <!-- 완성 축하 -->
       <div class="cd-result__celebrate">
         <span class="cd-result__celebrate-emoji"><AppIcon name="ui-celebrate" /></span>
         <template v-if="editing">
-          <h2 class="cd-result__celebrate-title">계획을 수정했어요</h2>
-          <p class="cd-result__celebrate-msg">바꾼 내용은 단계마다 바로 저장됐어요. 아래에서 한 번 더 확인해 보세요.</p>
+          <h2 class="cd-result__celebrate-title">수정한 계획을 확인해 주세요</h2>
+          <p class="cd-result__celebrate-msg">아직 저장 전이에요. 아래 내용이 맞으면 <strong>저장하고 돌아가기</strong>를 눌러 주세요.</p>
         </template>
         <template v-else>
         <h2 class="cd-result__celebrate-title">진로계획 완성!</h2>
@@ -222,13 +222,15 @@ import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 const achievementStore = useAchievementStore()
-const { draftPlan, draftTimeline, resetDraftPlan } = useCareerDesign()
+const { draftPlan, draftTimeline, resetDraftPlan, commitEdit } = useCareerDesign()
 const { editing, lastStepPath, detailPath } = useDesignSteps()
 const { ensureFirstWeekSchedule } = useWeeklySchedule()
 
 // 진로계획이 완성된 시점에 첫 주 WeeklySchedule 을 자동 생성 (이미 있으면 no-op).
 // 진로달성 메인이 즉시 표시할 데이터 확보.
 onMounted(async () => {
+  // 수정 중엔 만들지 않는다 — 이미 쓰던 계획이고, 이 화면에서 취소할 수도 있다(수정 중엔 아무것도 보내지 않는 원칙)
+  if (draftPlan.editing) return
   if (!draftPlan.planId || !draftPlan.startDate || !draftPlan.reviewDay) return
   await ensureFirstWeekSchedule(
     draftPlan.planId,
@@ -268,10 +270,15 @@ async function finishDesign() {
   router.push('/main/before')
 }
 
-// 수정 마침 — 단계마다 이미 서버에 저장됐다. 진로달성이 바뀐 계획을 다시 읽게 하고 작성 중 상태를 비운 뒤 계획 상세로
+// 수정 마침 — 들고 있던 변경을 한 번에 저장(commitEdit)하고, 진로달성이 바뀐 계획을 다시 읽게 한 뒤 계획 상세로
 async function finishEdit() {
   finishing.value = true
   const back = detailPath.value
+  if (!(await commitEdit())) {
+    finishing.value = false
+    alert('일부 내용을 저장하지 못했어요. 잠시 후 다시 눌러 주세요.')
+    return
+  }
   await achievementStore.loadActivePlan(true).catch(() => {})
   resetDraftPlan()
   finishing.value = false

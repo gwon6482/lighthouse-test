@@ -4,7 +4,7 @@
     <CdYellowHeader
       title="목표 설정"
       subtitle="마지막으로 목표 직업·계획 이름·기간을 정해요"
-      :back-to="prevPath('overview')"
+      :back-to="prevPath('overview')" :cancel-edit="editing"
     />
     <CdStepIndicator step="overview" />
 

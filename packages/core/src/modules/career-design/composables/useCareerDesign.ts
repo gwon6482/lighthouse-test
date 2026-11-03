@@ -1361,6 +1361,11 @@ async function fetchPublicPlans(q?: string): Promise<void> {
   }
 }
 
+// 수정 중(draftPlan.editing)에는 단계마다 서버에 보내지 않고 들고 있다가 '저장하고 돌아가기'에서 한 번에 보낸다(commitEdit).
+// 그래야 헤더의 '수정 취소'가 정말로 아무것도 바꾸지 않는다(2026-11-04). committing 동안만 실제로 보낸다
+let committing = false
+const holdSync = () => !draftPlan.planId || (!!draftPlan.editing && !committing)
+
 export function useCareerDesign() {
   const targetJob = ref('')
 
@@ -1386,6 +1391,7 @@ export function useCareerDesign() {
     draftPlan.paceKey = undefined
     draftPlan.dailyHours = undefined
     draftPlan.editing = undefined
+    draftPlan.editBase = undefined
     draftPlan.timeline = []
     draftTimeline.value = []
   }
@@ -1437,6 +1443,7 @@ export function useCareerDesign() {
   // 이미 서버에 있는 계획(planId)이면 앞 단계가 그때그때 저장됐으므로 개요만 고친다.
   // 프로젝트 ID 는 앱이 만든 값을 서버가 그대로 쓴다(projects/bulk) → 타임라인 슬롯 연결이 유지된다.
   async function finalizePlan(): Promise<boolean> {
+    if (draftPlan.editing) return true // 수정 중엔 commitEdit 이 한꺼번에
     const isNew = !draftPlan.planId
     if (!(await syncPlanStep1())) return false
     if (!isNew) return true
@@ -1455,7 +1462,7 @@ export function useCareerDesign() {
 
   // STEP2: 프로젝트 추가
   async function syncAddProject(project: Project): Promise<boolean> {
-    if (!draftPlan.planId) return true
+    if (holdSync()) return true
     try {
       const res = await req.post(`/api/career-plan/${draftPlan.planId}/projects`, {
         name:       project.name,
@@ -1479,7 +1486,7 @@ export function useCareerDesign() {
 
   // STEP2: 프로젝트 수정
   async function syncUpdateProject(project: Project): Promise<boolean> {
-    if (!draftPlan.planId) return true
+    if (holdSync()) return true
     try {
       await req.put(`/api/career-plan/${draftPlan.planId}/projects/${project.id}`, {
         name:       project.name,
@@ -1500,7 +1507,7 @@ export function useCareerDesign() {
 
   // STEP2: 프로젝트 삭제
   async function syncDeleteProject(projectId: string): Promise<boolean> {
-    if (!draftPlan.planId) return true
+    if (holdSync()) return true
     try {
       await req.delete(`/api/career-plan/${draftPlan.planId}/projects/${projectId}`)
       return true
@@ -1511,7 +1518,7 @@ export function useCareerDesign() {
 
   // 루틴 추가
   async function syncAddRoutine(routine: Routine): Promise<boolean> {
-    if (!draftPlan.planId) return true
+    if (holdSync()) return true
     try {
       const res = await req.post(`/api/career-plan/${draftPlan.planId}/routines`, {
         name:             routine.name,
@@ -1530,7 +1537,7 @@ export function useCareerDesign() {
 
   // 루틴 수정
   async function syncUpdateRoutine(routine: Routine): Promise<boolean> {
-    if (!draftPlan.planId) return true
+    if (holdSync()) return true
     try {
       await req.put(`/api/career-plan/${draftPlan.planId}/routines/${routine.id}`, {
         name:             routine.name,
@@ -1548,7 +1555,7 @@ export function useCareerDesign() {
 
   // 루틴 삭제
   async function syncDeleteRoutine(routineId: string): Promise<boolean> {
-    if (!draftPlan.planId) return true
+    if (holdSync()) return true
     try {
       await req.delete(`/api/career-plan/${draftPlan.planId}/routines/${routineId}`)
       return true
@@ -1559,7 +1566,7 @@ export function useCareerDesign() {
 
   // STEP3: 타임라인 저장
   async function syncTimeline(): Promise<boolean> {
-    if (!draftPlan.planId) return true
+    if (holdSync()) return true
     try {
       await req.put(`/api/career-plan/${draftPlan.planId}/timeline`, {
         timeline: draftTimeline.value,
@@ -1573,6 +1580,7 @@ export function useCareerDesign() {
   // 주간리뷰 요일 저장 — 진로계획 마지막 단계에서 사용자가 선택
   async function syncPlanReviewDay(): Promise<boolean> {
     if (!draftPlan.planId) return false
+    if (holdSync()) return true
     try {
       await req.put(`/api/career-plan/${draftPlan.planId}`, { reviewDay: draftPlan.reviewDay })
       return true
@@ -1582,6 +1590,49 @@ export function useCareerDesign() {
   }
 
   // 마이페이지 등에서 저장된 계획 불러오기
+  // 수정 마침 — 원본(editBase)과 비교해 바뀐 것만 보낸다: 지운 프로젝트·루틴 삭제 → 새로 만든 것 추가(서버가 준 ID 로
+  // 타임라인 연결을 고친다) → 고친 것 수정 → 타임라인 → 개요(이름·목표·기간·속도) → 시작 요일. 하나라도 실패하면 false
+  async function commitEdit(): Promise<boolean> {
+    const base = draftPlan.editBase
+    if (!draftPlan.planId || !draftPlan.editing || !base) return false
+    committing = true
+    try {
+      let ok = true
+      const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+      const baseProjects = new Map(base.projects.map((p) => [p.id, p]))
+      const baseRoutines = new Map(base.routines.map((r) => [r.id, r]))
+      const nowProjectIds = new Set(draftPlan.projects.map((p) => p.id))
+      const nowRoutineIds = new Set(draftPlan.routines.map((r) => r.id))
+
+      for (const p of base.projects) if (!nowProjectIds.has(p.id)) ok = (await syncDeleteProject(p.id)) && ok
+      for (const r of base.routines) if (!nowRoutineIds.has(r.id)) ok = (await syncDeleteRoutine(r.id)) && ok
+
+      for (const p of draftPlan.projects) {
+        const was = baseProjects.get(p.id)
+        if (!was) {
+          const localId = p.id
+          ok = (await syncAddProject(p)) && ok // p.id 가 서버 ID 로 바뀐다
+          if (p.id !== localId) {
+            for (const slot of draftTimeline.value) for (const sp of slot.projects) if (sp.id === localId) sp.id = p.id
+          }
+        } else if (!same(p, was)) {
+          ok = (await syncUpdateProject(p)) && ok
+        }
+      }
+      for (const r of draftPlan.routines) {
+        const was = baseRoutines.get(r.id)
+        if (!was) ok = (await syncAddRoutine(r)) && ok
+        else if (!same(r, was)) ok = (await syncUpdateRoutine(r)) && ok
+      }
+      if (!same(draftTimeline.value, base.timeline)) ok = (await syncTimeline()) && ok
+      ok = (await syncPlanStep1()) && ok
+      if (draftPlan.reviewDay !== base.reviewDay) ok = (await syncPlanReviewDay()) && ok
+      return ok
+    } finally {
+      committing = false
+    }
+  }
+
   async function loadPlanFromApi(planId: string): Promise<boolean> {
     try {
       const res = await req.get(`/api/career-plan/${planId}`)
@@ -1598,6 +1649,10 @@ export function useCareerDesign() {
       draftPlan.routines  = plan.routines  ?? []
       draftTimeline.value = plan.timeline  ?? []
       draftPlan.editing   = true // 계획 상세에서 '수정'으로 불렀다 — 단계 흐름이 수정 모드가 된다
+      draftPlan.editBase  = JSON.parse(JSON.stringify({
+        name: draftPlan.name, targetJob: draftPlan.targetJob, startDate: draftPlan.startDate, endDate: draftPlan.endDate,
+        reviewDay: draftPlan.reviewDay, projects: draftPlan.projects, routines: draftPlan.routines, timeline: draftTimeline.value,
+      }))
       return true
     } catch {
       return false
@@ -1655,6 +1710,7 @@ export function useCareerDesign() {
     syncTimeline,
     syncPlanReviewDay,
     loadPlanFromApi,
+    commitEdit,
     fetchMyPlans,
     fetchPublicPlans,
   }

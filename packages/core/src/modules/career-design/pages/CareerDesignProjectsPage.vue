@@ -3,7 +3,7 @@
     <CdYellowHeader
       title="진로계획 구성하기"
       :subtitle="`${draftPlan.targetJob || '목표 직업'}을 위한 프로젝트를 추가해 보세요`"
-      :back-to="prevPath('projects')"
+      :back-to="prevPath('projects')" :cancel-edit="editing"
     />
     <CdStepIndicator step="projects" />
 
@@ -113,7 +113,7 @@ import { methodDef, methodIcon } from '../composables/projectMethods'
 import AppIcon from '@/shared/components/AppIcon.vue'
 
 const router = useRouter()
-const { prevPath, nextPath } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
+const { prevPath, nextPath, editing } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
 const { draftPlan, draftProject, editingProjectId, resetDraftProject, syncDeleteProject } = useCareerDesign()
 
 const selectedCategory = ref<ProjectCategory>('knowledge')

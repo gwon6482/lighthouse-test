@@ -1,6 +1,6 @@
 <template>
   <div class="cd-complete">
-    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" :back-to="prevPath('timeline')" />
+    <CdYellowHeader title="나의 진로계획" :subtitle="draftPlan.name || '내 진로계획'" :back-to="prevPath('timeline')" :cancel-edit="editing" />
     <CdStepIndicator step="timeline" />
 
     <div class="cd-complete__body">
@@ -262,7 +262,7 @@ import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 
 const router = useRouter()
-const { prevPath, nextPath } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
+const { prevPath, nextPath, editing } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
 const { draftPlan, draftTimeline, syncTimeline } = useCareerDesign()
 
 async function goPrev() {

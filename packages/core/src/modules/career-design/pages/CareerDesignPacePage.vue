@@ -3,7 +3,7 @@
     <CdYellowHeader
       title="얼마나 시간을 낼 수 있어요?"
       subtitle="생활에 맞는 속도를 고르면 타임라인을 채워 드려요"
-      :back-to="prevPath('pace')"
+      :back-to="prevPath('pace')" :cancel-edit="editing"
     />
     <CdStepIndicator step="pace" />
 
@@ -104,7 +104,7 @@ import type { ProjectCategory } from '../types/career-design'
 import AppIcon from '@/shared/components/AppIcon.vue'
 
 const router = useRouter()
-const { prevPath, nextPath } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
+const { prevPath, nextPath, editing } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
 const { draftPlan, draftTimeline } = useCareerDesign()
 
 const CAT_COLOR: Record<ProjectCategory, string> = {

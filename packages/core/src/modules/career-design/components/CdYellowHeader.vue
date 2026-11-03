@@ -1,6 +1,6 @@
 <template>
   <div class="cd-yellow-header" :style="{ background: color ?? '#FFC700' }">
-    <button class="cd-yellow-header__back" :style="{ color: textColor }" @click="backTo ? router.push(backTo) : safeBack(router, '/')"><AppIcon name="ui-back" /></button>
+    <button class="cd-yellow-header__back" :style="{ color: textColor }" @click="onBackClick"><AppIcon name="ui-back" /></button>
     <div class="cd-yellow-header__text">
       <h1 class="cd-yellow-header__title" :style="{ color: textColor }">{{ title }}</h1>
       <p v-if="subtitle" class="cd-yellow-header__subtitle" :style="{ color: subtitleColor }">{{ subtitle }}</p>
@@ -13,9 +13,26 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { safeBack } from '@/shared/utils/navigation'
+import { useCareerDesign } from '../composables/useCareerDesign'
 
-const props = defineProps<{ title: string; subtitle?: string; color?: string; backTo?: string }>()
+const props = defineProps<{
+  title: string; subtitle?: string; color?: string; backTo?: string
+  /** 진로계획 수정 중 — 꺾쇠는 이전 단계가 아니라 '수정 취소'(확인 후 아무것도 저장하지 않고 마이페이지로). 이전 단계는 하단 '이전으로' */
+  cancelEdit?: boolean
+}>()
 const router = useRouter()
+const { resetDraftPlan } = useCareerDesign()
+
+function onBackClick() {
+  if (props.cancelEdit) {
+    if (!confirm('수정한 내용을 모두 취소하고 마이페이지로 돌아갈까요?')) return
+    resetDraftPlan() // 수정 중엔 서버에 아직 아무것도 보내지 않았다(useCareerDesign.holdSync) — 들고 있던 것만 버린다
+    router.push('/mypage')
+    return
+  }
+  if (props.backTo) router.push(props.backTo)
+  else safeBack(router, '/')
+}
 
 const isYellow = computed(() => !props.color || props.color === '#FFC700')
 const textColor = computed(() => isYellow.value ? '#222' : '#fff')

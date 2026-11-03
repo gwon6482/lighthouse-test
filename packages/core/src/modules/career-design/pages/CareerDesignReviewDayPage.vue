@@ -3,7 +3,7 @@
     <CdYellowHeader
       title="주간 리뷰 요일"
       subtitle="매주 한 주를 돌아보고 다음 주를 계획할 요일을 정해주세요"
-      :back-to="prevPath('reviewDay')"
+      :back-to="prevPath('reviewDay')" :cancel-edit="editing"
     />
     <CdStepIndicator step="reviewDay" />
 
@@ -58,7 +58,7 @@ import { useCareerDesign } from '../composables/useCareerDesign'
 import type { DayOfWeek } from '../types/career-design'
 
 const router = useRouter()
-const { prevPath, nextPath } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
+const { prevPath, nextPath, editing } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
 const { draftPlan, syncPlanReviewDay } = useCareerDesign()
 
 const DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']

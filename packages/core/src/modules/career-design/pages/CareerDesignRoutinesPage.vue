@@ -3,7 +3,7 @@
     <CdYellowHeader
       title="루틴 만들기"
       subtitle="정해진 요일마다 반복할 일을 정해보세요"
-      :back-to="prevPath('routines')"
+      :back-to="prevPath('routines')" :cancel-edit="editing"
     />
     <CdStepIndicator step="routines" />
 
@@ -62,7 +62,7 @@ import { useDesignSteps } from '../composables/useDesignSteps'
 import type { Routine, DayOfWeek } from '../types/career-design'
 
 const router = useRouter()
-const { prevPath, nextPath } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
+const { prevPath, nextPath, editing } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
 const { draftPlan, draftRoutine, editingRoutineId, resetDraftRoutine, syncDeleteRoutine } = useCareerDesign()
 
 const ALL_DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
