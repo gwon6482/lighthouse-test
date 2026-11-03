@@ -3,12 +3,6 @@
 // 진로달성 메인(2026-10-28) — 노란 영역(①②) 아래 경계에 ④ 오늘 할 일 카드가 반쯤 걸친다(레퍼런스의 핵심 장치)
 $ah-overlap: 40px;
 
-// 글씨 굵기 — 앱 공통 토큰은 이름보다 한 단계 굵다($fw-regular 500 · $fw-medium 600 · $fw-semibold 700 · $fw-bold 800).
-// 홈은 메이저 앱(스포티파이·카카오톡·인스타·강남언니) 기준으로 낮춘 값을 쓴다(2026-11-03 시안): 제목 700 · 강조 600 · 라벨 500 · 본문 400
-$ah-w-title: 700;
-$ah-w-strong: 600;
-$ah-w-label: 500;
-$ah-w-body: 400;
 
 .ah {
   min-height: 100vh;
@@ -20,7 +14,7 @@ $ah-w-body: 400;
   &__empty { display: grid; justify-items: center; gap: $space-md; }
   &__empty-icon { font-size: 40px; color: $color-text-tertiary; }
   &__empty-text { margin: 0; font-size: $fs-md; }
-  &__empty-btn { padding: 12px 20px; border: 0; border-radius: $radius-lg; background: $color-primary; font-weight: $fw-semibold; font-size: $fs-md; }
+  &__empty-btn { padding: 12px 20px; border: 0; border-radius: $radius-lg; background: $color-primary; font-weight: $tw-strong; font-size: $fs-md; }
 }
 
 // ── ①② 노란 영역 ─────────────────────────────
@@ -65,9 +59,9 @@ $ah-w-body: 400;
     &--progress { background: #D9F5E3; color: #129447; }
     &--dday     { background: #E2E9FF; color: #3E63DD; }
   }
-  &__label { font-size: 11px; font-weight: $ah-w-label; color: rgba(0, 0, 0, 0.55); }
-  &__value { font-size: 15px; font-weight: $ah-w-title; letter-spacing: $ls-tight; font-variant-numeric: tabular-nums; }
-  &__hint { font-size: 11px; font-weight: $ah-w-label; line-height: 1.35; color: rgba(0, 0, 0, 0.7); }
+  &__label { font-size: 11px; font-weight: $tw-label; color: rgba(0, 0, 0, 0.55); }
+  &__value { font-size: 15px; font-weight: $tw-title; letter-spacing: $ls-tight; font-variant-numeric: tabular-nums; }
+  &__hint { font-size: 11px; font-weight: $tw-label; line-height: 1.35; color: rgba(0, 0, 0, 0.7); }
 }
 
 .ah-greet {
@@ -75,9 +69,9 @@ $ah-w-body: 400;
   align-items: center;
   gap: $space-lg;
   &__text { flex: 1; min-width: 0; }
-  &__name { margin: 0 0 2px; font-size: $fs-sm; font-weight: $ah-w-label; }
-  &__headline { margin: 0; font-size: 20px; line-height: $lh-heading; font-weight: $ah-w-title; letter-spacing: $ls-heading; word-break: keep-all; }
-  &__message { margin: 4px 0 0; font-size: $fs-sm; font-weight: $ah-w-body; color: rgba(0, 0, 0, 0.7); }
+  &__name { margin: 0 0 2px; font-size: $fs-sm; font-weight: $tw-label; }
+  &__headline { margin: 0; font-size: 20px; line-height: $lh-heading; font-weight: $tw-title; letter-spacing: $ls-heading; word-break: keep-all; }
+  &__message { margin: 4px 0 0; font-size: $fs-sm; font-weight: $tw-body; color: rgba(0, 0, 0, 0.7); }
 }
 
 .ah-ring {
@@ -91,7 +85,7 @@ $ah-w-body: 400;
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
     font-size: $fs-2xs; font-variant-numeric: tabular-nums;
-    strong { font-size: 16px; font-weight: $ah-w-title; }
+    strong { font-size: 16px; font-weight: $tw-title; }
     .app-icon { font-size: 22px; }
   }
   &--done .ah-ring__fill { stroke: $color-success; }
@@ -136,11 +130,11 @@ $ah-w-body: 400;
   &__head {
     display: flex; align-items: baseline; justify-content: space-between; gap: 6px;
     margin-bottom: 2px; padding-bottom: 8px; border-bottom: 1px dashed $color-border;
-    font-size: 11px; font-weight: $ah-w-label; color: $color-text-tertiary; font-variant-numeric: tabular-nums;
-    strong { color: $color-text; font-size: $fs-md; font-weight: $ah-w-title; }
+    font-size: 11px; font-weight: $tw-label; color: $color-text-tertiary; font-variant-numeric: tabular-nums;
+    strong { color: $color-text; font-size: $fs-md; font-weight: $tw-title; }
     &--weekend strong { color: #E8590C; }
   }
-  &__line { display: flex; align-items: center; gap: 6px; font-size: $fs-xs; font-weight: $ah-w-body; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &__line { display: flex; align-items: center; gap: 6px; font-size: $fs-xs; font-weight: $tw-body; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   &__dot { flex: 0 0 auto; display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
   &__more { font-size: $fs-2xs; color: $color-text-tertiary; }
   &__rest { font-size: $fs-xs; color: $color-text-tertiary; }
@@ -149,8 +143,8 @@ $ah-w-body: 400;
 // ── ④⑤ 섹션 공통 ─────────────────────────────
 .ah-sec {
   padding: $space-xl $space-lg 0;
-  &__title { margin: 0 0 $space-md; font-size: 17px; font-weight: $ah-w-title; letter-spacing: $ls-heading; }
-  &__sub { margin: $space-md 0 $space-sm; font-size: $fs-xs; font-weight: $ah-w-strong; color: $color-text-secondary; }
+  &__title { margin: 0 0 $space-md; font-size: 17px; font-weight: $tw-title; letter-spacing: $ls-heading; }
+  &__sub { margin: $space-md 0 $space-sm; font-size: $fs-xs; font-weight: $tw-strong; color: $color-text-secondary; }
   &__empty { margin: 0; font-size: $fs-sm; color: $color-text-tertiary; }
   &--flush { padding-left: 0; padding-right: 0; }
   &--flush &__title { padding: 0 $space-lg; }
@@ -165,18 +159,18 @@ $ah-w-body: 400;
   background: $color-surface;
   box-shadow: 0 6px 20px rgba(120, 90, 0, 0.1);
   &__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: $space-md; padding: 0 2px; }
-  &__title { margin: 0; font-size: 17px; font-weight: $ah-w-title; letter-spacing: $ls-heading; }
-  &__count { font-size: $fs-xs; color: $color-text-secondary; font-variant-numeric: tabular-nums; strong { color: $color-text; font-size: 15px; font-weight: $ah-w-title; } }
+  &__title { margin: 0; font-size: 17px; font-weight: $tw-title; letter-spacing: $ls-heading; }
+  &__count { font-size: $fs-xs; color: $color-text-secondary; font-variant-numeric: tabular-nums; strong { color: $color-text; font-size: 15px; font-weight: $tw-title; } }
   &__empty {
     display: flex; align-items: center; gap: 8px; margin: 0; padding: 14px; border-radius: $radius-lg;
-    background: $color-surface-alt; font-size: $fs-sm; font-weight: $ah-w-label; color: $color-text-secondary;
+    background: $color-surface-alt; font-size: $fs-sm; font-weight: $tw-label; color: $color-text-secondary;
     .app-icon { font-size: 20px; }
     &--done { background: $color-success-tint; color: $color-success; }
   }
-  &__more { width: 100%; margin-top: $space-sm; padding: 10px; border: 0; border-radius: $radius-md; background: $color-surface-alt; font: inherit; font-size: $fs-xs; font-weight: $ah-w-label; color: $color-text-secondary; cursor: pointer; }
+  &__more { width: 100%; margin-top: $space-sm; padding: 10px; border: 0; border-radius: $radius-md; background: $color-surface-alt; font: inherit; font-size: $fs-xs; font-weight: $tw-label; color: $color-text-secondary; cursor: pointer; }
   &__divider {
     display: flex; align-items: center; gap: $space-sm; margin: $space-lg 0 $space-sm;
-    font-size: 11px; font-weight: $ah-w-label; color: $color-text-tertiary;
+    font-size: 11px; font-weight: $tw-label; color: $color-text-tertiary;
     &::after { content: ''; flex: 1; height: 1px; background: $color-border; }
   }
 }
@@ -195,17 +189,17 @@ $ah-w-body: 400;
     &--routine { background: #E6F0FF; color: #3B6FD8; }
   }
   &__body { flex: 1; min-width: 0; display: grid; gap: 2px; }
-  &__name { font-size: $fs-md; font-weight: $ah-w-strong; }
-  &__focus { font-size: $fs-2xs; font-weight: $ah-w-body; color: $color-text-secondary; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__name { font-size: $fs-md; font-weight: $tw-strong; }
+  &__focus { font-size: $fs-2xs; font-weight: $tw-body; color: $color-text-secondary; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   &__btn {
     flex: 0 0 auto; padding: 6px 12px; border: 0; border-radius: 8px;
-    background: $color-primary; font: inherit; font-size: $fs-xs; font-weight: $ah-w-strong; cursor: pointer;
+    background: $color-primary; font: inherit; font-size: $fs-xs; font-weight: $tw-strong; cursor: pointer;
   }
-  &__state { flex: 0 0 auto; font-size: $fs-xs; font-weight: $ah-w-strong; color: $color-success; }
+  &__state { flex: 0 0 auto; font-size: $fs-xs; font-weight: $tw-strong; color: $color-success; }
   &__check {
     flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px;
     padding: 6px 12px; border: 1px solid $color-border-strong; border-radius: 8px;
-    background: $color-surface; font: inherit; font-size: $fs-xs; font-weight: $ah-w-strong; cursor: pointer;
+    background: $color-surface; font: inherit; font-size: $fs-xs; font-weight: $tw-strong; cursor: pointer;
     &--on { border-color: $color-success; background: $color-success-tint; color: $color-success; }
   }
   // 지금 할 일(아직 안 한 첫 항목) — 크게, 연노랑 바탕
@@ -213,10 +207,10 @@ $ah-w-body: 400;
     padding: 12px 10px; margin-bottom: 2px;
     background: $color-primary-tint;
     .ah-task__chip { flex-basis: 40px; height: 40px; border-radius: 11px; font-size: 20px; }
-    .ah-task__name { font-size: 16px; font-weight: $ah-w-title; }
+    .ah-task__name { font-size: 16px; font-weight: $tw-title; }
     .ah-task__btn { padding: 8px 14px; font-size: $fs-sm; }
   }
-  &__eyebrow { font-size: 11px; font-weight: $ah-w-strong; letter-spacing: 0.02em; color: $amber-700; }
+  &__eyebrow { font-size: 11px; font-weight: $tw-strong; letter-spacing: 0.02em; color: $amber-700; }
   &--done { opacity: 0.5; padding-top: 6px; padding-bottom: 6px; }
   &--done .ah-task__chip { flex-basis: 28px; height: 28px; border-radius: 8px; font-size: 15px; }
   &--done &__check--on { opacity: 1; }
@@ -231,8 +225,8 @@ $ah-w-body: 400;
   display: grid;
   gap: 12px;
   &__head { display: flex; align-items: center; justify-content: space-between; gap: $space-sm; }
-  &__title { margin: 0; font-size: 16px; font-weight: $ah-w-title; letter-spacing: $ls-heading; span { color: $color-text-secondary; font-weight: $ah-w-body; } }
-  &__badge { flex: 0 0 auto; padding: 4px 10px; border-radius: $radius-pill; background: $color-primary-tint; color: $amber-700; font-size: 11px; font-weight: $ah-w-strong; }
+  &__title { margin: 0; font-size: 16px; font-weight: $tw-title; letter-spacing: $ls-heading; span { color: $color-text-secondary; font-weight: $tw-body; } }
+  &__badge { flex: 0 0 auto; padding: 4px 10px; border-radius: $radius-pill; background: $color-primary-tint; color: $amber-700; font-size: 11px; font-weight: $tw-strong; }
   &__badge--today { background: $color-primary; color: $color-text; }
   &__list { list-style: none; margin: 0; padding: 0; display: grid; gap: $space-md; }
 }
@@ -243,7 +237,7 @@ $ah-w-body: 400;
     width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
     padding: 13px; border: 0; border-radius: $radius-md;
     background: $color-text; color: $color-surface;
-    font: inherit; font-size: $fs-md; font-weight: $ah-w-strong; cursor: pointer;
+    font: inherit; font-size: $fs-md; font-weight: $tw-strong; cursor: pointer;
     transition: transform $transition-fast;
     &:active { transform: scale(0.98); }
     .app-icon { font-size: 20px; color: $color-primary; }
@@ -262,10 +256,10 @@ $ah-w-body: 400;
     animation: ah-rise 0.35s $ease-standard both;
   }
   &__icon { width: 60px; height: 60px; border-radius: 18px; display: grid; place-items: center; font-size: 32px; background: $color-primary; margin-bottom: 4px; }
-  &__title { margin: 0; font-size: 20px; font-weight: $fw-bold; letter-spacing: $ls-heading; }
+  &__title { margin: 0; font-size: 20px; font-weight: $tw-title; letter-spacing: $ls-heading; }
   &__desc { margin: 0 0 10px; font-size: $fs-sm; line-height: 1.55; color: $color-text-secondary; }
-  &__go { width: 100%; padding: 15px; border: 0; border-radius: $radius-lg; background: $color-text; color: $color-surface; font: inherit; font-size: $fs-base; font-weight: $fw-bold; cursor: pointer; }
-  &__later { width: 100%; padding: 12px; border: 0; border-radius: $radius-lg; background: none; font: inherit; font-size: $fs-md; font-weight: $fw-semibold; color: $color-text-secondary; cursor: pointer; }
+  &__go { width: 100%; padding: 15px; border: 0; border-radius: $radius-lg; background: $color-text; color: $color-surface; font: inherit; font-size: $fs-base; font-weight: $tw-title; cursor: pointer; }
+  &__later { width: 100%; padding: 12px; border: 0; border-radius: $radius-lg; background: none; font: inherit; font-size: $fs-md; font-weight: $tw-strong; color: $color-text-secondary; cursor: pointer; }
   &__note { margin: 0; font-size: $fs-2xs; color: $color-text-tertiary; }
 }
 
@@ -273,8 +267,8 @@ $ah-w-body: 400;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 6px 10px;
-  &__name { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: $fs-sm; font-weight: $ah-w-label; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  &__count { font-size: $fs-2xs; color: $color-text-secondary; font-variant-numeric: tabular-nums; strong { color: $color-text; font-weight: $ah-w-strong; } }
+  &__name { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: $fs-sm; font-weight: $tw-label; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  &__count { font-size: $fs-2xs; color: $color-text-secondary; font-variant-numeric: tabular-nums; strong { color: $color-text; font-weight: $tw-strong; } }
   &__bar { grid-column: 1 / -1; display: flex; gap: 3px; }
   &__seg { flex: 1; height: 6px; border-radius: 3px; background: $color-border; transition: background $transition-slow; }
 }

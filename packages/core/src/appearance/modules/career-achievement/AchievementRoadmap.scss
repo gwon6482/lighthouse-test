@@ -22,8 +22,8 @@ $rm-bar-h: 90px; // 실측 높이(노치 없는 폰) — 자동 이동 때 정�
   display: grid;
   gap: 8px;
   &__row { display: flex; align-items: baseline; justify-content: space-between; gap: $space-md; }
-  &__title { margin: 0; min-width: 0; font-size: 19px; font-weight: $fw-bold; letter-spacing: $ls-heading; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  &__pct { flex: 0 0 auto; font-size: 24px; font-weight: $fw-black; letter-spacing: -0.5px; line-height: 1; small { font-size: 14px; margin-left: 1px; } }
+  &__title { margin: 0; min-width: 0; font-size: 17px; font-weight: $tw-title; letter-spacing: $ls-heading; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &__pct { flex: 0 0 auto; font-size: 20px; font-weight: $tw-title; letter-spacing: -0.5px; line-height: 1; small { font-size: 14px; margin-left: 1px; } }
   &__track { display: block; height: 8px; border-radius: $radius-pill; background: rgba(0, 0, 0, 0.1); overflow: hidden;
     i { display: block; height: 100%; border-radius: inherit; background: $color-text; transition: width 1s $ease-standard; } }
   &__meta { margin: 0; font-size: $fs-xs; color: rgba(0, 0, 0, 0.68); font-variant-numeric: tabular-nums; strong { color: $color-text; } }
@@ -66,8 +66,8 @@ $rm-bar-h: 90px; // 실측 높이(노치 없는 폰) — 자동 이동 때 정�
   &--goal &__dot { background: $color-primary; color: $color-text; }
 
   &__flag { padding-top: 4px; font-size: $fs-sm; color: $color-text-secondary; font-variant-numeric: tabular-nums;
-    strong { color: $color-text; font-size: $fs-base; font-weight: $fw-bold; margin-right: 6px; } }
-  &__dday { margin-left: 8px; padding: 2px 8px; border-radius: $radius-pill; background: $color-primary; color: $color-text; font-size: $fs-2xs; font-weight: $fw-bold; }
+    strong { color: $color-text; font-size: $fs-base; font-weight: $tw-title; margin-right: 6px; } }
+  &__dday { margin-left: 8px; padding: 2px 8px; border-radius: $radius-pill; background: $color-primary; color: $color-text; font-size: $fs-2xs; font-weight: $tw-title; }
 }
 @keyframes rm-pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 209, 0, 0.6); } 100% { box-shadow: 0 0 0 12px rgba(255, 209, 0, 0); } }
 
@@ -80,7 +80,7 @@ $rm-bar-h: 90px; // 실측 높이(노치 없는 폰) — 자동 이동 때 정�
     margin-left: -($rm-rail + 22px) + 8px;
     padding: 6px 12px; border-radius: $radius-pill;
     background: $color-text; color: $color-primary;
-    font-size: $fs-xs; font-weight: $fw-bold; position: relative; z-index: 1;
+    font-size: $fs-xs; font-weight: $tw-title; position: relative; z-index: 1;
   }
 }
 
@@ -101,10 +101,10 @@ $rm-bar-h: 90px; // 실측 높이(노치 없는 폰) — 자동 이동 때 정�
   transition: transform $transition-fast;
   &:active { transform: scale(0.98); }
   &__top { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
-  &__chip { flex: 0 0 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; font-size: 17px; }
+  &__chip { flex: 0 0 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; font-size: 15px; }
   &__when { flex: 1; min-width: 0; font-size: $fs-2xs; color: $color-text-secondary; font-variant-numeric: tabular-nums; }
-  &__status { flex: 0 0 auto; padding: 3px 8px; border-radius: $radius-pill; background: $color-surface-alt; font-size: 11px; font-weight: $fw-bold; color: $color-text-secondary; }
-  &__name { grid-column: 1 / -1; font-size: $fs-base; font-weight: $fw-bold; word-break: keep-all; }
+  &__status { flex: 0 0 auto; padding: 3px 8px; border-radius: $radius-pill; background: $color-surface-alt; font-size: 11px; font-weight: $tw-title; color: $color-text-secondary; }
+  &__name { grid-column: 1 / -1; font-size: $fs-base; font-weight: $tw-title; word-break: keep-all; }
   &__cat { grid-column: 1 / -1; font-size: $fs-2xs; color: $color-text-tertiary; }
   &__bar { grid-column: 1; align-self: center; display: block; height: 6px; border-radius: 3px; background: $color-border; overflow: hidden;
     i { display: block; height: 100%; border-radius: inherit; } }
@@ -130,13 +130,13 @@ $rm-bar-h: 90px; // 실측 높이(노치 없는 폰) — 자동 이동 때 정�
 .rm-week {
   display: grid;
   gap: 4px;
-  &__label { font-size: $fs-xs; font-weight: $fw-bold; small { font-weight: $fw-medium; color: $color-text-tertiary; margin-left: 4px; } }
+  &__label { font-size: $fs-xs; font-weight: $tw-title; small { font-weight: $tw-label; color: $color-text-tertiary; margin-left: 4px; } }
   &__item { display: flex; align-items: flex-start; gap: 6px; font-size: $fs-sm; color: $color-text-secondary;
     .app-icon { flex: 0 0 auto; margin-top: 3px; color: $color-text-tertiary; } }
   &__item--done { color: $color-text-tertiary; text-decoration: line-through; .app-icon { color: $color-success; } }
   &--now &__label { color: $amber-700; }
 }
-.rm-weeks__all { width: 100%; padding: 9px; border: 0; border-radius: $radius-md; background: $color-surface-alt; font: inherit; font-size: $fs-xs; font-weight: $fw-semibold; color: $color-text-secondary; cursor: pointer; }
+.rm-weeks__all { width: 100%; padding: 9px; border: 0; border-radius: $radius-md; background: $color-surface-alt; font: inherit; font-size: $fs-xs; font-weight: $tw-strong; color: $color-text-secondary; cursor: pointer; }
 
 .rm-empty { padding: 0 $space-lg; font-size: $fs-sm; color: $color-text-tertiary; }
 

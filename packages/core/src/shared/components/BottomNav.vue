@@ -244,7 +244,7 @@ const iconMap = {
   }
 
   &__item--active &__label {
-    font-weight: 700;
+    font-weight: 600;
   }
 
   /* ─── 중앙 홈 탭 ─── */
@@ -287,7 +287,7 @@ const iconMap = {
     background: var(--bn-badge-bg);
     color: var(--bn-badge-text);
     font-size: 10px;
-    font-weight: 800;
+    font-weight: 700;
     line-height: 18px;
     text-align: center;
     border: 2px solid var(--bn-center-ring);
