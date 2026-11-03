@@ -186,8 +186,9 @@
       >
         {{ finishing ? '이동 중...' : '다음으로' }}
       </button>
-      <button v-else class="cd-result__btn-primary" @click="router.push('/career-achievement/weekly-schedule')">
-        주간 일정 배치하기
+      <!-- 그 밖: 바로 진로달성으로. 이번 주 일정은 홈이 계획대로 만들어 두고, 바꾸고 싶으면 마이 › 주간 일정 조정(2026-11-03) -->
+      <button v-else class="cd-result__btn-primary" :disabled="finishing" @click="startNow">
+        {{ finishing ? '시작하는 중...' : '지금 시작하기' }}
       </button>
     </div>
   </div>
@@ -203,12 +204,14 @@ import { useCareerDesign } from '../composables/useCareerDesign'
 import { weekRangeLabel, monthWeekLabel, resolveProject } from '../composables/usePlanTimeline'
 import { useWeeklySchedule } from '@/modules/career-achievement/composables/useWeeklySchedule'
 import { useAuthStore } from '@/shared/stores/auth'
+import { useAchievementStore } from '@/shared/stores/achievement'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { Project, ProjectCategory, DayOfWeek } from '../types/career-design'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const achievementStore = useAchievementStore()
 const { draftPlan, draftTimeline } = useCareerDesign()
 const { ensureFirstWeekSchedule } = useWeeklySchedule()
 
@@ -234,18 +237,36 @@ const userName = computed(() => authStore.user?.name ?? authStore.user?.email?.s
 const fromMainBefore = ref(!!sessionStorage.getItem('lh_plan_return'))
 const finishing = ref(false)
 
+// 설계를 마친 계획을 active 로 — 진로달성(홈)은 active 계획만 읽는다.
+// ⚠️ 2026-11-03 전에는 /main/before 경로에서만 바꿔서, 다른 경로로 완성한 계획은 draft 로 남아 홈이 '아직 진로계획이 없어요'였다
+async function activatePlan(): Promise<boolean> {
+  if (!draftPlan.planId) return false
+  try {
+    await req.put(`/api/career-plan/${draftPlan.planId}`, { status: 'active' })
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function finishDesign() {
   finishing.value = true
-  try {
-    // 설계 완료 시점에 계획을 active 로 전환 (진로달성 진입 가능 상태)
-    if (draftPlan.planId) {
-      await req.put(`/api/career-plan/${draftPlan.planId}`, { status: 'active' })
-    }
-  } catch { /* 활성화 실패해도 복귀는 진행 */ } finally {
-    finishing.value = false
-  }
+  await activatePlan() // 실패해도 복귀는 진행
+  finishing.value = false
   sessionStorage.removeItem('lh_plan_return')
   router.push('/main/before')
+}
+
+async function startNow() {
+  finishing.value = true
+  const ok = await activatePlan()
+  if (ok) await achievementStore.loadActivePlan(true) // 홈이 방금 시작한 계획을 바로 읽게
+  finishing.value = false
+  if (!ok) {
+    alert('계획을 시작하지 못했어요. 잠시 후 다시 시도해주세요.')
+    return
+  }
+  router.push('/career-achievement')
 }
 
 const ALL_DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
