@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>집중모드 진행 화면 수정안</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Pretendard, -apple-system, sans-serif; background: #E9E7E1; color: #141414; -webkit-font-smoothing: antialiased; padding: 32px 24px 60px; }
+.num { font-variant-numeric: tabular-nums; }
+h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+.lead { margin-top: 6px; font-size: 14px; color: #666; line-height: 1.7; }
+.ctl { margin-top: 14px; display: flex; gap: 6px; align-items: center; font-size: 13px; color: #666; }
+.ctl button { font: inherit; border: 0; padding: 8px 14px; border-radius: 999px; background: #fff; color: #555; font-weight: 600; cursor: pointer; }
+.ctl button.on { background: #141414; color: #fff; }
+.row { margin-top: 24px; display: flex; gap: 22px; overflow-x: auto; padding-bottom: 10px; }
+.col { flex: none; width: 300px; }
+.col h2 { font-size: 15px; font-weight: 700; }
+.col p { margin: 4px 0 12px; min-height: 54px; font-size: 12px; color: #666; line-height: 1.55; }
+.col .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
+.col .tags span { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: #fff; color: #555; }
+.col.cur h2::after { content: ' (지금)'; color: #999; font-weight: 500; }
+.slot { width: 300px; height: 634px; }
+.phone { width: 360px; height: 760px; transform: scale(.8333); transform-origin: 0 0; position: relative; border-radius: 46px; overflow: hidden; background: #FAF7EF; box-shadow: 0 0 0 9px #1c1c1c, 0 24px 50px rgba(0,0,0,.2); }
+.notch { position: absolute; top: 10px; left: 50%; width: 110px; height: 30px; margin-left: -55px; border-radius: 20px; background: #000; z-index: 50; }
+.status { position: absolute; top: 0; left: 0; right: 0; padding: 16px 28px 0; display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; z-index: 40; }
+
+.liquid { position: absolute; left: 0; right: 0; bottom: 0; background: #FFD100; }
+.liquid svg { position: absolute; left: 0; bottom: 100%; width: 200%; height: 22px; margin-bottom: -1px; animation: drift 4s linear infinite; fill: #FFD100; }
+@keyframes drift { to { transform: translateX(-50%); } }
+.layer { position: absolute; inset: 0; padding: 62px 26px 44px; display: flex; flex-direction: column; }
+.meta { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
+.meta span:last-child { opacity: .6; }
+.name { margin-top: 6px; font-size: 20px; font-weight: 700; letter-spacing: -0.03em; }
+.foot { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; font-size: 13px; font-weight: 600; }
+.foot b { font-size: 40px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+.hint { position: absolute; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 600; color: rgba(0,0,0,.45); }
+
+/* 시간 블록 공통 */
+.lab { font-size: 14px; font-weight: 600; opacity: .55; }
+.big { font-weight: 800; letter-spacing: -0.06em; line-height: .86; }
+.big .m, .big .s { display: block; }
+.big .s { opacity: .28; }
+.big small { font-size: .2em; font-weight: 700; letter-spacing: -0.02em; margin-left: .1em; opacity: .7; }
+
+/* 현재 */
+.v0 .big { margin-top: 44px; font-size: 168px; }
+.v0 .cap { margin-top: 18px; font-size: 14px; font-weight: 600; opacity: .65; }
+.v0 .hint { bottom: 16px; }
+
+/* V1 — 라벨 위로, 분·초 같은 크기 */
+.v1 .lab { margin-top: 40px; }
+.v1 .big { margin-top: 10px; font-size: 168px; }
+.v1 .hint { bottom: 106px; }
+
+/* V2 — 라벨 위, 초는 작게 아래 */
+.v2 .lab { margin-top: 44px; }
+.v2 .big { margin-top: 10px; }
+.v2 .big .m { font-size: 190px; }
+.v2 .big .s { font-size: 96px; margin-top: 6px; opacity: .3; }
+.v2 .hint { bottom: 106px; }
+
+/* V3 — 라벨 없음, 분 크게 + 초는 오른쪽 위에 작게(가로) */
+.v3 .big { margin-top: 64px; display: flex; align-items: flex-start; }
+.v3 .big .m { font-size: 168px; }
+.v3 .big .s { font-size: 60px; margin: 12px 0 0 10px; opacity: .3; letter-spacing: -0.04em; }
+.over .big .m { font-size: 124px !important; }
+.over.v4 .big .m { font-size: 120px !important; }
+.v3 .sub { margin-top: 14px; font-size: 14px; font-weight: 600; opacity: .55; }
+.v3 .hint { bottom: 106px; }
+
+/* V4 — 라벨 없음, 단위(분·초)를 붙여 숫자만으로 읽히게 */
+.v4 .big { margin-top: 56px; }
+.v4 .big .m { font-size: 176px; }
+.v4 .big .s { font-size: 104px; margin-top: 8px; opacity: .3; }
+.v4 .big small { font-size: 26px; opacity: .55; margin-left: 6px; letter-spacing: 0; }
+.v4 .hint { bottom: auto; top: 0; }   /* 위치는 JS 대신 아래 pill 로 */
+.v4 .pill { position: absolute; left: 50%; transform: translateX(-50%); bottom: 112px; padding: 8px 14px; border-radius: 999px; background: rgba(255,255,255,.55); backdrop-filter: blur(8px); font-size: 12px; font-weight: 600; color: rgba(0,0,0,.55); white-space: nowrap; }
+
+.note { margin-top: 26px; max-width: 1600px; padding: 18px 20px; border-radius: 16px; background: #fff; font-size: 13px; line-height: 1.8; color: #555; }
+.note b { color: #141414; }
+</style>
+</head>
+<body>
+<h1>집중모드 진행 화면 — 수정안</h1>
+<p class="lead">① '남은 시간' 위치 · ② 분·초 크기 차이 · ③ '화면을 누르면 잠시 멈춰요' 위치를 조합한 4안입니다. 맨 왼쪽이 지금 스테이징 화면이에요.<br>아래 버튼으로 진행 정도를 바꿔 보면, 숫자가 노랑에 잠길 때 어떻게 보이는지도 확인할 수 있어요.</p>
+<div class="ctl">진행 <button data-p="18">18%</button><button data-p="42" class="on">42%</button><button data-p="70">70%</button><button data-p="100">목표 넘김</button></div>
+<div class="row" id="row"></div>
+<div class="note">
+  <b>③ 안내 문구</b> · 지금은 화면 맨 아래(홈 바 바로 위)라 잘 안 보입니다. 수정안은 모두 '끝날 예정 · %' 줄 위로 올렸어요(V4는 반투명 알약 모양)<br>
+  <b>제 추천</b> · <b>V3</b> — 분을 가장 크게, 초는 오른쪽 위에 작게 붙이면 '분이 주인공'이라는 게 한눈에 보이고, 라벨 없이도 남은 시간으로 읽힙니다. 숫자 덩어리가 위로 모여 아래쪽 노랑이 차오르는 면적도 넓어져요
+</div>
+<script>
+const V = [
+  ['v0', '현재', '라벨이 숫자 아래, 분·초 같은 크기, 안내 문구는 맨 아래', ['라벨 아래', '같은 크기', '문구 맨 아래'], 'cur'],
+  ['v1', 'V1 라벨 위로', '라벨만 숫자 위로 옮김. 분·초 크기는 그대로', ['라벨 위', '같은 크기', '문구 올림']],
+  ['v2', 'V2 라벨 위 + 초 작게', '분은 더 크게, 초는 절반 크기로 아래에', ['라벨 위', '초 작게(아래)', '문구 올림']],
+  ['v3', 'V3 라벨 없음 + 초 옆에', '분을 가장 크게, 초는 오른쪽 위에 작게. 라벨 대신 아래 한 줄', ['라벨 없음', '초 작게(옆)', '문구 올림']],
+  ['v4', 'V4 단위 붙이기', '"37분 / 59초" — 단위가 붙어 라벨이 필요 없음. 문구는 알약', ['라벨 없음', '초 작게 + 단위', '문구 알약']],
+];
+const wave = '<svg viewBox="0 0 1200 40" preserveAspectRatio="none"><path d="M0 20 Q 75 0 150 20 T 300 20 T 450 20 T 600 20 T 750 20 T 900 20 T 1050 20 T 1200 20 V40 H0 Z"/></svg>';
+function time(v, m, s) {
+  if (v === 'v0') return `<div class="big num"><span class="m">${m}</span><span class="s">${s}</span></div><div class="cap">남은 시간</div>`;
+  if (v === 'v1' || v === 'v2') return `<div class="lab">남은 시간</div><div class="big num"><span class="m">${m}</span><span class="s">${s}</span></div>`;
+  if (v === 'v3') return `<div class="big num"><span class="m">${m}</span><span class="s">${s}</span></div><div class="sub">${m.startsWith('+') ? '목표를 넘겼어요 · 계속 집중 중' : '남았어요 · 끝날 예정 15:12'}</div>`;
+  return `<div class="big num"><span class="m">${m}<small>분</small></span><span class="s">${s}<small>초</small></span></div>`;
+}
+function render(p) {
+  const over = p >= 100; const m = over ? '+04' : String(Math.round(50 * (1 - p / 100))).padStart(2, '0'), s = '59';
+  const mm = over ? '+04' : String(Math.max(0, Math.floor(50 * (1 - p / 100)))).padStart(2, '0');
+  document.getElementById('row').innerHTML = V.map(([v, t, d, tags, cls]) => {
+    const foot = v === 'v3' ? `<div class="foot"><span>목표 50분</span><b class="num">${over ? 108 : p}%</b></div>` : `<div class="foot"><span>끝날 예정 15:12</span><b class="num">${over ? 108 : p}%</b></div>`;
+    const hint = v === 'v4' ? `<div class="pill">화면을 누르면 잠시 멈춰요</div>` : `<div class="hint">화면을 누르면 잠시 멈춰요</div>`;
+    const lay = `<div class="meta"><span>집중 중</span><span>${v === 'v3' ? '' : '목표 50분'}</span></div><div class="name">컴퓨터활용능력 1급</div>${time(v, mm, s)}${foot}`;
+    return `<div class="col ${cls || ''}"><h2>${t}</h2><p>${d}</p><div class="tags">${tags.map((x) => `<span>${x}</span>`).join('')}</div>
+      <div class="slot"><div class="phone ${v} ${over ? 'over' : ''}"><div class="notch"></div><div class="status"><span>9:41</span><span>●●● ◐</span></div>
+        <div class="liquid" style="height:${Math.min(100, p)}%">${wave}</div>
+        <div class="layer">${lay}</div>${hint}
+      </div></div></div>`;
+  }).join('');
+}
+document.querySelectorAll('.ctl button').forEach((b) => b.onclick = () => { document.querySelectorAll('.ctl button').forEach((x) => x.classList.toggle('on', x === b)); render(Number(b.dataset.p)); });
+render(42);
+</script>
+</body>
+</html>

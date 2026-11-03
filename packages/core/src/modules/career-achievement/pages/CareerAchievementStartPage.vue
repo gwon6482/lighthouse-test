@@ -56,11 +56,12 @@
       <!-- 같은 글자를 두 겹 — 노랑에 잠긴 부분만 검정으로 보이게 위 겹을 잘라 낸다 -->
       <div v-for="layer in ['light', 'dark']" :key="layer" class="fm-run__layer" :class="`fm-run__layer--${layer}`"
         :style="layer === 'dark' ? { clipPath: `inset(${100 - fill}% 0 0 0)` } : undefined">
-        <div class="fm-run__meta"><span>{{ paused ? '잠시 멈춤' : '집중 중' }}</span><span>목표 {{ goalMin }}분</span></div>
+        <div class="fm-run__meta"><span>{{ paused ? '잠시 멈춤' : '집중 중' }}</span></div>
         <div class="fm-run__name">{{ item.name }}</div>
+        <!-- 분이 주인공, 초는 오른쪽 위에 작게(V3, 2026-11-04) — '남은 시간' 라벨 대신 아래 한 줄 -->
         <div class="fm-run__big fm-num" :class="{ long: digits.min.length > 2 }"><span class="m">{{ digits.min }}</span><span class="s">{{ digits.sec }}</span></div>
-        <div class="fm-run__cap">{{ digits.over ? '목표 시간 지남 · 계속 집중 중' : '남은 시간' }}</div>
-        <div class="fm-run__foot"><span>끝날 예정 {{ hm(endAt) }}</span><b class="fm-num">{{ percent }}%</b></div>
+        <div class="fm-run__cap">{{ digits.over ? '목표를 넘겼어요 · 계속 집중 중' : `남았어요 · 끝날 예정 ${hm(endAt)}` }}</div>
+        <div class="fm-run__foot"><span>목표 {{ goalMin }}분</span><b class="fm-num">{{ percent }}%</b></div>
       </div>
       <p class="fm-run__hint">화면을 누르면 잠시 멈춰요</p>
       <div class="fm-run__sheet" @click.stop>

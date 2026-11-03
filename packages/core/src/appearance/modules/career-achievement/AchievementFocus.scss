@@ -109,20 +109,21 @@ $fm-shadow: 0 1px 3px rgba(0, 0, 0, .05), 0 6px 18px rgba(0, 0, 0, .04);
   }
   &__meta { display: flex; justify-content: space-between; font-size: 13px; font-weight: $tw-strong; span:last-child { opacity: .6; } }
   &__name { margin-top: 6px; font-size: 20px; font-weight: $tw-title; letter-spacing: -0.03em; line-height: 1.3; max-width: 80%; }
+  // 분 크게 + 초는 오른쪽 위에 작게. '+04'처럼 세 글자면 분을 줄여 초가 밀려나지 않게
   &__big {
-    margin-top: 6vh; font-size: min(46vw, 210px); font-weight: 800; line-height: .86; letter-spacing: -0.06em;
-    span { display: block; }
-    .s { opacity: .28; }
-    &.long { font-size: min(34vw, 160px); }
+    margin-top: 8vh; display: flex; align-items: flex-start; font-weight: 800; line-height: .86; letter-spacing: -0.06em;
+    .m { font-size: min(46vw, 200px); }
+    .s { font-size: min(16.5vw, 72px); margin: .2em 0 0 .16em; letter-spacing: -0.04em; opacity: .28; }
+    &.long .m { font-size: min(30vw, 132px); }
   }
-  &__cap { margin-top: 18px; font-size: 14px; font-weight: $tw-strong; opacity: .65; }
+  &__cap { margin-top: 16px; font-size: 14px; font-weight: $tw-strong; opacity: .6; }
   &__foot {
     margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; font-size: 13px; font-weight: $tw-strong;
     b { font-size: 40px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
   }
 
   &__hint {
-    position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 14px); text-align: center;
+    position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 100px); text-align: center; // 아래 '목표·%' 줄 위(맨 아래는 잘 안 보였다)
     font-size: 12px; font-weight: $tw-strong; color: rgba(0, 0, 0, .45); transition: opacity .3s;
   }
   &.paused &__hint { opacity: 0; }
