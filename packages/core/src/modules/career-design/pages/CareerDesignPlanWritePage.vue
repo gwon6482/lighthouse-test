@@ -100,7 +100,7 @@ function toDateKey(d: Date): string {
   return `${y}-${m}-${dd}`
 }
 const todayKey = computed(() => toDateKey(getToday()))
-const suggestedEnd = computed(() => suggestedEndDate(todayKey.value, draftTimeline.value, draftPlan.projects))
+const suggestedEnd = computed(() => suggestedEndDate(todayKey.value, draftTimeline.value, draftPlan.projects, draftPlan.reviewDay))
 const fmtDate = (k: string) => k.replace(/-/g, '.')
 const saving = ref(false)
 const endMin   = computed(() => draftPlan.startDate || todayKey.value)

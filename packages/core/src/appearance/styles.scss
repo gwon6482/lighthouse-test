@@ -29,6 +29,13 @@
 @use './modules/encyclopedia/ReviewTab.scss';
 @use './modules/encyclopedia/PreparationTab.scss';
 @use './modules/encyclopedia/RecruitmentTab.scss';
+@use './modules/encyclopedia/CareerInfo.scss';
+
+// Career Achievement
+@use './modules/career-achievement/AchievementHome.scss';
+@use './modules/career-achievement/AchievementRoadmap.scss';
+@use './modules/career-achievement/AchievementMy.scss';
+@use './modules/career-achievement/AchievementReview.scss';
 
 // OnBoarding
 @use './modules/onboarding/SplashPage.scss';

@@ -1,8 +1,13 @@
-import type { Project, TimelineSlot } from '../types/career-design'
+import type { DayOfWeek, Project, TimelineSlot } from '../types/career-design'
 import { DEFAULT_WEEKS } from './useProjectCurriculum'
 import { MONTH_WEEKS, MONTH_WEEKS_START_YEAR, MONTH_WEEKS_END_YEAR } from '../data/month-weeks'
 
 // 진로계획 타임라인의 주차 계산 규칙.
+//
+// ⚠️ 2026-10-30 변경: 한 주는 **계획의 시작 요일(reviewDay)부터 7일**이다. 계획 세울 때 '주간 리뷰 요일'로 고르고,
+//    화면은 '매주 X요일이 한 주의 끝이자 시작'이라고 안내한다. 그 전(2026-08-27~)에는 월~일로 고정하고 reviewDay 를
+//    무시해서, 사용자에게 한 말과 실제 계산이 어긋났다. 아래 함수들은 마지막 인자 start(시작 요일)를 받고,
+//    없으면(아직 안 고른 설계 중 등) 월요일이다. 아래 설명의 '월요일'은 '시작 요일'로 읽으면 된다.
 //
 // 주는 **월요일~일요일**이고, 그 주는 **월요일이 속한 달**에 귀속된다(2026-08-27 확정).
 // → 한 달의 주차 수는 항상 4 또는 5(= 그 달의 월요일 개수). data/month-weeks.ts 테이블 참조.
@@ -32,81 +37,94 @@ export function toDateKey(d: Date): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
-// 그 날짜가 속한 주(월~일)의 월요일.
-export function mondayOf(d: Date): Date {
+// 주의 시작 요일 — 계획의 reviewDay. 비어 있으면 월요일
+export type WeekStart = DayOfWeek | '' | null | undefined
+const DOW_INDEX: Record<DayOfWeek, number> = { 일: 0, 월: 1, 화: 2, 수: 3, 목: 4, 금: 5, 토: 6 }
+export const weekStartIndex = (start?: WeekStart) => (start && start in DOW_INDEX ? DOW_INDEX[start as DayOfWeek] : 1)
+
+// 그 날짜가 속한 주의 첫날(시작 요일).
+export function weekStartOf(d: Date, start?: WeekStart): Date {
   const x = new Date(d.getFullYear(), d.getMonth(), d.getDate())
-  const shift = (x.getDay() + 6) % 7      // 월=0 … 일=6
+  const shift = (x.getDay() - weekStartIndex(start) + 7) % 7
   x.setDate(x.getDate() - shift)
   return x
 }
 
+// 그 날짜가 속한 주(월~일)의 월요일.
+export function mondayOf(d: Date): Date {
+  return weekStartOf(d, '월')
+}
+
 // 그 달의 주차 수(4 또는 5). 테이블 범위 밖이면 즉석 계산으로 떨어진다.
-export function weeksInMonth(year: number, month: number): number {
-  const row = year >= MONTH_WEEKS_START_YEAR && year <= MONTH_WEEKS_END_YEAR
+export function weeksInMonth(year: number, month: number, start?: WeekStart): number {
+  const dow = weekStartIndex(start)
+  const row = dow === 1 && year >= MONTH_WEEKS_START_YEAR && year <= MONTH_WEEKS_END_YEAR
     ? MONTH_WEEKS[year]
     : undefined
   const c = row?.[month - 1]
   if (c === '4' || c === '5') return Number(c)
-  // 테이블 밖(2100년 이후 등) — 그 달의 월요일을 직접 센다.
+  // 테이블 밖(2100년 이후 등)이거나 시작 요일이 월요일이 아니면 — 그 달의 시작 요일을 직접 센다.
   const lastDay = new Date(year, month, 0).getDate()
   let n = 0
-  for (let d = 1; d <= lastDay; d++) if (new Date(year, month - 1, d).getDay() === 1) n++
+  for (let d = 1; d <= lastDay; d++) if (new Date(year, month - 1, d).getDay() === dow) n++
   return n
 }
 
 // 어떤 주(그 주의 월요일)가 몇 월 몇 주차인지.
 // 귀속 달 = 월요일이 속한 달. 그 달의 첫 월요일부터 몇 번째인지가 주차.
+// (시작 요일이 월요일이 아니면 넘긴 날짜의 요일을 그 주의 첫 요일로 본다)
 export function monthWeekOf(monday: Date): { year: number; month: number; week: number } {
   const year  = monday.getFullYear()
   const month = monday.getMonth() + 1
+  const dow   = monday.getDay()
   let firstMonday = 1
-  while (new Date(year, month - 1, firstMonday).getDay() !== 1) firstMonday++
+  while (new Date(year, month - 1, firstMonday).getDay() !== dow) firstMonday++
   return { year, month, week: Math.floor((monday.getDate() - firstMonday) / 7) + 1 }
 }
 
 // 진로계획 전체 주차 수 = 시작일이 속한 주부터 종료일이 속한 주까지의 달력 주 개수.
 // 시작일·종료일이 주 중간이어도 그 주는 통째로 한 주로 센다.
 // 기간 미설정이면 0 — 화면은 "기간을 먼저 설정하세요" 로 빠진다.
-export function planWeekCount(startDate: string, endDate: string): number {
+export function planWeekCount(startDate: string, endDate: string, start?: WeekStart): number {
   const sd = parseDateKey(startDate)
   const ed = parseDateKey(endDate)
   if (!sd || !ed || ed.getTime() < sd.getTime()) return 0
-  const first = mondayOf(sd)
-  const last  = mondayOf(ed)
+  const first = weekStartOf(sd, start)
+  const last  = weekStartOf(ed, start)
   return Math.floor((last.getTime() - first.getTime()) / MS_PER_DAY / 7) + 1
 }
 
 // n주차(1-based)의 실제 날짜 범위. 항상 월요일~일요일 7일.
-export function weekDateRange(startDate: string, week: number): { start: string; end: string } | null {
+export function weekDateRange(startDate: string, week: number, start?: WeekStart): { start: string; end: string } | null {
   const sd = parseDateKey(startDate)
   if (!sd || week < 1) return null
-  const s = mondayOf(sd); s.setDate(s.getDate() + (week - 1) * 7)
+  const s = weekStartOf(sd, start); s.setDate(s.getDate() + (week - 1) * 7)
   const e = new Date(s);  e.setDate(e.getDate() + 6)
   return { start: toDateKey(s), end: toDateKey(e) }
 }
 
 // 어떤 날짜가 계획의 몇 주차인지. 계획 첫 주보다 이전이면 null.
 // 시작일이 수요일이면 그 주 월요일도 1주차다(계획 시작 전 이틀이지만 같은 주).
-export function weekOfDate(startDate: string, date: Date): number | null {
+export function weekOfDate(startDate: string, date: Date, start?: WeekStart): number | null {
   const sd = parseDateKey(startDate)
   if (!sd) return null
-  const first = mondayOf(sd)
-  const cur   = mondayOf(date)
+  const first = weekStartOf(sd, start)
+  const cur   = weekStartOf(date, start)
   const diff  = Math.floor((cur.getTime() - first.getTime()) / MS_PER_DAY / 7)
   return diff < 0 ? null : diff + 1
 }
 
 // 화면에 보여줄 라벨 — "8월 1주차"
-export function monthWeekLabel(startDate: string, week: number): string {
-  const r = weekDateRange(startDate, week)
+export function monthWeekLabel(startDate: string, week: number, start?: WeekStart): string {
+  const r = weekDateRange(startDate, week, start)
   if (!r) return ''
   const mw = monthWeekOf(parseDateKey(r.start)!)
   return `${mw.month}월 ${mw.week}주차`
 }
 
 // "9.1 ~ 9.7" 같은 보조 라벨
-export function weekRangeLabel(startDate: string, week: number): string {
-  const r = weekDateRange(startDate, week)
+export function weekRangeLabel(startDate: string, week: number, start?: WeekStart): string {
+  const r = weekDateRange(startDate, week, start)
   if (!r) return ''
   const fmt = (k: string) => { const d = parseDateKey(k)!; return `${d.getMonth() + 1}.${d.getDate()}` }
   return `${fmt(r.start)} ~ ${fmt(r.end)}`
@@ -156,9 +174,9 @@ export function projectsActiveInWeek(
 
 // 특정 날짜에 진행 중인 프로젝트 id 집합. 진로달성이 "오늘 뭐 하지" 를 판단할 때 쓴다.
 export function projectIdsActiveOnDate(
-  timeline: TimelineSlot[], startDate: string, date: Date, projects?: Project[],
+  timeline: TimelineSlot[], startDate: string, date: Date, projects?: Project[], start?: WeekStart,
 ): Set<string> {
-  const week = weekOfDate(startDate, date)
+  const week = weekOfDate(startDate, date, start)
   if (week === null) return new Set()
   return new Set(projectsActiveInWeek(timeline, week, projects).map(p => p.id))
 }
@@ -176,11 +194,11 @@ export function projectStartWeek(timeline: TimelineSlot[], projectId: string): n
 // 그 날짜가 프로젝트의 커리큘럼 몇 주차인지 (1-based). 배치 전이거나 범위 밖이면 null.
 // 주차 모델에서는 계획주차 - 시작주차 + 1 로 바로 떨어진다.
 export function projectWeekIndexOn(
-  timeline: TimelineSlot[], startDate: string, projectId: string, date: Date,
+  timeline: TimelineSlot[], startDate: string, projectId: string, date: Date, start?: WeekStart,
 ): number | null {
   const startWeek = projectStartWeek(timeline, projectId)
   if (startWeek === null) return null
-  const planWeek = weekOfDate(startDate, date)
+  const planWeek = weekOfDate(startDate, date, start)
   if (planWeek === null || planWeek < startWeek) return null
   return planWeek - startWeek + 1
 }
@@ -196,12 +214,12 @@ export function provisionalWeekCount(projects: Pick<Project, 'weeks' | 'curricul
 }
 
 // 마지막 목표 설정에서 추천하는 종료일 = 배치한 프로젝트 중 가장 늦게 끝나는 주의 일요일. 배치가 없으면 ''
-export function suggestedEndDate(startDate: string, timeline: TimelineSlot[], projects?: Project[]): string {
+export function suggestedEndDate(startDate: string, timeline: TimelineSlot[], projects?: Project[], start?: WeekStart): string {
   let last = 0
   for (const slot of timeline) {
     for (const p of slot.projects) last = Math.max(last, projectEndWeek(slot.week, resolveProject(p, projects)))
   }
-  return last ? (weekDateRange(startDate, last)?.end ?? '') : ''
+  return last ? (weekDateRange(startDate, last, start)?.end ?? '') : ''
 }
 
 // ── 자동 배치(B안, 2026-10-22 사용자 선택): "한 주에 몇 시간 쓸 수 있어요?" ──
@@ -237,13 +255,13 @@ export function autoSchedule(projects: Project[], budgetHours: number): { week: 
 }
 
 // 그 주차가 속한 달(월요일 기준)의 마지막 주차. 타임라인을 '마지막 배치 주가 속한 달 끝까지'만 보여 줄 때 쓴다
-export function lastWeekOfMonth(startDate: string, week: number): number {
-  const r = weekDateRange(startDate, week)
+export function lastWeekOfMonth(startDate: string, week: number, start?: WeekStart): number {
+  const r = weekDateRange(startDate, week, start)
   if (!r) return week
   const m = monthWeekOf(parseDateKey(r.start)!).month
   let w = week
   for (;;) {
-    const next = weekDateRange(startDate, w + 1)
+    const next = weekDateRange(startDate, w + 1, start)
     if (!next || monthWeekOf(parseDateKey(next.start)!).month !== m) return w
     w++
   }

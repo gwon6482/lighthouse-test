@@ -1,0 +1,286 @@
+@use '../../variables' as *;
+
+// 진로달성 메인(2026-10-28) — 노란 영역(①②) 아래 경계에 ④ 오늘 할 일 카드가 반쯤 걸친다(레퍼런스의 핵심 장치)
+$ah-overlap: 44px;
+
+.ah {
+  min-height: 100vh;
+  background: $color-surface-page;
+  padding-bottom: 104px; // 하단 탭(BottomNav)에 가리지 않게
+  color: $color-text;
+
+  &__loading, &__empty { padding: 80px $space-xl; text-align: center; color: $color-text-secondary; }
+  &__empty { display: grid; justify-items: center; gap: $space-md; }
+  &__empty-icon { font-size: 40px; color: $color-text-tertiary; }
+  &__empty-text { margin: 0; font-size: $fs-md; }
+  &__empty-btn { padding: 12px 20px; border: 0; border-radius: $radius-lg; background: $color-primary; font-weight: $fw-semibold; font-size: $fs-md; }
+}
+
+// ── ①② 노란 영역 ─────────────────────────────
+.ah-hero {
+  position: relative;
+  overflow: hidden;
+  // 고정 헤더를 뺐다(2026-10-28) — 노란 영역이 화면 맨 위부터. 노치·상태바만큼 띄운다
+  padding: max(20px, env(safe-area-inset-top)) $space-lg ($space-xl + $ah-overlap);
+  background:
+    radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.55) 0 60px, transparent 61px),
+    radial-gradient(circle at 78% 62%, rgba(255, 166, 0, 0.35) 0 90px, transparent 91px),
+    radial-gradient(circle at 6% 96%, rgba(255, 255, 255, 0.35) 0 70px, transparent 71px),
+    linear-gradient(160deg, #FFDF3D 0%, $color-primary 55%, #FFC400 100%);
+  display: grid;
+  gap: $space-xl;
+  > * { position: relative; }
+  &--flat { padding-bottom: $space-xl; } // 걸칠 카드가 없을 때(계획 시작 전·완료 후)
+}
+
+.ah-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(6px);
+  border-radius: $radius-card;
+  padding: 14px 0 12px;
+}
+.ah-stat {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 2px;
+  padding: 0 $space-sm;
+  text-align: center;
+  & + & { border-left: 1px solid rgba(0, 0, 0, 0.08); }
+  &__chip {
+    display: grid; place-items: center;
+    width: 34px; height: 34px; margin-bottom: 4px;
+    border-radius: 50%;
+    font-size: 19px;
+    &--streak   { background: #FFE3CC; color: #F0640A; }
+    &--progress { background: #D9F5E3; color: #129447; }
+    &--dday     { background: #E2E9FF; color: #3E63DD; }
+  }
+  &__label { font-size: $fs-2xs; font-weight: $fw-medium; color: rgba(0, 0, 0, 0.6); }
+  &__value { font-size: 17px; font-weight: $fw-bold; letter-spacing: $ls-tight; font-variant-numeric: tabular-nums; }
+  &__hint { font-size: 11px; font-weight: $fw-medium; line-height: 1.35; color: rgba(0, 0, 0, 0.7); }
+}
+
+.ah-greet {
+  display: flex;
+  align-items: center;
+  gap: $space-lg;
+  &__text { flex: 1; min-width: 0; }
+  &__name { margin: 0 0 2px; font-size: $fs-md; font-weight: $fw-medium; }
+  &__headline { margin: 0; font-size: 24px; line-height: $lh-heading; font-weight: $fw-bold; letter-spacing: $ls-heading; word-break: keep-all; }
+  &__message { margin: 6px 0 0; font-size: $fs-md; font-weight: $fw-medium; color: rgba(0, 0, 0, 0.72); }
+}
+
+.ah-ring {
+  position: relative;
+  flex: 0 0 76px;
+  height: 76px;
+  > svg { width: 100%; height: 100%; transform: rotate(-90deg); } // 가운데 AppIcon(svg)까지 잡지 않게 직계만
+  &__track { fill: none; stroke: rgba(0, 0, 0, 0.1); stroke-width: 7; }
+  &__fill { fill: none; stroke: $color-text; stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset 0.9s $ease-standard; }
+  &__center {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: $fs-sm; font-variant-numeric: tabular-nums;
+    strong { font-size: 20px; font-weight: $fw-bold; }
+    .app-icon { font-size: 26px; }
+  }
+  &--done .ah-ring__fill { stroke: $color-success; }
+  &--done .ah-ring__center { color: $color-success; }
+  &--done { animation: ah-pop 0.5s $ease-standard; }
+}
+
+// ── ③ 내일·모레·글피 ─────────────────────────
+.ah-preview {
+  display: flex;
+  gap: 10px;
+  padding: 0 0 4px $space-lg; // 오른쪽 끝 여백은 ::after 가 맡는다(패딩과 겹치면 두 배가 된다)
+  overflow-x: auto;
+  scroll-snap-type: x proximity; // 손가락으로 밀어 끝 카드까지 다 볼 수 있게(mandatory 는 끝에서 되튐)
+  scroll-padding-inline: $space-lg; // snap 이 패딩을 무시하고 첫 카드를 화면 끝에 붙이지 않게
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  user-select: none; // 끌어서 넘길 때 글자가 선택되지 않게
+  -webkit-user-select: none;
+  &::-webkit-scrollbar { display: none; }
+  // 끝 여백 — 가로 스크롤 flex 상자는 오른쪽 padding 을 무시해서(특히 Safari) 마지막 카드가 끝에 붙는다
+  &::after { content: ''; flex: 0 0 ($space-lg - 10px); }
+}
+.ah-day {
+  flex: 0 0 41%; // 세 번째 카드가 살짝 잘려 '더 있다'를 알린다
+  scroll-snap-align: start;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-height: 112px;
+  padding: 14px;
+  border: 0;
+  border-radius: $radius-card;
+  background: $color-surface;
+  box-shadow: $shadow-card;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: transform $transition-fast;
+  &:active { transform: scale(0.97); }
+  &__head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 6px;
+    margin-bottom: 2px; padding-bottom: 8px; border-bottom: 1px dashed $color-border;
+    font-size: $fs-2xs; font-weight: $fw-medium; color: $color-text-tertiary; font-variant-numeric: tabular-nums;
+    strong { color: $color-text; font-size: $fs-base; font-weight: $fw-bold; }
+    &--weekend strong { color: #E8590C; }
+  }
+  &__line { display: flex; align-items: center; gap: 6px; font-size: $fs-xs; font-weight: $fw-medium; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &__dot { flex: 0 0 auto; display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
+  &__more { font-size: $fs-2xs; color: $color-text-tertiary; }
+  &__rest { font-size: $fs-xs; color: $color-text-tertiary; }
+}
+
+// ── ④⑤ 섹션 공통 ─────────────────────────────
+.ah-sec {
+  padding: $space-xl $space-lg 0;
+  &__title { margin: 0 0 $space-md; font-size: 18px; font-weight: $fw-bold; letter-spacing: $ls-heading; }
+  &__sub { margin: $space-md 0 $space-sm; font-size: $fs-xs; font-weight: $fw-semibold; color: $color-text-secondary; }
+  &__empty { margin: 0; font-size: $fs-sm; color: $color-text-tertiary; }
+  &--flush { padding-left: 0; padding-right: 0; }
+  &--flush &__title { padding: 0 $space-lg; }
+}
+
+// ── ④ 오늘 할 일 카드 — 경계에 걸침 ──────────
+.ah-today {
+  position: relative;
+  margin: (-$ah-overlap) $space-lg 0;
+  padding: 18px 16px 16px;
+  border-radius: 22px;
+  background: $color-surface;
+  box-shadow: 0 10px 30px rgba(120, 90, 0, 0.12);
+  &__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: $space-md; padding: 0 2px; }
+  &__title { margin: 0; font-size: 19px; font-weight: $fw-bold; letter-spacing: $ls-heading; }
+  &__count { font-size: $fs-sm; color: $color-text-secondary; font-variant-numeric: tabular-nums; strong { color: $color-text; font-size: 17px; } }
+  &__empty {
+    display: flex; align-items: center; gap: 8px; margin: 0; padding: 14px; border-radius: $radius-lg;
+    background: $color-surface-alt; font-size: $fs-md; font-weight: $fw-medium; color: $color-text-secondary;
+    .app-icon { font-size: 22px; }
+    &--done { background: $color-success-tint; color: $color-success; }
+  }
+  &__more { width: 100%; margin-top: $space-sm; padding: 10px; border: 0; border-radius: $radius-md; background: $color-surface-alt; font: inherit; font-size: $fs-sm; font-weight: $fw-semibold; color: $color-text-secondary; cursor: pointer; }
+  &__divider {
+    display: flex; align-items: center; gap: $space-sm; margin: $space-lg 0 $space-sm;
+    font-size: $fs-2xs; font-weight: $fw-semibold; color: $color-text-tertiary;
+    &::after { content: ''; flex: 1; height: 1px; background: $color-border; }
+  }
+}
+
+.ah-list { list-style: none; margin: 0; padding: 0; display: grid; gap: $space-sm; }
+.ah-task {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+  padding: 10px 4px;
+  border-radius: $radius-lg;
+  transition: opacity $transition-base;
+  &__chip {
+    flex: 0 0 40px; height: 40px; display: grid; place-items: center;
+    border-radius: 12px; font-size: 21px;
+    &--routine { background: #E6F0FF; color: #3B6FD8; }
+  }
+  &__body { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  &__name { font-size: $fs-md; font-weight: $fw-semibold; }
+  &__focus { font-size: $fs-xs; color: $color-text-secondary; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__btn {
+    flex: 0 0 auto; padding: 8px 14px; border: 0; border-radius: $radius-md;
+    background: $color-primary; font: inherit; font-size: $fs-sm; font-weight: $fw-semibold; cursor: pointer;
+  }
+  &__state { flex: 0 0 auto; font-size: $fs-sm; font-weight: $fw-semibold; color: $color-success; }
+  &__check {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px;
+    padding: 8px 14px; border: 1px solid $color-border-strong; border-radius: $radius-md;
+    background: $color-surface; font: inherit; font-size: $fs-sm; font-weight: $fw-semibold; cursor: pointer;
+    &--on { border-color: $color-success; background: $color-success-tint; color: $color-success; }
+  }
+  // 지금 할 일(아직 안 한 첫 항목) — 크게, 연노랑 바탕
+  &--next {
+    padding: 14px 12px; margin-bottom: 4px;
+    background: $color-primary-tint;
+    .ah-task__chip { flex-basis: 48px; height: 48px; border-radius: 14px; font-size: 25px; }
+    .ah-task__name { font-size: 17px; font-weight: $fw-bold; }
+    .ah-task__btn { padding: 10px 18px; font-size: $fs-md; }
+  }
+  &__eyebrow { font-size: 11px; font-weight: $fw-bold; letter-spacing: 0.02em; color: $amber-700; }
+  &--done { opacity: 0.5; padding-top: 6px; padding-bottom: 6px; }
+  &--done .ah-task__chip { flex-basis: 32px; height: 32px; border-radius: 10px; font-size: 17px; }
+  &--done &__check--on { opacity: 1; }
+}
+
+.ah-week {
+  cursor: pointer;
+  padding: 18px;
+  border-radius: $radius-card;
+  background: linear-gradient(180deg, #FFFBEA 0%, $color-surface 60%);
+  border: 1px solid #FFF0B3;
+  display: grid;
+  gap: 14px;
+  &__head { display: flex; align-items: center; justify-content: space-between; gap: $space-sm; }
+  &__title { margin: 0; font-size: 17px; font-weight: $fw-bold; letter-spacing: $ls-heading; span { color: $color-text-secondary; font-weight: $fw-medium; } }
+  &__badge { flex: 0 0 auto; padding: 4px 10px; border-radius: $radius-pill; background: $color-primary-tint; color: $amber-700; font-size: $fs-2xs; font-weight: $fw-bold; }
+  &__badge--today { background: $color-primary; color: $color-text; }
+  &__list { list-style: none; margin: 0; padding: 0; display: grid; gap: $space-md; }
+}
+// 주간 결산 버튼 — 결산일에만 오늘 할 일 카드 바로 아래
+.ah-review {
+  padding: $space-md $space-lg 0;
+  &__btn {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 15px; border: 0; border-radius: $radius-lg;
+    background: $color-text; color: $color-surface;
+    font: inherit; font-size: $fs-base; font-weight: $fw-bold; cursor: pointer;
+    transition: transform $transition-fast;
+    &:active { transform: scale(0.98); }
+    .app-icon { font-size: 20px; color: $color-primary; }
+  }
+}
+
+// 주간결산 팝업
+.ah-pop {
+  position: fixed; inset: 0; z-index: 2000;
+  display: grid; place-items: end center;
+  padding: 0 $space-lg max(24px, env(safe-area-inset-bottom));
+  background: rgba(0, 0, 0, 0.45);
+  &__panel {
+    width: 100%; max-width: 420px; display: grid; justify-items: center; gap: 8px;
+    padding: 26px 20px 18px; border-radius: 24px; background: $color-surface; text-align: center;
+    animation: ah-rise 0.35s $ease-standard both;
+  }
+  &__icon { width: 60px; height: 60px; border-radius: 18px; display: grid; place-items: center; font-size: 32px; background: $color-primary; margin-bottom: 4px; }
+  &__title { margin: 0; font-size: 20px; font-weight: $fw-bold; letter-spacing: $ls-heading; }
+  &__desc { margin: 0 0 10px; font-size: $fs-sm; line-height: 1.55; color: $color-text-secondary; }
+  &__go { width: 100%; padding: 15px; border: 0; border-radius: $radius-lg; background: $color-text; color: $color-surface; font: inherit; font-size: $fs-base; font-weight: $fw-bold; cursor: pointer; }
+  &__later { width: 100%; padding: 12px; border: 0; border-radius: $radius-lg; background: none; font: inherit; font-size: $fs-md; font-weight: $fw-semibold; color: $color-text-secondary; cursor: pointer; }
+  &__note { margin: 0; font-size: $fs-2xs; color: $color-text-tertiary; }
+}
+
+.ah-goal {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+  &__name { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: $fs-sm; font-weight: $fw-semibold; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  &__count { font-size: $fs-xs; color: $color-text-secondary; font-variant-numeric: tabular-nums; strong { color: $color-text; } }
+  &__bar { grid-column: 1 / -1; display: flex; gap: 3px; }
+  &__seg { flex: 1; height: 8px; border-radius: 4px; background: $color-border; transition: background $transition-slow; }
+}
+
+// ── 움직임 — 들어올 때 아래에서 살짝 떠오른다(순서대로). 움직임 줄이기 설정이면 끈다 ──
+@keyframes ah-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes ah-pop { 0% { transform: scale(1); } 40% { transform: scale(1.1); } 100% { transform: scale(1); } }
+.ah-stats, .ah-greet, .ah-today, .ah-sec { animation: ah-rise 0.5s $ease-standard both; }
+.ah-today { animation-delay: 0.1s; }
+.ah-greet { animation-delay: 0.05s; }
+.ah-sec { animation-delay: 0.2s; }
+.ah-sec + .ah-sec { animation-delay: 0.28s; }
+@media (prefers-reduced-motion: reduce) {
+  .ah-stats, .ah-greet, .ah-today, .ah-sec, .ah-ring--done { animation: none; }
+  .ah-ring__fill { transition: none; }
+}

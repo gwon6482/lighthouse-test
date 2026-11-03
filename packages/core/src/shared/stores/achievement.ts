@@ -13,6 +13,8 @@ interface ActivePlan {
   startDate: string
   endDate: string
   reviewDay: DayOfWeek | ''
+  paceKey?: string          // 진행 속도(2026-10-30~ 서버 저장). 예전 계획은 비어 있다
+  paceHours?: number | null
   status: 'draft' | 'active' | 'completed'
   projects: Project[]
   routines: Routine[]
@@ -34,6 +36,7 @@ export const useAchievementStore = defineStore('achievement', () => {
       plan.value.timeline,
       plan.value.startDate,
       plan.value.endDate,
+      plan.value.reviewDay,
     )
     const routines = ach.todayRoutines(plan.value.routines)
     const pendingProjects = projects.filter(p => !ach.isProjectDone(p.id)).length
@@ -41,9 +44,16 @@ export const useAchievementStore = defineStore('achievement', () => {
     return pendingProjects + pendingRoutines
   })
 
+  // ⚠️ 읽는 중에 또 불리면 **그 결과를 기다린다**(2026-10-29). 예전엔 바로 return 해서, 하단 탭이 먼저 읽기 시작한 뒤
+  //    화면이 부르면 계획이 아직 없는 채로 넘어갔다 → 진로정보의 채용 소식이 새로고침 때 안 나오던 원인
+  let inflight: Promise<void> | null = null
   async function loadActivePlan(force = false): Promise<void> {
-    if (loading.value) return
+    if (inflight) return inflight
     if (loaded.value && !force) return
+    inflight = loadActivePlanNow().finally(() => { inflight = null })
+    return inflight
+  }
+  async function loadActivePlanNow(): Promise<void> {
     loading.value = true
     try {
       const listRes = await req.get('/api/career-plan')
@@ -62,6 +72,8 @@ export const useAchievementStore = defineStore('achievement', () => {
         startDate: p.startDate ?? '',
         endDate:   p.endDate   ?? '',
         reviewDay: p.reviewDay ?? '',
+        paceKey:   p.paceKey   ?? '',
+        paceHours: p.paceHours ?? null,
         status:    p.status    ?? 'draft',
         projects:  p.projects  ?? [],
         routines:  p.routines  ?? [],

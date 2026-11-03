@@ -1408,6 +1408,9 @@ export function useCareerDesign() {
         targetJob: draftPlan.targetJob,
         startDate: draftPlan.startDate,
         endDate:   draftPlan.endDate,
+        // 진행 속도도 서버에(2026-10-30~) — 주간결산에서 '지금 속도'로 쓰고 바꿀 수 있다
+        ...(draftPlan.paceKey ? { paceKey: draftPlan.paceKey } : {}),
+        ...(draftPlan.weeklyHours ? { paceHours: draftPlan.weeklyHours } : {}),
       }
       if (draftPlan.planId) {
         await req.put(`/api/career-plan/${draftPlan.planId}`, payload)
@@ -1443,6 +1446,12 @@ export function useCareerDesign() {
     return ok
   }
 
+  // 프로젝트 실행 설정 — ⚠️ 2026-10-29 전엔 보내지 않아(서버도 버렸다) 모든 프로젝트가 0분으로 저장됐다
+  const projectSettingsPayload = (p: Project) => ({
+    duration: p.duration, priority: p.priority, notification: p.notification,
+    missedNotification: p.missedNotification, notificationTime: p.notificationTime, memo: p.memo,
+  })
+
   // STEP2: 프로젝트 추가
   async function syncAddProject(project: Project): Promise<boolean> {
     if (!draftPlan.planId) return true
@@ -1457,6 +1466,7 @@ export function useCareerDesign() {
         curriculum: project.curriculum,
         method:       project.method ?? null,
         methodDetail: project.methodDetail ?? {},
+        ...projectSettingsPayload(project),
       })
       // 서버에서 반환된 id로 local id 동기화
       project.id = res.data.project.id
@@ -1479,6 +1489,7 @@ export function useCareerDesign() {
         curriculum: project.curriculum,
         method:       project.method ?? null,
         methodDetail: project.methodDetail ?? {},
+        ...projectSettingsPayload(project),
       })
       return true
     } catch {
@@ -1580,6 +1591,8 @@ export function useCareerDesign() {
       draftPlan.startDate = plan.startDate ?? ''
       draftPlan.endDate   = plan.endDate   ?? ''
       draftPlan.reviewDay = plan.reviewDay ?? ''
+      draftPlan.paceKey   = plan.paceKey || undefined
+      draftPlan.weeklyHours = plan.paceHours ?? undefined
       draftPlan.projects  = plan.projects  ?? []
       draftPlan.routines  = plan.routines  ?? []
       draftTimeline.value = plan.timeline  ?? []

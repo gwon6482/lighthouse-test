@@ -119,7 +119,7 @@
       <!-- 마무리 CTA: 이번 주 일정 조정 페이지로 이동 -->
       <div class="wr__footer">
         <button class="wr__start" type="button" @click="goToSchedule">
-          이번 주 일정 조정하기 <AppIcon name="ui-arrow-right" />
+          주간 일정 조정하기 <AppIcon name="ui-arrow-right" />
         </button>
       </div>
 
@@ -491,7 +491,7 @@ onMounted(async () => {
     if (draftPlan.planId && currentRange.value) {
       currentSchedule.value = await ensureWeekSchedule(
         draftPlan.planId,
-        { startDate: draftPlan.startDate, endDate: draftPlan.endDate, projects: draftPlan.projects, routines: draftPlan.routines },
+        { startDate: draftPlan.startDate, endDate: draftPlan.endDate, reviewDay: draftPlan.reviewDay, projects: draftPlan.projects, routines: draftPlan.routines },
         draftTimeline.value,
         currentRange.value.weekStart,
         currentRange.value.weekEnd,

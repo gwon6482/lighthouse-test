@@ -72,6 +72,28 @@ export async function upsertCurriculum(
   await req.put(`/api/career-plan/${planId}/curriculum/${projectId}/${week}/${idx}`, { done })
 }
 
+// ── 주간결산(2026-10-30) ─────────────────────────────────
+export interface WeeklyReviewStats { planned: number; done: number; percent: number; fullDays: number; workDays: number; minutes: number; photos: number; streak: number; progressBefore: number; progressAfter: number; gainItems: number }
+export interface WeeklyReviewDto {
+  planId: string; weekStart: string; weekEnd: string; weekNo: number | null
+  promptedAt: string | null; completedAt: string | null
+  satisfaction: number | null; note: string; pledge: string; feel: '' | 'tight' | 'fit' | 'loose'
+  paceFrom: string; paceTo: string; endDateFrom: string; endDateTo: string
+  stats: WeeklyReviewStats
+}
+export async function fetchWeeklyReviews(planId: string): Promise<WeeklyReviewDto[]> {
+  const res = await req.get(`/api/career-plan/${planId}/weekly-reviews`)
+  return res.data.reviews ?? []
+}
+export async function fetchWeeklyReview(planId: string, weekStart: string): Promise<WeeklyReviewDto | null> {
+  const res = await req.get(`/api/career-plan/${planId}/weekly-reviews/${weekStart}`)
+  return res.data.review ?? null
+}
+export async function putWeeklyReview(planId: string, weekStart: string, body: Record<string, unknown>): Promise<WeeklyReviewDto | null> {
+  const res = await req.put(`/api/career-plan/${planId}/weekly-reviews/${weekStart}`, body)
+  return res.data.review ?? null
+}
+
 // ── S3 presigned 업로드 ─────────────────────────────────
 export interface PresignResult { uploadUrl: string; fileUrl: string; key: string }
 
