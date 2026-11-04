@@ -35,15 +35,20 @@
 
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/shared/stores/auth'
 
+const route = useRoute()
 const router = useRouter()
+// 자동로그인으로 열린 경우(?auto=1, entryGuard) — 끝나면 로그인 대신 '/' 로. 진입 분기가 진로달성 등으로 보낸다
+const autoLogin = route.query.auto === '1'
 const HOLD_MS = 3500   // 로고 → 이름 → 태그라인 → 로딩점(~2.9s) 까지 보인 뒤 전환
 let timer: ReturnType<typeof setTimeout> | undefined
 
 onMounted(() => {
   timer = setTimeout(() => {
-    router.replace('/onboarding/auth')
+    // 그 사이 토큰이 거절됐으면(App.vue fetchMe 가 로그아웃) 곧장 로그인 — '/' 로 가면 스플래시를 한 번 더 본다
+    router.replace(autoLogin && useAuthStore().token ? '/' : '/onboarding/auth')
   }, HOLD_MS)
 })
 

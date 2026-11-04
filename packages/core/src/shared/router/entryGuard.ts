@@ -1,4 +1,4 @@
-import type { Router } from 'vue-router'
+import { START_LOCATION, type Router } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { authBoundaryAction, needsLogin } from './authBoundary'
@@ -10,7 +10,7 @@ import { authBoundaryAction, needsLogin } from './authBoundary'
 //   2) 자동로그인 + 진로계획 전(plan 無) → /main/before
 //   3) 자동로그인 + 진로계획 후(plan 有) → /career-achievement (설계 후 메인 = 진로달성)
 export function installEntryGuard(router: Router) {
-  router.beforeEach(async (to) => {
+  router.beforeEach(async (to, from) => {
     const auth = useAuthStore()
 
     // R5(인증 경계). 판정은 authBoundary.ts 의 순수 함수에 있다(왜 바뀌었는지도 거기 적혀 있다).
@@ -34,6 +34,10 @@ export function installEntryGuard(router: Router) {
 
     // 토큰 없음 = 한 번도 로그인 안 함(또는 로그아웃) → 온보딩
     if (!auth.token) return '/onboarding'
+
+    // 자동로그인으로 앱을 처음 열 때도 스플래시 애니메이션부터(2026-11-04). 스플래시가 끝나면 '/' 로 돌아와
+    // 아래 분기를 탄다 — 그땐 첫 이동이 아니라 다시 스플래시로 가지 않는다. 그 사이 App.vue 가 계정·계획을 불러 둔다
+    if (from === START_LOCATION) return { path: '/onboarding', query: { auto: '1' } }
 
     // 브라우저에 저장된 토큰으로 자동로그인 검증 (토큰이 틀렸으면 fetchMe 내부에서 logout)
     if (!auth.user) {
