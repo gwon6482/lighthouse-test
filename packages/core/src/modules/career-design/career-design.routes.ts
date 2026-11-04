@@ -52,6 +52,18 @@ export default [
     component: () => import('./pages/CareerDesignProjectDetailPage.vue'),
   },
   {
+    // 삭제 직후 안내(2026-11-04) — 목표 진로 확인 → 다시 설계, 되돌리기
+    path: '/career-design/deleted/:planId',
+    name: 'Career Design Deleted',
+    component: () => import('./pages/CareerDesignDeletedPage.vue'),
+  },
+  {
+    // 최근 삭제한 계획(휴지통, 30일) — 마이페이지 '진로 관리'
+    path: '/career-design/trash',
+    name: 'Career Design Trash',
+    component: () => import('./pages/CareerDesignTrashPage.vue'),
+  },
+  {
     path: '/career-design/complete',
     name: 'Career Design Complete',
     component: () => import('./pages/CareerDesignCompletePage.vue'),

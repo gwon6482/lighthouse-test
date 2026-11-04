@@ -259,12 +259,13 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import AppHeader from '@/shared/components/AppHeader.vue'
 import JourneyIntro from '@/shared/components/JourneyIntro.vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { fetchTargetCareer, updateTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import type { TargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 const router = useRouter()
+const route = useRoute()
 
 // STEP 02 가이드 탭
 const guideCategories = [
@@ -390,6 +391,11 @@ onMounted(() => {
   if (sessionStorage.getItem('lh_target_return') === '/career-design') sessionStorage.removeItem('lh_target_return')
   loadTargetCareer()
   runTyping()
+  // 계획 삭제 뒤 '목표 진로를 바꿀래요'(CareerDesignDeletedPage) — 변경 팝업부터 연다
+  if (route.query.changeTarget === '1') {
+    router.replace({ path: route.path })
+    openPopup()
+  }
 })
 
 onUnmounted(() => {

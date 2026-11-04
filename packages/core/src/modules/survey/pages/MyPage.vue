@@ -93,6 +93,11 @@
             <AppIcon name="ui-weekly-review" class="mp-link__icon" /><span class="mp-link__label">주간결산 모아보기</span><AppIcon name="ui-chevron-right" class="mp-link__arrow" />
           </button>
         </li>
+        <li v-if="trashCount">
+          <button type="button" class="mp-link mp-link--menu" @click="router.push({ name: 'Career Design Trash' })">
+            <AppIcon name="ui-repeat" class="mp-link__icon" /><span class="mp-link__label">최근 삭제한 계획 ({{ trashCount }})</span><AppIcon name="ui-chevron-right" class="mp-link__arrow" />
+          </button>
+        </li>
         <li>
           <button type="button" class="mp-link mp-link--menu" @click="router.push({ name: 'Career Achievement Weekly Schedule' })">
             <AppIcon name="ui-calendar" class="mp-link__icon" /><span class="mp-link__label">주간 일정 조정</span><AppIcon name="ui-chevron-right" class="mp-link__arrow" />
@@ -129,6 +134,7 @@ import AccountDeleteSheet from '../components/AccountDeleteSheet.vue'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 import { AREA_ICON } from '@/modules/survey/surveyIcons'
 import { useAchievementEntries } from '@/modules/career-achievement/composables/useAchievementEntries'
+import { fetchDeletedPlans } from '@/modules/career-design/planTrash.api'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -191,10 +197,13 @@ const { feedSorted, entries } = useAchievementEntries()
 const records = computed(() => { void entries.value; return feedSorted().filter((e) => e.itemType === 'project') })
 // 진행 중 계획 — 계획 상세(보기·수정)로 가는 입구(메인 '내 진로계획' 타일을 뺀 뒤, 2026-10-30)
 const activePlanId = computed(() => achievementStore.plan?.planId ?? '')
+// 휴지통(30일 보관) 계획 수 — 있을 때만 '최근 삭제한 계획'을 보여 준다(2026-11-04)
+const trashCount = ref(0)
 function jump(id: string) { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 
 onMounted(async () => {
   achievementStore.loadActivePlan() // 완료 기록을 함께 읽는다(이미 읽었으면 그대로)
+  fetchDeletedPlans().then((r) => { trashCount.value = r.plans.length }).catch(() => {})
   if (!authStore.isLoggedIn) {
     router.replace('/')
     return
