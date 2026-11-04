@@ -76,10 +76,15 @@ onMounted(async () => {
   window.history.replaceState(null, '', window.location.pathname)
 
   authStore.applyToken(token)
-  await authStore.fetchMe()
-  if (!authStore.isLoggedIn) {
-    // fetchMe 가 실패하면 내부에서 logout 한다 = 토큰이 유효하지 않았다는 뜻
+  const me = await authStore.fetchMe()
+  if (me === 'invalid' || !authStore.isLoggedIn) {
+    // 서버가 토큰을 거절했다(fetchMe 가 logout 함)
     errorMessage.value = '로그인 정보가 유효하지 않아요. 다시 시도해 주세요.'
+    return
+  }
+  if (!authStore.user) {
+    // 연결 문제로 계정 정보를 못 받았다 — 토큰은 남아 있어 다시 열면 이어진다. 위저드 판정을 하지 않고 멈춘다
+    errorMessage.value = '연결이 불안정해요. 잠시 뒤 다시 시도해 주세요.'
     return
   }
 

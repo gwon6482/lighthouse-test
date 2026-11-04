@@ -42,15 +42,24 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = res.data.user
   }
 
-  async function fetchMe() {
-    if (!token.value) return
+  // 자동로그인(2026-11-04): 토큰은 90일, 앱이 열릴 때마다 여기서 연장된다(서버가 하루 지난 토큰이면 새 토큰을 준다).
+  // ⚠️ 로그아웃은 서버가 '이 토큰은 아니다'라고 할 때만(401 만료·위조, 404 탈퇴한 계정).
+  //    예전엔 어떤 에러든 로그아웃해서, 인터넷이 잠깐 끊기거나 배포 중에 앱을 열면 멀쩡한 토큰을 버렸다.
+  async function fetchMe(): Promise<'ok' | 'invalid' | 'offline' | 'none'> {
+    if (!token.value) return 'none'
     req.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
     try {
       const res = await req.get('/api/auth/me')
       user.value = res.data.user
-    } catch {
-      // 토큰 만료 등
-      logout()
+      if (typeof res.data.token === 'string' && res.data.token) _applyToken(res.data.token)
+      return 'ok'
+    } catch (e: any) {
+      const status = e?.response?.status
+      if (status === 401 || status === 404) {
+        logout()
+        return 'invalid'
+      }
+      return 'offline' // 토큰은 지키고, 다음에 열 때 다시 확인
     }
   }
 
