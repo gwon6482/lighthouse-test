@@ -128,5 +128,7 @@ export function useAchievementEntries() {
     removeEntry,
     feedSorted,
     loadFromServer,
+    // 진행 중 계획이 없어졌을 때(삭제 등) — 지운 계획의 기록이 로그 탭에 남지 않게(2026-11-04)
+    clearCache() { entries.value = {}; activePlanId.value = null },
   }
 }

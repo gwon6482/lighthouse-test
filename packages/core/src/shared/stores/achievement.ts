@@ -62,6 +62,7 @@ export const useAchievementStore = defineStore('achievement', () => {
       const target = plans.find((p: any) => p.status === 'active')
       if (!target) {
         plan.value = null
+        clearRecordCaches() // 계획을 지웠으면 그 기록 캐시도(로그 탭에 남지 않게)
         return
       }
       const detailRes = await req.get(`/api/career-plan/${target.planId}`)
@@ -99,6 +100,13 @@ export const useAchievementStore = defineStore('achievement', () => {
     plan.value = null
     loaded.value = false
     loading.value = false
+    clearRecordCaches() // 로그아웃 — 다음 사람이 같은 기기에서 이전 기록을 보지 않게
+  }
+  // 기기에 캐시한 실천 기록·완료 표시·커리큘럼 완료(localStorage) 비우기(2026-11-04)
+  function clearRecordCaches() {
+    useAchievement().clearCache()
+    useAchievementEntries().clearCache()
+    useCurriculumCompletion().clearCache()
   }
 
   return {

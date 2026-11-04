@@ -242,5 +242,6 @@ export function useAchievement() {
     toDateKey,
     getDayOfWeek,
     loadFromServer,
+    clearCache() { completion.value = {}; activePlanId.value = null }, // 진행 중 계획이 없어졌을 때
   }
 }

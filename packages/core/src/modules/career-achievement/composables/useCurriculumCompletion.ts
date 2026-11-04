@@ -72,5 +72,6 @@ export function useCurriculumCompletion() {
     toggleItem,
     weekItemsDoneCount,
     loadFromServer,
+    clearCache() { items.value = {}; activePlanId.value = null }, // 진행 중 계획이 없어졌을 때
   }
 }
