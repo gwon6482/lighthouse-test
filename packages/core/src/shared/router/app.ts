@@ -56,9 +56,13 @@ router.beforeEach(async (to) => {
   // 토큰 없음 = 한 번도 로그인 안 함(또는 로그아웃) → 온보딩
   if (!auth.token) return '/onboarding'
 
-  // 브라우저에 저장된 토큰으로 자동로그인 검증 (실패 시 fetchMe 내부에서 logout)
-  if (!auth.user) await auth.fetchMe()
-  if (!auth.isLoggedIn) return '/onboarding'
+  // 브라우저에 저장된 토큰으로 자동로그인 검증 (토큰이 틀렸으면 fetchMe 내부에서 logout)
+  if (!auth.user) {
+    const r = await auth.fetchMe()
+    if (r === 'invalid' || !auth.isLoggedIn) return '/onboarding'
+    // 연결이 안 될 때 — 로그아웃시키지 않고 진로달성 홈으로(홈이 다시 불러온다). 계획 유무를 알 수 없어 홈으로 간다
+    if (r === 'offline') return '/career-achievement'
+  }
 
   // 소셜 가입 위저드를 끝내지 않고 이탈한 계정은 다시 위저드로 보낸다.
   // ⚠️ 이게 없으면 위저드 중간에 앱을 닫은 카카오 가입자가 다음 진입 때 루트 가드를 타고
@@ -75,7 +79,7 @@ router.beforeEach(async (to) => {
 
   // 진로계획 보유 여부로 메인 분기
   const achievement = useAchievementStore()
-  await achievement.loadActivePlan()
+  try { await achievement.loadActivePlan() } catch { return '/career-achievement' } // 연결 실패 — 위와 같은 이유
   return achievement.hasActivePlan ? '/career-achievement' : '/main/before'
 })
 
