@@ -5,7 +5,7 @@ import { computed, reactive } from 'vue'
 import { usePlanBoard } from './usePlanBoard'
 import { useAchievementEntries } from './useAchievementEntries'
 import { computeWeekRangeContaining, parseDateKey, toDateKey } from './useWeeklySchedule'
-import { weekOfDate, weekStartOf, projectStartWeek, planWeekCount, weekDateRange } from '@/modules/career-design/composables/usePlanTimeline'
+import { weekOfDate, projectStartWeek, planWeekCount, weekDateRange } from '@/modules/career-design/composables/usePlanTimeline'
 import { weekEntriesOf } from '@/modules/career-design/composables/useProjectCurriculum'
 import { PACES, paceOfHours, paceByKey, rescheduleFrom, DEFAULT_PACE_HOURS, type Pace } from '@/modules/career-design/composables/usePlanPace'
 import { req } from '@/shared/api'
@@ -38,7 +38,9 @@ export function useWeekReview() {
     const pl = plan.value
     if (!pl) return null
     const t = new Date(today.value)
-    if (weekStartOf(t, pl.reviewDay).getTime() === new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime()) t.setDate(t.getDate() - 1)
+    // 리뷰일(2주차 이상의 첫날)이면 지난주를 결산한다
+    const cur = computeWeekRangeContaining(t, pl.startDate, startDow.value)
+    if (cur && cur.weekStart === toDateKey(t) && (weekOfDate(pl.startDate, t, pl.reviewDay) ?? 0) >= 2) t.setDate(t.getDate() - 1)
     return computeWeekRangeContaining(t, pl.startDate, startDow.value)
   })
   const weekNo = computed(() => {
@@ -54,7 +56,7 @@ export function useWeekReview() {
     if (!r) return []
     const out: { key: string; dow: string; date: number; planned: number; done: number; state: 'all' | 'part' | 'none' | 'rest' | 'before' }[] = []
     const d = parseDateKey(r.weekStart)!
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; toDateKey(d) <= r.weekEnd && i < 14; i++) { // 1주차는 7~13일
       const key = toDateKey(d)
       const items = board.itemsOn(d)
       const done = items.filter((it) => board.itemDone(it, key)).length

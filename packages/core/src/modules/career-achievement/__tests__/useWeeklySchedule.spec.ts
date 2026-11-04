@@ -45,17 +45,22 @@ describe('computeFirstWeekRange — 첫 주는 startDate 가 속한 주(시작 �
     })
   })
 
-  it('시작일이 수요일이면 weekStart 는 이틀 앞선 월요일(시작 요일 월)', () => {
+  // 2026-11-04 규칙: 1주차 = 시작일 ~ 첫 리뷰일 전날, 첫 리뷰일은 7일 이상 지난 첫 리뷰 요일(1주차 7~13일)
+  it('수요일 시작·월요일 리뷰 → 9.7(월)은 5일뿐 → 첫 리뷰 9.14, 1주차 9.2~9.13', () => {
     expect(computeFirstWeekRange('2026-09-02', '월')).toEqual({
-      weekStart: '2026-08-31', weekEnd: '2026-09-06',
+      weekStart: '2026-09-02', weekEnd: '2026-09-13',
     })
   })
 
-  it('시작 요일이 금요일이면 한 주는 금~목', () => {
-    // 2026-09-02(수) 시작 → 그 주의 금요일은 8.28
+  it('수요일 시작·금요일 리뷰 → 첫 리뷰 9.11, 1주차 9.2~9.10', () => {
     expect(computeFirstWeekRange('2026-09-02', '금')).toEqual({
-      weekStart: '2026-08-28', weekEnd: '2026-09-03',
+      weekStart: '2026-09-02', weekEnd: '2026-09-10',
     })
+  })
+
+  it('리뷰 요일에 시작하면 1주차는 딱 7일, 리뷰 요일 다음 날 시작하면 13일', () => {
+    expect(computeFirstWeekRange('2026-09-04', '금')).toEqual({ weekStart: '2026-09-04', weekEnd: '2026-09-10' })
+    expect(computeFirstWeekRange('2026-09-05', '금')).toEqual({ weekStart: '2026-09-05', weekEnd: '2026-09-17' })
   })
 
   it('시작 요일을 안 골랐으면(빈 값) 월요일', () => {
@@ -136,7 +141,7 @@ describe('generateItemsForWeek — 달력 주가 계획 밖 날짜를 품을 때
   }
   const timeline: TimelineSlot[] = [{ week: 1, projects: [plan.projects[0]!] }]
 
-  it('첫 주: 계획 시작 전 이틀(월·화)에는 항목이 생기지 않는다', () => {
+  it('범위가 시작일 전을 품어도: 계획 시작 전 이틀(월·화)에는 항목이 생기지 않는다', () => {
     const items = generateItemsForWeek(plan, timeline, '2026-08-31', '2026-09-06')
     const dates = [...new Set(items.map(i => i.date))].sort()
     expect(dates[0]).toBe('2026-09-02')
@@ -169,16 +174,15 @@ describe('dowOf — 요일 문자열', () => {
 })
 
 describe('generateItemsForWeek — 시작 요일이 금요일인 계획', () => {
-  // 2026-10-01(목) 시작, 금요일 시작 → 1주차 = 9.25(금)~10.1(목), 2주차 = 10.2~10.8
+  // 2026-10-01(목) 시작, 금요일 리뷰 → 10.2(금)은 1일뿐 → 첫 리뷰 10.9. 1주차 = 10.1~10.8(8일), 2주차 = 10.9~10.15
   const FRI = { ...PLAN, startDate: '2026-10-01', endDate: '2026-12-31', reviewDay: '금' as DayOfWeek }
   const TL: TimelineSlot[] = [{ week: 2, projects: [FRI.projects[1]!] }]   // b(화, 2주): 2~3주차
-  it('2주차(10.2~10.8)에 b 가 화요일(10.6)에 잡힌다', () => {
-    const items = generateItemsForWeek(FRI, TL, '2026-10-02', '2026-10-08').filter((i) => i.itemType === 'project')
-    expect(items.map((i) => [i.itemId, i.date, i.curriculumWeek])).toEqual([['b', '2026-10-06', 1]])
+  it('2주차(10.9~10.15)에 b 가 화요일(10.13)에 잡힌다', () => {
+    const items = generateItemsForWeek(FRI, TL, '2026-10-09', '2026-10-15').filter((i) => i.itemType === 'project')
+    expect(items.map((i) => [i.itemId, i.date, i.curriculumWeek])).toEqual([['b', '2026-10-13', 1]])
   })
-  it('1주차(9.25~10.1)엔 b 가 없고, 계획 시작 전(9.25~9.30)엔 아무것도 없다', () => {
-    const items = generateItemsForWeek(FRI, TL, '2026-09-25', '2026-10-01')
+  it('1주차(10.1~10.8)엔 b 가 없다 — 10.6(화)도 아직 1주차', () => {
+    const items = generateItemsForWeek(FRI, TL, '2026-10-01', '2026-10-08')
     expect(items.some((i) => i.itemId === 'b')).toBe(false)
-    expect(items.every((i) => i.date >= '2026-10-01')).toBe(true)
   })
 })

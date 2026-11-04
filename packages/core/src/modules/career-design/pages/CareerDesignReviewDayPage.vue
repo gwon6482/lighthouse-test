@@ -30,6 +30,7 @@
 
         <div v-if="draftPlan.reviewDay" class="cd-rday__hint">
           매주 <strong>{{ draftPlan.reviewDay }}요일</strong>이 한 주의 끝이자 시작이에요.
+          <template v-if="firstReview"><br>첫 주간리뷰는 <strong>{{ firstReview }}</strong>이에요(시작하고 7일 이상 지난 뒤).</template>
         </div>
       </section>
     </div>
@@ -49,17 +50,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import CdStepIndicator from '../components/CdStepIndicator.vue'
 import { useDesignSteps } from '../composables/useDesignSteps'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import type { DayOfWeek } from '../types/career-design'
+import { firstReviewDate } from '../composables/usePlanTimeline'
+import { parseDateKey } from '@/modules/career-achievement/composables/useWeeklySchedule'
 
 const router = useRouter()
 const { prevPath, nextPath, editing } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
 const { draftPlan, syncPlanReviewDay } = useCareerDesign()
+
+// 첫 리뷰일 — 1주차는 시작일(아직 없으면 오늘)부터 첫 리뷰일 전날까지 7~13일(2026-11-04)
+const firstReview = computed(() => {
+  if (!draftPlan.reviewDay) return ''
+  const sd = parseDateKey(draftPlan.startDate) ?? new Date()
+  const d = firstReviewDate(sd, draftPlan.reviewDay)
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${draftPlan.reviewDay}요일`
+})
 
 const DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
 const saving = ref(false)

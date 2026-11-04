@@ -82,36 +82,47 @@ export function monthWeekOf(monday: Date): { year: number; month: number; week: 
   return { year, month, week: Math.floor((monday.getDate() - firstMonday) / 7) + 1 }
 }
 
-// 진로계획 전체 주차 수 = 시작일이 속한 주부터 종료일이 속한 주까지의 달력 주 개수.
-// 시작일·종료일이 주 중간이어도 그 주는 통째로 한 주로 센다.
-// 기간 미설정이면 0 — 화면은 "기간을 먼저 설정하세요" 로 빠진다.
-export function planWeekCount(startDate: string, endDate: string, start?: WeekStart): number {
-  const sd = parseDateKey(startDate)
-  const ed = parseDateKey(endDate)
-  if (!sd || !ed || ed.getTime() < sd.getTime()) return 0
-  const first = weekStartOf(sd, start)
-  const last  = weekStartOf(ed, start)
-  return Math.floor((last.getTime() - first.getTime()) / MS_PER_DAY / 7) + 1
+// ── 계획의 주(2026-11-04 사용자 규칙) ──
+// 주의 경계 = 주간리뷰 요일(start = reviewDay). 시작일이 1일차이고 '시작 전' 칸은 없다.
+// 1주차 = 시작일 ~ 첫 리뷰일 전날. 첫 리뷰일은 시작일로부터 7일 이상 지난 첫 리뷰 요일 → 1주차는 7~13일.
+//   예) 금요일 리뷰, 11/4(수) 시작 → 11/6(금)은 2일뿐이라 건너뛰고 11/13(금)이 첫 리뷰 → 1주차 11/4~11/12
+// 2주차부터는 리뷰일부터 7일씩.
+// (2026-10-30~11-04 는 시작일이 든 달력 주 전체가 1주차라 1주차가 1~7일로 짧아질 수 있었다)
+export function firstReviewDate(sd: Date, start?: WeekStart): Date {
+  const x = new Date(sd.getFullYear(), sd.getMonth(), sd.getDate() + 7)
+  x.setDate(x.getDate() + ((weekStartIndex(start) - x.getDay() + 7) % 7))
+  return x
 }
 
-// n주차(1-based)의 실제 날짜 범위. 항상 월요일~일요일 7일.
+// 진로계획 전체 주차 수 = 종료일이 몇 주차인가. 기간 미설정이면 0 — 화면은 "기간을 먼저 설정하세요" 로 빠진다.
+export function planWeekCount(startDate: string, endDate: string, start?: WeekStart): number {
+  const ed = parseDateKey(endDate)
+  return ed ? (weekOfDate(startDate, ed, start) ?? 0) : 0
+}
+
+// n주차(1-based)의 실제 날짜 범위. 1주차는 7~13일, 그 뒤는 7일.
 export function weekDateRange(startDate: string, week: number, start?: WeekStart): { start: string; end: string } | null {
   const sd = parseDateKey(startDate)
   if (!sd || week < 1) return null
-  const s = weekStartOf(sd, start); s.setDate(s.getDate() + (week - 1) * 7)
+  const fr = firstReviewDate(sd, start)
+  if (week === 1) {
+    const e = new Date(fr); e.setDate(e.getDate() - 1)
+    return { start: toDateKey(sd), end: toDateKey(e) }
+  }
+  const s = new Date(fr); s.setDate(s.getDate() + (week - 2) * 7)
   const e = new Date(s);  e.setDate(e.getDate() + 6)
   return { start: toDateKey(s), end: toDateKey(e) }
 }
 
-// 어떤 날짜가 계획의 몇 주차인지. 계획 첫 주보다 이전이면 null.
-// 시작일이 수요일이면 그 주 월요일도 1주차다(계획 시작 전 이틀이지만 같은 주).
+// 어떤 날짜가 계획의 몇 주차인지. 시작일 전이면 null.
 export function weekOfDate(startDate: string, date: Date, start?: WeekStart): number | null {
   const sd = parseDateKey(startDate)
   if (!sd) return null
-  const first = weekStartOf(sd, start)
-  const cur   = weekStartOf(date, start)
-  const diff  = Math.floor((cur.getTime() - first.getTime()) / MS_PER_DAY / 7)
-  return diff < 0 ? null : diff + 1
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  if (d.getTime() < sd.getTime()) return null
+  const fr = firstReviewDate(sd, start)
+  if (d.getTime() < fr.getTime()) return 1
+  return 2 + Math.floor(Math.round((d.getTime() - fr.getTime()) / MS_PER_DAY) / 7)
 }
 
 // 화면에 보여줄 라벨 — "8월 1주차"

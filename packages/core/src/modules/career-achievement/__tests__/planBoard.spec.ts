@@ -61,11 +61,16 @@ describe('planBoard', () => {
 
   it('결산 배지 — 결산은 시작 요일 전날, 시작일은 마지막 날', () => {
     // 2026-10-28 = 수요일
-    expect(reviewBadge('목', d('2026-10-28'), 'running')).toEqual({ kind: 'today' })     // 목 시작 → 수 결산
-    expect(reviewBadge('수', d('2026-10-28'), 'running')).toEqual({ kind: 'last' })      // 수 시작 → 오늘이 시작일
-    expect(reviewBadge('금', d('2026-10-28'), 'running')).toEqual({ kind: 'left', days: 1 }) // 금 시작 → 목 결산
-    expect(reviewBadge('', d('2026-10-28'), 'running')).toBeNull()
-    expect(reviewBadge('금', d('2026-10-28'), 'finished')).toBeNull()
+    const sd = '2026-10-01' // 10/28 은 4주차 이상 — 요일 규칙 그대로
+    expect(reviewBadge(sd, '목', d('2026-10-28'), 'running')).toEqual({ kind: 'today' })     // 목 리뷰 → 수 결산
+    expect(reviewBadge(sd, '수', d('2026-10-28'), 'running')).toEqual({ kind: 'last' })      // 수 리뷰 → 오늘이 리뷰일
+    expect(reviewBadge(sd, '금', d('2026-10-28'), 'running')).toEqual({ kind: 'left', days: 1 }) // 금 리뷰 → 목 결산
+    expect(reviewBadge(sd, '', d('2026-10-28'), 'running')).toBeNull()
+    expect(reviewBadge(sd, '금', d('2026-10-28'), 'finished')).toBeNull()
+    // 1주차 안의 리뷰 요일은 결산이 아니다 — 11/4(수) 시작·금 리뷰 → 첫 리뷰 11/13
+    expect(reviewBadge('2026-11-04', '금', d('2026-11-06'), 'running')).toEqual({ kind: 'left', days: 6 })
+    expect(reviewBadge('2026-11-04', '금', d('2026-11-12'), 'running')).toEqual({ kind: 'today' })
+    expect(reviewBadge('2026-11-04', '금', d('2026-11-13'), 'running')).toEqual({ kind: 'last' })
   })
 
   it('오늘 문장과 큰 줄', () => {
@@ -103,6 +108,12 @@ describe('주간결산 시점', () => {
     expect(reviewMoment(d('2026-10-31'), '2026-10-01', '금', 'running')).toBeNull()   // 지나면 건너뜀
     expect(reviewMoment(d('2026-10-29'), '2026-10-01', '', 'running')).toBeNull()
     expect(reviewMoment(d('2026-09-25'), '2026-10-01', '금', 'running')).toBeNull()  // 시작 전 주
+    // 첫 결산은 7일 이상 지난 뒤 — 11/4(수) 시작·금 리뷰: 11/5(목)·11/6(금)엔 없고 11/12(목)·11/13(금)
+    expect(reviewMoment(d('2026-11-05'), '2026-11-04', '금', 'running')).toBeNull()
+    expect(reviewMoment(d('2026-11-06'), '2026-11-04', '금', 'running')).toBeNull()
+    expect(reviewMoment(d('2026-11-12'), '2026-11-04', '금', 'running')).toEqual({ weekStart: '2026-11-04', day: 'eve' })
+    expect(reviewMoment(d('2026-11-13'), '2026-11-04', '금', 'running')).toEqual({ weekStart: '2026-11-04', day: 'start' })
+    expect(reviewMoment(d('2026-11-19'), '2026-11-04', '금', 'running')).toEqual({ weekStart: '2026-11-13', day: 'eve' })
   })
   it('전날은 다 했을 때만, 시작일은 바로 — 한 주에 한 번, 마쳤으면 안 띄움', async () => {
     const { shouldPromptReview } = await import('../lib/planBoard')
