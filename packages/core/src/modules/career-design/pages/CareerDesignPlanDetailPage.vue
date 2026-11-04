@@ -236,6 +236,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { req } from '@/shared/api'
 import { useCareerDesign } from '../composables/useCareerDesign'
+import { deletePlan } from '../planTrash.api'
+import { useAchievementStore } from '@/shared/stores/achievement'
 import type { Project, ProjectCategory, Routine, TimelineSlot, DayOfWeek } from '../types/career-design'
 import { weekRangeLabel, monthWeekLabel, resolveProject } from '../composables/usePlanTimeline'
 
@@ -254,7 +256,8 @@ interface PlanDetail {
 
 const router = useRouter()
 const route = useRoute()
-const { loadPlanFromApi } = useCareerDesign()
+const { loadPlanFromApi, draftPlan, resetDraftPlan } = useCareerDesign()
+const achievementStore = useAchievementStore()
 
 const plan = ref<PlanDetail | null>(null)
 const loading = ref(true)
@@ -297,12 +300,16 @@ function goEdit() {
   return editAt('projects')
 }
 
+// 삭제 = 휴지통(30일 보관, 2026-11-04) → 다음 단계 안내 화면(목표 진로 확인 → 다시 설계 / 되돌리기)
 async function onDelete() {
   if (!planId.value) return
-  if (!confirm('이 진로계획을 삭제할까요?')) return
+  if (!confirm('이 진로계획을 삭제할까요?\n\n삭제한 계획은 30일 동안 보관돼서 마이페이지에서 되돌릴 수 있어요.')) return
   try {
-    await req.delete(`/api/career-plan/${planId.value}`)
-    router.push('/mypage')
+    const id = planId.value
+    await deletePlan(id)
+    if (draftPlan.planId === id) resetDraftPlan() // 수정 중 초안에 남아 있으면 지운다
+    await achievementStore.loadActivePlan(true).catch(() => {})
+    router.replace(`/career-design/deleted/${id}`)
   } catch {
     alert('삭제에 실패했어요. 잠시 후 다시 시도해주세요.')
   }
