@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - main
+  # GitHub 이 push 를 500 으로 거절했다 재시도로 받으면 이 워크플로가 안 도는 일이 있다(2026-11-04 두 번) — 그때 gh workflow run 으로
+  workflow_dispatch: {}
 
 jobs:
   deploy:
