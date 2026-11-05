@@ -8,6 +8,12 @@ $fm-soft: #EFEBE0;   // 보조 버튼·꺼진 칩
 $fm-ink: #141414;
 $fm-shadow: 0 1px 3px rgba(0, 0, 0, .05), 0 6px 18px rgba(0, 0, 0, .04);
 
+// 넓은 화면(PC) — 바탕·차오르는 노랑은 화면 전체, 내용은 가운데 기둥(2026-11-06 사용자 결정).
+// 좌우 여백을 max(휴대폰 여백, (화면 폭 - 기둥) / 2) 로 — 휴대폰에서는 지금과 똑같고 넓을 때만 가운데로 모인다.
+// 기둥 안의 정렬은 휴대폰과 같은 왼쪽(분 오른쪽 위의 초는 왼쪽 정렬이라야 자연스럽다)
+$fm-col: 520px;
+@function fm-side($mobile) { @return max(#{$mobile}, calc((100vw - #{$fm-col}) / 2)); }
+
 .fm {
   min-height: 100vh;
   min-height: 100dvh;
@@ -32,7 +38,7 @@ $fm-shadow: 0 1px 3px rgba(0, 0, 0, .05), 0 6px 18px rgba(0, 0, 0, .04);
   min-height: 100vh;
   min-height: 100dvh;
   display: flex; flex-direction: column;
-  padding: calc(env(safe-area-inset-top) + 8px) 20px calc(env(safe-area-inset-bottom) + 20px);
+  padding: calc(env(safe-area-inset-top) + 8px) fm-side(20px) calc(env(safe-area-inset-bottom) + 20px);
 
   &__bar {
     display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; height: 48px;
@@ -104,7 +110,7 @@ $fm-shadow: 0 1px 3px rgba(0, 0, 0, .05), 0 6px 18px rgba(0, 0, 0, .04);
   &__layer {
     position: absolute; inset: 0; pointer-events: none;
     display: flex; flex-direction: column;
-    padding: calc(env(safe-area-inset-top) + 18px) 26px calc(env(safe-area-inset-bottom) + 44px);
+    padding: calc(env(safe-area-inset-top) + 18px) fm-side(26px) calc(env(safe-area-inset-bottom) + 44px);
     &--dark { color: $fm-ink; }
   }
   &__meta { display: flex; justify-content: space-between; font-size: 13px; font-weight: $tw-strong; span:last-child { opacity: .6; } }
@@ -129,7 +135,8 @@ $fm-shadow: 0 1px 3px rgba(0, 0, 0, .05), 0 6px 18px rgba(0, 0, 0, .04);
   &.paused &__hint { opacity: 0; }
 
   &__sheet {
-    position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 12px);
+    // 넓은 화면에서는 기둥 폭에 맞춘다(PC 에서 화면 끝까지 늘어난 띠가 되던 것)
+    position: absolute; left: fm-side(12px); right: fm-side(12px); bottom: calc(env(safe-area-inset-bottom) + 12px);
     padding: 18px; border-radius: 26px; background: rgba(255, 255, 255, .94); color: $fm-ink;
     box-shadow: 0 10px 40px rgba(0, 0, 0, .12);
     -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
@@ -150,7 +157,7 @@ $fm-shadow: 0 1px 3px rgba(0, 0, 0, .05), 0 6px 18px rgba(0, 0, 0, .04);
 .fm-done {
   min-height: 100vh; min-height: 100dvh;
   display: flex; flex-direction: column; align-items: center; text-align: center;
-  padding: calc(env(safe-area-inset-top) + 48px) 24px calc(env(safe-area-inset-bottom) + 24px);
+  padding: calc(env(safe-area-inset-top) + 48px) fm-side(24px) calc(env(safe-area-inset-bottom) + 24px);
   background: $fm-bg; color: $fm-ink;
   animation: fm-fade .4s ease both;
 
