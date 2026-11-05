@@ -3,7 +3,7 @@ import { req } from '@/shared/api'
 import type {
   Project, Routine, DayOfWeek, TimelineSlot,
 } from '@/modules/career-design/types/career-design'
-import { weekOfDate, projectsActiveInWeek, weekStartOf } from '@/modules/career-design/composables/usePlanTimeline'
+import { weekOfDate, weekDateRange, projectsActiveInWeek } from '@/modules/career-design/composables/usePlanTimeline'
 import { uid } from '@/shared/utils/uid'
 
 // 한 주의 확정된 일정 1건. BE WeeklySchedule.items 의 1요소.
@@ -55,44 +55,22 @@ export function dowOf(d: Date): DayOfWeek {
   return DOW_ARR[d.getDay()]!
 }
 
-// 진로계획 첫 주 [weekStart, weekEnd] — startDate 가 속한 주. 한 주 = **시작 요일(reviewDay)부터 7일**(2026-10-30~).
-// (2026-08-27~10-29 는 월~일 고정이라 reviewDay 를 무시했다. 그 전에는 startDate 부터 7일 블록)
-// 시작일이 시작 요일보다 뒤면 weekStart 는 startDate 보다 앞선다 — 그 며칠은 계획 시작 전이라
-// generateItemsForWeek 이 항목을 만들지 않는다. reviewDay 가 비어 있으면 월요일.
+// 진로계획 첫 주 [weekStart, weekEnd] — 시작일 ~ 첫 리뷰일 전날(7~13일). 주 규칙은 usePlanTimeline(weekDateRange) 한곳.
+// reviewDay 가 비어 있으면 월요일.
 export function computeFirstWeekRange(
   startDate: string, reviewDay: DayOfWeek | '',
 ): { weekStart: string; weekEnd: string } | null {
-  const sd = parseDateKey(startDate)
-  if (!sd) return null
-  const ws = weekStartOf(sd, reviewDay)
-  const we = new Date(ws); we.setDate(we.getDate() + 6)
-  return { weekStart: toDateKey(ws), weekEnd: toDateKey(we) }
+  const r = weekDateRange(startDate, 1, reviewDay)
+  return r ? { weekStart: r.start, weekEnd: r.end } : null
 }
 
-// 임의 날짜 date 가 속한 주의 [weekStart, weekEnd] 계산.
-// 첫 주부터 forward 로 이동하며 date 가 weekEnd 이내에 들어올 때까지 진행.
-// date < startDate 면 null (계획 시작 전).
+// 임의 날짜 date 가 속한 주의 [weekStart, weekEnd]. date < startDate 면 null (계획 시작 전).
 export function computeWeekRangeContaining(
   date: Date, startDate: string, reviewDay: DayOfWeek | '',
 ): { weekStart: string; weekEnd: string } | null {
-  const first = computeFirstWeekRange(startDate, reviewDay)
-  if (!first) return null
-  const dateKey = toDateKey(date)
-  if (dateKey < first.weekStart) return null
-
-  let weekStart = first.weekStart
-  let weekEnd   = first.weekEnd
-  // 안전 가드 — 무한루프 방지 (10년치)
-  for (let i = 0; i < 600; i++) {
-    if (dateKey <= weekEnd) return { weekStart, weekEnd }
-    const ed = parseDateKey(weekEnd)
-    if (!ed) return null
-    const ns = new Date(ed); ns.setDate(ns.getDate() + 1)
-    const ne = new Date(ns); ne.setDate(ne.getDate() + 6)
-    weekStart = toDateKey(ns)
-    weekEnd   = toDateKey(ne)
-  }
-  return null
+  const w = weekOfDate(startDate, date, reviewDay)
+  const r = w ? weekDateRange(startDate, w, reviewDay) : null
+  return r ? { weekStart: r.start, weekEnd: r.end } : null
 }
 
 // 어떤 주(weekStart~weekEnd) 안의 어떤 날짜에 어떤 프로젝트/루틴이 잡힐지 디폴트 생성.
@@ -109,10 +87,6 @@ export function generateItemsForWeek(
   const ed = parseDateKey(weekEnd)
   if (!sd || !ed) return out
 
-  // 이 주가 계획의 몇 주차인지. 타임라인이 주차 기준이므로 이게 기준점이다.
-  const planWeek = weekOfDate(plan.startDate, sd, plan.reviewDay)
-  if (planWeek === null) return out
-
   // 프로젝트 id → 타임라인 시작 주차
   const startWeekOf = new Map<string, number>()
   for (const slot of timeline) {
@@ -121,9 +95,6 @@ export function generateItemsForWeek(
       if (prev === undefined || slot.week < prev) startWeekOf.set(p.id, slot.week)
     }
   }
-
-  // 이번 주에 진행 중인 프로젝트만 후보 (시작주 ~ 시작주+기간-1)
-  const activeIds = new Set(projectsActiveInWeek(timeline, planWeek, plan.projects).map(p => p.id))
 
   const cursor = new Date(sd)
   while (cursor.getTime() <= ed.getTime()) {
@@ -135,6 +106,12 @@ export function generateItemsForWeek(
       cursor.setDate(cursor.getDate() + 1)
       continue
     }
+
+    // 그날이 계획의 몇 주차인지(타임라인이 주차 기준) — 넘겨받은 범위가 주 경계와 어긋나도 날마다 맞게(2026-11-04 1주차 7~13일)
+    const planWeek = weekOfDate(plan.startDate, cursor, plan.reviewDay)
+    if (planWeek === null) { cursor.setDate(cursor.getDate() + 1); continue }
+    // 그 주에 진행 중인 프로젝트만 후보 (시작주 ~ 시작주+기간-1)
+    const activeIds = new Set(projectsActiveInWeek(timeline, planWeek, plan.projects).map(p => p.id))
 
     for (const p of plan.projects) {
       if (!activeIds.has(p.id)) continue

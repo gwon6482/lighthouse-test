@@ -132,29 +132,37 @@ describe('planWeekCount — 계획 전체 주차 수', () => {
     expect(planWeekCount('2026-09-01', '')).toBe(0)
   })
 
-  it('실측 케이스 — 2026-08-01~10-11 은 11주 (7월4주차 ~ 10월1주차)', () => {
-    expect(planWeekCount('2026-08-01', '2026-10-11')).toBe(11)
-    expect(monthWeekLabel('2026-08-01', 1)).toBe('7월 4주차')
-    expect(monthWeekLabel('2026-08-01', 11)).toBe('10월 1주차')
+  it('실측 케이스 — 2026-08-01(토)~10-11 은 10주 (1주차 8.1~8.9, 10주차 10.5~)', () => {
+    expect(planWeekCount('2026-08-01', '2026-10-11')).toBe(10)
+    expect(monthWeekLabel('2026-08-01', 10)).toBe('10월 1주차')
   })
 })
 
 describe('weekDateRange / weekOfDate — 주차 ↔ 날짜 왕복', () => {
-  it('모든 주가 정확히 7일 (60주 전수)', () => {
-    for (let w = 1; w <= 60; w++) {
-      const r = weekDateRange('2026-08-01', w)!
-      const days = (d(r.end).getTime() - d(r.start).getTime()) / 86_400_000 + 1
-      expect(days).toBe(7)
-      expect(d(r.start).getDay()).toBe(1) // 월요일 시작
-      expect(d(r.end).getDay()).toBe(0)   // 일요일 종료
+  it('1주차는 7~13일, 2주차부터 리뷰 요일(월)부터 정확히 7일 (60주 전수)', () => {
+    for (const start of ['2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04']) {
+      for (let w = 1; w <= 60; w++) {
+        const r = weekDateRange(start, w)!
+        const days = (d(r.end).getTime() - d(r.start).getTime()) / 86_400_000 + 1
+        if (w === 1) {
+          expect(r.start).toBe(start) // 시작일이 1일차
+          expect(days).toBeGreaterThanOrEqual(7)
+          expect(days).toBeLessThanOrEqual(13)
+        } else {
+          expect(days).toBe(7)
+          expect(d(r.start).getDay()).toBe(1) // 월요일 시작
+        }
+        expect(d(r.end).getDay()).toBe(0)   // 다음 리뷰일 전날(일)에 끝
+      }
     }
   })
 
-  it('1주차는 시작일이 속한 주 — 시작일이 수요일이어도 그 주 월요일부터', () => {
-    // 2026-09-02 는 수요일
-    expect(weekDateRange('2026-09-02', 1)).toEqual({ start: '2026-08-31', end: '2026-09-06' })
-    // 계획 시작 이틀 전인 월요일도 1주차로 친다
-    expect(weekOfDate('2026-09-02', d('2026-08-31'))).toBe(1)
+  it('1주차는 시작일부터 — 시작 전 날짜는 주차가 없다', () => {
+    // 2026-09-02(수) 시작·월요일 리뷰 → 9.7(월)은 5일뿐 → 첫 리뷰 9.14
+    expect(weekDateRange('2026-09-02', 1)).toEqual({ start: '2026-09-02', end: '2026-09-13' })
+    expect(weekOfDate('2026-09-02', d('2026-08-31'))).toBeNull()
+    expect(weekOfDate('2026-09-02', d('2026-09-13'))).toBe(1)
+    expect(weekOfDate('2026-09-02', d('2026-09-14'))).toBe(2)
   })
 
   it('왕복 — weekDateRange 로 얻은 날짜를 weekOfDate 에 넣으면 원래 주차', () => {
@@ -174,7 +182,7 @@ describe('weekDateRange / weekOfDate — 주차 ↔ 날짜 왕복', () => {
   })
 
   it('weekRangeLabel 은 M.D ~ M.D', () => {
-    expect(weekRangeLabel('2026-09-02', 1)).toBe('8.31 ~ 9.6')
+    expect(weekRangeLabel('2026-09-02', 1)).toBe('9.2 ~ 9.13')
   })
 })
 
@@ -348,14 +356,15 @@ describe('시작 요일 — 한 주는 계획의 reviewDay 부터 7일(2026-10-3
     expect(T.toDateKey(T.weekStartOf(D('2026-10-30'), ''))).toBe('2026-10-26') // 안 골랐으면 월요일
   })
   it('weekOfDate·weekDateRange·planWeekCount 가 시작 요일을 따른다', () => {
-    // 10/01(목) 시작, 금요일 시작 → 1주차 9.25~10.1, 6주차 10.30~11.5
+    // 10/01(목) 시작, 금요일 리뷰 → 10.2(금)은 1일뿐, 첫 리뷰 10.9 → 1주차 10.1~10.8, 5주차 10.30~11.5
     expect(T.weekOfDate('2026-10-01', D('2026-10-01'), '금')).toBe(1)
-    expect(T.weekOfDate('2026-10-01', D('2026-10-02'), '금')).toBe(2)
-    expect(T.weekOfDate('2026-10-01', D('2026-10-30'), '금')).toBe(6)
-    expect(T.weekDateRange('2026-10-01', 6, '금')).toEqual({ start: '2026-10-30', end: '2026-11-05' })
-    expect(T.planWeekCount('2026-10-01', '2027-02-07', '금')).toBe(20)
-    // 월요일 시작(예전과 같음)
-    expect(T.weekOfDate('2026-10-01', D('2026-10-30'))).toBe(5)
+    expect(T.weekOfDate('2026-10-01', D('2026-10-02'), '금')).toBe(1)
+    expect(T.weekOfDate('2026-10-01', D('2026-10-09'), '금')).toBe(2)
+    expect(T.weekOfDate('2026-10-01', D('2026-10-30'), '금')).toBe(5)
+    expect(T.weekDateRange('2026-10-01', 5, '금')).toEqual({ start: '2026-10-30', end: '2026-11-05' })
+    expect(T.planWeekCount('2026-10-01', '2027-02-07', '금')).toBe(19)
+    // 월요일 리뷰 — 첫 리뷰 10.12
+    expect(T.weekOfDate('2026-10-01', D('2026-10-30'))).toBe(4)
   })
   it('monthWeekOf 는 넘긴 날의 요일을 주의 첫 요일로 센다', () => {
     expect(T.monthWeekOf(D('2026-10-30'))).toEqual({ year: 2026, month: 10, week: 5 }) // 10월 금요일: 2·9·16·23·30

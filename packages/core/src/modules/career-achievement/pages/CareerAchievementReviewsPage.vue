@@ -77,7 +77,7 @@ function computedRow(weekNo: number, weekStart: string, weekEnd: string): Row {
   const pl = plan.value!
   let planned = 0, done = 0, fullDays = 0, workDays = 0
   const d = parseDateKey(weekStart)!
-  for (let i = 0; i < 7; i++, d.setDate(d.getDate() + 1)) {
+  for (let i = 0; toDateKey(d) <= weekEnd && i < 14; i++, d.setDate(d.getDate() + 1)) { // 1주차는 7~13일
     const key = toDateKey(d)
     if (key < pl.startDate) continue
     const items = board.itemsOn(d)

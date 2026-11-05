@@ -2,7 +2,7 @@
 // 화면 연결은 composables/usePlanBoard.ts.
 import type { DayOfWeek, Project, ProjectCategory, TimelineSlot } from '@/modules/career-design/types/career-design'
 import { weekEntriesOf } from '@/modules/career-design/composables/useProjectCurriculum'
-import { projectEndWeek, projectStartWeek } from '@/modules/career-design/composables/usePlanTimeline'
+import { projectEndWeek, projectStartWeek, weekOfDate, weekDateRange } from '@/modules/career-design/composables/usePlanTimeline'
 
 // 분류 색·라벨 — ⚠️ 같은 표가 여러 화면에 복제돼 있다(실무경험 추가 때 18곳). 새 화면은 여기 것을 쓴다
 export const CATEGORY_META: Record<ProjectCategory, { label: string; color: string }> = {
@@ -128,17 +128,19 @@ export function streakCount(
 }
 
 // ⑤ 결산 배지 — 결산 요일까지 남은 날. 요일이 없거나 계획 중이 아니면 null
-const DOW: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토']
+// 결산은 그 주 마지막 날(리뷰일 전날), 리뷰일 당일은 미룬 결산의 마지막 날(2026-10-30 사용자).
+// 요일이 아니라 계획의 주로 센다(2026-11-04) — 1주차는 7~13일이라 첫 리뷰 요일이 와도 결산이 아닐 수 있다
+const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 export function reviewBadge(
-  reviewDay: DayOfWeek | '', today: Date, phase: PlanPhase,
+  startDate: string, reviewDay: DayOfWeek | '', today: Date, phase: PlanPhase,
 ): { kind: 'today' } | { kind: 'last' } | { kind: 'left'; days: number } | null {
   if (!reviewDay || phase !== 'running') return null
-  const start = DOW.indexOf(reviewDay)
-  if (start < 0) return null
-  // 결산은 시작 요일 '전날'(2026-10-30 사용자). 시작일 당일은 미룬 결산의 마지막 날
-  const eve = (start + 6) % 7
-  if (today.getDay() === start) return { kind: 'last' }
-  const left = (eve - today.getDay() + 7) % 7
+  const w = weekOfDate(startDate, today, reviewDay)
+  const r = w ? weekDateRange(startDate, w, reviewDay) : null
+  if (!w || !r) return null
+  const key = dayKey(today)
+  if (w >= 2 && r.start === key) return { kind: 'last' }
+  const left = daysBetween(today, parsePlanDate(r.end)!)
   return left === 0 ? { kind: 'today' } : { kind: 'left', days: left }
 }
 
@@ -218,19 +220,14 @@ export function roadmapStops(
 export type ReviewMoment = { weekStart: string; day: 'eve' | 'start' } | null
 export function reviewMoment(today: Date, startDate: string, reviewDay: DayOfWeek | '', phase: PlanPhase): ReviewMoment {
   if (!reviewDay || phase === 'before') return null
-  const s = parsePlanDate(startDate)
-  if (!s) return null
-  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-  const startIdx = DOW.indexOf(reviewDay)
-  const isStart = t.getDay() === startIdx
-  const isEve = (t.getDay() + 1) % 7 === startIdx
-  if (!isStart && !isEve) return null
-  // 결산할 주의 첫날 = (eve 면 오늘, start 면 어제)가 든 주의 시작 요일
-  const last = new Date(t); if (isStart) last.setDate(last.getDate() - 1)
-  const ws = new Date(last); ws.setDate(ws.getDate() - ((ws.getDay() - startIdx + 7) % 7))
-  if (daysBetween(s, last) < 0) return null // 계획 시작 전 주는 결산할 게 없다
-  const key = `${ws.getFullYear()}-${String(ws.getMonth() + 1).padStart(2, '0')}-${String(ws.getDate()).padStart(2, '0')}`
-  return { weekStart: key, day: isStart ? 'start' : 'eve' }
+  // 오늘이 계획 주의 마지막 날이면 eve, 2주차 이상의 첫날(리뷰일)이면 start — 1주차 안의 리뷰 요일은 아무것도 아니다
+  const w = weekOfDate(startDate, today, reviewDay)
+  const r = w ? weekDateRange(startDate, w, reviewDay) : null
+  if (!w || !r) return null
+  const key = dayKey(today)
+  if (r.end === key) return { weekStart: r.start, day: 'eve' }
+  if (w >= 2 && r.start === key) return { weekStart: weekDateRange(startDate, w - 1, reviewDay)!.start, day: 'start' }
+  return null
 }
 // 지금 팝업을 띄울까 — prompted(이번 주 이미 띄움)·done(결산 마침)이면 안 띄운다
 export function shouldPromptReview(m: ReviewMoment, o: { todayTotal: number; todayDone: number; prompted: boolean; done: boolean }): boolean {

@@ -145,7 +145,7 @@ export function usePlanBoard() {
     }
     return out
   })
-  const review = computed(() => plan.value ? reviewBadge(plan.value.reviewDay, today.value, phase.value) : null)
+  const review = computed(() => plan.value ? reviewBadge(plan.value.startDate, plan.value.reviewDay, today.value, phase.value) : null)
 
   // ── 로드맵 — 계획 전체를 프로젝트 정거장으로 ──
   const totalWeeks = computed(() => plan.value ? planWeekCount(plan.value.startDate, plan.value.endDate, plan.value.reviewDay) : 0)
