@@ -32,8 +32,8 @@
   }
 
   .btn-signup-cta,
-  .btn-mypage-cta,
-  .btn-encyclopedia,
+  .btn-mypage-back,
+  .btn-export,
   .result-next-btn {
     display: inline-flex;
     align-items: center;
@@ -54,11 +54,12 @@
     transition: transform $transition-fast;
 
     &:active { transform: scale(0.98); }
+    &:disabled { opacity: 0.5; cursor: default; transform: none; }
   }
 
-  // 주 버튼 — 노랑
+  // 주 버튼 — 노랑. 로그인 결과는 [마이페이지로 돌아가기](흰) · [내보내기](노랑)
   .btn-signup-cta,
-  .btn-mypage-cta,
+  .btn-export,
   .result-next-btn {
     border-color: $color-primary;
     background: $color-primary;

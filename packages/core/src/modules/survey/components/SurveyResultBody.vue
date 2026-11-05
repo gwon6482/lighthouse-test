@@ -2,10 +2,12 @@
   <!-- 결과지 디자인 정본은 랜딩 /survey 결과지(lighthouse-landing components/survey/ResearchResult.vue, 2026-10-26).
        구성·색·글씨를 그대로 따른다 — 랜딩 쪽을 고치면 여기도 같이 고칠 것(레포가 달라 자동으로 맞춰지지 않는다).
        앱에만 있는 것: 업무 환경 항목 아이콘, 진입 관문 배지, 추천 직업 누르기(묶음 직업 고르기), 하단 액션 슬롯 -->
-  <div class="rr">
+  <!-- data-export-chunks: 이 요소의 직계 자식(구역)이 '여러 장 이미지' 의 나눔 단위다(export/useResultExport.captureImageSet) -->
+  <div class="rr" data-export-chunks>
+    <!-- 이미 만들어진 결과를 불러오는 중이다(분석은 제출 때 끝났다) — 마이페이지에서 다시 볼 때도 같은 화면 -->
     <div v-if="isLoading" class="rr__state">
       <div class="rr__spinner" />
-      <p>결과를 분석하고 있어요…</p>
+      <p>결과를 불러오고 있어요…</p>
     </div>
 
     <div v-else-if="error" class="rr__state">
@@ -223,7 +225,7 @@
 <script setup lang="ts">
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { ENV_JUDGE_ICON, weIcon } from '@/modules/survey/surveyIcons'
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import {
   fetchSurveyAnalysis,
   fetchT2Recommend,
@@ -241,7 +243,11 @@ import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 const props = defineProps<{ surveyId: string }>()
-const emit = defineEmits<{ (e: 'job-click', jobCode: string): void }>()
+const emit = defineEmits<{
+  (e: 'job-click', jobCode: string): void
+  // 결과지가 다 그려졌는가(추천 직업까지) + 파일 이름용 성격 유형 — 내보내기 버튼을 켤 때 쓴다
+  (e: 'ready', ok: boolean, label?: string): void
+}>()
 
 // ── 묶음 직업 ─────────────────────────────────────────────────────────────
 // 고용24가 여러 직업을 한 직업으로 묶어 조사한 경우(전문의 13종 등) 구성원 점수가 완전히 같아서
@@ -793,6 +799,17 @@ async function loadComprehensiveRecommend() {
     compLoading.value = false
   }
 }
+
+watch(
+  () => !isLoading.value && !error.value && !!analysis.value && !compLoading.value,
+  (v) => emit('ready', v, analysis.value?.personality_type?.full_name),
+  { immediate: true },
+)
+
+// PDF 결과지(report/ResultReport.vue)용 원재료 — 화면과 같은 응답을 다시 부르지 않고 넘긴다
+defineExpose({
+  reportSource: () => ({ analysis: analysis.value, recommend: compJobs.value }),
+})
 
 onMounted(() => {
   load()

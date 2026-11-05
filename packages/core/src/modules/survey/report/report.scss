@@ -1,0 +1,338 @@
+// PDF 결과지 스타일 — A4(210×297mm) 한 쪽 = `.rp-page` 하나.
+// ⚠️ 전역 스타일이다(쪽 컴포넌트끼리 공유). 이름은 모두 `rp-` 로 시작해 화면 스타일과 섞이지 않게 한다.
+// 색은 화면 결과지(ResearchResult.vue)와 같은 값 — 2026-11-02 화면 리뉴얼(FE 10-20~26) 컨셉을 PDF 로 옮겼다.
+// 바꿀 때는 아래 변수만 고친다(화면 쪽 변수 이름을 괄호에 적었다).
+$rp-yellow: #ffd100;        // 브랜드 노랑 — 1위·강조
+$rp-yellow-tint: #fff3b0;   // 노랑 바탕
+$rp-yellow-line: #ffe566;
+$rp-yellow-text: #9a7400;   // 노랑 글씨($c-gold) — 흰 바탕 대비 4.5 이상
+// 파랑 영역은 하늘색 체계($c-b · $c-b-light · $c-b-text · $c-b-tint · $c-b-line)
+$rp-blue: #5bb8f5;
+$rp-blue-light: #a5d8f8;
+$rp-blue-text: #2b69b6;
+$rp-blue-tint: #e8f4fe;
+$rp-blue-line: #b9def7;
+// 업무 환경 = 청록($c-g · $c-g-text · $c-g-tint)
+$rp-green: #5fcca1;
+$rp-green-text: #297a67;
+$rp-green-tint: #dbf5ef;
+$rp-red: #e5484d;           // '맞지 않는 환경' 표시 점
+// 3색 그래프(영역별 일치도) 전용($c-tri-1~3) — 같은 OKLCH 밝기·채도
+$rp-tri-1: #ef8959;         // 성격/기질
+$rp-tri-2: #43b2f6;         // 재능/흥미/가치관
+$rp-tri-3: #32c392;         // 업무환경
+// 글씨 회색은 역할별 4단계만($c-text-1 · body · 2 · 3) — #888·#999 는 대비 2.8~3.5 라 흐렸다
+$rp-text: #1a1a1a;          // 강조 — 제목, 이름, 핵심 수치
+$rp-body: #333;             // 본문
+$rp-sub: #5f6670;           // 보조 — 부제, 설명, 라벨
+$rp-meta: #767676;          // 메타 — 표 머리, 눈금, 꼬리말, 주석
+$rp-line: #e3e3e0;
+$rp-head-bg: #f3f3f1;
+$rp-alt: #f5f5f5;
+
+// ── 글씨 위계 (2026-10-15) ──
+// 크기는 단계마다 뚜렷하게, 굵기는 네 가지만 쓴다.
+// 🚨 **본문(표·박스 안)에서는 600 이 최대다.** 본문에 700·800 을 쓰면 구역 제목과 같은 무게가 돼
+//    무엇이 제목이고 무엇이 강조인지 구분이 안 된다(실제로 그랬다).
+//    예외 하나: 성격·재능 프로파일의 **상위 3개**(.top) 는 700 — 결과지의 핵심이라 사용자가 굵게 유지하기로 했다.
+$fs-display: 24pt;   // 표지 제목
+$fs-title: 15pt;     // 결과 제목(성격 유형 이름)
+$fs-heading: 9.5pt;  // 구역 제목·머리말
+$fs-body: 9pt;       // 본문
+$fs-small: 7.5pt;    // 표 머리·설명·태그
+$fs-micro: 6.5pt;    // 눈금·꼬리말
+$fw-regular: 400;    // 본문
+$fw-medium: 500;     // 표 머리·라벨
+$fw-strong: 600;     // 본문 속 강조(상위 항목·핵심 숫자) — 본문의 최대
+$fw-heading: 700;    // 제목류
+
+.rp-page {
+  position: relative;
+  width: 210mm;
+  height: 297mm;
+  padding: 14mm 14mm 22mm;
+  overflow: hidden;
+  background: #fff;
+  color: $rp-text;
+  font-family: 'Pretendard Variable', sans-serif;
+  font-size: $fs-body;
+  font-weight: $fw-regular;
+  line-height: 1.55;
+  box-sizing: border-box;
+
+  *, *::before, *::after { box-sizing: border-box; }
+  p { margin: 0; }
+}
+
+// ── 공통 머리말(2쪽~) ──
+.rp-run {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 3mm;
+  margin-bottom: 6mm;
+  border-bottom: 0.6mm solid $rp-yellow;
+
+  &__l { display: flex; align-items: center; gap: 3mm; font-weight: $fw-heading; font-size: $fs-heading; }
+  &__l img { height: 6mm; }
+  &__l em { font-style: normal; font-weight: $fw-medium; font-size: $fs-heading; color: $rp-yellow-text; }
+  &__r { font-size: 8pt; color: $rp-meta; }
+}
+
+// ── 공통 꼬리말 ──
+.rp-foot {
+  position: absolute;
+  left: 14mm;
+  right: 14mm;
+  bottom: 9mm;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-top: 2.5mm;
+  border-top: 0.2mm solid #ddd;
+  font-size: 6.5pt;
+  line-height: 1.5;
+  color: $rp-meta;
+
+  &__l { display: flex; gap: 3mm; align-items: center; }
+  &__l img { height: 7mm; }
+  &__n { font-size: $fs-body; font-weight: $fw-medium; color: $rp-sub; }
+}
+
+// ── 표지(1쪽 위) ──
+.rp-cover {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 7mm;
+
+  &__l { flex: 1; padding-top: 2mm; }
+  &__l > img { height: 9mm; }
+  &__title { margin: 9mm 0 1mm; font-size: $fs-display; font-weight: $fw-heading; letter-spacing: -0.02em; }
+  &__sub { font-size: $fs-title; font-weight: $fw-strong; color: $rp-yellow-text; }
+  &__date { width: 95mm; margin-top: 6mm; padding-top: 2mm; border-top: 0.3mm solid $rp-yellow; font-size: 8.5pt; color: $rp-meta; text-align: right; }
+  &__panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 62mm;
+    padding: 7mm 6mm;
+    border-radius: 0 0 0 14mm;
+    background: linear-gradient(160deg, $rp-yellow 0%, #ffe680 55%, #fff6cc 100%);
+
+    p { font-size: $fs-body; font-weight: $fw-strong; line-height: 1.4; color: #6b5300; text-align: right; }
+    img { width: 22mm; align-self: flex-end; }
+  }
+}
+
+// ── 섹션(TCI 회색 띠) ──
+.rp-sec { margin-bottom: 6mm; }
+// 앱만: 마지막 쪽(맞는/맞지 않는 환경 · 추천 Top 5 · 활용 안내)은 구역 간격을 줄인다 — 가장 긴 결과(관심 33개 ·
+// 업무 환경 6개 모두 3이 아님)에서 1px 넘쳤다(2026-11-06). 랜딩은 4쪽 구성이 달라 그대로
+.rp-page:last-child .rp-sec { margin-bottom: 4.5mm; }
+.rp-sec__h {
+  display: flex;
+  align-items: center;
+  gap: 2.5mm;
+  padding: 2.2mm 3mm;
+  border-top: 0.4mm solid $rp-text;
+  background: $rp-head-bg;
+  font-size: $fs-heading;
+  font-weight: $fw-heading;
+
+  i { display: inline-block; width: 1.2mm; height: 3.6mm; background: $rp-yellow; }
+  small { margin-left: auto; font-size: $fs-small; font-weight: $fw-regular; color: $rp-meta; }
+}
+
+// ── 표 ──
+.rp-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th, td { padding: 1.8mm 2.2mm; border-bottom: 0.2mm solid $rp-line; text-align: left; vertical-align: middle; }
+  th { background: #fafaf8; font-size: $fs-small; font-weight: $fw-medium; color: $rp-meta; text-align: center; white-space: nowrap; }
+  th.l { text-align: left; }
+  td.c { text-align: center; }
+  td.num { text-align: center; font-weight: $fw-regular; font-variant-numeric: tabular-nums; }
+  td.desc { font-size: $fs-small; color: $rp-sub; }
+  td.muted { color: $rp-meta; }
+  td.label { font-weight: $fw-medium; }           // 항목 이름(강조 아님)
+  .strong { font-weight: $fw-strong; }            // 본문 속 강조 — 600 이 최대
+  .top { font-weight: $fw-heading; }              // 프로파일 상위 3개 이름(예외, 위 주석)
+  // 상위 3개 점수 — ⚠️ td.num(굵기 400)보다 우선순위가 높아야 해서 td 를 붙인다(안 붙이면 굵기가 묻힌다)
+  // 색은 화면 성격 분포와 같게: 1위 노랑 글씨 · 2~3위 파랑 글씨
+  td.hl, .hl { font-weight: $fw-heading; color: $rp-yellow-text; }
+  td.hl2, .hl2 { font-weight: $fw-heading; color: $rp-blue-text; }
+  .blue { color: $rp-blue-text; }
+}
+.rp-kv td { width: 50%; }
+.rp-table--tight td { padding-top: 1.2mm; padding-bottom: 1.2mm; }   // 칩만 있는 짧은 줄(관심 분야) — 3쪽 여유 확보
+.rp-kv b { display: inline-block; width: 22mm; font-weight: $fw-medium; color: $rp-meta; }
+
+.rp-note {
+  margin: 2mm 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 7pt;
+  color: $rp-meta;
+
+  li::before { content: '* '; }
+}
+
+// ── 배지 · 칩 ──
+.rp-tag {
+  display: inline-block;
+  margin-right: 1.5mm;
+  padding: 0.6mm 2.6mm;
+  border: 0.25mm solid;
+  border-radius: 10mm;
+  font-size: $fs-small;
+  font-weight: $fw-medium;
+  white-space: nowrap;
+
+  &--y { border-color: $rp-yellow-line; background: $rp-yellow-tint; color: $rp-yellow-text; }
+  &--b { border-color: $rp-blue-line; background: $rp-blue-tint; color: $rp-blue-text; }
+  &--n { border-color: #eaeaea; background: $rp-alt; color: $rp-sub; }   // 강조 없는 순위(화면 Top 5 의 2~5위 회색 번호)
+}
+.rp-chip {
+  display: inline-block;
+  white-space: nowrap; // ⚠️ 없으면 두 글자 칩('심리')이 세로로 꺾인다(랜딩 전역 스타일 영향)
+  margin: 0 1mm 1mm 0;
+  padding: 0.4mm 2mm;
+  border: 0.2mm solid $rp-blue-line;
+  border-radius: 10mm;
+  background: #fff;
+  font-size: 7pt;
+  font-weight: $fw-strong;   // 화면 태그와 같게 본문 회색 600
+  color: $rp-body;
+}
+
+// ── 막대 ──
+.rp-bar {
+  position: relative;
+  height: 2.2mm;   // 3.2mm 는 너무 뚱뚱, 1.8mm 는 조금 가늘었다(2026-10-15)
+  border-radius: 1mm;
+  background: #f0f0ee;
+
+  &__f { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 1mm; }
+  // 굵기는 정수 px — ReportBar.vue AVG_W 와 같게(소수 mm 면 캡처 때 선마다 굵기가 달라진다)
+  // 막대보다 눈에 띄면 안 된다 — 검정 2px 은 너무 짙었다. 회색 1px
+  &__avg { position: absolute; top: -3px; bottom: -3px; width: 1px; background: #8a8a8a; }
+}
+.rp-scale { display: flex; justify-content: space-between; font-size: $fs-micro; font-weight: $fw-regular; color: $rp-meta; }
+
+// ── 성격 유형 ──
+.rp-type {
+  display: flex;
+  gap: 6mm;
+  align-items: center;
+  padding: 4mm 5mm;
+  border: 0.2mm solid $rp-line;
+  border-top: none;
+  background: linear-gradient(160deg, #fffdf0 0%, $rp-blue-tint 100%);   // 화면 성격 유형 상자와 같은 바탕
+
+  img { width: 26mm; height: 30mm; object-fit: contain; }
+  &__name { margin: 0 0 1.5mm !important; font-size: $fs-title; font-weight: $fw-heading; }
+  &__desc { margin: 0 0 2.5mm !important; color: $rp-body; }
+}
+
+// ── 한 줄 요약 ── 화면 '나는' 상자: 흰 바탕 + 연파랑 테두리, 핵심어만 하늘색 칩(3색 → 한 색)
+.rp-summary {
+  padding: 4mm 5mm;
+  border: 0.2mm solid $rp-blue-line;
+  border-top: none;
+  font-size: 10.5pt;
+  font-weight: $fw-medium;
+  line-height: 1.9;
+  color: $rp-body;
+
+  span { padding: 0.5mm 1.6mm; border-radius: 1mm; background: $rp-blue-tint; color: $rp-blue-text; font-weight: $fw-strong; }
+}
+
+// ── 관심 분야 ── 분야 이름은 파랑 글씨(화면 .rr__interest-cat)
+.rp-interest-cat { font-weight: $fw-strong; color: $rp-blue-text; }
+
+// ── 업무 환경 ── 영역 색 = 청록
+.rp-dots {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 1mm;
+
+  &::before { content: ''; position: absolute; left: 2mm; right: 2mm; top: 50%; height: 0.2mm; background: #ddd; }
+}
+.rp-dot {
+  position: relative;
+  width: 3.4mm;
+  height: 3.4mm;
+  border: 0.3mm solid #ccc;
+  border-radius: 50%;
+  background: #fff;
+
+  &.on { border-color: $rp-green; background: $rp-green; }
+  &.avg { border-color: $rp-sub; border-style: dashed; }
+}
+.rp-level { color: $rp-green-text; font-weight: $fw-strong; }
+.rp-two { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin-top: 3mm; }
+.rp-box {
+  padding: 2.8mm 3.5mm;
+  border-radius: 2mm;
+  font-size: 8pt;     // 9pt 면 6개 파트가 모두 문장을 가질 때(최대) 3쪽이 꼬리말 밑으로 넘쳤다(2026-11-02)
+  line-height: 1.5;
+  color: $rp-body;
+
+  h4 { display: flex; align-items: center; gap: 1.6mm; margin: 0 0 2mm; font-size: $fs-body; font-weight: $fw-strong; color: $rp-text; }
+  // 화면처럼 상자 전체를 칠하지 않고 머리의 작은 점만 색(✅❌ 이모지 대신)
+  h4::before { content: ''; flex: none; width: 2.4mm; height: 2.4mm; border-radius: 50%; background: #9a9a9a; }
+  p { margin: 0 0 0.8mm; }
+  &--g { background: $rp-green-tint; h4::before { background: $rp-green; } }
+  &--r { background: $rp-alt; h4::before { background: $rp-red; } }
+}
+.rp-chips { margin-top: 2mm; padding-top: 2mm; border-top: 0.2mm solid rgba(0, 0, 0, 0.06); }
+.rp-box .rp-chip { border-color: transparent; }   // 화면처럼 색 바탕 위 흰 알약
+
+// ── 추천 직업 ──
+.rp-job__t { font-weight: $fw-strong; }
+.rp-job small { display: block; font-size: 7pt; color: $rp-meta; }
+.rp-match { font-size: 10pt; font-weight: $fw-strong; color: $rp-yellow-text; }   // 화면 Top 5 점수 배지 글씨(금색)
+.rp-jobmeta { font-size: 7.5pt; color: $rp-sub; }
+
+// 현재 직업과의 매칭도 — 화면(.rr__cj)처럼 직업명에 노란 형광펜, 순위·해석 줄은 본문 회색 600, 링은 노랑
+.rp-cj {
+  &__name {
+    font-size: 10.5pt;
+    font-weight: $fw-strong;
+    text-decoration: underline;
+    text-decoration-color: $rp-yellow-tint;
+    text-decoration-thickness: 0.42em;
+    text-underline-offset: -0.3em;
+    text-decoration-skip-ink: none;
+  }
+  &__rank { display: block; margin-top: 1mm; font-size: $fs-small; font-weight: $fw-strong; color: $rp-body; }
+  &__band { display: block; font-size: $fs-small; font-weight: $fw-strong; color: $rp-body; }
+  &__top5 { display: block; margin-top: 0.8mm; font-size: $fs-small; font-weight: $fw-strong; color: $rp-yellow-text; }
+  &__area { display: block; margin-top: 0.8mm; font-size: $fs-small; color: $rp-sub; }
+  &__field { font-size: $fs-small; b { font-weight: $fw-strong; } }
+  &__field-sub { margin-left: 2mm; color: $rp-sub; }
+  &__field-list { display: flex; flex-wrap: wrap; gap: 1mm 5mm; margin-top: 1.2mm; }
+  &__peer { color: $rp-text; font-weight: $fw-strong; em { font-style: normal; font-weight: $fw-regular; color: $rp-meta; margin-left: 1mm; } b { font-weight: $fw-strong; color: $rp-yellow-text; } }
+  &__mine { margin-left: 1.5mm; padding: 0.3mm 1.6mm; border-radius: 10mm; background: $rp-yellow-tint; font-size: 6.5pt; font-weight: $fw-strong; color: $rp-yellow-text; }
+}
+// 영역별 일치도 — 화면 결과지 .rr__job-bars 와 같게(2026-11-02 리뉴얼): 단색 3색 막대, 라벨 앞 색 점, 라벨·숫자는 본문 회색.
+// PDF 는 표 칸 안이라 **상자를 두르지 않는다** — 회색 바탕·라벨 색 배경까지 겹치면 상자가 3겹이 된다(2026-10-15)
+.rp-jbars {
+  display: grid;
+  grid-template-columns: max-content 1fr 6mm;
+  align-items: center;
+  row-gap: 1.3mm;
+  column-gap: 2.5mm;
+
+  &__l { display: inline-flex; align-items: center; gap: 1.2mm; font-size: 6.5pt; font-weight: $fw-medium; color: $rp-body; white-space: nowrap; }
+  &__l::before { content: ''; flex: none; width: 1.4mm; height: 1.4mm; border-radius: 50%; }
+  &__t { display: block; height: 2.2mm; border-radius: 1.1mm; background: $rp-alt; overflow: hidden; }
+  &__f { display: block; height: 100%; border-radius: 1.1mm; }
+  &__v { font-size: 7pt; font-weight: $fw-regular; color: $rp-body; text-align: right; font-variant-numeric: tabular-nums; }
+
+  &__l.rp-jbars--t1::before, &__f.rp-jbars--t1 { background: $rp-tri-1; }
+  &__l.rp-jbars--t2::before, &__f.rp-jbars--t2 { background: $rp-tri-2; }
+  &__l.rp-jbars--t3::before, &__f.rp-jbars--t3 { background: $rp-tri-3; }
+}
