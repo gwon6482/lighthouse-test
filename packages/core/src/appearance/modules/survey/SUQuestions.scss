@@ -298,6 +298,7 @@
   }
 
   .item-btn {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -306,6 +307,7 @@
     border: 2px solid $color-border;
     border-radius: 10px;
     background: $color-surface;
+    font-family: inherit; // button 은 글꼴을 물려받지 않는다 — 없으면 Arial 로 나온다
     cursor: pointer;
     transition: all $transition-base;
     text-align: left;
@@ -321,25 +323,42 @@
     &.selected {
       border-color: $color-primary;
       background: $color-primary-tint;
+
+      // 색만으로 구분하지 않게 체크 표시 — 분야명 줄 오른쪽 위라 설명 줄바꿈은 그대로다. 체크 색 = $color-text-body
+      &::after {
+        content: '';
+        position: absolute;
+        top: 13px;
+        right: 14px;
+        width: 22px;
+        height: 22px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M4.5 10.5l3.6 3.6 7.4-8' stroke='%23333333' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+      }
     }
   }
 
   .item-name {
-    font-size: $fs-md;
+    font-size: $fs-base;
     font-weight: $fw-medium;
+    line-height: $lh-heading;
     color: $color-text;
+    word-break: keep-all;
   }
 
   .item-text {
-    font-size: $fs-xs;
+    font-size: $fs-xs; // 데스크탑은 한 줄에 들어가게
     color: $color-text-sub;
     margin-top: 4px;
     line-height: $lh-body;
+    word-break: keep-all;
+    text-wrap: pretty; // 끝 단어 "지식"만 다음 줄로 떨어지지 않게
+
+    @media (max-width: 480px) { font-size: $fs-sm; }
   }
 
   .selected-count {
     margin-top: $space-lg;
-    font-size: $fs-sm;
+    font-size: $fs-xs;
     color: $color-text-meta;
     text-align: right;
   }
