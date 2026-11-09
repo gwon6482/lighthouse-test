@@ -15,6 +15,7 @@
 </template>
 
 <script setup lang="ts">
+import { linkPendingGuestSurvey } from '@/shared/guest/guestSurvey'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
@@ -96,6 +97,9 @@ onMounted(async () => {
     router.replace({ path: '/onboarding/signup', query: { social: '1' } })
     return
   }
+
+  // 이 기기에서 한 비회원 검사가 있으면 계정에 연결한다(2026-11-09). 기존 회원은 연결한 뒤 지금 단계로 간다(사용자 결정)
+  await linkPendingGuestSurvey()
 
   // 이메일 로그인(AuthPage.handleLogin)과 같은 분기를 쓴다.
   await achievementStore.loadActivePlan()

@@ -66,6 +66,18 @@
             >여성</button>
           </div>
         </div>
+        <!-- 만 14세 이상만 가입(이용약관, 2026-11-09 위저드에 추가) — 14세 미만은 법정대리인 동의가 필요해 받지 않는다 -->
+        <p v-if="form.age != null && form.age > 0 && form.age < 14" class="wiz__underage">
+          만 14세 미만은 가입할 수 없어요. 회원 가입 없이 검사는 해 볼 수 있어요.
+        </p>
+        <label class="wiz__consent">
+          <input v-model="form.agreed" type="checkbox" />
+          <span>
+            만 14세 이상이며,
+            <a href="https://www.lighthouse.career/terms" target="_blank" rel="noopener">이용약관</a>과
+            <a href="https://www.lighthouse.career/privacy" target="_blank" rel="noopener">개인정보처리방침</a>에 동의해요. (필수)
+          </span>
+        </label>
       </section>
 
       <!-- step 3: Q1 (단일) -->
@@ -128,6 +140,7 @@
 </template>
 
 <script setup lang="ts">
+import { linkPendingGuestSurvey } from '@/shared/guest/guestSurvey'
 import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { req } from '@/shared/api'
@@ -159,6 +172,7 @@ const form = reactive({
   passwordConfirm: '',
   name: '',
   age: null as number | null,
+  agreed: false,   // 약관·처리방침 동의 + 만 14세 이상 확인(필수)
   gender: '' as '' | 'M' | 'F',
   q1: null as number | null,
   q2: [] as number[],
@@ -222,7 +236,7 @@ const canNext = computed(() => {
   switch (step.value) {
     case 0: return !!form.email && form.password.length >= 6 && form.password === form.passwordConfirm
     case 1: return form.name.trim().length > 0
-    case 2: return !!form.age && form.age > 0 && !!form.gender
+    case 2: return !!form.age && form.age >= 14 && !!form.gender && form.agreed
     case 3: return form.q1 !== null
     case 4: return form.q2.length > 0
     case 5: return form.q3 !== null
@@ -319,7 +333,10 @@ async function submit() {
       )
     } catch { /* quota */ }
 
-    router.replace('/onboarding/intro')
+    // 비회원 검사 → 가입이면 그 검사를 계정에 연결하고 결과지 전체로 돌아간다(소개 슬라이드·환영은 건너뜀, 2026-11-09).
+    // 결과지의 [다음 단계로]가 3단계(/main/before)로 이어 준다
+    const linked = await linkPendingGuestSurvey()
+    router.replace(linked ? `${linked}?next=1` : '/onboarding/intro')
   } catch (e: any) {
     error.value = e.response?.data?.error ?? '회원가입 중 오류가 발생했어요.'
   } finally {

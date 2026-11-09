@@ -80,6 +80,20 @@
       </div>
     </section>
 
+    <!-- 비회원(2026-11-09): '이 일을 하는 사람들'까지만 보여 주고 아래는 잠근다(features.guestEntry 빌드만).
+         목표 진로 설정은 두지 않는다 — '나에게 맞는 직업 찾기'로 비회원 검사(A 경로)로 보낸다(사용자 결정) -->
+    <GuestLockCard
+      v-if="locked"
+      class="overview-lock"
+      title="이 직업, 나와 맞을까요?"
+      :items="['일자리 현황', '필요한 능력·성격', '관련 직업', '후기 · 준비과정 · 채용']"
+      note="검사를 마치면 나머지 정보와 나에게 맞는 직무를 볼 수 있어요."
+    >
+      <RouterLink to="/start" class="overview-lock__cta">나에게 맞는 직업 찾기</RouterLink>
+      <RouterLink to="/onboarding/auth" class="overview-lock__login">이미 회원이에요 · 로그인</RouterLink>
+    </GuestLockCard>
+    <template v-else>
+
     <!-- 개인요소 / 업무요소 -->
     <section v-for="section in detailSections" :key="section.title" class="overview-section overview-section--cards">
       <div class="overview-section__header">
@@ -242,17 +256,19 @@
       </ul>
     </section>
 
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, onMounted } from 'vue'
+import GuestLockCard from '@/shared/components/GuestLockCard.vue'
 import type { Job, JobDetails, CategoryRankings, RankItem } from '../../../../types/encyclopedia'
 
 import { useCareerAttributes } from '@/shared/composables/useCareerAttributes'
 import JobGateGuide from '@/shared/components/JobGateGuide.vue'
 
-const props = defineProps<{ job: Job }>()
+const props = defineProps<{ job: Job; locked?: boolean }>()
 
 type FactorKey = keyof JobDetails
 type DimKey = '중요도' | '수준'

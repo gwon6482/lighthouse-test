@@ -27,11 +27,13 @@ export function authBoundaryAction(hasToken: boolean, wantsLogout: boolean): Aut
 // 루트 가드('/')만으로는 `app.lighthouse.career/self-understanding` 같은 직접 진입을 막지 못했다(2026-11-02).
 //
 // 지금은 자기이해 검사만 막는다(사용자 결정 2026-11-02). 앱 화면 흐름에서 검사 입구는 전부 로그인 뒤에 있다.
-// ⚠️ 나중에 '검사 → 회원가입' 흐름(비로그인으로 검사 후 가입 유도)을 열 때는 여기서 그 경로를 빼면 된다.
-//    결과 화면의 비로그인 가입 유도(SelfUnderstandingResultPage 의 SignUpModal)는 그때를 위해 남겨 뒀다.
+// 비로그인 검사 → 가입 흐름은 아래 guestEntry 로 연다(2026-11-09).
 const LOGIN_REQUIRED_PREFIXES = ['/self-understanding']
 
-export function needsLogin(path: string, hasToken: boolean): boolean {
+// 비회원 진입 경로(features.guestEntry, 2026-11-09)가 켜지면 검사는 비로그인으로도 연다 —
+// 결과지는 비회원에게 일부만 보여 주고 잠근다(SurveyResultBody). 마이페이지 등 나머지는 그대로 로그인 전용
+export function needsLogin(path: string, hasToken: boolean, guestEntry = false): boolean {
   if (hasToken) return false
+  if (guestEntry) return false
   return LOGIN_REQUIRED_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`))
 }

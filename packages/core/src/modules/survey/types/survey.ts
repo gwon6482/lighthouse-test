@@ -114,6 +114,8 @@ export interface SurveySubmitRequest {
 export interface SurveySubmitResponse {
   success: boolean
   message?: string
+  /** 비회원 제출일 때만 — 결과 조회·삭제·가입 뒤 연결에 쓰는 열람 키(2026-11-09) */
+  guestKey?: string
   data?: {
     survey_id: string
     respondent_id: string

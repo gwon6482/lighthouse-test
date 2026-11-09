@@ -1,4 +1,5 @@
 import { AREA_COLOR } from '@/modules/survey/surveyIcons'
+import { saveGuestSurvey } from '@/shared/guest/guestSurvey'
 /**
  * useSurvey Composable
  *
@@ -430,6 +431,8 @@ export function useSurvey() {
 
       // 제출 완료 → 저장된 진행상황 정리 (완료된 설문 재복원 방지)
       clearPersistedProgress()
+      // 비회원 제출이면 서버가 열람 키를 준다 — 이 기기에 두고 결과 조회·삭제·가입 뒤 연결에 쓴다(shared/guest/guestSurvey)
+      if (data.guestKey) saveGuestSurvey(surveyId.value, data.guestKey)
 
       return data
     } catch (e) {
