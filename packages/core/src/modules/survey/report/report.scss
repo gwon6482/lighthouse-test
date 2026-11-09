@@ -337,13 +337,13 @@ $fw-heading: 700;    // 제목류
   &__l.rp-jbars--t3::before, &__f.rp-jbars--t3 { background: $rp-tri-3; }
 }
 
-// ── 나에게 맞는 직무 3가지 — 앱 전용(2026-11-09, sections/SecJobGroups.vue) ──
+// ── 나에게 맞는 직무 3가지(2026-11-09, sections/SecJobGroups.vue — 랜딩 정본과 같다) ──
 // '특히 잘 맞는 점'의 핵심어 — 화면 직무 카드처럼 영역 색의 진한 글씨(성격 = 주황, 나머지 = 파랑). 본문이라 굵기는 600 까지
 .rp-grp-why { font-size: $fs-small; color: $rp-body; }
 .rp-kw { font-weight: $fw-strong; color: $rp-blue-text; &--t1 { color: #b4532a; } }
 .rp-ax { color: $rp-meta; }   // '(가치관)' — 어느 영역의 항목인지
 
-// 직업 순위 Top 5 요약 띠 — 앱 전용(2026-11-09, sections/SecJobsStrip.vue). 가로 5칸, 칸 사이 세로줄
+// 직업 순위 Top 5 요약 띠(2026-11-09, sections/SecJobsStrip.vue — 랜딩 정본과 같다). 가로 5칸, 칸 사이 세로줄
 .rp-js { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 0.2mm solid $rp-line; border-bottom: 0.2mm solid $rp-line; }
 .rp-js__cell {
   display: flex;
