@@ -189,8 +189,9 @@
             </div>
 
             <!-- 이유 한 문장 — 결과지에 나온 이름 중 이 직무의 대표 직업들이 중요하게 쓰는 것(2개까지, 서버가 고른다). 없으면 문장째 뺀다.
+                 핵심어 뒤 회색 괄호 = 어느 영역의 항목인지("지적 추구(가치관)와") — 조사는 괄호 앞 단어를 따른다(2026-11-09 사용자 요청).
                  ⚠️ 한 줄로 둔다 — 줄을 바꾸면 핵심어와 조사 사이에 공백이 생긴다 -->
-            <p v-if="g.reasons.length" class="rr__grp-why"><template v-for="(seg, k) in whyParts(g)" :key="k"><b v-if="seg.kw" :class="['rr__grp-kw', { 'rr__grp-kw--t1': seg.kw.axis === 'T1' }]">{{ seg.kw.name }}</b><template v-else>{{ seg.text }}</template></template></p>
+            <p v-if="g.reasons.length" class="rr__grp-why"><template v-for="(seg, k) in whyParts(g)" :key="k"><template v-if="seg.kw"><b :class="['rr__grp-kw', { 'rr__grp-kw--t1': seg.kw.axis === 'T1' }]">{{ seg.kw.name }}</b><span class="rr__grp-ax">({{ REASON_AXIS[seg.kw.axis] }})</span></template><template v-else>{{ seg.text }}</template></template></p>
 
             <div class="rr__grp-jobs">
               <p class="rr__grp-label">{{ isOpen(g) ? `직업 ${g.jobCount}개 · 나와 맞는 순` : '대표 직업' }}</p>
@@ -890,15 +891,18 @@ const toggleOpen = (g: JobGroupRecommend) => {
   openGroups.value = isOpen(g) ? openGroups.value.filter((c) => c !== g.code) : [...openGroups.value, g.code]
 }
 
+// 이유 항목의 영역 — 결과지에서 그 이름이 나온 구역(성격 분포 · 재능 Top 3 · 관심 분야 · 나의 가치관)
+const REASON_AXIS: Record<JobGroupReason['axis'], string> = { T1: '성격', T21: '재능', T22: '관심', T23: '가치관' }
 // 조사 — 받침이 있으면 앞 것(과·이). 한글이 아니면 둘 다
 const josa = (w: string, batchim: string, none: string) => { const c = w.trim().slice(-1).charCodeAt(0) - 0xac00; return c < 0 || c > 11171 ? `${batchim}(${none})` : c % 28 ? batchim : none }
 // "특히 A와 B가 잘 맞아요" — 핵심어만 굵은 색 글씨. 칩 상자를 씌우면 조사가 떨어져 보였다(시안 때 실제로 그랬다)
+// '잘 맞아요'는 줄바꿈 없는 공백으로 붙인다 — 영역 괄호가 붙어 길어지자 '잘 / 맞아요'로 끊겼다
 function whyParts(g: JobGroupRecommend): { text?: string; kw?: JobGroupReason }[] {
   const [a, b] = g.reasons
   if (!a) return []
   return b
-    ? [{ text: '특히 ' }, { kw: a }, { text: `${josa(a.name, '과', '와')} ` }, { kw: b }, { text: `${josa(b.name, '이', '가')} 잘 맞아요` }]
-    : [{ text: '특히 ' }, { kw: a }, { text: `${josa(a.name, '이', '가')} 잘 맞아요` }]
+    ? [{ text: '특히 ' }, { kw: a }, { text: `${josa(a.name, '과', '와')} ` }, { kw: b }, { text: `${josa(b.name, '이', '가')} 잘\u00a0맞아요` }]
+    : [{ text: '특히 ' }, { kw: a }, { text: `${josa(a.name, '이', '가')} 잘\u00a0맞아요` }]
 }
 
 async function loadJobGroups() {
@@ -1334,6 +1338,7 @@ $c-text-3: #767676;  // 메타 — 분류·급여, 순위, 작은 안내
 // 핵심어는 영역 색의 진한 글씨 — 성격 = 주황, 재능·가치관·관심 = 파랑. 줄 끝에서 '맞아/요'로 끊기지 않게 keep-all
 .rr__grp-why { margin-top: 14px; font-size: 0.86rem; font-weight: 500; line-height: 1.6; color: $c-text-body; word-break: keep-all; }
 .rr__grp-kw { font-weight: 700; color: $c-b-text; &--t1 { color: #b4532a; } }
+.rr__grp-ax { font-weight: 500; color: $c-text-3; }   // '(가치관)' — 핵심어보다 한참 약하게
 .rr__grp-jobs { margin-top: 14px; padding: 10px 14px 4px; border-radius: 12px; background: #f6f6f4; }
 .rr__grp-label { font-size: 0.7rem; font-weight: 700; color: $c-text-3; }
 .rr__grp-list { margin-top: 2px; list-style: none; }
