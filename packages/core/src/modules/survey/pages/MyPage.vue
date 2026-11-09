@@ -46,7 +46,7 @@
         </ul>
         <div class="ci-test__actions">
           <button v-if="latestSurvey" type="button" class="ci-btn ci-btn--ghost" @click="router.push(`/self-understanding/result/${latestSurvey.survey_id}`)">내 결과 보기</button>
-          <button type="button" class="ci-btn" @click="router.push('/self-understanding/intro')">{{ latestSurvey ? '다시 검사하기' : '검사 시작하기' }}</button>
+          <button type="button" class="ci-btn" @click="router.push('/self-understanding')">{{ latestSurvey ? '다시 검사하기' : '검사 시작하기' }}</button>
         </div>
         <!-- 지난 결과 — 예전 목록에 있던 것을 카드 안에 작게 -->
         <div v-if="surveyResults.length > 1" class="mp-past">

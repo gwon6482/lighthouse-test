@@ -17,7 +17,8 @@
   }
 
   // 소개 박스는 바깥 여백(좌우 $space-lg)이 있어 그만큼 좁힌다
-  > .su-main__intro {
+  > .su-main__intro,
+  > .su-main__guest {
     width: calc(100% - #{$space-lg * 2});
     max-width: 480px - $space-lg * 2;
   }
@@ -43,6 +44,57 @@
 
   &__intro {
     margin: 0 $space-lg 20px;
+  }
+
+  // 비회원 안내 — 소개 박스와 검사 절차 사이
+  &__guest {
+    margin-bottom: 20px;
+    padding: 16px 18px;
+    border-radius: $radius-card;
+    border: 1px solid $color-border;
+    background: $color-surface;
+  }
+
+  &__guest-title {
+    font-size: $fs-base;
+    font-weight: $fw-semibold;
+    color: $color-text;
+    margin-bottom: 10px;
+  }
+
+  &__guest-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      gap: 8px;
+      font-size: $fs-sm;
+      line-height: 1.5;
+      color: $color-text-sub;
+      word-break: keep-all;
+    }
+  }
+
+  &__guest-icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    padding-top: 2px;
+    color: $color-text-meta;
+  }
+
+  &__guest-login {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: $fs-2xs;
+    font-weight: 600;
+    color: $color-text-sub;
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   &__section {

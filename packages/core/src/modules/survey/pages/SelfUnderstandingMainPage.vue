@@ -19,6 +19,17 @@
       bodyLine2="내 성격과 재능, 흥미를 알아보는 것부터 시작해 볼게요."
     />
 
+    <!-- 비회원 안내(2026-11-09, features.guestEntry) — 결과지 잠금·삭제 규칙을 시작 전에 알린다(처리방침 제2·3조와 같은 내용) -->
+    <div v-if="guest" class="su-main__guest">
+      <p class="su-main__guest-title">가입 없이 바로 시작할 수 있어요</p>
+      <ul class="su-main__guest-list">
+        <li><span class="su-main__guest-icon"><AppIcon name="ui-check" /></span>검사를 마치면 성격 분석 결과를 바로 볼 수 있어요.</li>
+        <li><span class="su-main__guest-icon"><AppIcon name="ui-privacy" /></span>재능·가치관·관심, 업무 환경, 나에게 맞는 직무는 카카오·구글로 로그인하면 볼 수 있어요.</li>
+        <li><span class="su-main__guest-icon"><AppIcon name="ui-duration" /></span>가입하지 않고 나가면 검사 결과는 바로 삭제돼요. (늦어도 24시간 뒤)</li>
+      </ul>
+      <RouterLink to="/onboarding/auth" class="su-main__guest-login">이미 회원이에요 · 로그인</RouterLink>
+    </div>
+
     <!-- 검사 절차 -->
     <div class="su-main__section">
       <h2 class="su-main__section-title">검사 절차</h2>
@@ -73,8 +84,12 @@ import { AREA_COLOR, TIP_ICON } from '@/modules/survey/surveyIcons'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/shared/components/AppHeader.vue'
 import JourneyIntro from '@/shared/components/JourneyIntro.vue'
+import { useAuthStore } from '@/shared/stores/auth'
+import { features } from '@/shared/config/features'
 
 const router = useRouter()
+const authStore = useAuthStore()
+const guest = features.guestEntry && !authStore.isLoggedIn
 
 // 영역 색(area)은 surveyIcons.AREA_COLOR 한 곳에서 — 파트 표지(SurveyPartIntro)와 같은 값
 // keywords — 설명을 다 읽지 않아도 한눈에 보이는 요약 배지

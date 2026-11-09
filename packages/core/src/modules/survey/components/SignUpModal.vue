@@ -239,7 +239,7 @@ const handleRegister = async () => {
     width: 100%;
     padding: 0.6875rem 0.875rem;
     font-size: 0.875rem;
-    font-family: 'Pretendard', sans-serif;
+    font-family: 'Pretendard Variable', Pretendard, sans-serif;
     border: 1px solid #EEEEE8;
     border-radius: 0.75rem;
     background: #FAFAF8;
@@ -272,7 +272,7 @@ const handleRegister = async () => {
     padding: 0.6875rem 0;
     font-size: 0.875rem;
     font-weight: 600;
-    font-family: 'Pretendard', sans-serif;
+    font-family: 'Pretendard Variable', Pretendard, sans-serif;
     border: 1px solid #EEEEE8;
     border-radius: 0.75rem;
     background: #FAFAF8;
@@ -307,7 +307,7 @@ const handleRegister = async () => {
     margin-top: 0.25rem;
     font-size: 0.9375rem;
     font-weight: 800;
-    font-family: 'Pretendard', sans-serif;
+    font-family: 'Pretendard Variable', Pretendard, sans-serif;
     letter-spacing: -0.2px;
     background: #FFD100;
     color: #1a1a1a;

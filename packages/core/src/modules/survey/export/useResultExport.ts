@@ -43,7 +43,7 @@ async function waitForAssets(el: HTMLElement) {
 
 // 🐢 앱 전용(랜딩에는 없음): 그림에 넣을 웹폰트 CSS 를 **한 번만** 만들어 재사용한다.
 //    html-to-image 는 찍을 때마다 문서의 모든 @font-face 를 내려받아 base64 로 넣는데, 앱은 Pretendard 가
-//    가변 폰트(npm) + 정적 9굵기(CDN, SelfUnderstandingIntro.scss) 로 두 벌이라 한 장에 10초 넘게 걸렸다
+//    가변 폰트(npm) + 정적 9굵기(CDN, 옛 SelfUnderstandingIntro.scss — 2026-11-09 삭제) 로 두 벌이라 한 장에 10초 넘게 걸렸다
 //    (여러 장 6장 = 94초, 2026-11-06 실측). 폰트는 장마다 같으므로 처음 만든 것을 그대로 쓴다.
 let fontEmbedCss: Promise<string> | null = null
 async function fontCssFor(el: HTMLElement) {

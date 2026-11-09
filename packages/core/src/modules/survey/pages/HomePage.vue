@@ -184,7 +184,6 @@ const menus = [
   { name: '진로달성', icon: '🏆', onClick: () => { showAchievementChoice.value = true } },
   // 설계 후 메인은 위 '진로달성'이 그 자체이므로, 여기선 설계 전 메인만 노출한다.
   { name: '메인 페이지(설계 전)', icon: '🏠', route: '/main/before' },
-  { name: '자기이해 랜딩페이지', icon: '🌟', route: '/self-understanding/intro' },
 ]
 
 const lastPage = () => {

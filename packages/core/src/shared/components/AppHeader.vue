@@ -42,7 +42,7 @@
   padding: 0.5rem 0.875rem;
   font-size: 0.8125rem;
   font-weight: 700;
-  font-family: 'Pretendard', sans-serif;
+  font-family: 'Pretendard Variable', Pretendard, sans-serif;
   text-decoration: none;
   cursor: pointer;
   white-space: nowrap;

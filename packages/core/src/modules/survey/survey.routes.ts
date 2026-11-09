@@ -17,7 +17,7 @@ export default [
     // 비회원 검사 홍보 링크(2026-11-09) — app.lighthouse.career/start?c=캠페인 → 검사 시작 안내.
     // 비회원 경로가 꺼진 빌드(features.guestEntry=false, 운영은 처리방침 시행 2026-11-16 전까지)는 루트로
     path: '/start',
-    redirect: (to: RouteLocation) => ({ path: features.guestEntry ? '/self-understanding/intro' : '/', query: to.query }),
+    redirect: (to: RouteLocation) => ({ path: features.guestEntry ? '/self-understanding' : '/', query: to.query }),
   },
   {
     path: '/main/before',
@@ -30,15 +30,13 @@ export default [
     component: () => import('./pages/SelfUnderstandingMainPage.vue'),
   },
   {
+    // 옛 검사 홍보·안내 페이지(intro·guide)는 2026-11-09 삭제 — 밖에 퍼진 옛 주소는 검사 소개로
     path: '/self-understanding/intro',
-    name: 'Self Understanding Intro',
-    component: () => import('./pages/SelfUnderstandingIntroPage.vue'),
+    redirect: (to: RouteLocation) => ({ path: '/self-understanding', query: to.query }),
   },
   {
-    // 검사 전체 안내 페이지 (SURVEY_FLOW_UPDATE.md 참고)
     path: '/self-understanding/guide',
-    name: 'Self Understanding Guide',
-    component: () => import('./pages/SelfUnderstandingGuidePage.vue'),
+    redirect: (to: RouteLocation) => ({ path: '/self-understanding', query: to.query }),
   },
   {
     path: '/self-understanding/select',
