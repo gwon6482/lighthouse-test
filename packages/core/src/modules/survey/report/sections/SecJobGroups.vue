@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-/** 나에게 맞는 직무 3가지 — **앱 전용**(2026-11-09). 랜딩 정본에는 없다(랜딩 결과지는 아직 직업 Top 5) */
+/** 나에게 맞는 직무 3가지(2026-11-09) — 랜딩 정본과 같다. 응답의 groups 가 비면 그리지 않는다(SecJobs 가 대신) */
 import { computed } from 'vue'
 import type { ResearchResultData } from '../reportData'
 import type { JobGroupRecommend } from '../../types/survey'

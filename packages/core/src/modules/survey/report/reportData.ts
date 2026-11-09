@@ -14,7 +14,7 @@ export interface ResearchResultData {
   completed_at?: string
   analysis: any
   recommend: any[]
-  /** 나에게 맞는 직무 3가지(GET /api/job/recommend-groups) — **앱 전용**(2026-11-09). 랜딩은 없다 */
+  /** 나에게 맞는 직무 3가지(앱 GET /api/job/recommend-groups · 랜딩은 연구 결과 응답의 groups, 2026-11-09) */
   groups?: JobGroupRecommend[] | null
   /** 연구 설문 실무자 전용 — 앱은 늘 null */
   currentJob?: CurrentJob | null
