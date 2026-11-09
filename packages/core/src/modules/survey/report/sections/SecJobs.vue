@@ -1,5 +1,6 @@
 <template>
-  <ReportSection v-if="jobs.length" :title="data.groups?.length ? T.jobs.headingRank : T.jobs.heading" :sub="T.jobs.sub">
+  <!-- 앱은 직무 3가지가 있으면 이 표 대신 요약 띠(SecJobsStrip)를 쓴다 — 직무를 못 불러왔을 때만 나온다(랜딩은 groups 가 없어 늘 나온다) -->
+  <ReportSection v-if="jobs.length && !data.groups?.length" :title="T.jobs.heading" :sub="T.jobs.sub">
     <table class="rp-table">
       <tr>
         <th />

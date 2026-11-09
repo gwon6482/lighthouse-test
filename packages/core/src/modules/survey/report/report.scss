@@ -342,3 +342,17 @@ $fw-heading: 700;    // 제목류
 .rp-grp-why { font-size: $fs-small; color: $rp-body; }
 .rp-kw { font-weight: $fw-strong; color: $rp-blue-text; &--t1 { color: #b4532a; } }
 .rp-ax { color: $rp-meta; }   // '(가치관)' — 어느 영역의 항목인지
+
+// 직업 순위 Top 5 요약 띠 — 앱 전용(2026-11-09, sections/SecJobsStrip.vue). 가로 5칸, 칸 사이 세로줄
+.rp-js { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 0.2mm solid $rp-line; border-bottom: 0.2mm solid $rp-line; }
+.rp-js__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1mm;
+  padding: 2.4mm 2.2mm;
+  & + & { border-left: 0.2mm solid $rp-line; }
+  small { font-size: 6.5pt; color: $rp-meta; }
+}
+.rp-js__t { font-weight: $fw-strong; line-height: 1.35; word-break: keep-all; }
+.rp-js__m { font-size: 10pt; font-weight: $fw-strong; color: $rp-yellow-text; }
