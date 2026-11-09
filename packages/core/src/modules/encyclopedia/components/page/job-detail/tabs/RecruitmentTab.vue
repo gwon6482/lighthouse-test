@@ -14,7 +14,7 @@
       </div>
 
       <div v-else-if="postings.length === 0" class="recruit-empty">
-        지금 이 직업으로 올라온 공고가 없어요.
+        지금 이 {{ groupCode ? '직무로' : '직업으로' }} 올라온 공고가 없어요.
       </div>
 
       <ul v-else class="recruit-list">
@@ -109,7 +109,7 @@
 <script setup lang="ts">
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { computed, ref, onMounted, watch } from 'vue'
-import { fetchJobRecruitments } from '../../../../encyclopedia.api'
+import { fetchJobRecruitments, fetchJobGroupRecruitments } from '../../../../encyclopedia.api'
 import { reactive } from 'vue'
 import type {
   RecruitmentPosting,
@@ -118,7 +118,9 @@ import type {
   RecruitmentOpeningGroup,
 } from '../../../../types/encyclopedia'
 
-const props = defineProps<{ jobCode: string }>()
+// 직업 하나(진로백과 채용 탭) 또는 직무 하나(결과지 직무 카드의 '채용 공고' 화면, 2026-11-09). 응답 모양은 같다
+const props = defineProps<{ jobCode?: string; groupCode?: string }>()
+const emit = defineEmits<{ (e: 'group', group: { code: string; name: string; fullName: string }): void }>()
 
 // 2026-10-16 가짜 샘플 공고(실제 회사명) 제거 후, 고용24 채용정보로 채운다.
 // ⚠️ 다시 샘플을 넣지 말 것. 출처를 늘릴 때는 서버(services/recruit/providers)만 고치면 이 화면은 그대로다
@@ -135,7 +137,13 @@ async function load() {
   isLoading.value = true
   error.value = null
   try {
-    const { data } = await fetchJobRecruitments(props.jobCode)
+    let data
+    if (props.groupCode) {
+      data = (await fetchJobGroupRecruitments(props.groupCode)).data
+      emit('group', data.group)
+    } else {
+      data = (await fetchJobRecruitments(props.jobCode!)).data
+    }
     postings.value = data.data.postings
     sources.value = data.data.sources
     openings.value = (data.data.openings ?? []).filter((g) => g.items.length)
@@ -150,7 +158,7 @@ async function load() {
 }
 
 onMounted(load)
-watch(() => props.jobCode, load)
+watch(() => [props.jobCode, props.groupCode], load)
 
 function tagsOf(p: RecruitmentPosting): string[] {
   return [p.region, p.career, p.education, p.employmentType, p.workSchedule ?? ''].filter(Boolean)

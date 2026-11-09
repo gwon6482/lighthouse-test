@@ -260,6 +260,11 @@ export interface JobRecruitmentResponse {
   }
 }
 
+/** 직무(고용24 채용 직종 중분류) 단위 — data 는 직업 단위와 같은 모양 */
+export interface JobGroupRecruitmentResponse extends JobRecruitmentResponse {
+  group: { code: string; name: string; fullName: string }
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // 세부 진로 페이지 탭 타입
 // ────────────────────────────────────────────────────────────────────────────

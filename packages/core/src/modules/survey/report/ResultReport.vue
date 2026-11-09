@@ -47,6 +47,7 @@ import SecEnvironment from './sections/SecEnvironment.vue'
 import SecEnvironmentFit from './sections/SecEnvironmentFit.vue'
 import SecCurrentJob from './sections/SecCurrentJob.vue'
 import SecJobs from './sections/SecJobs.vue'
+import SecJobGroups from './sections/SecJobGroups.vue'
 import SecGuide from './sections/SecGuide.vue'
 import { formatDate, type ReportMeta } from './reportUtil'
 
@@ -56,7 +57,10 @@ const PAGES = [
   // 앱만 다르다: '맞는/맞지 않는 환경'(SecEnvironmentFit)을 4쪽으로 — 관심 분야를 많이 고르면(33개) 3쪽이 122px 넘쳐
   // 잘렸다(2026-11-06). 앱엔 실무자 구역(SecCurrentJob)이 없어 4쪽이 늘 절반 넘게 빈다. 랜딩은 실무자 때문에 그대로 둔다
   [SecInterest, SecSummaryLine, SecEnvironment],
-  [SecEnvironmentFit, SecCurrentJob, SecJobs, SecGuide],   // SecCurrentJob 은 연구 설문 실무자만 — 앱에서는 늘 빈 구역
+  // 앱만 다르다(2026-11-09): 직무 3가지(SecJobGroups)가 본 추천 — 4쪽에 두고 직업 순위 Top 5 와 안내는 5쪽으로.
+  //   직무를 못 불러오면 SecJobGroups 는 빈 구역이 되고 5쪽에 예전처럼 직업 Top 5 가 온다
+  [SecEnvironmentFit, SecCurrentJob, SecJobGroups],   // SecCurrentJob 은 연구 설문 실무자만 — 앱에서는 늘 빈 구역
+  [SecJobs, SecGuide],
 ]
 
 const props = defineProps<{ data: ResearchResultData }>()

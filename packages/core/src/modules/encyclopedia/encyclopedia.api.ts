@@ -6,6 +6,7 @@ import type {
   JobReviewResponse,
   JobPreparationResponse,
   JobRecruitmentResponse,
+  JobGroupRecruitmentResponse,
 } from './types/encyclopedia'
 
 /**
@@ -41,6 +42,10 @@ export const fetchJobPreparations = (jobCode: string) =>
 /** 직업 채용정보 조회 GET /api/job/:jobCode/recruitment */
 export const fetchJobRecruitments = (jobCode: string, limit = 10) =>
   req.get<JobRecruitmentResponse>(`/api/job/${jobCode}/recruitment`, { params: { limit } })
+
+/** 직무 채용정보 조회 GET /api/job/groups/:code/recruitment — 결과지 직무 카드의 '채용 공고'(2026-11-09) */
+export const fetchJobGroupRecruitments = (code: string, limit = 10) =>
+  req.get<JobGroupRecruitmentResponse>(`/api/job/groups/${encodeURIComponent(code)}/recruitment`, { params: { limit } })
 
 /** 진로 뉴스 GET /api/news/career — 진로엔뉴스 RSS 의 제목·날짜·출처·원문 링크만(저작권상 썸네일·요약 없음, 2026-10-29) */
 export interface CareerNewsItem { title: string; url: string; publishedAt: string; source: string }

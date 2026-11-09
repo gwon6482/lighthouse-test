@@ -1,5 +1,5 @@
 import { req } from '@/shared/api'
-import type { SurveyFormResponse, SurveySubmitRequest, SurveySubmitResponse, SurveyAnalysisResponse, T2RecommendResponse, ComprehensiveRecommendResponse } from './types/survey'
+import type { SurveyFormResponse, SurveySubmitRequest, SurveySubmitResponse, SurveyAnalysisResponse, T2RecommendResponse, ComprehensiveRecommendResponse, JobGroupRecommendResponse } from './types/survey'
 
 /**
  * surveyApi 서비스
@@ -48,6 +48,10 @@ export const linkSurveyToUser = (survey_id: string) =>
 
 export const fetchComprehensiveRecommend = (surveyId: string, limit = 5) =>
   req.get<ComprehensiveRecommendResponse>(`/api/job/recommend/${surveyId}`, { params: { limit } })
+
+/** 나에게 맞는 직무 3가지(로그인 필요 — 이유에 결과지 항목 이름이 들어가 분석 API 와 같은 본인 확인을 건다) */
+export const fetchJobGroupRecommend = (surveyId: string) =>
+  req.get<JobGroupRecommendResponse>(`/api/job/recommend-groups/${surveyId}`)
 
 export const saveRecommendedJobs = (jobCodes: string[]) =>
   req.post<{ success: boolean; recommendedJobs: string[] }>('/api/user/recommended-jobs', { jobCodes })
