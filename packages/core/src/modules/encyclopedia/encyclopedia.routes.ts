@@ -1,3 +1,4 @@
+import type { RouteLocation } from 'vue-router'
 import { THEME_COLOR } from '@/shared/router/themeColor'
 export default [
   {
@@ -16,6 +17,12 @@ export default [
     path: '/career-encyclopedia/recommended',
     name: 'Career Encyclopedia Recommended',
     component: () => import('./pages/EncyclopediaRecommendedPage.vue'),
+  },
+  {
+    // 비회원 진로백과 홍보 링크(2026-11-09) — app.lighthouse.career/job/직업코드?c=캠페인.
+    // 직업 상세는 원래 비로그인으로 열린다. 비회원 경로가 켜진 빌드에선 '이 일을 하는 사람들' 아래를 잠근다(OverviewTab)
+    path: '/job/:jobCode',
+    redirect: (to: RouteLocation) => ({ path: `/career-encyclopedia/job/${to.params.jobCode}`, query: to.query }),
   },
   {
     path: '/career-encyclopedia/job/:jobCode',

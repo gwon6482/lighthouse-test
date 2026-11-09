@@ -519,3 +519,19 @@
 
 // 진입 관문 안내(2026-10-27) — 개요 맨 위
 .overview-gate { margin-bottom: 20px; }
+
+// 비회원 잠금(2026-11-09) — '이 일을 하는 사람들' 아래
+.overview-lock { margin: 8px 0 24px; }
+.overview-lock--tab { margin: 16px 16px 24px; }   // 다른 탭 자리 — 탭 본문은 좌우 여백이 없다
+.overview-lock__cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  border-radius: 12px;
+  background: #ffd100;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.overview-lock__login { font-size: 0.8rem; font-weight: 600; color: #5f6670; text-decoration: underline; text-underline-offset: 3px; }

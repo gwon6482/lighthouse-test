@@ -33,7 +33,19 @@
         <OverviewTab
           v-if="activeTab === 'overview'"
           :job="selectedJob"
+          :locked="guestLocked"
         />
+        <!-- 비회원은 개요 외 탭을 잠근다(2026-11-09, features.guestEntry 빌드만) -->
+        <GuestLockCard
+          v-else-if="guestLocked"
+          class="overview-lock overview-lock--tab"
+          title="로그인하면 볼 수 있어요"
+          :items="['직업 후기', '준비과정', '채용 공고']"
+          note="먼저 나에게 맞는 직업인지 검사해 보세요."
+        >
+          <RouterLink to="/start" class="overview-lock__cta">나에게 맞는 직업 찾기</RouterLink>
+          <RouterLink to="/onboarding/auth" class="overview-lock__login">이미 회원이에요 · 로그인</RouterLink>
+        </GuestLockCard>
         <ReviewTab
           v-else-if="activeTab === 'review'"
           :job-code="selectedJob.jobCode"
@@ -86,6 +98,8 @@ import OverviewTab from '../components/page/job-detail/tabs/OverviewTab.vue'
 import ReviewTab from '../components/page/job-detail/tabs/ReviewTab.vue'
 import PreparationTab from '../components/page/job-detail/tabs/PreparationTab.vue'
 import RecruitmentTab from '../components/page/job-detail/tabs/RecruitmentTab.vue'
+import GuestLockCard from '@/shared/components/GuestLockCard.vue'
+import { features } from '@/shared/config/features'
 
 const route = useRoute()
 const router = useRouter()
@@ -103,6 +117,9 @@ const {
   userRecommendedJobCodes,
   loadUserRecommendedJobCodes,
 } = useEncyclopedia()
+
+// 비회원 진로백과(2026-11-09): '이 일을 하는 사람들' 아래와 다른 탭을 잠근다. 목표 진로 버튼은 원래 로그인해야 보인다
+const guestLocked = computed(() => features.guestEntry && !authStore.isLoggedIn)
 
 const isCurrentJobRecommended = computed(() =>
   !!selectedJob.value &&

@@ -12,7 +12,7 @@
     <!-- 소개 텍스트 -->
     <JourneyIntro
       class="enc-home__intro"
-      :step="1"
+      :step="guest ? 0 : 1"
       headlineMain="꿈꾸는 직업을,"
       headlineEm="지금 찾아보세요."
       bodyLine1="세상에는 수많은 직업이 있어요."
@@ -52,8 +52,8 @@
         <button class="enc-home__menu-btn" @click="goToRecommended">
           <span class="enc-home__menu-icon"><AppIcon name="ui-recommend" /></span>
           <div class="enc-home__menu-text">
-            <span class="enc-home__menu-title">나의 추천 진로</span>
-            <span class="enc-home__menu-desc">자기이해 결과를 바탕으로 추천된 직업을 확인해보세요</span>
+            <span class="enc-home__menu-title">{{ guest ? '나에게 맞는 직업 찾기' : '나의 추천 진로' }}</span>
+            <span class="enc-home__menu-desc">{{ guest ? '자기이해 검사를 하면 나에게 맞는 직업을 추천해 드려요' : '자기이해 결과를 바탕으로 추천된 직업을 확인해보세요' }}</span>
           </div>
           <span class="enc-home__menu-arrow"><AppIcon name="ui-chevron-right" /></span>
         </button>
@@ -65,6 +65,8 @@
 <script setup lang="ts">
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/shared/stores/auth'
+import { features } from '@/shared/config/features'
 import { useEncyclopedia } from '../composables/useEncyclopedia'
 import type { JobSummary } from '../types/encyclopedia'
 import MainTitle from '../components/page/home/MainTitle.vue'
@@ -74,6 +76,9 @@ import RecommendedJobCard from '../components/page/home/RecommendedJobCard.vue'
 import SearchResult from '../components/page/home/SearchResult.vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
+// 비회원(2026-11-09, features.guestEntry 빌드만): 아직 검사 전이라 단계는 '자기이해' 에, 추천 메뉴는 검사 시작(A 경로)으로
+const guest = features.guestEntry && !authStore.isLoggedIn
 const { searchQuery, searchResults, isLoading, searchJob, clearSearch } = useEncyclopedia()
 
 const featuredJobs: JobSummary[] = [
@@ -99,6 +104,6 @@ function goToJobDetail(jobCode: string) {
 }
 
 function goToRecommended() {
-  router.push('/career-encyclopedia/recommended')
+  router.push(guest ? '/start' : '/career-encyclopedia/recommended')
 }
 </script>

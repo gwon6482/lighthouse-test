@@ -12,8 +12,14 @@
     </div>
 
     <div v-else-if="error" class="rr__state">
-      <p>결과를 불러오지 못했어요.<br />잠시 후 다시 시도해주세요.</p>
-      <button type="button" class="rr__retry" @click="load">다시 시도</button>
+      <template v-if="guestMode">
+        <p>결과를 볼 수 없어요.<br />가입하지 않은 검사 결과는 검사한 기기에서만,<br />24시간 동안만 볼 수 있어요.</p>
+        <RouterLink to="/start" class="rr__retry">검사 다시 하기</RouterLink>
+      </template>
+      <template v-else>
+        <p>결과를 불러오지 못했어요.<br />잠시 후 다시 시도해주세요.</p>
+        <button type="button" class="rr__retry" @click="load">다시 시도</button>
+      </template>
     </div>
 
     <template v-else-if="analysis">
@@ -39,7 +45,7 @@
         <p class="rr__eyebrow rr__eyebrow--y">성격 & 기질</p>
         <h2 class="rr__title">나의 성격 분포</h2>
         <p class="rr__sub">9가지 성격 요소에서 나의 점수예요</p>
-        <div v-for="(f, i) in analysis.personality.all" :key="f.code" class="rr__pd">
+        <div v-for="(f, i) in (guestMode ? analysis.personality.all.slice(0, 3) : analysis.personality.all)" :key="f.code" class="rr__pd">
           <div class="rr__pd-head">
             <span :class="['rr__pd-name', { 'is-top': i < 3 }]">
               {{ f.name }}
@@ -70,8 +76,27 @@
         </div>
       </section>
 
+      <!-- 비회원(2026-11-09): 아래 구역들을 흐리게 깔고 잠금 상자를 얹는다 — 무엇이 있는지 보여야 누른다.
+           결과는 본인 응답이라 화면에서만 가린다. 내보내기는 로그인 뒤에만 있다.
+           ⚠️ 구역을 상자로 감싸지 않는다 — 결과지 바로 아래 구역이 '여러 장 이미지'의 나눔 단위다(data-export-chunks) -->
+      <div v-if="guestMode" class="rr__lock">
+        <GuestLockCard
+          title="나머지 결과는 로그인하고 볼 수 있어요"
+          :items="['재능 · 가치관 · 관심', '업무 환경 성향', '나에게 맞는 직무 3가지']"
+          note="가입하지 않고 나가면 이 결과는 바로 삭제돼요. (늦어도 24시간 뒤 자동 삭제)"
+        >
+          <button v-if="providers.kakao" type="button" class="auth__social auth__social--kakao" @click="goOAuth('kakao')">
+            <span class="auth__social-icon">💬</span>카카오로 로그인하고 전체 보기
+          </button>
+          <button v-if="providers.google" type="button" class="auth__social auth__social--google" @click="goOAuth('google')">
+            <span class="auth__social-icon">G</span>구글로 로그인하고 전체 보기
+          </button>
+          <RouterLink to="/onboarding/auth" class="rr__lock-email">이메일로 가입 · 로그인</RouterLink>
+        </GuestLockCard>
+      </div>
+
       <!-- 3. 하고 싶은 일 -->
-      <section class="rr__sec rr__sec--gray">
+      <section :class="['rr__sec', 'rr__sec--gray', { 'rr__guest-blur': guestMode }]" :aria-hidden="guestMode || undefined">
         <p class="rr__eyebrow rr__eyebrow--s">하고 싶은 일</p>
         <h2 class="rr__title">재능 · 가치관 · 관심</h2>
 
@@ -126,7 +151,7 @@
       </section>
 
       <!-- 4. 업무 환경 -->
-      <section class="rr__sec">
+      <section :class="['rr__sec', { 'rr__guest-blur': guestMode }]" :aria-hidden="guestMode || undefined">
         <p class="rr__eyebrow rr__eyebrow--g">업무 환경</p>
         <h2 class="rr__title">나의 업무 환경 성향</h2>
 
@@ -157,7 +182,12 @@
            직업 Top 5 가 '엉뚱하다·뜬금없다'는 테스터 반응에 직업 하나 대신 직무(고용24 채용 직종 중분류)로 넓혔다.
            시안 https://claude.ai/artifact/8rzj7uxZajqRPFj53YXj26 의 '개선안' 그대로 — 총점 % 는 없고, 직업 순위는 아래 '직업 순위 보기'로 남겼다.
            직무를 못 불러오면(로그인 안 됨·서버 오류) 예전처럼 직업 Top 5 를 바로 보여 준다 -->
-      <section class="rr__sec">
+      <section v-if="guestMode" class="rr__sec rr__guest-blur" aria-hidden="true">
+        <p class="rr__eyebrow rr__eyebrow--gold">종합 추천</p>
+        <h2 class="rr__title">나에게 맞는 직무 3가지</h2>
+        <div class="rr__skeletons"><div v-for="n in 3" :key="n" class="rr__skeleton" /></div>
+      </section>
+      <section v-else class="rr__sec">
         <p class="rr__eyebrow rr__eyebrow--gold">종합 추천</p>
         <h2 class="rr__title">{{ groupMode ? '나에게 맞는 직무 3가지' : '나에게 맞는 직업 Top 5' }}</h2>
         <p class="rr__sub">성격·재능·관심·가치관·업무환경을 모두 고려한 추천이에요</p>
@@ -278,8 +308,9 @@
         </template>
       </section>
 
-      <!-- 하단 액션(래퍼가 주입): 일반=CTA / 온보딩=다음으로 -->
-      <slot />
+
+      <!-- 하단 액션(래퍼가 주입): 일반=CTA / 온보딩=다음으로. 비회원은 위 잠금 상자가 대신한다 -->
+      <slot v-if="!guestMode" />
     </template>
 
     <!-- 묶음 직업 선택 -->
@@ -314,6 +345,9 @@ import type {
   JobGroupMember,
 } from '../types/survey'
 import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
+import GuestLockCard from '@/shared/components/GuestLockCard.vue'
+import { getGuestSurvey, fetchGuestAnalysis, markLoginRedirect } from '@/shared/guest/guestSurvey'
+import { fetchProviders, startOAuth, type Provider } from '@/shared/auth/oauth'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 // recruitLink: 직무 카드의 '채용 공고'(다른 화면으로 간다). 온보딩 결과처럼 흐름을 벗어나면 안 되는 곳은 끈다
@@ -652,6 +686,15 @@ const T3_PARTS_MAP: Record<
 const authStore = useAuthStore()
 const surveyId = props.surveyId
 
+// 비회원 결과지(2026-11-09) — 로그인하지 않았으면 이 기기의 열람 키로 받고, 성격 Top 3 까지만 보여 준다.
+// 들어오는 길은 비회원 경로(features.guestEntry)가 켜진 빌드뿐이다(꺼지면 라우터가 로그인으로 보낸다)
+const guestMode = !authStore.isLoggedIn
+const providers = ref<Record<Provider, boolean>>({ kakao: false, google: false })
+function goOAuth(p: Provider) {
+  markLoginRedirect()   // 소셜 로그인은 같은 탭으로 돌아온다 — '나가면 삭제' 경고를 띄우지 않는다
+  startOAuth(p)
+}
+
 async function tryLinkSurvey() {
   if (!authStore.isLoggedIn) return
   // 이미 연결된 경우(409)는 정상, 나머지 오류는 무시
@@ -742,7 +785,13 @@ async function load() {
   isLoading.value = true
   error.value = false
   try {
-    const { data } = await fetchSurveyAnalysis(surveyId)
+    const g = guestMode ? getGuestSurvey() : null
+    if (guestMode && g?.surveyId !== surveyId) {
+      // 이 기기에서 한 비회원 검사가 아니거나 이미 지워졌다(나가며 삭제·24시간 경과)
+      error.value = true
+      return
+    }
+    const { data } = guestMode ? await fetchGuestAnalysis(surveyId, g!.key) : await fetchSurveyAnalysis(surveyId)
     if (data.success) {
       analysis.value = data.analysis
     } else {
@@ -932,6 +981,11 @@ defineExpose({
 
 onMounted(() => {
   load()
+  if (guestMode) {
+    // 비회원은 추천을 부르지 않는다(직무 추천은 로그인 필요, 잠금 아래라 보이지도 않는다)
+    fetchProviders().then((v) => { providers.value = v })
+    return
+  }
   loadT2Recommend()
   loadComprehensiveRecommend()
   loadJobGroups()
@@ -1392,6 +1446,11 @@ $c-text-3: #767676;  // 메타 — 분류·급여, 순위, 작은 안내
   cursor: pointer;
 }
 .rr__skeletons { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+// 비회원 잠금(2026-11-09) — 아래 구역을 흐리게 깔고, 높이 0 의 자리 위에 잠금 상자를 띄워 그 구역들 위에 얹는다
+.rr__lock { position: relative; z-index: 2; height: 0; }
+.rr__lock > * { position: absolute; top: 28px; left: 4px; right: 4px; }
+.rr__guest-blur { filter: blur(7px); opacity: 0.55; pointer-events: none; user-select: none; }
+.rr__lock-email { margin-top: 2px; font-size: 0.8rem; font-weight: 600; color: $c-text-2; text-decoration: underline; text-underline-offset: 3px; }
 .rr__skeleton { height: 120px; border-radius: 14px; background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: rr-shimmer 1.4s infinite; }
 @keyframes rr-shimmer { to { background-position: -200% 0; } }
 </style>

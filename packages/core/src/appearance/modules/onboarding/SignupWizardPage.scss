@@ -181,3 +181,19 @@
     @include btn-primary;
   }
 }
+
+// 약관·처리방침 동의 + 만 14세 확인(2026-11-09)
+.wiz__consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 20px;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: #333;
+  word-break: keep-all;
+
+  input { flex: none; width: 18px; height: 18px; margin-top: 2px; accent-color: #1a1a1a; }
+  a { display: inline; color: #2b69b6; text-decoration: underline; text-underline-offset: 2px; }
+}
+.wiz__underage { margin-top: 12px; font-size: 0.82rem; font-weight: 600; color: #c2410c; }

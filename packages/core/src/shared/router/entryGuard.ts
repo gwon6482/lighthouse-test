@@ -2,6 +2,7 @@ import { START_LOCATION, type Router } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { authBoundaryAction, needsLogin } from './authBoundary'
+import { features } from '@/shared/config/features'
 
 // 진입 분기 — app·test 두 셸이 같이 쓴다(2026-11-04: test 셸도 '/' 가 온보딩부터 — 홈 화면에 추가한 테스트 앱이 실제 앱처럼 열리게).
 // 워크벤치(전체 기능 목록) 홈은 test 셸의 '/dev'.
@@ -28,7 +29,7 @@ export function installEntryGuard(router: Router) {
     }
 
     // 로그인 전용 경로에 토큰 없이 직접 들어오면 로그인으로(자세한 이유는 authBoundary.ts)
-    if (needsLogin(to.path, !!auth.token)) return '/onboarding'
+    if (needsLogin(to.path, !!auth.token, features.guestEntry)) return '/onboarding'
 
     if (to.path !== '/') return true
 

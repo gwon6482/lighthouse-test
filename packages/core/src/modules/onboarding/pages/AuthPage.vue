@@ -122,6 +122,8 @@
 </template>
 
 <script setup lang="ts">
+import { linkPendingGuestSurvey, markLoginRedirect } from '@/shared/guest/guestSurvey'
+import { startOAuth as startOAuthShared } from '@/shared/auth/oauth'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
@@ -186,12 +188,8 @@ const socialHint = computed(() => {
 })
 
 function startOAuth(provider: Provider) {
-  // 서버 302 로 제공자 인가 페이지에 간다. SPA 라우팅이 아니라 **문서 이동**이어야 한다.
-  // 복귀 URL 은 서버가 허용목록(OAUTH_ALLOWED_ORIGINS)으로 다시 검사하므로
-  // 여기서 무엇을 보내든 목록 밖이면 무시된다.
-  const returnTo = `${window.location.origin}/onboarding/oauth`
-  const base = import.meta.env.VITE_API ?? ''
-  window.location.href = `${base}/api/auth/${provider}?redirect=${encodeURIComponent(returnTo)}`
+  markLoginRedirect()   // 비회원 결과지에서 넘어왔을 수 있다 — 돌아와서 연결한다
+  startOAuthShared(provider)
 }
 
 // ── 로그인 (기존 사용자) ──
@@ -211,6 +209,7 @@ async function handleLogin() {
   loading.value = true
   try {
     await authStore.login(email.value, password.value)
+    await linkPendingGuestSurvey()   // 비회원 검사가 있으면 계정에 연결(2026-11-09) — 기존 회원은 지금 단계로
     await achievementStore.loadActivePlan()
     // 활성 진로계획 유무에 따라 설계 전/후 메인으로 (설계 후 메인 = 진로달성)
     router.replace(achievementStore.hasActivePlan ? '/career-achievement' : '/main/before')

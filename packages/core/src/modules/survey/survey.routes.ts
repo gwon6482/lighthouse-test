@@ -1,3 +1,5 @@
+import type { RouteLocation } from 'vue-router'
+import { features } from '@/shared/config/features'
 import { THEME_COLOR } from '@/shared/router/themeColor'
 export default [
   {
@@ -10,6 +12,12 @@ export default [
   {
     path: '/main',
     redirect: '/career-achievement',
+  },
+  {
+    // 비회원 검사 홍보 링크(2026-11-09) — app.lighthouse.career/start?c=캠페인 → 검사 시작 안내.
+    // 비회원 경로가 꺼진 빌드(features.guestEntry=false, 운영은 처리방침 시행 2026-11-16 전까지)는 루트로
+    path: '/start',
+    redirect: (to: RouteLocation) => ({ path: features.guestEntry ? '/self-understanding/intro' : '/', query: to.query }),
   },
   {
     path: '/main/before',

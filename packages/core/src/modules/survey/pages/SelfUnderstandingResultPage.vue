@@ -13,15 +13,14 @@
       @group-recruit="goGroupRecruit"
       @ready="(ok, label) => { resultReady = ok; resultLabel = label ?? null }"
     >
-      <!-- 일반 검사 흐름: 결과 저장/이어가기 CTA. 찍을 때는 뺀다(화면에서만 쓰는 버튼) -->
+      <!-- 일반 검사 흐름: 결과 저장/이어가기 CTA. 찍을 때는 뺀다(화면에서만 쓰는 버튼).
+           비회원은 이 자리 대신 결과지 안의 잠금 상자가 로그인을 권한다(SurveyResultBody, 2026-11-09) -->
       <section v-if="!capturing" class="m-sec result-cta-section" data-export-skip>
-        <!-- 비로그인: 가입 유도 -->
-        <template v-if="!authStore.isLoggedIn">
-          <h2 class="result-cta-title">결과를 저장하고<br>진로를 이어가보세요</h2>
-          <p class="result-cta-sub">가입하면 이 결과가 저장되고,<br>맞춤 진로를 계속 탐색할 수 있어요.</p>
-          <button class="btn-signup-cta" @click="showSignUp = true">
-            회원가입하고 더 진행하기
-          </button>
+        <!-- 비회원 검사 → 가입 직후(?next=1): 3단계의 다음으로 이어 간다 -->
+        <template v-if="route.query.next === '1'">
+          <h2 class="result-cta-title">가입하고 결과를 저장했어요</h2>
+          <p class="result-cta-sub">이제 나에게 맞는 목표 진로를 정해 볼까요?</p>
+          <RouterLink to="/main/before" class="btn-signup-cta">다음 단계로</RouterLink>
         </template>
 
         <!-- 로그인: 마이페이지로 · 내보내기(이미지·PDF — 랜딩 /survey 결과 내보내기와 같다) -->
@@ -53,17 +52,15 @@
     <ResultReport :data="reportData" />
   </div>
 
-  <SignUpModal v-model="showSignUp" @registered="onRegistered" />
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { getGuestSurvey, deleteGuestSurvey, clearGuestSurvey, isLoginRedirect } from '@/shared/guest/guestSurvey'
 import { useAuthStore } from '@/shared/stores/auth'
-import { linkSurveyToUser } from '../survey.api'
 import { fetchUserSurveyResults } from '@/modules/encyclopedia/encyclopedia.api'
 import SurveyResultBody from '../components/SurveyResultBody.vue'
-import SignUpModal from '../components/SignUpModal.vue'
 import ExportSheet from '../export/ExportSheet.vue'
 import ResultReport from '../report/ResultReport.vue'
 import { buildPdfFromPages, captureImage, captureImageSet, type Capture } from '../export/useResultExport'
@@ -76,8 +73,6 @@ const router = useRouter()
 const authStore = useAuthStore()
 const surveyId = route.params.survey_id as string
 
-const showSignUp = ref(false)
-
 function goEncyclopedia(jobCode: string) {
   router.push(`/career-encyclopedia/job/${jobCode}`)
 }
@@ -87,11 +82,27 @@ function goGroupRecruit(code: string) {
   router.push(`/career-encyclopedia/group/${code}/recruitment`)
 }
 
-async function onRegistered(token: string, user: any) {
-  authStore.setAuth(token, user)
-  await linkSurveyToUser(surveyId).catch(() => {})
-  router.push('/')
+// ── 비회원: 가입하지 않고 나가면 결과를 지운다(처리방침 제3조 '즉시 삭제', 2026-11-09) ──
+// 앱 안 이동은 확인 후 지우고, 탭 닫기·새로고침은 브라우저 기본 경고만 띄운다(웹이 막을 수 없다 — 서버가 24시간 뒤 지운다).
+// 로그인·가입 화면(/onboarding)으로 가는 것과 소셜 로그인 왕복은 '나감'이 아니다 — 돌아와서 계정에 연결한다
+const isGuestResult = () => !authStore.isLoggedIn && getGuestSurvey()?.surveyId === surveyId
+
+onBeforeRouteLeave(async (to) => {
+  if (!isGuestResult() || isLoginRedirect() || to.path.startsWith('/onboarding')) return true
+  if (!confirm('가입하지 않고 나가면 이 검사 결과가 삭제돼요.\n나갈까요?')) return false
+  const g = getGuestSurvey()
+  if (g) await deleteGuestSurvey(g.surveyId, g.key).catch(() => {})
+  clearGuestSurvey()
+  return true
+})
+
+function warnBeforeUnload(e: BeforeUnloadEvent) {
+  if (!isGuestResult() || isLoginRedirect()) return
+  e.preventDefault()
+  e.returnValue = ''
 }
+onMounted(() => window.addEventListener('beforeunload', warnBeforeUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnload))
 
 // ── 결과 내보내기 (랜딩 pages/survey.vue 와 같은 흐름) ──
 const exportEl = ref<HTMLElement | null>(null)
