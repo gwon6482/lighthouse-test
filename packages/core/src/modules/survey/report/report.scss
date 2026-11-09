@@ -341,3 +341,4 @@ $fw-heading: 700;    // 제목류
 // '특히 잘 맞는 점'의 핵심어 — 화면 직무 카드처럼 영역 색의 진한 글씨(성격 = 주황, 나머지 = 파랑). 본문이라 굵기는 600 까지
 .rp-grp-why { font-size: $fs-small; color: $rp-body; }
 .rp-kw { font-weight: $fw-strong; color: $rp-blue-text; &--t1 { color: #b4532a; } }
+.rp-ax { color: $rp-meta; }   // '(가치관)' — 어느 영역의 항목인지

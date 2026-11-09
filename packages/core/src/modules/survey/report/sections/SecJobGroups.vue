@@ -25,7 +25,7 @@
         </td>
         <td class="rp-grp-why">
           <template v-if="g.reasons.length">
-            <template v-for="(r, k) in g.reasons" :key="r.axis + r.code"><template v-if="k"> · </template><b :class="['rp-kw', { 'rp-kw--t1': r.axis === 'T1' }]">{{ r.name }}</b></template>
+            <template v-for="(r, k) in g.reasons" :key="r.axis + r.code"><template v-if="k"> · </template><b :class="['rp-kw', { 'rp-kw--t1': r.axis === 'T1' }]">{{ r.name }}</b><span class="rp-ax">({{ T.jobGroups.axis[r.axis] }})</span></template>
           </template>
           <template v-else>-</template>
         </td>
