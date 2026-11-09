@@ -5,6 +5,7 @@
  * (양식 코드는 랜딩 components/survey/report 의 사본 — 이름도 그대로 둔다)
  */
 import type { CurrentJob } from './currentJobMatch'
+import type { JobGroupRecommend } from '../types/survey'
 
 export interface ResearchResultData {
   /** 응답 번호 — 앱은 survey_id */
@@ -13,6 +14,8 @@ export interface ResearchResultData {
   completed_at?: string
   analysis: any
   recommend: any[]
+  /** 나에게 맞는 직무 3가지(GET /api/job/recommend-groups) — **앱 전용**(2026-11-09). 랜딩은 없다 */
+  groups?: JobGroupRecommend[] | null
   /** 연구 설문 실무자 전용 — 앱은 늘 null */
   currentJob?: CurrentJob | null
   reviewSubmitted?: boolean | null

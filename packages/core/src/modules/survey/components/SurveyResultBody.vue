@@ -1,7 +1,8 @@
 <template>
   <!-- 결과지 디자인 정본은 랜딩 /survey 결과지(lighthouse-landing components/survey/ResearchResult.vue, 2026-10-26).
        구성·색·글씨를 그대로 따른다 — 랜딩 쪽을 고치면 여기도 같이 고칠 것(레포가 달라 자동으로 맞춰지지 않는다).
-       앱에만 있는 것: 업무 환경 항목 아이콘, 진입 관문 배지, 추천 직업 누르기(묶음 직업 고르기), 하단 액션 슬롯 -->
+       앱에만 있는 것: 업무 환경 항목 아이콘, 진입 관문 배지, 추천 직업 누르기(묶음 직업 고르기), 하단 액션 슬롯,
+       종합 추천의 '나에게 맞는 직무 3가지'(2026-11-09 — 랜딩은 아직 직업 Top 5. 랜딩에 옮길지는 미정) -->
   <!-- data-export-chunks: 이 요소의 직계 자식(구역)이 '여러 장 이미지' 의 나눔 단위다(export/useResultExport.captureImageSet) -->
   <div class="rr" data-export-chunks>
     <!-- 이미 만들어진 결과를 불러오는 중이다(분석은 제출 때 끝났다) — 마이페이지에서 다시 볼 때도 같은 화면 -->
@@ -152,12 +153,79 @@
         </template>
       </section>
 
-      <!-- 5. 추천 직업 -->
+      <!-- 5. 종합 추천 — 나에게 맞는 직무 3가지(2026-11-09, **앱 전용** — 랜딩 결과지는 아직 직업 Top 5).
+           직업 Top 5 가 '엉뚱하다·뜬금없다'는 테스터 반응에 직업 하나 대신 직무(고용24 채용 직종 중분류)로 넓혔다.
+           시안 https://claude.ai/artifact/8rzj7uxZajqRPFj53YXj26 의 '개선안' 그대로 — 총점 % 는 없고, 직업 순위는 아래 '직업 순위 보기'로 남겼다.
+           직무를 못 불러오면(로그인 안 됨·서버 오류) 예전처럼 직업 Top 5 를 바로 보여 준다 -->
       <section class="rr__sec">
         <p class="rr__eyebrow rr__eyebrow--gold">종합 추천</p>
-        <h2 class="rr__title">나에게 맞는 직업 Top 5</h2>
+        <h2 class="rr__title">{{ groupMode ? '나에게 맞는 직무 3가지' : '나에게 맞는 직업 Top 5' }}</h2>
         <p class="rr__sub">성격·재능·관심·가치관·업무환경을 모두 고려한 추천이에요</p>
 
+        <div v-if="groupLoading" class="rr__skeletons">
+          <div v-for="n in 3" :key="n" class="rr__skeleton" />
+        </div>
+
+        <template v-else-if="groupMode">
+          <div v-for="(g, i) in groups" :key="g.code" class="rr__grp">
+            <div class="rr__grp-head">
+              <span :class="['rr__job-rank', `rr__job-rank--${i + 1}`]">{{ i + 1 }}</span>
+              <h3 class="rr__grp-name">{{ g.name }}</h3>
+            </div>
+
+            <!-- 막대 = 대표 직업 3개의 영역별 일치도 평균(직업 Top 5 카드와 같은 막대) -->
+            <div class="rr__job-bars rr__grp-bars">
+              <span class="rr__jl rr__jl--t1">성격/기질</span>
+              <span class="rr__jt"><span class="rr__jf rr__jf--t1" :style="{ width: pct(g.match_detail.T1) + '%' }" /></span>
+              <span class="rr__jv">{{ pct(g.match_detail.T1) }}</span>
+
+              <span class="rr__jl rr__jl--t2">재능/흥미/가치관</span>
+              <span class="rr__jt"><span class="rr__jf rr__jf--t2" :style="{ width: pct(calcT2Score(g.match_detail)) + '%' }" /></span>
+              <span class="rr__jv">{{ pct(calcT2Score(g.match_detail)) }}</span>
+
+              <span class="rr__jl rr__jl--t3">업무환경</span>
+              <span class="rr__jt"><span class="rr__jf rr__jf--t3" :style="{ width: pct(g.match_detail.T3) + '%' }" /></span>
+              <span class="rr__jv">{{ pct(g.match_detail.T3) }}</span>
+            </div>
+
+            <!-- 이유 한 문장 — 결과지에 나온 이름 중 이 직무의 대표 직업들이 중요하게 쓰는 것(2개까지, 서버가 고른다). 없으면 문장째 뺀다.
+                 ⚠️ 한 줄로 둔다 — 줄을 바꾸면 핵심어와 조사 사이에 공백이 생긴다 -->
+            <p v-if="g.reasons.length" class="rr__grp-why"><template v-for="(seg, k) in whyParts(g)" :key="k"><b v-if="seg.kw" :class="['rr__grp-kw', { 'rr__grp-kw--t1': seg.kw.axis === 'T1' }]">{{ seg.kw.name }}</b><template v-else>{{ seg.text }}</template></template></p>
+
+            <div class="rr__grp-jobs">
+              <p class="rr__grp-label">{{ isOpen(g) ? `직업 ${g.jobCount}개 · 나와 맞는 순` : '대표 직업' }}</p>
+              <ul class="rr__grp-list">
+                <li v-for="job in isOpen(g) ? g.jobs : g.jobs.slice(0, 3)" :key="job.jobCode">
+                  <button type="button" class="rr__grp-job" @click="openJob(job)">
+                    <span class="rr__grp-job-t">{{ job.title }}</span>
+                    <span v-if="(job.members?.length ?? 1) > 1" class="rr__grp-sim">유사 {{ job.members!.length }}개</span>
+                    <JobGateBadges :job-code="job.jobCode" :max="1" />
+                    <AppIcon name="ui-chevron-right" class="rr__grp-chev" :size="16" />
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            <div class="rr__grp-foot">
+              <!-- 모두 보기는 제자리에서 펼친다(진로백과 버튼은 여기로 합쳤다 — 직업을 누르면 진로백과로 간다) -->
+              <button v-if="g.jobs.length > 3" type="button" class="rr__grp-link" :aria-expanded="isOpen(g)" @click="toggleOpen(g)">
+                {{ isOpen(g) ? '접기' : `직업 ${g.jobCount}개 모두 보기` }}<AppIcon name="ui-chevron-down" :class="['rr__grp-fold', { 'is-open': isOpen(g) }]" :size="16" />
+              </button>
+              <button v-if="recruitLink" type="button" class="rr__grp-link rr__grp-link--sub" @click="emit('group-recruit', g.code)">
+                채용 공고<AppIcon name="ui-chevron-right" :size="16" />
+              </button>
+            </div>
+          </div>
+
+          <p class="rr__grp-alt" data-export-skip>
+            <template v-if="!showJobRank">직업 하나하나의 순위가 궁금하다면 </template>
+            <button type="button" class="rr__grp-alt-btn" :aria-expanded="showJobRank" @click="showJobRank = !showJobRank">{{ showJobRank ? '직업 순위 접기' : '직업 순위 보기' }}</button>
+          </p>
+          <p v-if="showJobRank" class="rr__label">직업 순위 Top 5</p>
+        </template>
+
+        <!-- 직업 순위(예전 Top 5) — 직무 카드 아래 '직업 순위 보기'로 펼친다. 직무를 못 불러오면 바로 보인다 -->
+        <template v-if="!groupLoading && (!groupMode || showJobRank)">
         <div v-if="compLoading" class="rr__skeletons">
           <div v-for="n in 3" :key="n" class="rr__skeleton" />
         </div>
@@ -206,6 +274,7 @@
           </div>
         </div>
         </template>
+        </template>
       </section>
 
       <!-- 하단 액션(래퍼가 주입): 일반=CTA / 온보딩=다음으로 -->
@@ -230,6 +299,7 @@ import {
   fetchSurveyAnalysis,
   fetchT2Recommend,
   fetchComprehensiveRecommend,
+  fetchJobGroupRecommend,
   saveRecommendedJobs,
   linkSurveyToUser,
 } from '../survey.api'
@@ -238,13 +308,19 @@ import type {
   SurveyAnalysisResponse,
   T2RecommendJob,
   ComprehensiveRecommendJob,
+  JobGroupRecommend,
+  JobGroupReason,
+  JobGroupMember,
 } from '../types/survey'
 import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
-const props = defineProps<{ surveyId: string }>()
+// recruitLink: 직무 카드의 '채용 공고'(다른 화면으로 간다). 온보딩 결과처럼 흐름을 벗어나면 안 되는 곳은 끈다
+const props = withDefaults(defineProps<{ surveyId: string; recruitLink?: boolean }>(), { recruitLink: true })
 const emit = defineEmits<{
   (e: 'job-click', jobCode: string): void
+  // 직무 카드의 '채용 공고' — 직무 코드(고용24 채용 직종 중분류)
+  (e: 'group-recruit', code: string): void
   // 결과지가 다 그려졌는가(추천 직업까지) + 파일 이름용 성격 유형 — 내보내기 버튼을 켤 때 쓴다
   (e: 'ready', ok: boolean, label?: string): void
 }>()
@@ -258,7 +334,7 @@ const pickerOpen = ref(false)
 const pickerTitle = ref('')
 const pickerMembers = ref<{ jobCode: string; title: string }[]>([])
 
-function openJob(job: ComprehensiveRecommendJob) {
+function openJob(job: { jobCode: string; title: string; members?: JobGroupMember[] }) {
   if ((job.members?.length ?? 1) > 1) {
     pickerTitle.value = job.title
     pickerMembers.value = job.members ?? []
@@ -800,21 +876,61 @@ async function loadComprehensiveRecommend() {
   }
 }
 
+// ─── 직무 추천 ──────────────────────────────────────────────────────────────
+// 서버(services/jobGroups)가 고르고·늘어놓고·이유까지 정해 보낸다. 화면은 그리기만 한다
+
+const groups = ref<JobGroupRecommend[]>([])
+const groupLoading = ref(false)
+const groupError = ref(false)
+const groupMode = computed(() => !groupError.value && groups.value.length > 0)
+const showJobRank = ref(false)   // '직업 순위 보기' — 예전 Top 5
+const openGroups = ref<string[]>([])   // '직업 N개 모두 보기'를 펼친 직무
+const isOpen = (g: JobGroupRecommend) => openGroups.value.includes(g.code)
+const toggleOpen = (g: JobGroupRecommend) => {
+  openGroups.value = isOpen(g) ? openGroups.value.filter((c) => c !== g.code) : [...openGroups.value, g.code]
+}
+
+// 조사 — 받침이 있으면 앞 것(과·이). 한글이 아니면 둘 다
+const josa = (w: string, batchim: string, none: string) => { const c = w.trim().slice(-1).charCodeAt(0) - 0xac00; return c < 0 || c > 11171 ? `${batchim}(${none})` : c % 28 ? batchim : none }
+// "특히 A와 B가 잘 맞아요" — 핵심어만 굵은 색 글씨. 칩 상자를 씌우면 조사가 떨어져 보였다(시안 때 실제로 그랬다)
+function whyParts(g: JobGroupRecommend): { text?: string; kw?: JobGroupReason }[] {
+  const [a, b] = g.reasons
+  if (!a) return []
+  return b
+    ? [{ text: '특히 ' }, { kw: a }, { text: `${josa(a.name, '과', '와')} ` }, { kw: b }, { text: `${josa(b.name, '이', '가')} 잘 맞아요` }]
+    : [{ text: '특히 ' }, { kw: a }, { text: `${josa(a.name, '이', '가')} 잘 맞아요` }]
+}
+
+async function loadJobGroups() {
+  groupLoading.value = true
+  groupError.value = false
+  try {
+    const { data } = await fetchJobGroupRecommend(surveyId)
+    if (data.success) groups.value = data.groups
+    else groupError.value = true
+  } catch {
+    groupError.value = true
+  } finally {
+    groupLoading.value = false
+  }
+}
+
 watch(
-  () => !isLoading.value && !error.value && !!analysis.value && !compLoading.value,
+  () => !isLoading.value && !error.value && !!analysis.value && !compLoading.value && !groupLoading.value,
   (v) => emit('ready', v, analysis.value?.personality_type?.full_name),
   { immediate: true },
 )
 
 // PDF 결과지(report/ResultReport.vue)용 원재료 — 화면과 같은 응답을 다시 부르지 않고 넘긴다
 defineExpose({
-  reportSource: () => ({ analysis: analysis.value, recommend: compJobs.value }),
+  reportSource: () => ({ analysis: analysis.value, recommend: compJobs.value, groups: groupMode.value ? groups.value : [] }),
 })
 
 onMounted(() => {
   load()
   loadT2Recommend()
   loadComprehensiveRecommend()
+  loadJobGroups()
   tryLinkSurvey()
 })
 </script>
@@ -1204,6 +1320,72 @@ $c-text-3: #767676;  // 메타 — 분류·급여, 순위, 작은 안내
   &:active { transform: scale(0.99); }
 }
 .rr__job-top :deep(.gate-badges) { order: 3; flex-basis: 100%; }  // 진입 관문 배지는 다음 줄로 — 한 줄에 두면 긴 직업명이 세로로 꺾였다(2026-10-27)
+// 직무 카드(2026-11-09, 시안 '개선안') — 들여쓰기 없이 막대·문장·직업 상자·버튼이 같은 왼쪽 선에서 시작한다
+.rr__grp {
+  margin-top: 12px;
+  padding: 18px 16px 4px;
+  border: 1px solid $c-line;
+  border-radius: 16px;
+  background: #fff;
+}
+.rr__grp-head { display: flex; align-items: center; gap: 10px; }
+.rr__grp-name { font-size: 1.08rem; font-weight: 800; line-height: 1.3; letter-spacing: -0.01em; word-break: keep-all; }
+.rr__grp-bars { margin-top: 16px; padding-top: 0; row-gap: 8px; }
+// 핵심어는 영역 색의 진한 글씨 — 성격 = 주황, 재능·가치관·관심 = 파랑. 줄 끝에서 '맞아/요'로 끊기지 않게 keep-all
+.rr__grp-why { margin-top: 14px; font-size: 0.86rem; font-weight: 500; line-height: 1.6; color: $c-text-body; word-break: keep-all; }
+.rr__grp-kw { font-weight: 700; color: $c-b-text; &--t1 { color: #b4532a; } }
+.rr__grp-jobs { margin-top: 14px; padding: 10px 14px 4px; border-radius: 12px; background: #f6f6f4; }
+.rr__grp-label { font-size: 0.7rem; font-weight: 700; color: $c-text-3; }
+.rr__grp-list { margin-top: 2px; list-style: none; }
+.rr__grp-job {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: $c-text-1;
+  text-align: left;
+  cursor: pointer;
+
+  &:active { opacity: 0.6; }
+}
+.rr__grp-job-t { min-width: 0; word-break: keep-all; }
+.rr__grp-sim { font-size: 0.72rem; font-weight: 500; color: $c-text-3; white-space: nowrap; }
+.rr__grp-chev { margin-left: auto; flex: none; color: #b5b5b5; }
+.rr__grp-foot { display: flex; justify-content: space-between; align-items: center; }
+.rr__grp-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: $c-text-1;
+  cursor: pointer;
+
+  &--sub { margin-left: auto; font-weight: 600; color: $c-text-2; }   // 모두 보기가 없는 카드(직업 3개 이하)에서도 오른쪽에
+}
+.rr__grp-fold { transition: transform 0.15s; &.is-open { transform: rotate(180deg); } }
+.rr__grp-alt { margin-top: 18px; text-align: center; font-size: 0.78rem; color: $c-text-3; }
+.rr__grp-alt-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: $c-text-2;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
 .rr__skeletons { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
 .rr__skeleton { height: 120px; border-radius: 14px; background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: rr-shimmer 1.4s infinite; }
 @keyframes rr-shimmer { to { background-position: -200% 0; } }

@@ -1,5 +1,5 @@
 <template>
-  <ReportSection v-if="jobs.length" :title="T.jobs.heading" :sub="T.jobs.sub">
+  <ReportSection v-if="jobs.length" :title="data.groups?.length ? T.jobs.headingRank : T.jobs.heading" :sub="T.jobs.sub">
     <table class="rp-table">
       <tr>
         <th />

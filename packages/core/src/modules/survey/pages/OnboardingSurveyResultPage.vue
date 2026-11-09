@@ -1,5 +1,6 @@
 <template>
-  <SurveyResultBody :survey-id="surveyId" @job-click="openOverview">
+  <!-- 직무 카드의 '채용 공고'는 끈다 — 다른 화면으로 나가면 가입 흐름이 끊긴다(직업은 아래 개요 팝업으로 본다) -->
+  <SurveyResultBody :survey-id="surveyId" :recruit-link="false" @job-click="openOverview">
     <!-- 온보딩(회원가입) 흐름: 진로백과로 이동하지 않고 다음 단계로 -->
     <section class="m-sec result-next-section">
       <button class="result-next-btn" @click="goNext">다음으로</button>

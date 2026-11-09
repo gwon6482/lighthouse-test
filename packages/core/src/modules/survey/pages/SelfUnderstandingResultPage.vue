@@ -10,6 +10,7 @@
       ref="bodyRef"
       :survey-id="surveyId"
       @job-click="goEncyclopedia"
+      @group-recruit="goGroupRecruit"
       @ready="(ok, label) => { resultReady = ok; resultLabel = label ?? null }"
     >
       <!-- 일반 검사 흐름: 결과 저장/이어가기 CTA. 찍을 때는 뺀다(화면에서만 쓰는 버튼) -->
@@ -81,6 +82,11 @@ function goEncyclopedia(jobCode: string) {
   router.push(`/career-encyclopedia/job/${jobCode}`)
 }
 
+// 직무 카드의 '채용 공고' — 직무 단위 공고 화면(진로백과 채용 탭과 같은 목록)
+function goGroupRecruit(code: string) {
+  router.push(`/career-encyclopedia/group/${code}/recruitment`)
+}
+
 async function onRegistered(token: string, user: any) {
   authStore.setAuth(token, user)
   await linkSurveyToUser(surveyId).catch(() => {})
@@ -138,6 +144,7 @@ async function makeResultPdf() {
     completed_at: await surveyDate(),
     analysis: src.analysis,
     recommend: src.recommend,
+    groups: src.groups,
     currentJob: null,
   }
   await nextTick()

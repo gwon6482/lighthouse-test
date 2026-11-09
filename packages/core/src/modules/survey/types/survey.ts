@@ -258,3 +258,42 @@ export interface ComprehensiveRecommendResponse {
   total_jobs: number
   data: ComprehensiveRecommendJob[]
 }
+
+// ── 직무 추천(GET /api/job/recommend-groups/:survey_id, 2026-11-09) ──────────────
+// 직무 = 고용24 채용 직종 중분류. 직업 점수는 종합 추천과 같은 것을 묶어 다시 본다(서버 services/jobGroups)
+
+/** 이유 — 결과지에 나온 항목 이름. axis: T1 성격 · T21 재능 · T22 관심 분야 · T23 가치관 */
+export interface JobGroupReason {
+  axis: 'T1' | 'T21' | 'T22' | 'T23'
+  code: string
+  name: string
+}
+
+export interface JobGroupJob {
+  jobCode: string
+  title: string
+  /** 묶음 직업일 때만. 2개 이상이면 사용자가 고르게 한다(종합 추천과 같다) */
+  members?: JobGroupMember[]
+}
+
+export interface JobGroupRecommend {
+  code: string
+  /** 화면 이름(카드 제목) */
+  name: string
+  /** 고용24 공식 이름 */
+  fullName: string
+  /** 대표 직업(jobs 앞 3개)의 영역별 일치도 평균 — 막대는 종합 추천과 같은 식으로 그린다 */
+  match_detail: ComprehensiveRecommendJob['match_detail']
+  /** 0~2개. 없으면 이유 문장 없이 막대만 */
+  reasons: JobGroupReason[]
+  /** 이 직무의 직업 전부(나와 맞는 순). 앞 3개가 '대표 직업' */
+  jobs: JobGroupJob[]
+  /** 묶음을 풀어 센 직업 수 */
+  jobCount: number
+}
+
+export interface JobGroupRecommendResponse {
+  success: boolean
+  survey_id: string
+  groups: JobGroupRecommend[]
+}

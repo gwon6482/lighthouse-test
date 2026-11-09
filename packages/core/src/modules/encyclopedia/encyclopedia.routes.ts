@@ -22,4 +22,10 @@ export default [
     name: 'Career Encyclopedia Job Detail',
     component: () => import('./pages/EncyclopediaJobDetailPage.vue'),
   },
+  {
+    // 결과지 직무 카드의 '채용 공고'(2026-11-09) — code = 고용24 채용 직종 중분류(3자리, '01A' 처럼 영문자 섞임)
+    path: '/career-encyclopedia/group/:code/recruitment',
+    name: 'Career Encyclopedia Group Recruitment',
+    component: () => import('./pages/EncyclopediaGroupRecruitPage.vue'),
+  },
 ]
