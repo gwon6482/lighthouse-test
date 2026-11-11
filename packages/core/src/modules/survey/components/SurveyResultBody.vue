@@ -74,29 +74,136 @@
             <p class="rr__pd-desc">{{ t1Definition(f) }}</p>
           </template>
         </div>
+        <!-- 비회원: 4위부터는 흐린 줄로 이어서 이 구역도 일부만 봤다는 걸 보여 준다(2026-11-11 맛보기). 누르면 가입 상자로 -->
+        <div v-if="guestMode && analysis.personality.all.length > 3" class="rr__more">
+          <div class="rr__more-rows" aria-hidden="true">
+            <div v-for="(f, i) in analysis.personality.all.slice(3)" :key="f.code" class="rr__pd">
+              <div class="rr__pd-head">
+                <span class="rr__pd-name">{{ f.name }}</span>
+                <span class="rr__pd-bar"><span class="rr__pd-fill" :style="{ width: pct(f.score) + '%', background: pdBar(i + 3) }" /></span>
+                <span class="rr__pd-score" :style="{ color: pdScore(i + 3) }">{{ pct(f.score) }}</span>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="rr__more-btn" @click="scrollToLock">
+            <span><AppIcon name="ui-privacy" :size="13" />나머지 {{ analysis.personality.all.length - 3 }}가지 요소</span>
+          </button>
+        </div>
       </section>
 
-      <!-- 비회원(2026-11-09): 아래 구역들을 흐리게 깔고 잠금 상자를 얹는다 — 무엇이 있는지 보여야 누른다.
-           결과는 본인 응답이라 화면에서만 가린다. 내보내기는 로그인 뒤에만 있다.
-           ⚠️ 구역을 상자로 감싸지 않는다 — 결과지 바로 아래 구역이 '여러 장 이미지'의 나눔 단위다(data-export-chunks) -->
-      <div v-if="guestMode" class="rr__lock">
-        <GuestLockCard
-          title="나머지 결과는 로그인하고 볼 수 있어요"
-          :items="['재능 · 가치관 · 관심', '업무 환경 성향', '나에게 맞는 직무 3가지']"
-          note="가입하지 않고 나가면 이 결과는 바로 삭제돼요. (늦어도 24시간 뒤 자동 삭제)"
-        >
-          <button v-if="providers.kakao" type="button" class="auth__social auth__social--kakao" @click="goOAuth('kakao')">
-            <span class="auth__social-icon">💬</span>카카오로 로그인하고 전체 보기
-          </button>
-          <button v-if="providers.google" type="button" class="auth__social auth__social--google" @click="goOAuth('google')">
-            <span class="auth__social-icon">G</span>구글로 로그인하고 전체 보기
-          </button>
-          <RouterLink to="/onboarding/auth" class="rr__lock-email">이메일로 가입 · 로그인</RouterLink>
-        </GuestLockCard>
-      </div>
+      <!-- 비회원(2026-11-11 맛보기형 — 시안 https://claude.ai/artifact/GndLA9VBmqqr72j3g5oLTu 의 ②):
+           회원 결과지의 나머지 구역을 같은 순서로 목차처럼 깔고, 구역마다 무엇이 몇 개 들었는지(내 결과 숫자)와
+           1위 하나만 또렷하게 보여 준다 — '가입하면 이만큼 본다'가 안 전해진다는 지적(2026-11-09). 누르면 맨 아래 가입 상자로.
+           흐린 줄은 이미 받은 분석 값이다(비회원 분석 API 는 본인 응답이라 전부 준다). 직무는 1위 이름과 개수만 받는다.
+           비회원은 내보내기가 없어서(로그인 뒤에만) data-export-chunks 나눔 단위와 상관없다 -->
+      <template v-if="guestMode">
+        <div class="rr__teaser-head">
+          <p class="rr__teaser-t">가입하면 열리는 결과</p>
+          <p class="rr__teaser-s">내 결과 기준</p>
+        </div>
+
+        <section class="rr__teaser rr__teaser--gray" @click="scrollToLock">
+          <div class="rr__teaser-top">
+            <div><p class="rr__eyebrow rr__eyebrow--s">하고 싶은 일</p><p class="rr__teaser-title">재능 · 가치관 · 관심</p></div>
+            <span class="rr__teaser-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span>
+          </div>
+          <p class="rr__teaser-what">
+            <b>재능 Top {{ analysis.talent.top3.length }}</b><template v-if="valueCount"> · <b>가치관 {{ valueCount > 1 ? `1~${valueCount}` : 1 }}순위</b></template><template v-if="analysis.interest.total > 0"> · <b>관심 분야 {{ analysis.interest.total }}개</b></template> · 나를 한 문장으로
+          </p>
+          <div v-if="analysis.talent.top3[0]" class="rr__cards">
+            <div v-for="(t, i) in analysis.talent.top3.slice(0, 2)" :key="t.code" :class="['rr__card', `rr__card--p${i + 1}`, { 'rr__blur': i > 0 }]" :aria-hidden="i > 0 || undefined">
+              <span class="rr__rank">{{ i + 1 }}순위</span>
+              <div class="rr__card-body">
+                <span class="rr__card-name">{{ t.name }}</span>
+                <span class="rr__bar"><span :class="['rr__bar-fill', i === 0 ? 'is-hi' : 'is-mi']" :style="{ width: pct(t.score) + '%' }" /></span>
+                <span v-if="i === 0" class="rr__card-def">{{ t.definition || T21_DEFINITIONS[t.code] }}</span>
+              </div>
+              <span :class="['rr__card-score', i === 0 ? 'is-hi' : 'is-mi']">{{ pct(t.score) }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="rr__teaser" @click="scrollToLock">
+          <div class="rr__teaser-top">
+            <div><p class="rr__eyebrow rr__eyebrow--g">업무 환경</p><p class="rr__teaser-title">나의 업무 환경 성향</p></div>
+            <span class="rr__teaser-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span>
+          </div>
+          <p class="rr__teaser-what">
+            <template v-if="t3AllNeutral"><b>환경 유연형</b> 풀이</template>
+            <template v-else>
+              <b v-if="t3GoodTexts.length">맞는 환경 {{ t3GoodTexts.length }}가지</b><template v-if="t3GoodTexts.length && t3BadTexts.length"> · </template><b v-if="t3BadTexts.length">맞지 않는 환경 {{ t3BadTexts.length }}가지</b>
+            </template>
+            <template v-if="weCount"> · 업무 조건 {{ weCount }}개</template>
+          </p>
+          <!-- 1위 = 맞는 환경 첫 문장(없으면 맞지 않는 환경 첫 문장). 나머지는 흐리게 -->
+          <div class="rr__teaser-peek">
+            <div v-if="t3AllNeutral" class="rr__env rr__env--neutral">
+              <p class="rr__env-head"><span class="rr__env-mk" aria-hidden="true"><AppIcon :name="ENV_JUDGE_ICON.neutral" :size="18" /></span><strong>환경 유연형</strong></p>
+              <p class="rr__env-text rr__blur" aria-hidden="true">특정 환경에 대한 강한 선호나 거부감이 없어요.</p>
+            </div>
+            <template v-else>
+              <div v-if="t3GoodTexts.length" class="rr__env rr__env--good">
+                <p class="rr__env-head"><span class="rr__env-mk" aria-hidden="true"><AppIcon :name="ENV_JUDGE_ICON.good" :size="18" /></span><strong>나에게 맞는 환경</strong></p>
+                <p class="rr__env-text">{{ t3GoodTexts[0]?.text }}</p>
+                <p v-if="t3GoodTexts[1]" class="rr__env-text rr__blur" aria-hidden="true">{{ t3GoodTexts[1].text }}</p>
+              </div>
+              <div v-if="t3BadTexts.length" :class="['rr__env', 'rr__env--bad', { 'rr__blur': t3GoodTexts.length }]" :aria-hidden="t3GoodTexts.length ? 'true' : undefined">
+                <p class="rr__env-head"><span class="rr__env-mk" aria-hidden="true"><AppIcon :name="ENV_JUDGE_ICON.bad" :size="18" /></span><strong>나에게 맞지 않는 환경</strong></p>
+                <p class="rr__env-text">{{ t3BadTexts[0]?.text }}</p>
+              </div>
+            </template>
+          </div>
+        </section>
+
+        <section class="rr__teaser" @click="scrollToLock">
+          <div class="rr__teaser-top">
+            <div><p class="rr__eyebrow rr__eyebrow--gold">종합 추천</p><p class="rr__teaser-title">나에게 맞는 직무 3가지</p></div>
+            <span class="rr__teaser-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span>
+          </div>
+          <p class="rr__teaser-what">
+            <b>직무 {{ guestJobs?.groupCount || 3 }}가지</b> · 추천 이유 · <b v-if="guestJobs?.jobCount">관련 직업 {{ guestJobs.jobCount }}개</b><template v-else>관련 직업</template> · 채용 공고
+          </p>
+          <!-- 1위 이름만 또렷하게(비회원 직무 맛보기 API). 못 받으면 이름도 흐리게. 흐린 줄의 글자는 자리만 채우는 것이다 -->
+          <div class="rr__teaser-peek">
+            <div class="rr__tjob">
+              <span class="rr__tjob-n">1</span>
+              <div>
+                <p v-if="guestJobs?.top" class="rr__tjob-name">{{ guestJobs.top.name }}</p>
+                <p v-else class="rr__tjob-name rr__blur" aria-hidden="true">○○·○○○ 직무</p>
+                <p class="rr__tjob-meta rr__blur" aria-hidden="true">관련 직업 ○개 · 추천 이유 ○○, ○○</p>
+              </div>
+            </div>
+            <div class="rr__tjob rr__blur" aria-hidden="true">
+              <span class="rr__tjob-n">2</span>
+              <div><p class="rr__tjob-name">○○·○○○·○○ 관리</p><p class="rr__tjob-meta">관련 직업 ○개 · 추천 이유 ○○</p></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ⚠️ 쪽 수는 report/ResultReport.vue 의 PAGES 와 같게(지금 4쪽) -->
+        <section class="rr__teaser rr__teaser--mini" @click="scrollToLock">
+          <span class="rr__pages" aria-hidden="true"><i /><i /><i /><i /></span>
+          <div><p class="rr__teaser-title">결과 리포트 저장</p><p class="rr__teaser-what">PDF 4쪽 · 이미지로 저장하고 언제든 다시 보기</p></div>
+          <span class="rr__teaser-pill"><AppIcon name="ui-privacy" :size="12" /></span>
+        </section>
+
+        <!-- 가입 상자(A안 — 시안 https://claude.ai/artifact/CSnzPsWWeDNEnW4N8H2EVo): 제목 바로 밑에 공식 모양 버튼 -->
+        <div ref="lockEl" class="rr__lock">
+          <GuestLockCard
+            eyebrow="가입 한 번이면 모두 열려요"
+            :title="'가입하면 전체 결과를\n바로 볼 수 있어요'"
+            note="가입하지 않고 나가면 결과는 바로 삭제돼요. (늦어도 24시간 뒤)"
+          >
+            <SocialLoginButton v-if="providers.kakao" provider="kakao" @click="goOAuth('kakao')">카카오로 시작하기</SocialLoginButton>
+            <SocialLoginButton v-if="providers.google" provider="google" @click="goOAuth('google')">Google 계정으로 계속하기</SocialLoginButton>
+            <p class="rr__lock-save"><AppIcon name="ui-check" :size="15" />가입하면 이 결과가 내 계정에 저장돼요</p>
+            <RouterLink to="/onboarding/auth" class="rr__lock-email">이메일로 가입 · 로그인</RouterLink>
+          </GuestLockCard>
+        </div>
+      </template>
 
       <!-- 3. 하고 싶은 일 -->
-      <section :class="['rr__sec', 'rr__sec--gray', { 'rr__guest-blur': guestMode }]" :aria-hidden="guestMode || undefined">
+      <section v-if="!guestMode" class="rr__sec rr__sec--gray">
         <p class="rr__eyebrow rr__eyebrow--s">하고 싶은 일</p>
         <h2 class="rr__title">재능 · 가치관 · 관심</h2>
 
@@ -151,7 +258,7 @@
       </section>
 
       <!-- 4. 업무 환경 -->
-      <section :class="['rr__sec', { 'rr__guest-blur': guestMode }]" :aria-hidden="guestMode || undefined">
+      <section v-if="!guestMode" class="rr__sec">
         <p class="rr__eyebrow rr__eyebrow--g">업무 환경</p>
         <h2 class="rr__title">나의 업무 환경 성향</h2>
 
@@ -182,12 +289,7 @@
            직업 Top 5 가 '엉뚱하다·뜬금없다'는 테스터 반응에 직업 하나 대신 직무(고용24 채용 직종 중분류)로 넓혔다.
            시안 https://claude.ai/artifact/8rzj7uxZajqRPFj53YXj26 의 '개선안' 그대로 — 총점 % 는 없고, 직업 순위는 아래 '직업 순위 보기'로 남겼다.
            직무를 못 불러오면(로그인 안 됨·서버 오류) 예전처럼 직업 Top 5 를 바로 보여 준다 -->
-      <section v-if="guestMode" class="rr__sec rr__guest-blur" aria-hidden="true">
-        <p class="rr__eyebrow rr__eyebrow--gold">종합 추천</p>
-        <h2 class="rr__title">나에게 맞는 직무 3가지</h2>
-        <div class="rr__skeletons"><div v-for="n in 3" :key="n" class="rr__skeleton" /></div>
-      </section>
-      <section v-else class="rr__sec">
+      <section v-if="!guestMode" class="rr__sec">
         <p class="rr__eyebrow rr__eyebrow--gold">종합 추천</p>
         <h2 class="rr__title">{{ groupMode ? '나에게 맞는 직무 3가지' : '나에게 맞는 직업 Top 5' }}</h2>
         <p class="rr__sub">성격·재능·관심·가치관·업무환경을 모두 고려한 추천이에요</p>
@@ -346,7 +448,8 @@ import type {
 } from '../types/survey'
 import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
 import GuestLockCard from '@/shared/components/GuestLockCard.vue'
-import { getGuestSurvey, fetchGuestAnalysis, markLoginRedirect } from '@/shared/guest/guestSurvey'
+import SocialLoginButton from '@/shared/components/SocialLoginButton.vue'
+import { getGuestSurvey, fetchGuestAnalysis, fetchGuestJobTeaser, markLoginRedirect, type GuestJobTeaser } from '@/shared/guest/guestSurvey'
 import { fetchProviders, startOAuth, type Provider } from '@/shared/auth/oauth'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
@@ -695,6 +798,22 @@ function goOAuth(p: Provider) {
   startOAuth(p)
 }
 
+// 비회원 맛보기(2026-11-11) — 잠긴 구역을 누르면 맨 아래 가입 상자로 내린다
+const lockEl = ref<HTMLElement | null>(null)
+function scrollToLock() {
+  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  lockEl.value?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' })
+}
+// 직무 1위 이름과 개수(비회원 직무 맛보기 API). 못 받으면 직무 칸은 이름 없이 흐리게 둔다
+const guestJobs = ref<GuestJobTeaser | null>(null)
+async function loadGuestJobs() {
+  const g = getGuestSurvey()
+  if (g?.surveyId !== surveyId) return
+  try {
+    guestJobs.value = (await fetchGuestJobTeaser(surveyId, g.key)).data
+  } catch { /* 맛보기만 빠진다 */ }
+}
+
 async function tryLinkSurvey() {
   if (!authStore.isLoggedIn) return
   // 이미 연결된 경우(409)는 정상, 나머지 오류는 무시
@@ -731,6 +850,7 @@ const valueList = computed(() => {
   const v = analysis.value?.values
   return v ? [v.priority_1, v.priority_2, v.priority_3] : []
 })
+const valueCount = computed(() => valueList.value.filter(Boolean).length)
 
 const t3GoodTexts = computed(() => analysis.value?.environment.texts?.good ?? [])
 const t3BadTexts = computed(() => analysis.value?.environment.texts?.bad ?? [])
@@ -780,6 +900,8 @@ const t3WeNonRec = computed(() =>
     { levels: [4, 5], side: 'down' },
   ]),
 )
+// 비회원 맛보기의 '업무 조건 n개' — 회원 화면에 실제로 그려지는 항목 수와 같게
+const weCount = computed(() => (t3WeVisible.value ? t3WeRec.value.length + t3WeNonRec.value.length : 0))
 
 async function load() {
   isLoading.value = true
@@ -982,8 +1104,9 @@ defineExpose({
 onMounted(() => {
   load()
   if (guestMode) {
-    // 비회원은 추천을 부르지 않는다(직무 추천은 로그인 필요, 잠금 아래라 보이지도 않는다)
+    // 비회원은 추천 전체를 부르지 않는다(로그인 필요) — 직무 1위 이름과 개수만 맛보기 API 로
     fetchProviders().then((v) => { providers.value = v })
+    loadGuestJobs()
     return
   }
   loadT2Recommend()
@@ -1446,10 +1569,95 @@ $c-text-3: #767676;  // 메타 — 분류·급여, 순위, 작은 안내
   cursor: pointer;
 }
 .rr__skeletons { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
-// 비회원 잠금(2026-11-09) — 아래 구역을 흐리게 깔고, 높이 0 의 자리 위에 잠금 상자를 띄워 그 구역들 위에 얹는다
-.rr__lock { position: relative; z-index: 2; height: 0; }
-.rr__lock > * { position: absolute; top: 28px; left: 4px; right: 4px; }
-.rr__guest-blur { filter: blur(7px); opacity: 0.55; pointer-events: none; user-select: none; }
+// 비회원 맛보기(2026-11-11) — 성격 4위부터 흐린 줄, 잠긴 구역 목차, 맨 아래 가입 상자
+.rr__blur { filter: blur(4.5px); opacity: 0.5; user-select: none; pointer-events: none; }
+.rr__more { position: relative; }
+.rr__more-rows { filter: blur(4px); opacity: 0.5; user-select: none; pointer-events: none; }
+.rr__more-btn {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 13px;
+    border: 1px solid #eee;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: $c-text-1;
+  }
+}
+.rr__teaser-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 26px 4px 0; }
+.rr__teaser-t { font-size: 0.95rem; font-weight: 800; }
+.rr__teaser-s { font-size: 0.72rem; color: $c-text-3; }
+.rr__teaser {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 18px 18px 16px;
+  border-radius: 18px;
+  background: #fff;
+  cursor: pointer;
+
+  &--gray { background: #f5f5f5; }
+  .rr__eyebrow { margin-bottom: 4px; }
+  .rr__env { margin-top: 0; }
+}
+.rr__teaser-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.rr__teaser-title { font-size: 1.06rem; font-weight: 800; }
+.rr__teaser-pill {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #f0f0f0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: $c-text-2;
+  .rr__teaser--gray & { background: #fff; }
+}
+.rr__teaser-what { font-size: 0.8125rem; line-height: 1.65; color: $c-text-2; word-break: keep-all; b { font-weight: 700; color: $c-text-1; } }
+.rr__teaser-peek { display: grid; gap: 8px; }
+.rr__tjob { display: grid; grid-template-columns: 26px 1fr; align-items: start; gap: 10px; padding: 12px; border: 1px solid #eee; border-radius: 12px; }
+.rr__tjob-n { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: #fff6c2; color: #9a7400; font-size: 0.8rem; font-weight: 800; }
+.rr__tjob-name { font-size: 0.9rem; font-weight: 800; line-height: 1.45; word-break: keep-all; }
+.rr__tjob-meta { margin-top: 3px; font-size: 0.75rem; color: $c-text-3; }
+.rr__teaser--mini { grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; padding: 14px 16px; .rr__teaser-title { font-size: 0.9rem; } .rr__teaser-what { font-size: 0.78rem; } }
+.rr__pages {
+  display: flex;
+  padding-left: 8px;
+
+  i {
+    display: grid;
+    align-content: start;
+    gap: 3px;
+    width: 22px;
+    height: 30px;
+    margin-left: -8px;
+    padding: 5px 4px;
+    box-sizing: border-box;
+    border: 1px solid #e3e3e3;
+    border-radius: 3px;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+
+    &::before, &::after { content: ''; display: block; height: 2px; border-radius: 2px; background: #e9eaed; }
+  }
+}
+.rr__lock { margin-top: 14px; }
+.rr__lock-save { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 2px; font-size: 0.8rem; color: $c-text-2; :deep(svg) { color: $c-gold; } }
 .rr__lock-email { margin-top: 2px; font-size: 0.8rem; font-weight: 600; color: $c-text-2; text-decoration: underline; text-underline-offset: 3px; }
 .rr__skeleton { height: 120px; border-radius: 14px; background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: rr-shimmer 1.4s infinite; }
 @keyframes rr-shimmer { to { background-position: -200% 0; } }

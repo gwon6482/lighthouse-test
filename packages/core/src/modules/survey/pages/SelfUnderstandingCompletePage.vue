@@ -22,7 +22,8 @@
       >
         결과 보고서 보기
       </RouterLink>
-      <RouterLink class="complete-cta-home" to="/">
+      <!-- 비회원은 홈이 없다(루트는 온보딩·로그인으로 간다) — 결과 보기 하나만(2026-11-09) -->
+      <RouterLink v-if="authStore.isLoggedIn" class="complete-cta-home" to="/">
         홈으로 돌아가기
       </RouterLink>
     </div>
@@ -35,8 +36,10 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import { AREA_ICON } from '@/modules/survey/surveyIcons'
 import { computed } from 'vue'
 import { useSurvey } from '../composables/useSurvey'
+import { useAuthStore } from '@/shared/stores/auth'
 
 const { surveyId } = useSurvey()
+const authStore = useAuthStore()
 
 // 온보딩(/main/before) 흐름에서 검사를 시작했으면 온보딩 전용 결과 페이지로 분기
 const isOnboarding = !!sessionStorage.getItem('lh_survey_return')

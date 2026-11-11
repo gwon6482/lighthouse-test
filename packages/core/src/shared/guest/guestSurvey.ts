@@ -33,6 +33,15 @@ export function clearGuestSurvey() {
 export const fetchGuestAnalysis = (surveyId: string, key: string) =>
   req.get(`/api/survey/guest/${encodeURIComponent(surveyId)}/analysis`, { headers: { 'x-guest-key': key } })
 
+// 결과지 잠금 화면의 '직무 맛보기'(2026-11-11) — 1위 직무 이름과 개수만 온다(2·3위·이유·직업 목록은 가입 뒤)
+export interface GuestJobTeaser {
+  top: { code: string; name: string } | null
+  groupCount: number
+  jobCount: number
+}
+export const fetchGuestJobTeaser = (surveyId: string, key: string) =>
+  req.get<GuestJobTeaser>(`/api/survey/guest/${encodeURIComponent(surveyId)}/job-groups`, { headers: { 'x-guest-key': key } })
+
 export const deleteGuestSurvey = (surveyId: string, key: string) =>
   req.delete(`/api/survey/guest/${encodeURIComponent(surveyId)}`, { headers: { 'x-guest-key': key } })
 
