@@ -80,25 +80,17 @@
       </div>
     </section>
 
-    <!-- 비회원(2026-11-09): '이 일을 하는 사람들'까지만 보여 주고 아래는 잠근다(features.guestEntry 빌드만).
-         목표 진로 설정은 두지 않는다 — '나에게 맞는 직업 찾기'로 비회원 검사(A 경로)로 보낸다(사용자 결정) -->
-    <GuestLockCard
-      v-if="locked"
-      class="overview-lock"
-      title="이 직업, 나와 맞을까요?"
-      :items="['일자리 현황', '필요한 능력·성격', '관련 직업', '후기 · 준비과정 · 채용']"
-      note="검사를 마치면 나머지 정보와 나에게 맞는 직무를 볼 수 있어요."
-    >
-      <RouterLink to="/start" class="overview-lock__cta">나에게 맞는 직업 찾기</RouterLink>
-      <RouterLink to="/onboarding/auth" class="overview-lock__login">이미 회원이에요 · 로그인</RouterLink>
-    </GuestLockCard>
-    <template v-else>
+    <!-- 비회원(2026-11-11, 자기이해 결과지 맛보기와 같은 결 — features.guestEntry 빌드만): '이 일을 하는 사람들' 아래도 그리되
+         구역 제목과 첫 항목만 또렷하게, 나머지는 흐리게(g-veil) · 길면 잘라 옅어지게(g-clip). 흐린 곳을 누르면 맨 아래 안내 카드로.
+         목표 진로 설정은 두지 않는다 — 안내 카드가 '나에게 맞는 직업 찾기'로 비회원 검사(A 경로)로 보낸다(사용자 결정 2026-11-09) -->
 
     <!-- 개인요소 / 업무요소 -->
-    <section v-for="section in detailSections" :key="section.title" class="overview-section overview-section--cards">
+    <section v-for="section in detailSections" :key="section.title" :class="['overview-section', 'overview-section--cards', { 'g-locked': locked }]" @click="onLockedClick">
       <div class="overview-section__header">
         <h3 class="overview-section__title">{{ section.title }}</h3>
+        <span v-if="locked" class="g-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span>
         <button
+          v-else
           type="button"
           class="compare-toggle"
           :class="{ 'compare-toggle--on': showInter[section.title] }"
@@ -108,8 +100,8 @@
         </button>
       </div>
 
-      <div class="pf-cards">
-        <article v-for="cat in cardsFor(section)" :key="`${cat.catKey}-${cat.dimKey}`" class="pf-card">
+      <div :class="['pf-cards', { 'g-clip': locked }]">
+        <article v-for="(cat, ci) in cardsFor(section)" :key="`${cat.catKey}-${cat.dimKey}`" :class="['pf-card', { 'g-veil': locked && ci > 0 }]">
           <div class="pf-card-head">
             <span class="pf-card-title">{{ cat.catKey }}</span>
             <span class="pf-badge">{{ cat.dimKey }}</span>
@@ -126,7 +118,7 @@
               이 직업에서 특히 중요해요
             </p>
             <ul class="pf-chips">
-              <li v-for="item in cat.within" :key="item.code">
+              <li v-for="(item, ii) in cat.within" :key="item.code" :class="{ 'g-veil': locked && ii > 0 }">
                 <button
                   type="button"
                   class="pf-chip pf-chip--within"
@@ -176,8 +168,9 @@
     </section>
 
     <!-- 직업 현황 -->
-    <section v-if="job.jobSatisfaction != null || job.salary" class="overview-section overview-section--cards">
-      <h3 class="overview-section__title">직업 현황</h3>
+    <section v-if="job.jobSatisfaction != null || job.salary" :class="['overview-section', 'overview-section--cards', { 'g-locked': locked }]" @click="onLockedClick">
+      <div v-if="locked" class="overview-section__header"><h3 class="overview-section__title">직업 현황</h3><span class="g-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span></div>
+      <h3 v-else class="overview-section__title">직업 현황</h3>
       <div class="overview-stats">
 
         <!-- 직업 만족도 -->
@@ -195,7 +188,7 @@
         </div>
 
         <!-- 임금 정보 -->
-        <div v-if="job.salary" class="overview-stats__card">
+        <div v-if="job.salary" :class="['overview-stats__card', { 'g-veil': locked }]">
           <span class="overview-stats__label">연봉 (만원)</span>
           <div class="overview-salary">
             <div class="overview-salary__track">
@@ -223,14 +216,18 @@
     </section>
 
     <!-- 일자리 전망 -->
-    <section v-if="job.work24?.prospect?.text || job.work24?.prospect?.distribution?.length" class="overview-section">
-      <h3 class="overview-section__title">
+    <section v-if="job.work24?.prospect?.text || job.work24?.prospect?.distribution?.length" :class="['overview-section', { 'g-locked': locked }]" @click="onLockedClick">
+      <div v-if="locked" class="overview-section__header">
+        <h3 class="overview-section__title">일자리 전망 <span v-if="prospectYear" class="overview-section__sub">{{ prospectYear }}년 조사</span></h3>
+        <span class="g-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span>
+      </div>
+      <h3 v-else class="overview-section__title">
         일자리 전망
         <span v-if="prospectYear" class="overview-section__sub">{{ prospectYear }}년 조사</span>
       </h3>
 
       <div v-if="job.work24?.prospect?.distribution?.length" class="overview-prospect">
-        <div v-for="b in job.work24.prospect.distribution" :key="b.name" class="overview-prospect__row">
+        <div v-for="(b, bi) in job.work24.prospect.distribution" :key="b.name" :class="['overview-prospect__row', { 'g-veil': locked && bi !== prospectTopIdx }]">
           <span class="overview-prospect__label">{{ b.name }}</span>
           <div class="overview-prospect__bar-bg">
             <div
@@ -243,32 +240,49 @@
         </div>
       </div>
 
-      <p v-if="job.work24?.prospect?.text" class="overview-section__text overview-section__text--pre">
+      <p v-if="job.work24?.prospect?.text" :class="['overview-section__text', 'overview-section__text--pre', { 'g-veil g-clip g-clip--sm': locked }]">
         {{ job.work24.prospect.text }}
       </p>
     </section>
 
     <!-- 관련 직업 -->
-    <section v-if="job.work24?.relatedJobs?.length" class="overview-section">
-      <h3 class="overview-section__title">관련 직업</h3>
-      <ul class="overview-chips__list">
-        <li v-for="r in job.work24.relatedJobs" :key="r.jobNm" class="overview-chips__item">{{ r.jobNm }}</li>
+    <section v-if="job.work24?.relatedJobs?.length" :class="['overview-section', { 'g-locked': locked }]" @click="onLockedClick">
+      <div v-if="locked" class="overview-section__header"><h3 class="overview-section__title">관련 직업 {{ job.work24.relatedJobs.length }}개</h3><span class="g-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span></div>
+      <h3 v-else class="overview-section__title">관련 직업</h3>
+      <ul :class="['overview-chips__list', { 'g-clip g-clip--sm': locked }]">
+        <li v-for="(r, ri) in job.work24.relatedJobs" :key="r.jobNm" :class="['overview-chips__item', { 'g-veil': locked && ri > 1 }]">{{ r.jobNm }}</li>
       </ul>
     </section>
 
-    </template>
+    <!-- 비회원 안내 카드 — 흐린 곳을 누르면 여기로 내려온다 -->
+    <div v-if="locked" ref="ctaEl" class="overview-lock"><JobGuestCta /></div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, onMounted } from 'vue'
-import GuestLockCard from '@/shared/components/GuestLockCard.vue'
+import AppIcon from '@/shared/components/AppIcon.vue'
+import JobGuestCta from '../JobGuestCta.vue'
 import type { Job, JobDetails, CategoryRankings, RankItem } from '../../../../types/encyclopedia'
 
 import { useCareerAttributes } from '@/shared/composables/useCareerAttributes'
 import JobGateGuide from '@/shared/components/JobGateGuide.vue'
 
 const props = defineProps<{ job: Job; locked?: boolean }>()
+
+// 비회원: 일자리 전망은 비율이 가장 큰 칸을 또렷하게 — 첫 칸이 '증가 0%' 처럼 빈 값일 때가 있다
+const prospectTopIdx = computed(() => {
+  const d = props.job.work24?.prospect?.distribution ?? []
+  return d.reduce((best, b, i) => (b.ratio > (d[best]?.ratio ?? -1) ? i : best), 0)
+})
+
+// 비회원: 흐린 곳을 누르면 맨 아래 안내 카드로 내린다(또렷한 칩·링크는 제 할 일을 하게 둔다)
+const ctaEl = ref<HTMLElement | null>(null)
+function onLockedClick(e: MouseEvent) {
+  if (!props.locked || (e.target as HTMLElement).closest('button, a')) return
+  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  ctaEl.value?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' })
+}
 
 type FactorKey = keyof JobDetails
 type DimKey = '중요도' | '수준'

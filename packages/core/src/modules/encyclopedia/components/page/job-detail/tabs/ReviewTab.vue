@@ -1,16 +1,18 @@
 <template>
-  <div class="review-tab">
+  <div :class="['review-tab', { 'g-locked': locked && reviews.length > 1 }]" @click="onLockedClick">
 
     <!-- 후기 목록 -->
     <section class="review-section">
-      <h3 class="review-section__title">후기 ({{ reviews.length }})</h3>
+      <div v-if="locked && reviews.length > 1" class="g-head"><h3 class="review-section__title">후기 ({{ reviews.length }})</h3><span class="g-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span></div>
+      <h3 v-else class="review-section__title">후기 ({{ reviews.length }})</h3>
 
       <div v-if="isLoading" class="review-empty">불러오는 중...</div>
       <div v-else-if="error" class="review-empty review-empty--error">{{ error }}</div>
       <div v-else-if="reviews.length === 0" class="review-empty">아직 등록된 후기가 없습니다.</div>
 
-      <ul v-else class="review-list">
-        <li v-for="review in reviews" :key="review._id" class="review-card">
+      <!-- 비회원: 첫 후기는 만족도·한 줄 요약만 또렷하게, 나머지는 흐리게. 글은 두 줄로 줄여 다음 후기가 비쳐 보이게 -->
+      <ul v-else :class="['review-list', { 'g-clip review-list--locked': locked }]">
+        <li v-for="(review, ri) in reviews" :key="review._id" :class="['review-card', { 'g-veil': locked && ri > 0 }]">
           <div class="review-card__top">
             <div class="review-card__satisfaction">
               <span class="review-card__satisfaction-label">만족도</span>
@@ -27,7 +29,7 @@
 
           <p class="review-card__summary">{{ review.summary }}</p>
 
-          <div class="review-card__detail">
+          <div :class="['review-card__detail', { 'g-veil': locked && ri === 0 }]">
             <div class="review-card__detail-item review-card__detail-item--pros">
               <span class="review-card__detail-label">장점</span>
               <p class="review-card__detail-text">{{ review.pros }}</p>
@@ -38,13 +40,13 @@
             </div>
           </div>
 
-          <div class="review-card__recommendation">
+          <div :class="['review-card__recommendation', { 'g-veil': locked && ri === 0 }]">
             <span class="review-card__recommendation-label">추천</span>
             <p class="review-card__recommendation-text">{{ review.recommendation }}</p>
           </div>
 
           <!-- 선택 항목 — 연구 설문 후기에서만 온다 -->
-          <div v-if="review.preparation || review.dailyLife" class="review-card__detail">
+          <div v-if="review.preparation || review.dailyLife" :class="['review-card__detail', { 'g-veil': locked && ri === 0 }]">
             <div v-if="review.preparation" class="review-card__detail-item review-card__detail-item--prep">
               <span class="review-card__detail-label">준비</span>
               <p class="review-card__detail-text">{{ review.preparation }}</p>
@@ -70,11 +72,18 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, onMounted } from 'vue'
 import { fetchJobReviews } from '../../../../encyclopedia.api'
 import type { JobReview, T1GroupCode } from '../../../../types/encyclopedia'
 
-const props = defineProps<{ jobCode: string }>()
+const props = defineProps<{ jobCode: string; locked?: boolean }>()
+const emit = defineEmits<{ (e: 'unlock'): void }>()
+
+// 비회원(2026-11-11): 흐린 곳을 누르면 페이지가 맨 아래 안내 카드로 내린다(또렷한 링크·버튼은 제 할 일을 하게 둔다)
+function onLockedClick(e: MouseEvent) {
+  if (props.locked && !(e.target as HTMLElement).closest('button, a')) emit('unlock')
+}
 
 // T1 요소 이름 — 검사 결과(API personality.name)·결과 화면과 같은 표기.
 // ⚠️ 2026-10-15 전에는 옛 이름(C 성실성·S 민감성 …)이 남아 있어 결과 화면과 달랐다.

@@ -1,8 +1,9 @@
 <template>
-  <div class="recruit-tab">
+  <div :class="['recruit-tab', { 'g-locked': locked }]" @click="onLockedClick">
     <section class="recruit-section">
       <div class="recruit-section__head">
-        <h3 class="recruit-section__title">채용공고<template v-if="postings.length"> ({{ postings.length }})</template></h3>
+        <div v-if="locked && postings.length > 1" class="g-head"><h3 class="recruit-section__title">채용공고 ({{ postings.length }})</h3><span class="g-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span></div>
+        <h3 v-else class="recruit-section__title">채용공고<template v-if="postings.length"> ({{ postings.length }})</template></h3>
         <p v-if="postings.length" class="recruit-section__desc">최근 올라온 공고예요. 누르면 공고 원문으로 이동해요.</p>
       </div>
 
@@ -17,8 +18,8 @@
         지금 이 {{ groupCode ? '직무로' : '직업으로' }} 올라온 공고가 없어요.
       </div>
 
-      <ul v-else class="recruit-list">
-        <li v-for="post in postings" :key="post.id">
+      <ul v-else :class="['recruit-list', { 'g-clip': locked }]">
+        <li v-for="(post, pi) in postings" :key="post.id" :class="{ 'g-veil': locked && pi > 0 }">
           <a class="recruit-card" :href="post.mobileUrl || post.url" target="_blank" rel="noopener noreferrer">
             <!-- 헤더: 회사 + 마감 -->
             <div class="recruit-card__head">
@@ -43,7 +44,7 @@
       </ul>
 
       <!-- 출처별 '더 보기' — 사람인·잡코리아가 붙으면 줄이 하나씩 늘어난다 -->
-      <div v-if="!isLoading && !error && moreLinks.length" class="recruit-more">
+      <div v-if="!isLoading && !error && moreLinks.length && !locked" class="recruit-more">
         <a
           v-for="s in moreLinks"
           :key="s.id"
@@ -60,14 +61,15 @@
     <!-- 기업 공채 — 직업이 아니라 직종 '분야' 단위(고용24 공채속보). 없으면 섹션째 숨긴다 -->
     <section v-for="g in openings" :key="g.source + g.scope.code" class="recruit-section">
       <div class="recruit-section__head">
-        <h3 class="recruit-section__title">기업 공채</h3>
+        <div v-if="locked" class="g-head"><h3 class="recruit-section__title">기업 공채</h3><span class="g-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span></div>
+        <h3 v-else class="recruit-section__title">기업 공채</h3>
         <p class="recruit-section__desc">
           '{{ g.scope.name }}' 분야 대기업·공공기관 등의 공개채용이에요. 분야 기준이라 다른 직무도 함께 뽑을 수 있어요.
         </p>
       </div>
 
-      <ul class="recruit-list">
-        <li v-for="o in g.items" :key="o.id">
+      <ul :class="['recruit-list', { 'g-clip': locked }]">
+        <li v-for="o in g.items" :key="o.id" :class="{ 'g-veil': locked }">
           <component
             :is="o.url ? 'a' : 'div'"
             class="recruit-card open-card"
@@ -119,8 +121,16 @@ import type {
 } from '../../../../types/encyclopedia'
 
 // 직업 하나(진로백과 채용 탭) 또는 직무 하나(결과지 직무 카드의 '채용 공고' 화면, 2026-11-09). 응답 모양은 같다
-const props = defineProps<{ jobCode?: string; groupCode?: string }>()
-const emit = defineEmits<{ (e: 'group', group: { code: string; name: string; fullName: string }): void }>()
+const props = defineProps<{ jobCode?: string; groupCode?: string; locked?: boolean }>()
+const emit = defineEmits<{
+  (e: 'group', group: { code: string; name: string; fullName: string }): void
+  (e: 'unlock'): void
+}>()
+
+// 비회원(2026-11-11): 흐린 곳을 누르면 페이지가 맨 아래 안내 카드로 내린다(또렷한 링크·버튼은 제 할 일을 하게 둔다)
+function onLockedClick(e: MouseEvent) {
+  if (props.locked && !(e.target as HTMLElement).closest('button, a')) emit('unlock')
+}
 
 // 2026-10-16 가짜 샘플 공고(실제 회사명) 제거 후, 고용24 채용정보로 채운다.
 // ⚠️ 다시 샘플을 넣지 말 것. 출처를 늘릴 때는 서버(services/recruit/providers)만 고치면 이 화면은 그대로다

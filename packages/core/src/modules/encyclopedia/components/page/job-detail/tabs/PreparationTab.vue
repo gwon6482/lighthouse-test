@@ -1,8 +1,15 @@
 <template>
-  <div class="prep-tab">
+  <div :class="['prep-tab', { 'g-locked': locked }]" @click="onLockedClick">
     <section class="prep-section">
       <div class="prep-section__head">
-        <h3 class="prep-section__title">
+        <div v-if="locked && journeys.length" class="g-head">
+          <h3 class="prep-section__title">
+            준비과정 예시 ({{ journeys.length }})
+            <span class="prep-section__badge">예시</span>
+          </h3>
+          <span class="g-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span>
+        </div>
+        <h3 v-else class="prep-section__title">
           준비과정 예시 ({{ journeys.length }})
           <span class="prep-section__badge">예시</span>
         </h3>
@@ -16,8 +23,8 @@
         아직 준비과정이 등록되지 않았습니다.
       </div>
 
-      <ul v-else class="prep-list">
-        <li v-for="journey in journeys" :key="journey.id" class="prep-card">
+      <ul v-else :class="['prep-list', { 'g-clip': locked }]">
+        <li v-for="(journey, ji) in journeys" :key="journey.id" :class="['prep-card', { 'g-veil': locked && ji > 0 }]">
           <!-- 인물 헤더 -->
           <div class="prep-card__head">
             <div class="prep-card__person">
@@ -33,7 +40,7 @@
           <p class="prep-card__headline">“{{ journey.headline }}”</p>
 
           <!-- 준비과정 -->
-          <div class="prep-block">
+          <div :class="['prep-block', { 'g-veil': locked }]">
             <span class="prep-block__label">준비과정 {{ journey.projects.length }}</span>
             <div class="prep-block__groups">
               <div v-for="group in groupedProjects(journey)" :key="group.category" class="prep-block__group">
@@ -51,7 +58,7 @@
           </div>
 
           <!-- 루틴 (프로젝트와 별개) -->
-          <div class="prep-block prep-block--routine">
+          <div :class="['prep-block', 'prep-block--routine', { 'g-veil': locked }]">
             <span class="prep-block__label">루틴 {{ journey.routines.length }}</span>
             <ul class="prep-block__list">
               <li v-for="routine in journey.routines" :key="routine.name" class="prep-routine">
@@ -82,7 +89,13 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import { computed } from 'vue'
 import type { ProjectCategory } from '@/modules/career-design/types/career-design'
 
-const props = defineProps<{ jobCode: string }>()
+const props = defineProps<{ jobCode: string; locked?: boolean }>()
+const emit = defineEmits<{ (e: 'unlock'): void }>()
+
+// 비회원(2026-11-11): 흐린 곳을 누르면 페이지가 맨 아래 안내 카드로 내린다(또렷한 링크·버튼은 제 할 일을 하게 둔다)
+function onLockedClick(e: MouseEvent) {
+  if (props.locked && !(e.target as HTMLElement).closest('button, a')) emit('unlock')
+}
 
 /**
  * 한 직업인의 준비 여정 (백엔드 준비 전 하드코딩). jobCode 별로 분리.

@@ -202,3 +202,20 @@
     padding: 3px 10px;
   }
 }
+
+// 비회원(2026-11-11) — 제목 옆 '가입 후'. 밑줄은 머리 줄 전체에
+.review-section .g-head { padding-bottom: 8px; border-bottom: 1.5px solid #eee; }
+.review-section .g-head .review-section__title { padding-bottom: 0; border-bottom: 0; }
+// 첫 후기가 길면 다음 후기가 잘려 안 보인다 — 글을 두 줄로 줄이고 태그는 뺀다
+.review-list.review-list--locked {
+  max-height: 400px;
+
+  .review-card__detail-text,
+  .review-card__recommendation-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .review-card__tags { display: none; }
+}

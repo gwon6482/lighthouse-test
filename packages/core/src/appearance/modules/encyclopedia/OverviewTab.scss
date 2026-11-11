@@ -522,7 +522,7 @@
 
 // 비회원 잠금(2026-11-09) — '이 일을 하는 사람들' 아래
 .overview-lock { margin: 8px 0 24px; }
-.overview-lock--tab { margin: 16px 16px 24px; }   // 다른 탭 자리 — 탭 본문은 좌우 여백이 없다
+.overview-lock--tab { margin: 0; padding: 0 30px 40px; background-color: #f9fafb; }   // 다른 탭 아래 — 탭 바탕(#f9fafb·좌우 30px)에 이어 붙인다
 .overview-lock__cta {
   display: flex;
   align-items: center;

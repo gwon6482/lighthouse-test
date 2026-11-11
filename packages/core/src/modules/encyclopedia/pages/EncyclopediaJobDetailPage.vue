@@ -1,5 +1,5 @@
 <template>
-  <div class="job-detail-page">
+  <div ref="pageEl" class="job-detail-page">
     <!-- 로딩 -->
     <div v-if="isLoading" class="job-detail-page__loading">
       로딩 중...
@@ -35,29 +35,32 @@
           :job="selectedJob"
           :locked="guestLocked"
         />
-        <!-- 비회원은 개요 외 탭을 잠근다(2026-11-09, features.guestEntry 빌드만) -->
-        <GuestLockCard
-          v-else-if="guestLocked"
-          class="overview-lock overview-lock--tab"
-          title="로그인하면 볼 수 있어요"
-          :items="['직업 후기', '준비과정', '채용 공고']"
-          note="먼저 나에게 맞는 직업인지 검사해 보세요."
-        >
-          <RouterLink to="/start" class="overview-lock__cta">나에게 맞는 직업 찾기</RouterLink>
-          <RouterLink to="/onboarding/auth" class="overview-lock__login">이미 회원이에요 · 로그인</RouterLink>
-        </GuestLockCard>
+        <!-- 비회원(2026-11-11): 다른 탭도 내용을 그리되 첫 항목만 또렷하게, 나머지는 흐리게(features.guestEntry 빌드만).
+             흐린 곳을 누르면 아래 안내 카드로 내린다. 개요는 탭 안에 같은 카드가 있다 -->
         <ReviewTab
           v-else-if="activeTab === 'review'"
           :job-code="selectedJob.jobCode"
+          :locked="guestLocked"
+          @unlock="scrollToGuestCta"
         />
         <PreparationTab
           v-else-if="activeTab === 'preparation'"
           :job-code="selectedJob.jobCode"
+          :locked="guestLocked"
+          @unlock="scrollToGuestCta"
         />
         <RecruitmentTab
           v-else-if="activeTab === 'recruitment'"
           :job-code="selectedJob.jobCode"
+          :locked="guestLocked"
+          @unlock="scrollToGuestCta"
         />
+        <div v-if="guestLocked && activeTab !== 'overview'" ref="guestCtaEl" class="overview-lock overview-lock--tab"><JobGuestCta /></div>
+        <!-- 비회원 떠 있는 카드(2026-11-11) — 직업 이름·탭을 지나면 올라오고, 맨 아래 안내 카드가 보이면 내려간다.
+             회원의 '목표진로로 설정하기' 버튼 자리를 비회원은 이 카드가 쓴다 -->
+        <GuestFloatCard v-if="guestLocked" :show="guestFloatShow" title="이 직업, 나와 맞을까요?">
+          <RouterLink to="/start" class="gfloat__cta">나에게 맞는 직업 찾기</RouterLink>
+        </GuestFloatCard>
       </div>
 
       <!-- 목표진로로 설정하기 고정 버튼 -->
@@ -87,7 +90,7 @@
 
 <script setup lang="ts">
 import AppIcon from '@/shared/components/AppIcon.vue'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useEncyclopedia } from '../composables/useEncyclopedia'
 import { useAuthStore } from '@/shared/stores/auth'
@@ -98,7 +101,8 @@ import OverviewTab from '../components/page/job-detail/tabs/OverviewTab.vue'
 import ReviewTab from '../components/page/job-detail/tabs/ReviewTab.vue'
 import PreparationTab from '../components/page/job-detail/tabs/PreparationTab.vue'
 import RecruitmentTab from '../components/page/job-detail/tabs/RecruitmentTab.vue'
-import GuestLockCard from '@/shared/components/GuestLockCard.vue'
+import JobGuestCta from '../components/page/job-detail/JobGuestCta.vue'
+import GuestFloatCard from '@/shared/components/GuestFloatCard.vue'
 import { features } from '@/shared/config/features'
 
 const route = useRoute()
@@ -120,6 +124,23 @@ const {
 
 // 비회원 진로백과(2026-11-09): '이 일을 하는 사람들' 아래와 다른 탭을 잠근다. 목표 진로 버튼은 원래 로그인해야 보인다
 const guestLocked = computed(() => features.guestEntry && !authStore.isLoggedIn)
+const guestCtaEl = ref<HTMLElement | null>(null)
+function scrollToGuestCta() {
+  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  guestCtaEl.value?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' })
+}
+// 떠 있는 카드 — 직업 이름·탭(맨 위 약 240px)을 지나면 보이고, 맨 아래 안내 카드(개요 안 또는 탭 아래 .overview-lock)가 화면에 들어오면 숨긴다
+const pageEl = ref<HTMLElement | null>(null)
+const guestFloatShow = ref(false)
+function updateGuestFloat() {
+  if (!guestLocked.value) { guestFloatShow.value = false; return }
+  const cta = pageEl.value?.querySelector('.overview-lock')
+  const ctaSeen = !!cta && cta.getBoundingClientRect().top < window.innerHeight
+  guestFloatShow.value = window.scrollY > 240 && !ctaSeen
+}
+onMounted(() => window.addEventListener('scroll', updateGuestFloat, { passive: true }))
+onBeforeUnmount(() => window.removeEventListener('scroll', updateGuestFloat))
+watch(activeTab, () => nextTick(updateGuestFloat))   // 탭을 바꾸면 길이가 달라진다
 
 const isCurrentJobRecommended = computed(() =>
   !!selectedJob.value &&
