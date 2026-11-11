@@ -1,7 +1,7 @@
 <template>
   <!-- 카카오·구글 공식 모양 버튼(2026-11-11, 비회원 결과지 잠금 상자 A안) — 카카오: 노란 바탕·검은 말풍선 / 구글: 흰 바탕·회색 테두리·4색 G.
        ⚠️ 로고 모양과 색은 각 회사 가이드 그대로 둔다(자체 아이콘 AppIcon 으로 바꾸지 않는다) -->
-  <button type="button" :class="['sbtn', `sbtn--${provider}`]">
+  <button type="button" :class="['sbtn', `sbtn--${provider}`, { 'sbtn--sm': small }]">
     <svg v-if="provider === 'kakao'" class="sbtn__logo" viewBox="0 0 24 24" aria-hidden="true">
       <path fill="#000000" d="M12 3.6c-5.3 0-9.6 3.36-9.6 7.5 0 2.66 1.77 5 4.45 6.33l-1.13 4.13c-.1.36.31.65.62.44l4.93-3.26c.24.02.48.03.73.03 5.3 0 9.6-3.36 9.6-7.5S17.3 3.6 12 3.6z" />
     </svg>
@@ -18,7 +18,8 @@
 <script setup lang="ts">
 import type { Provider } from '@/shared/auth/oauth'
 
-defineProps<{ provider: Provider }>()
+// small: 화면 아래 떠 있는 가입 카드에서 두 개를 나란히 둘 때(2026-11-11)
+defineProps<{ provider: Provider; small?: boolean }>()
 </script>
 
 <style scoped lang="scss">
@@ -57,4 +58,9 @@ defineProps<{ provider: Provider }>()
 }
 .sbtn__logo { flex: none; width: 22px; height: 22px; }
 .sbtn__logo--g { width: 20px; height: 20px; }
+.sbtn span { white-space: nowrap; }
+.sbtn--sm { gap: 6px; height: 46px; padding: 0 8px; border-radius: 10px; font-size: 0.9rem; }
+.sbtn--sm .sbtn__logo { width: 18px; height: 18px; }
+// 320px 폭에서 'Google로 계속' 이 두 줄로 꺾였다(2026-11-11) — 좁은 화면만 글자를 줄인다
+@media (max-width: 340px) { .sbtn--sm { gap: 5px; font-size: 0.82rem; } }
 </style>

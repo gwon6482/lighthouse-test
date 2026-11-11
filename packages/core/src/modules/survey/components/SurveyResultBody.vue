@@ -24,7 +24,7 @@
 
     <template v-else-if="analysis">
       <!-- 1. 성격 유형 -->
-      <section class="rr__hero">
+      <section ref="heroEl" class="rr__hero">
         <p class="rr__hero-label">나의 성격 유형</p>
         <h1 class="rr__hero-name">{{ analysis.personality_type?.full_name ?? '알 수 없음' }}</h1>
         <img
@@ -200,6 +200,21 @@
             <RouterLink to="/onboarding/auth" class="rr__lock-email">이메일로 가입 · 로그인</RouterLink>
           </GuestLockCard>
         </div>
+
+        <!-- 떠 있는 가입 카드(2026-11-11, 시안 https://claude.ai/artifact/5f99gwCLauoXZ2MLBJpdbf 의 ② 작은 카드).
+             가입 버튼이 맨 아래(화면 약 3개 아래)에만 있어 성격 유형만 보고 멈추면 버튼을 못 본다 — 성격 유형을 지나면 올라오고,
+             맨 아래 가입 상자가 보이면 내려간다(같은 버튼이 두 번 보이지 않게). 화면 끝에 붙은 바는 사용자가 싫다고 했다 -->
+        <Teleport to="body">
+          <div v-if="providers.kakao || providers.google" :class="['rr__float', { 'is-show': floatShow }]" data-export-skip>
+            <div class="rr__float-card">
+              <p class="rr__float-t"><AppIcon name="ui-privacy" :size="14" />가입하면 전체 결과를 볼 수 있어요</p>
+              <div class="rr__float-btns">
+                <SocialLoginButton v-if="providers.kakao" provider="kakao" small @click="goOAuth('kakao')">카카오로 시작</SocialLoginButton>
+                <SocialLoginButton v-if="providers.google" provider="google" small @click="goOAuth('google')">Google로 계속</SocialLoginButton>
+              </div>
+            </div>
+          </div>
+        </Teleport>
       </template>
 
       <!-- 3. 하고 싶은 일 -->
@@ -804,6 +819,29 @@ function scrollToLock() {
   const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
   lockEl.value?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' })
 }
+// 떠 있는 가입 카드 — 성격 유형이 60% 넘게 지나가면 올라오고, 맨 아래 가입 상자가 화면에 들어오면 내려간다
+const heroEl = ref<HTMLElement | null>(null)
+const floatShow = ref(false)
+let floatIo: IntersectionObserver | null = null
+watch([heroEl, lockEl], ([hero, lock]) => {
+  floatIo?.disconnect()
+  floatShow.value = false
+  if (!guestMode || !hero || !lock || typeof IntersectionObserver === 'undefined') return
+  let heroPast = false
+  let lockSeen = false
+  // ⚠️ 0.4 는 성격 유형 상자(약 410px)가 화면보다 작아서 쓸 수 있다 — 화면보다 큰 요소는 비율이 1까지 못 간다
+  floatIo = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.target === hero) heroPast = e.intersectionRatio < 0.4
+      else lockSeen = e.isIntersecting
+    }
+    floatShow.value = heroPast && !lockSeen
+  }, { threshold: [0, 0.4] })
+  floatIo.observe(hero)
+  floatIo.observe(lock)
+})
+onBeforeUnmount(() => floatIo?.disconnect())
+
 // 직무 1위 이름과 개수(비회원 직무 맛보기 API). 못 받으면 직무 칸은 이름 없이 흐리게 둔다
 const guestJobs = ref<GuestJobTeaser | null>(null)
 async function loadGuestJobs() {
@@ -1657,6 +1695,34 @@ $c-text-3: #767676;  // 메타 — 분류·급여, 순위, 작은 안내
   }
 }
 .rr__lock { margin-top: 14px; }
+.rr__float {
+  position: fixed;
+  z-index: 50;
+  left: 0;
+  right: 0;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  padding: 0 max(10px, env(safe-area-inset-right, 0px)) 0 max(10px, env(safe-area-inset-left, 0px));
+  pointer-events: none;
+}
+.rr__float-card {
+  display: grid;
+  gap: 10px;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.18);
+  transform: translateY(calc(100% + 30px));
+  opacity: 0;
+  visibility: hidden;   // 숨었을 때 버튼에 탭 이동이 가지 않게
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s, visibility 0s 0.3s;
+  .rr__float.is-show & { transform: none; opacity: 1; visibility: visible; pointer-events: auto; transition-delay: 0s; }
+}
+.rr__float-t { display: flex; align-items: center; gap: 6px; padding: 0 2px; font-size: 0.875rem; font-weight: 800; color: $c-text-1; :deep(svg) { color: $c-gold; } }
+.rr__float-btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
+@media (prefers-reduced-motion: reduce) { .rr__float-card { transition: none; } }
 .rr__lock-save { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 2px; font-size: 0.8rem; color: $c-text-2; :deep(svg) { color: $c-gold; } }
 .rr__lock-email { margin-top: 2px; font-size: 0.8rem; font-weight: 600; color: $c-text-2; text-decoration: underline; text-underline-offset: 3px; }
 .rr__skeleton { height: 120px; border-radius: 14px; background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: rr-shimmer 1.4s infinite; }
