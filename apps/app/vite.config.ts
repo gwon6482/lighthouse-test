@@ -29,9 +29,12 @@ export default defineConfig({
       devOptions: { enabled: true, suppressWarnings: true },
       includeAssets: ['favicon.ico', 'apple-icon-180.png'],
       manifest: {
-        name: 'Lighthouse',
-        short_name: 'Lighthouse',
-        description: 'Lighthouse — 나의 진로를 비추는 빛',
+        // 설치 이름(홈 화면 아이콘 아래 글자)은 한글(2026-11-12 사용자 결정) — 랜딩 제목·앱 탭 제목·검색 목표('라이트하우스')와 같은 이름으로.
+        // 스테이징(apps/test)은 일부러 영문 'Lighthouse Test' 로 둔다 — 홈 화면에서 운영 앱과 바로 구분되게.
+        // 이미 설치한 기기는 다시 설치하기 전까지 예전 이름이 남을 수 있다
+        name: '라이트하우스',
+        short_name: '라이트하우스',
+        description: '라이트하우스 — 나의 진로를 비추는 빛',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
