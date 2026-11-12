@@ -6,7 +6,7 @@ export const features = {
   community: false,
   career: false,
   // 비회원 진입 경로(2026-11-09) — /start(비회원 검사) · /job/:jobCode(비회원 진로백과) · 결과지·진로백과 잠금.
-  // 빌드 환경변수로 켠다: 스테이징(deploy-test)만 VITE_GUEST_ENTRY=1. 운영은 처리방침 시행(2026-11-16) 뒤에 켤 것
+  // 빌드 환경변수로 켠다: 스테이징(deploy-test)·운영(deploy-app) 모두 VITE_GUEST_ENTRY=1 (운영은 2026-11-12~)
   guestEntry: import.meta.env.VITE_GUEST_ENTRY === '1',
 } as const
 

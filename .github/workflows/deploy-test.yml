@@ -33,7 +33,7 @@ jobs:
         run: pnpm --filter @lighthouse/test-app build
         env:
           VITE_API: https://api.lighthouse.career
-          # 비회원 진입 경로(/start · /job/:code · 결과지·진로백과 잠금) — 스테이징만. 운영(deploy-app)은 처리방침 시행 2026-11-16 뒤에 추가
+          # 비회원 진입 경로(/start · /job/:code · 결과지·진로백과 잠금) — 운영(deploy-app)도 2026-11-12부터 켬
           VITE_GUEST_ENTRY: '1'
 
       - name: Configure AWS credentials
