@@ -76,13 +76,6 @@
       &:hover { filter: brightness(0.97); }
     }
 
-    &--apple {
-      background: $color-text;
-      border-color: $color-text;
-      color: $color-surface;
-      &:hover { background: $gray-black; }
-    }
-
     &--google {
       &:hover { background: #FAFAFA; }
       .auth__social-icon { color: $brand-google; }

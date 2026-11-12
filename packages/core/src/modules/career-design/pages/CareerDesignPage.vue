@@ -263,6 +263,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { fetchTargetCareer, updateTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import type { TargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
+import { findHelperExamples } from '../composables/useHelperExamples'
+import { startManualPlan } from '../composables/startManualPlan'
 
 const router = useRouter()
 const route = useRoute()
@@ -324,9 +326,12 @@ function runTyping() {
   }
 }
 
-// [진로계획 세우기] → 템플릿 화면이 기본(2026-10-20 사용자). '직접 설계하기'는 그 화면 맨 아래 상자에서
+// [진로계획 세우기] — 목표 직업에 템플릿이 있으면 템플릿 화면, 없으면 바로 직접 설계(2026-11-11 사용자 결정 B안).
+// 템플릿이 있는 직업은 아직 시범 5개라, 다른 직업에 '준비 중'·직업 고르기를 보이지 않는다(사용자: 요청한 적 없는 화면)
 function goToTemplates() {
-  router.push('/career-design/templates')
+  const title = targetCareer.value?.title ?? targetCareer.value?.ref ?? ''
+  if (findHelperExamples(title)) router.push('/career-design/templates')
+  else startManualPlan(router, title)
 }
 
 // ── 목표 진로 ──

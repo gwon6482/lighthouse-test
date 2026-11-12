@@ -20,10 +20,6 @@
             <span class="auth__social-icon">💬</span>
             카카오로 시작하기
           </button>
-          <button class="auth__social auth__social--apple" @click="comingSoon('Apple')">
-            <span class="auth__social-icon"></span>
-            Apple로 시작하기
-          </button>
           <button
             class="auth__social auth__social--google"
             @click="providers.google ? startOAuth('google') : comingSoon('구글')"
@@ -51,7 +47,7 @@
              비밀번호를 요구받고 막다른 길에 갇혔다.
              ⚠️ 여기에는 **켜진 제공자만** 놓는다. 회원가입 탭의 '준비 중' 버튼은 티저로 의미가 있지만,
              로그인 화면에서는 아니다 — 구현된 적 없는 방법으로 가입한 계정은 존재할 수 없으므로
-             눌러도 '준비 중'만 뜨는 버튼은 순수한 방해물이다(그래서 Apple 은 여기 없다). -->
+             눌러도 '준비 중'만 뜨는 버튼은 순수한 방해물이다. (Apple 은 연동하지 않기로 해 회원가입 탭에서도 뺐다, 2026-11-11) -->
         <template v-if="hasEnabledProvider">
           <div class="auth__socials">
             <button

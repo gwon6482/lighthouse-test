@@ -8,6 +8,7 @@
 // 수정 여부는 draftPlan.editing(계획 상세에서 loadPlanFromApi 로 불렀을 때 true).
 import { computed } from 'vue'
 import { useCareerDesign } from './useCareerDesign'
+import { findHelperExamples } from './useHelperExamples'
 
 export type DesignStepKey = 'projects' | 'pace' | 'timeline' | 'routines' | 'reviewDay' | 'overview'
 
@@ -21,6 +22,7 @@ const STEPS: { key: DesignStepKey; path: string; label: string; newOnly?: boolea
 ]
 const RESULT_PATH = '/career-design/result'
 const TEMPLATES_PATH = '/career-design/templates'
+const MAIN_PATH = '/career-design'
 
 export const DESIGN_STEP_PATH = Object.fromEntries(STEPS.map((s) => [s.key, s.path])) as Record<DesignStepKey, string>
 
@@ -33,11 +35,15 @@ export function useDesignSteps() {
   function indexOf(key: DesignStepKey) {
     return steps.value.findIndex((s) => s.key === key)
   }
-  /** 이전 단계 주소 — 첫 단계의 이전은 새 계획이면 템플릿, 수정이면 계획 상세 */
+  /** 이전 단계 주소 — 첫 단계의 이전은 수정이면 계획 상세, 새 계획이면 템플릿(목표 직업에 템플릿이 있을 때) 또는 진로계획 첫 화면 */
   function prevPath(key: DesignStepKey): string {
     const i = indexOf(key)
     if (i > 0) return steps.value[i - 1]!.path
-    if (i === 0) return editing.value ? detailPath.value : TEMPLATES_PATH
+    if (i === 0) {
+      if (editing.value) return detailPath.value
+      // 템플릿이 없는 직업은 템플릿 화면을 거치지 않고 들어왔다(2026-11-11 B안) — 돌아갈 곳도 첫 화면
+      return findHelperExamples(draftPlan.targetJob ?? '') ? TEMPLATES_PATH : MAIN_PATH
+    }
     // 수정 흐름에 없는 단계(속도)에 '속도 다시 정하기'로 들어왔으면 타임라인으로 돌아간다
     return DESIGN_STEP_PATH.timeline
   }

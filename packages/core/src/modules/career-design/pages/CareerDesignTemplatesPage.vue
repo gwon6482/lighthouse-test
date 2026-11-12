@@ -7,23 +7,6 @@
     />
 
     <div class="cd-tpl__body">
-      <!-- 직업 고르기: 목표 진로에 맞는 템플릿이 없을 때(🧪 프로토타입 — 템플릿이 있는 직업이 아직 5개뿐) -->
-      <section v-if="!matched || picked" class="cd-tpl__jobs-box">
-        <p class="cd-tpl__jobs-desc">
-          <template v-if="targetTitle && !matched">'{{ targetTitle }}' 템플릿은 아직 준비 중이에요. </template>
-          아래 직업의 템플릿을 살펴보세요.
-        </p>
-        <div class="cd-tpl__jobs">
-          <button
-            v-for="j in HELPER_EXAMPLE_JOBS"
-            :key="j.jobCode"
-            type="button"
-            class="cd-tpl__job"
-            :class="{ 'cd-tpl__job--on': job?.jobCode === j.jobCode }"
-            @click="pickJob(j.jobCode)"
-          >{{ j.title }} <JobGateBadges :job-code="j.jobCode" :max="1" /></button>
-        </div>
-      </section>
 
       <p v-if="job" class="cd-tpl__intro">
         {{ job.title }} 채용공고 {{ job.posts }}건과 직업정보를 바탕으로 설계했어요. 지금 내 상황에 맞는 단계를 골라 시작하고, 프로젝트는 자유롭게 고칠 수 있어요.
@@ -109,15 +92,15 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import { useCareerDesign } from '../composables/useCareerDesign'
-import { HELPER_EXAMPLE_JOBS, findHelperExamples, findHelperExamplesByCode } from '../composables/useHelperExamples'
+import { findHelperExamples } from '../composables/useHelperExamples'
 import { buildPlanTemplates, type PlanTemplate } from '../composables/usePlanTemplates'
 import { toDateKey } from '../composables/usePlanTimeline'
-import { fetchTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import { getToday } from '@/shared/utils/dev-date'
+import { startManualPlan } from '../composables/startManualPlan'
+import { fetchTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import type { ProjectCategory } from '../types/career-design'
 import { methodLine, methodIcon } from '../composables/projectMethods'
 import JobGateGuide from '@/shared/components/JobGateGuide.vue'
-import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 
 const router = useRouter()
@@ -148,28 +131,21 @@ onMounted(async () => {
   } catch { /* 비로그인 등 */ }
 })
 
-const matched = computed(() => findHelperExamples(targetTitle.value))
-const picked = ref<string | null>(null)
-const job = computed(() => (picked.value ? findHelperExamplesByCode(picked.value) : matched.value))
+// 템플릿은 목표 직업에 맞는 것만 — 다른 직업 고르기는 없앴다(2026-11-11 사용자). 목표 직업에 템플릿이 없으면
+// 진로계획 첫 화면이 이 화면을 건너뛰고 바로 직접 설계로 보낸다(CareerDesignPage goToTemplates)
+const job = computed(() => findHelperExamples(targetTitle.value))
 const templates = computed(() => (job.value ? buildPlanTemplates(job.value) : []))
 const openId = ref<string | null>(null)
 
-function pickJob(code: string) {
-  picked.value = code
-  openId.value = null
-}
 
 const countOf = (t: PlanTemplate, c: ProjectCategory) => t.projects.filter((p) => p.category === c).length
 const LABEL = Object.fromEntries(CATS.map((c) => [c.value, c.label])) as Record<ProjectCategory, string>
 const droppedOpen = reactive<Record<string, boolean>>({})
 const toggleDropped = (id: string) => { droppedOpen[id] = !droppedOpen[id] }
 
-// 직접 설계하기 — 예전 진로설계 화면의 [진로계획 시작하기]와 같다(빈 계획 + 목표 진로를 직업 칸에)
+// 직접 설계하기 — 템플릿 없이 빈 계획으로(진로계획 첫 화면과 같은 함수)
 function startManual() {
-  resetDraftPlan()
-  if (targetTitle.value) draftPlan.targetJob = targetTitle.value
-  draftPlan.startDate = toDateKey(getToday())
-  router.push('/career-design/plan/projects')
+  startManualPlan(router, targetTitle.value)
 }
 
 // 템플릿으로 임시 계획을 채우고 프로젝트 구성으로 — 고친 뒤 타임라인·루틴을 거쳐 맨 끝 목표 설정에서 이름·기간을 정한다
@@ -197,23 +173,6 @@ function startFrom(t: PlanTemplate) {
   background: #F5F5F5;
 
   &__body { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-
-  &__jobs-box { background: #fff; border-radius: 16px; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
-  &__jobs-desc { font-size: 13px; color: #666; line-height: 1.5; }
-  &__jobs { display: flex; flex-wrap: wrap; gap: 6px; }
-  &__job {
-    font-size: 12px;
-    font-weight: 600;
-    color: #666;
-    background: #F2F2F2;
-    border: none;
-    border-radius: 20px;
-    padding: 6px 12px;
-    cursor: pointer;
-    white-space: nowrap;
-
-    &--on { color: #fff; background: #222; }
-  }
 
   &__intro { font-size: 12px; color: #888; line-height: 1.5; padding: 0 4px; }
 

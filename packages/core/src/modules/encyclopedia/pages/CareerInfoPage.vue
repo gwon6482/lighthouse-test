@@ -12,11 +12,20 @@
       </form>
     </header>
 
-    <!-- 진로검사 — 홈 '다가오는 일정'처럼 옆으로 넘기는 세로 카드(2026-10-30). ⚠️ 지금은 **더미**(준비 중) — 자기이해 검사는 마이페이지로 옮겼다 -->
+    <!-- 진로검사 — 홈 '다가오는 일정'처럼 옆으로 넘기는 세로 카드(2026-10-30).
+         2026-11-11 사용자 결정: 자기이해 검사(다시 하기)만 열고, 나머지 넷은 라이트하우스 자체 검사로 만들 예정이라 '준비 중' -->
     <section class="ci-sec ci-sec--flush">
       <h2 class="ci-sec__title">진로검사</h2>
       <div class="ci-tests">
-        <div v-for="t in TESTS" :key="t.name" class="ci-tcard" :style="{ '--tc': t.color, '--tc-bg': t.bg }">
+        <component
+          :is="t.to ? 'button' : 'div'"
+          v-for="t in TESTS"
+          :key="t.name"
+          :type="t.to ? 'button' : undefined"
+          :class="['ci-tcard', { 'ci-tcard--go': t.to }]"
+          :style="{ '--tc': t.color, '--tc-bg': t.bg }"
+          @click="t.to && router.push(t.to)"
+        >
           <div class="ci-tcard__top">
             <span class="ci-tcard__chip"><AppIcon :name="t.icon" /></span>
             <span class="ci-tcard__kind">{{ t.kind }}</span>
@@ -24,8 +33,9 @@
           <strong class="ci-tcard__name">{{ t.name }}</strong>
           <p class="ci-tcard__desc">{{ t.desc }}</p>
           <span class="ci-tcard__meta">{{ t.meta }}</span>
-          <span class="ci-tcard__soon">준비 중</span>
-        </div>
+          <span v-if="t.to" class="ci-tcard__go">다시 검사하기 <AppIcon name="ui-chevron-right" /></span>
+          <span v-else class="ci-tcard__soon">준비 중</span>
+        </component>
       </div>
     </section>
 
@@ -103,13 +113,15 @@ const router = useRouter()
 const store = useAchievementStore()
 const { searchJob } = useEncyclopedia()
 
-// 진로검사 목록 — ⚠️ 더미(2026-10-30, 사용자가 준 검사 목록에서 성격·강점·진로를 고루 5개). 실제 도입 땐 검사별 라이선스 확인(MBTI·CliftonStrengths 는 유료·상표)
-const TESTS = [
-  { kind: '성격', name: 'Big Five 성격검사', desc: '개방성·성실성·외향성·우호성·신경성, 다섯 가지 요인으로 나를 봐요', meta: '약 15분 · 50문항', icon: AREA_ICON.personality, color: '#7B4FD6', bg: '#EEE4FF' },
-  { kind: '성격', name: 'MBTI', desc: '16가지 성격 유형으로 나의 선호를 알아봐요', meta: '약 12분 · 93문항', icon: 'feel-blank', color: '#3E63DD', bg: '#E2E9FF' },
-  { kind: '강점', name: 'CliftonStrengths', desc: '34개 재능 테마 중 나의 강점 다섯 가지를 찾아요', meta: '약 30분 · 177문항', icon: 'result-talent', color: '#E8590C', bg: '#FFE6D5' },
-  { kind: '진로', name: 'Holland 직업흥미검사', desc: 'RIASEC 여섯 가지 흥미 유형과 어울리는 직업을 알려 줘요', meta: '약 15분 · 60문항', icon: 'result-interest', color: '#129447', bg: '#D9F5E3' },
-  { kind: '진로', name: '직업가치관검사', desc: '일에서 내가 중요하게 여기는 가치를 찾아요', meta: '약 20분 · 78문항', icon: 'result-values', color: '#B07800', bg: '#FFF1C2' },
+// 진로검사 목록(2026-11-11 사용자 결정) — 자기이해 검사만 열려 있고(누르면 검사 소개로), 나머지 넷은 자체 검사로 만들 예정이라 '준비 중'.
+// ⚠️ MBTI·CliftonStrengths 같은 유료·상표 검사는 넣지 않는다(예전 더미에서 뺐다)
+interface CareerTest { kind: string; name: string; desc: string; meta: string; icon: string; color: string; bg: string; to?: string }
+const TESTS: CareerTest[] = [
+  { kind: '종합', name: '자기이해 검사', desc: '성격·재능·흥미·가치관·업무 환경을 한 번에 보고, 나에게 맞는 직무를 찾아요', meta: '약 20분', icon: 'ui-sparkle', color: '#B07800', bg: '#FFF1C2', to: '/self-understanding' },
+  { kind: '성격', name: 'Big5 성격검사', desc: '개방성·성실성·외향성·우호성·신경성, 다섯 가지 요인으로 나를 봐요', meta: '라이트하우스 자체 검사', icon: AREA_ICON.personality, color: '#7B4FD6', bg: '#EEE4FF' },
+  { kind: '흥미', name: '홀랜드 검사', desc: '여섯 가지 흥미 유형으로 나와 어울리는 일을 찾아요', meta: '라이트하우스 자체 검사', icon: 'result-interest', color: '#129447', bg: '#D9F5E3' },
+  { kind: '가치관', name: '내 가치관 찾기', desc: '일에서 내가 중요하게 여기는 가치를 찾아요', meta: '라이트하우스 자체 검사', icon: 'result-values', color: '#3E63DD', bg: '#E2E9FF' },
+  { kind: '흥미', name: '내가 좋아하는 것 찾기', desc: '내가 끌리는 분야와 활동을 찾아요', meta: '라이트하우스 자체 검사', icon: AREA_ICON.likes, color: '#E8590C', bg: '#FFE6D5' },
 ]
 
 const query = ref('')

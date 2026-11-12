@@ -58,6 +58,9 @@
   &__desc { margin: 0; font-size: $fs-xs; line-height: 1.45; color: $color-text-secondary; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   &__meta { margin-top: auto; font-size: 11px; color: $color-text-tertiary; }
   &__soon { justify-self: start; padding: 3px 8px; border-radius: $radius-pill; background: $color-surface-alt; font-size: 11px; font-weight: $tw-strong; color: $color-text-tertiary; }
+  // 열려 있는 검사(자기이해 검사, 2026-11-11) — 카드 전체가 버튼
+  &--go { border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; transition: transform $transition-fast; &:active { transform: scale(0.99); } }
+  &__go { justify-self: start; display: inline-flex; align-items: center; gap: 2px; padding: 3px 8px; border-radius: $radius-pill; background: var(--tc-bg); color: var(--tc); font-size: 11px; font-weight: $tw-strong; }
 }
 
 // 검사 카드(자기이해 검사 — 지금은 마이페이지 '내 검사'에서 쓴다)
