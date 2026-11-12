@@ -1,0 +1,4 @@
+# app.lighthouse.career(운영)·test.lighthouse.career(스테이징)가 함께 쓰는 파일(public/ 은 두 셸 공용).
+# 스테이징을 검색에서 빼는 일은 apps/test/index.html 의 noindex 가 한다 — 여기서 막으면 그 태그를 읽지 못한다.
+User-agent: *
+Allow: /
