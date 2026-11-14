@@ -164,16 +164,17 @@
   flex-wrap: nowrap;
 }
 
-// 하는 일 한 줄 — 한 줄로 자르고, 비어 있어도 줄 높이만큼 자리를 지킨다(카드 키 통일)
+// 하는 일 설명 — 내용만큼, 최대 두 줄(넘치면 말줄임). 짧으면 한 줄이라 카드 키가 98.5px·116.5px 두 가지다
 .rjc__desc {
   margin: 0;
-  min-height: 18px;
   font-size: 12.5px;
   line-height: 18px;
   color: #777;
   letter-spacing: -0.1px;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
-

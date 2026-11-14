@@ -13,8 +13,9 @@
              추천 목록이 한 자리로 접힌다. 몇 개가 묶였는지 알려준다. -->
         <span v-if="(job.members?.length ?? 1) > 1" class="rjc__group">유사 {{ job.members!.length }}개</span>
       </p>
-      <!-- 진로 둘러보기: 하는 일 한 줄(2026-11-14) — 직업 이름이 생소해서 무슨 일인지 먼저 보여 준다. 넘치면 말줄임 -->
-      <p v-if="groupName" class="rjc__desc">{{ description }}</p>
+      <!-- 진로 둘러보기: 하는 일 설명(2026-11-14) — 직업 이름이 생소해서 무슨 일인지 먼저 보여 준다.
+           내용만큼, 최대 두 줄(사용자 결정: 한 줄·두 줄 고정·유연 시안 가운데 유연). 짧은 설명은 한 줄이라 카드 키가 두 가지다 -->
+      <p v-if="groupName && description" class="rjc__desc">{{ description }}</p>
       <!-- 진로 둘러보기: 분류 대신 직무 이름 하나만(2차 분류는 직업 이름과 거의 같아 덧붙이지 않는다).
            진입 관문 배지도 같은 줄에 둔다 — 아래 줄로 내리면 배지 있는 카드만 키가 커진다. 길면 직무 이름이 줄어든다 -->
       <div v-if="groupName" class="rjc__tags rjc__tags--line">
@@ -47,7 +48,7 @@ defineProps<{
   rank?: number
   /** 직무 이름 — 주면 분류 꼬리표 대신 이것을 보여 준다 */
   groupName?: string
-  /** 하는 일 한 줄(진로 둘러보기) — groupName 과 함께 쓴다. 비어 있어도 줄 자리는 지켜서 카드 키가 같다 */
+  /** 하는 일 설명(진로 둘러보기) — groupName 과 함께 쓴다. 최대 두 줄 */
   description?: string
 }>()
 
