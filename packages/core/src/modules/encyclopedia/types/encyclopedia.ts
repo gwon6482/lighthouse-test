@@ -72,6 +72,12 @@ export interface JobWork24 {
   classification: { large: string | null; middle: string | null; small: string | null }
   keco: { code: string | null; name: string | null } | null
   way: string | null                      // 되는길
+  /**
+   * '되는 길'을 라이트하우스가 직접 쓴 경우에만 온다(2026-11-14). 고용24 통합조사 묶음은 '되는 길'이 묶음 안 한 직업의 글이라
+   * 다른 구성원 화면에 남의 글이 나왔다 — 그런 직업은 서버가 직접 쓴 글로 바꿔 주고 이 표시를 붙인다.
+   * basis: law = 법령·국가자격 원문을 읽고 쓴 부분이 있다(sources) / general = 일반적인 경로(공식 자료와 대조하지 않음)
+   */
+  waySource?: { by: 'lighthouse'; basis: 'law' | 'general'; sources: string[]; caution: string | null; updatedAt: string; reviewed: boolean }
   education: RatioItem[]                  // 학력 분포
   schoolDepartments: RatioItem[]          // 전공 계열 분포
   prospect: { text: string | null; distribution: ProspectBucket[] }

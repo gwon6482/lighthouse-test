@@ -37,6 +37,17 @@
     <section v-if="job.work24?.way" class="overview-section">
       <h3 class="overview-section__title">되는 길</h3>
       <p class="overview-section__text overview-section__text--pre">{{ job.work24.way }}</p>
+      <!-- 라이트하우스가 직접 쓴 글 표시(2026-11-14) — 고용24 자료가 아니라는 것과 근거 수준을 알린다 -->
+      <div v-if="job.work24.waySource" class="overview-way-source">
+        <p class="overview-way-source__lead">
+          <strong>라이트하우스가 정리한 내용이에요.</strong>
+          {{ job.work24.waySource.basis === 'law' ? '법령과 자격 기준을 확인해 썼어요.' : '일반적인 경로를 정리했어요.' }}
+          시험·채용 조건은 공고로 다시 확인해 주세요.
+        </p>
+        <p v-if="job.work24.waySource.sources.length" class="overview-way-source__refs">
+          확인한 자료: {{ job.work24.waySource.sources.join(' · ') }}
+        </p>
+      </div>
     </section>
 
     <!-- 학력 · 전공 -->

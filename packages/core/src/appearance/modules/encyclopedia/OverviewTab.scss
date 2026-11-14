@@ -535,3 +535,20 @@
   color: #1a1a1a;
 }
 .overview-lock__login { font-size: 0.8rem; font-weight: 600; color: #5f6670; text-decoration: underline; text-underline-offset: 3px; }
+
+// '되는 길'을 라이트하우스가 직접 쓴 직업의 출처 표시(2026-11-14)
+.overview-way-source {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #FFF8DC;
+  border: 1px solid #F3E3A1;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #6B5A1E;
+  word-break: keep-all;
+
+  &__lead { margin: 0; strong { font-weight: 700; color: #5A4500; } }
+  &__refs { margin: 6px 0 0; color: #8A7A45; overflow-wrap: anywhere; }
+}
+
