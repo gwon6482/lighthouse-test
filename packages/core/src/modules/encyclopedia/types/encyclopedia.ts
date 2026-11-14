@@ -142,6 +142,8 @@ export interface JobSearchResponse {
 /** 진로 둘러보기 항목 — 직업 + 그 직업의 직무(채용 직종 중분류) */
 export interface JobExploreItem extends JobSummary {
   group: { code: string; name: string }
+  /** 하는 일 요약(한두 문장) — 카드에 한 줄로 */
+  overview?: string
 }
 
 /** GET /api/job/explore 응답 */

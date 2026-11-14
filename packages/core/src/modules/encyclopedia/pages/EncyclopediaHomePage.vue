@@ -56,6 +56,7 @@
             :key="job.jobCode"
             :job="job"
             :group-name="'group' in job ? job.group.name : undefined"
+            :description="'group' in job ? job.overview : undefined"
             @click="goToJobDetail(job.jobCode)"
           />
         </div>
