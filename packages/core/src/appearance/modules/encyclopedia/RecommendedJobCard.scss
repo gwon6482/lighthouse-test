@@ -145,3 +145,22 @@
 
 // 진입 관문 배지(2026-10-27)
 .rjc__gates { margin-top: 6px; }
+
+// 진로 둘러보기 카드(2026-11-14) — 직무 이름과 관문 배지를 한 줄에. 배지가 있든 없든 카드 키가 같다
+.rjc__tags--line {
+  flex-wrap: nowrap;
+  min-height: 22px;
+  overflow: hidden;
+}
+.rjc__tags--line .rjc__tag--group {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rjc .rjc__tags--line .rjc__gates-inline {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
+

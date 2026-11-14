@@ -78,9 +78,12 @@
   &__card-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     min-height: 60px;
     transition: opacity 0.15s;
+
+    // 카드 자체의 아래 여백(추천 목록용 8px)이 gap 과 겹쳐 간격이 18px 로 벌어지고 마지막 카드 아래가 떴다 — 여기서는 gap 만 쓴다
+    .rjc { margin-bottom: 0; }
 
     &--busy { opacity: 0.5; }
   }

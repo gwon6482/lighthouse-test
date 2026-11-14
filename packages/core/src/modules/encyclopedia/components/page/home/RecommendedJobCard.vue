@@ -13,16 +13,18 @@
              추천 목록이 한 자리로 접힌다. 몇 개가 묶였는지 알려준다. -->
         <span v-if="(job.members?.length ?? 1) > 1" class="rjc__group">유사 {{ job.members!.length }}개</span>
       </p>
-      <!-- 진로 둘러보기: 분류 대신 직무 이름 하나만(2차 분류는 직업 이름과 거의 같아 덧붙이지 않는다) -->
-      <div v-if="groupName" class="rjc__tags">
+      <!-- 진로 둘러보기: 분류 대신 직무 이름 하나만(2차 분류는 직업 이름과 거의 같아 덧붙이지 않는다).
+           진입 관문 배지도 같은 줄에 둔다 — 아래 줄로 내리면 배지 있는 카드만 키가 커진다. 길면 직무 이름이 줄어든다 -->
+      <div v-if="groupName" class="rjc__tags rjc__tags--line">
         <span class="rjc__tag rjc__tag--group">{{ groupName }}</span>
+        <JobGateBadges :job-code="job.jobCode" class="rjc__gates-inline" />
       </div>
       <div v-else class="rjc__tags">
         <span class="rjc__tag rjc__tag--primary">{{ job.classification.primary }}</span>
         <span class="rjc__sep">›</span>
         <span class="rjc__tag rjc__tag--secondary">{{ job.classification.secondary }}</span>
       </div>
-      <JobGateBadges :job-code="job.jobCode" class="rjc__gates" />
+      <JobGateBadges v-if="!groupName" :job-code="job.jobCode" class="rjc__gates" />
     </div>
 
     <!-- 화살표 -->
