@@ -12,7 +12,9 @@
 import { ref } from 'vue'
 import {
   fetchJob,
-  searchJobs,
+  searchJobsWide,
+  fetchJobsByClassification,
+  fetchExploreJobs,
   fetchRecommendedJobs,
   fetchJobReviews,
   fetchJobPreparations,
@@ -25,6 +27,8 @@ import {
 import type {
   Job,
   JobSummary,
+  JobSearchGroup,
+  JobExploreItem,
   JobReview,
   PreparationCard,
   JobDetailTab,
@@ -37,6 +41,20 @@ import type {
 // 홈 화면
 const searchQuery = ref<string>('')
 const searchResults = ref<JobSummary[]>([])
+// 검색어가 들어간 분류(1·2차) — 결과 위에 칩으로 띄운다
+const searchGroups = ref<JobSearchGroup[]>([])
+// 분류 칩을 눌러 그 분류의 직업을 보고 있을 때. null 이면 검색 결과
+const searchScope = ref<JobSearchGroup | null>(null)
+const scopeResults = ref<JobSummary[]>([])
+// 검색 실패(네트워크 등) — '결과가 없어요'와 구분해서 보여 준다
+const searchFailed = ref(false)
+// 늦게 온 옛 응답이 새 검색을 덮지 않게 하는 번호
+// 검색 중(직업 상세·추천이 쓰는 isLoading 과 따로 둔다 — 같이 쓰면 다른 화면의 로딩이 검색 표시를 건드린다)
+const isSearching = ref(false)
+let searchSeq = 0
+// 진로 둘러보기에 뽑아 둔 직업 — 직업을 눌렀다 돌아와도 같은 목록이 보이게 모듈에 둔다('다른 직업 보기'나 새로 열 때만 바뀐다)
+const exploreJobs = ref<JobExploreItem[]>([])
+const isExploring = ref(false)
 const recommendedJobs = ref<JobSummary[]>([])
 
 // 세부 진로 페이지
@@ -116,33 +134,98 @@ export function useEncyclopedia() {
     }
   }
 
-  /** 직업 검색 */
+  /**
+   * 직업 검색(넓은 검색) — 이름·2차 분류명·일상어로 찾고, 맞는 분류는 searchGroups 로.
+   * ⚠️ 시작할 때 이전 결과를 비운다. 예전에는 결과가 없으면(서버 404) catch 로 빠지면서
+   *    이전 검색 결과가 화면에 그대로 남았다(2026-11-14 수정).
+   */
   async function searchJob(query: string) {
+    const seq = ++searchSeq
     searchQuery.value = query
+    searchResults.value = []
+    searchGroups.value = []
+    searchScope.value = null
+    scopeResults.value = []
+    searchFailed.value = false
     if (!query.trim()) {
-      searchResults.value = []
+      isSearching.value = false
       return
     }
-    isLoading.value = true
+    isSearching.value = true
     error.value = null
     try {
-      const { data, status } = await searchJobs(query)
-      if (status === 200) {
-        searchResults.value = data.data
-      } else {
-        throw new Error('검색에 실패했습니다.')
-      }
+      const { data } = await searchJobsWide(query.trim())
+      if (seq !== searchSeq) return
+      searchResults.value = data.data ?? []
+      searchGroups.value = data.groups ?? []
     } catch (e) {
-      error.value = e instanceof Error ? e.message : '검색에 실패했습니다.'
+      if (seq !== searchSeq) return
+      // 404 = 결과 없음(넓은 검색을 모르는 옛 서버). 그 밖은 실패
+      const status = (e as { response?: { status?: number } })?.response?.status
+      if (status !== 404) {
+        searchFailed.value = true
+        error.value = '검색에 실패했습니다.'
+      }
     } finally {
-      isLoading.value = false
+      if (seq === searchSeq) isSearching.value = false
     }
+  }
+
+  /** 분류 칩을 눌렀을 때 — 그 분류의 직업 전체를 보여 준다(검색어·검색 결과는 그대로 두고 위에 덮는다) */
+  async function openSearchGroup(group: JobSearchGroup) {
+    const seq = ++searchSeq
+    searchScope.value = group
+    scopeResults.value = []
+    searchFailed.value = false
+    isSearching.value = true
+    try {
+      const { data } = await fetchJobsByClassification(group.level, group.name)
+      if (seq !== searchSeq) return
+      scopeResults.value = data.data ?? []
+    } catch {
+      if (seq !== searchSeq) return
+      searchFailed.value = true
+    } finally {
+      if (seq === searchSeq) isSearching.value = false
+    }
+  }
+
+  /** 분류 보기 → 검색 결과로 돌아가기 */
+  function closeSearchGroup() {
+    searchSeq++
+    searchScope.value = null
+    scopeResults.value = []
+    searchFailed.value = false
+    isSearching.value = false
   }
 
   /** 검색 결과 초기화 */
   function clearSearch() {
+    searchSeq++
     searchQuery.value = ''
     searchResults.value = []
+    searchGroups.value = []
+    searchScope.value = null
+    scopeResults.value = []
+    searchFailed.value = false
+    isSearching.value = false
+  }
+
+  /**
+   * 진로 둘러보기 — 서로 다른 직무에서 직업 5개를 무작위로 받는다.
+   * force 가 아니면 이미 뽑아 둔 목록을 그대로 쓴다. 실패하면 목록을 비워 둔다(화면이 고정 목록으로 대신한다).
+   */
+  async function loadExploreJobs(force = false) {
+    if (isExploring.value || (!force && exploreJobs.value.length)) return
+    isExploring.value = true
+    try {
+      const { data } = await fetchExploreJobs(5)
+      if (data.data?.length) exploreJobs.value = data.data
+    } catch {
+      // 둘러보기는 없어도 화면은 된다
+    } finally {
+      isExploring.value = false
+    }
   }
 
   // ── 세부 진로 페이지 ──────────────────────────────────────────────────────
@@ -240,6 +323,13 @@ export function useEncyclopedia() {
     // 상태
     searchQuery,
     searchResults,
+    searchGroups,
+    searchScope,
+    scopeResults,
+    searchFailed,
+    isSearching,
+    exploreJobs,
+    isExploring,
     recommendedJobs,
     selectedJob,
     activeTab,
@@ -251,7 +341,10 @@ export function useEncyclopedia() {
     // 홈
     loadRecommendedJobs,
     searchJob,
+    openSearchGroup,
+    closeSearchGroup,
     clearSearch,
+    loadExploreJobs,
 
     // 세부 진로
     loadJob,

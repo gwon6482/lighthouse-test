@@ -51,11 +51,16 @@
           <AppIcon name="ui-recommend" class="ci-link__icon" />
           <span class="ci-link__text"><strong>나에게 맞는 직업</strong><small>검사 결과 추천</small></span>
         </button>
-        <button type="button" class="ci-link ci-link--blue" @click="router.push('/career-encyclopedia')">
-          <AppIcon name="service-encyclopedia" class="ci-link__icon" />
-          <span class="ci-link__text"><strong>전체 직업 둘러보기</strong><small>537개 직업</small></span>
-        </button>
       </div>
+      <!-- 진로백과 바로가기(2026-11-14) — '전체 직업 둘러보기' 타일 대신 눈에 띄는 버튼 하나 -->
+      <button type="button" class="ci-enc" @click="router.push('/career-encyclopedia')">
+        <span class="ci-enc__icon"><AppIcon name="service-encyclopedia" /></span>
+        <span class="ci-enc__text">
+          <strong>진로백과 바로가기</strong>
+          <small>직업 537개의 하는 일·연봉·전망</small>
+        </span>
+        <span class="ci-enc__arrow"><AppIcon name="ui-arrow-right" /></span>
+      </button>
     </section>
 
     <!-- 채용 소식 — 목표 직업의 고용24 채용정보(진로백과 '채용' 탭과 같은 API) -->

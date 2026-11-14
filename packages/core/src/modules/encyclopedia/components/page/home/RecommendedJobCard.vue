@@ -13,7 +13,11 @@
              추천 목록이 한 자리로 접힌다. 몇 개가 묶였는지 알려준다. -->
         <span v-if="(job.members?.length ?? 1) > 1" class="rjc__group">유사 {{ job.members!.length }}개</span>
       </p>
-      <div class="rjc__tags">
+      <!-- 진로 둘러보기: 분류 대신 직무 이름 하나만(2차 분류는 직업 이름과 거의 같아 덧붙이지 않는다) -->
+      <div v-if="groupName" class="rjc__tags">
+        <span class="rjc__tag rjc__tag--group">{{ groupName }}</span>
+      </div>
+      <div v-else class="rjc__tags">
         <span class="rjc__tag rjc__tag--primary">{{ job.classification.primary }}</span>
         <span class="rjc__sep">›</span>
         <span class="rjc__tag rjc__tag--secondary">{{ job.classification.secondary }}</span>
@@ -37,6 +41,8 @@ import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 defineProps<{
   job: JobRecommendItem
   rank?: number
+  /** 직무 이름 — 주면 분류 꼬리표 대신 이것을 보여 준다 */
+  groupName?: string
 }>()
 
 const emit = defineEmits<{

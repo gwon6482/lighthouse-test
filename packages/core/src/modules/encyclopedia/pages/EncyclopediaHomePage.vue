@@ -28,20 +28,34 @@
     <SearchResult
       v-if="searchQuery"
       :searchQuery="searchQuery"
-      :isLoading="isLoading"
+      :isLoading="isSearching"
       :searchResults="searchResults"
+      :groups="searchGroups"
+      :scope="searchScope"
+      :scopeResults="scopeResults"
+      :failed="searchFailed"
+      @open-group="openSearchGroup"
+      @close-group="closeSearchGroup"
     />
 
     <!-- 메인 메뉴 (검색어 없을 때) -->
     <template v-else>
-      <!-- 진로 카드 목록 -->
+      <!-- 진로 둘러보기 — 서로 다른 직무에서 직업 5개를 무작위로(2026-11-14 사용자 결정, 바뀔 수 있음).
+           API 를 못 받으면 고정 목록(FALLBACK_JOBS)으로 대신한다 -->
       <div class="enc-home__section">
-        <h2 class="enc-home__section-title">진로 둘러보기</h2>
-        <div class="enc-home__card-list">
+        <div class="enc-home__section-head">
+          <h2 class="enc-home__section-title">진로 둘러보기</h2>
+          <button v-if="exploreJobs.length" type="button" class="enc-home__shuffle" :disabled="isExploring" @click="loadExploreJobs(true)">
+            <AppIcon name="ui-repeat" /> 다른 직업 보기
+          </button>
+        </div>
+        <p v-if="exploreJobs.length" class="enc-home__section-desc">서로 다른 직무에서 하나씩 골랐어요</p>
+        <div class="enc-home__card-list" :class="{ 'enc-home__card-list--busy': isExploring }">
           <RecommendedJobCard
-            v-for="job in featuredJobs"
+            v-for="job in browseJobs"
             :key="job.jobCode"
             :job="job"
+            :group-name="'group' in job ? job.group.name : undefined"
             @click="goToJobDetail(job.jobCode)"
           />
         </div>
@@ -64,11 +78,12 @@
 
 <script setup lang="ts">
 import AppIcon from '@/shared/components/AppIcon.vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import { features } from '@/shared/config/features'
 import { useEncyclopedia } from '../composables/useEncyclopedia'
-import type { JobSummary } from '../types/encyclopedia'
+import type { JobSummary, JobExploreItem } from '../types/encyclopedia'
 import MainTitle from '../components/page/home/MainTitle.vue'
 import JourneyIntro from '@/shared/components/JourneyIntro.vue'
 import SearchBar from '../components/page/home/SearchBar.vue'
@@ -79,9 +94,14 @@ const router = useRouter()
 const authStore = useAuthStore()
 // 비회원(2026-11-09, features.guestEntry 빌드만): 아직 검사 전이라 단계는 '자기이해' 에, 추천 메뉴는 검사 시작(A 경로)으로
 const guest = features.guestEntry && !authStore.isLoggedIn
-const { searchQuery, searchResults, isLoading, searchJob, clearSearch } = useEncyclopedia()
+const {
+  searchQuery, searchResults, searchGroups, searchScope, scopeResults, searchFailed, isSearching,
+  searchJob, openSearchGroup, closeSearchGroup, clearSearch,
+  exploreJobs, isExploring, loadExploreJobs,
+} = useEncyclopedia()
 
-const featuredJobs: JobSummary[] = [
+// 둘러보기를 못 받았을 때 보여 줄 고정 목록(예전 화면의 3개)
+const FALLBACK_JOBS: JobSummary[] = [
   {
     jobCode: '013601',
     classification: { primary: '경영·사무·금융·보험직', secondary: '전문서비스 관리자' },
@@ -98,6 +118,9 @@ const featuredJobs: JobSummary[] = [
     title: '게임그래픽디자이너',
   },
 ]
+
+const browseJobs = computed<(JobExploreItem | JobSummary)[]>(() => (exploreJobs.value.length ? exploreJobs.value : isExploring.value ? [] : FALLBACK_JOBS))
+onMounted(() => loadExploreJobs())
 
 function goToJobDetail(jobCode: string) {
   router.push(`/career-encyclopedia/job/${jobCode}`)

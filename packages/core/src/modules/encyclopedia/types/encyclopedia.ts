@@ -121,10 +121,33 @@ export interface JobSummary {
   classification: JobClassification
 }
 
-/** GET /api/job/search?q=... 응답 */
+/**
+ * 검색어가 들어간 분류(2026-11-14 넓은 검색). 1차 분류는 직업이 많아 이름만 오고, 누르면 그 분류의 직업을 따로 받는다.
+ * 2차 분류의 직업은 검색 결과(data)에도 이미 들어 있다.
+ */
+export interface JobSearchGroup {
+  level: 'primary' | 'secondary'
+  name: string
+  primary?: string
+  count: number
+}
+
+/** GET /api/job/search 응답. groups 는 넓은 검색(include=classification)에서만 온다 */
 export interface JobSearchResponse {
   success: boolean
   data: JobSummary[]
+  groups?: JobSearchGroup[]
+}
+
+/** 진로 둘러보기 항목 — 직업 + 그 직업의 직무(채용 직종 중분류) */
+export interface JobExploreItem extends JobSummary {
+  group: { code: string; name: string }
+}
+
+/** GET /api/job/explore 응답 */
+export interface JobExploreResponse {
+  success: boolean
+  data: JobExploreItem[]
 }
 
 /** GET /api/job/recommend 응답 */

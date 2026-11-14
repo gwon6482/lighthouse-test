@@ -2,6 +2,7 @@ import { req } from '@/shared/api'
 import type {
   JobResponse,
   JobSearchResponse,
+  JobExploreResponse,
   JobRecommendResponse,
   JobReviewResponse,
   JobPreparationResponse,
@@ -23,9 +24,24 @@ import type {
 export const fetchJob = (jobCode: string) =>
   req.get<JobResponse>(`/api/job/${jobCode}`)
 
-/** 직업 검색 GET /api/job/search?name=... */
+/** 직업 이름 검색 GET /api/job/search?name=... — 이름만 본다. ⚠️ 결과가 없으면 404(예외) */
 export const searchJobs = (query: string) =>
   req.get<JobSearchResponse>(`/api/job/search`, { params: { name: query } })
+
+/**
+ * 넓은 검색(2026-11-14) — 직업 이름 + 2차 분류명 + 일상어 사전(농부 → 작물재배 …), 맞는 1·2차 분류는 groups 로.
+ * 결과가 없어도 200. (배포 전 서버는 include 를 몰라 옛 방식으로 답한다 — 결과 없으면 404, groups 없음. 부르는 쪽이 둘 다 받아야 한다)
+ */
+export const searchJobsWide = (query: string) =>
+  req.get<JobSearchResponse>(`/api/job/search`, { params: { name: query, include: 'classification' } })
+
+/** 한 분류의 직업 전체 GET /api/job/search?primary=… | ?secondary=… (이름 그대로) */
+export const fetchJobsByClassification = (level: 'primary' | 'secondary', name: string) =>
+  req.get<JobSearchResponse>(`/api/job/search`, { params: { [level]: name } })
+
+/** 진로 둘러보기 GET /api/job/explore — 서로 다른 직무에서 직업 하나씩 무작위. 부를 때마다 달라진다 */
+export const fetchExploreJobs = (count = 5) =>
+  req.get<JobExploreResponse>(`/api/job/explore`, { params: { count } })
 
 /** 추천 진로 조회 GET /api/job/recommend/:survey_id */
 export const fetchRecommendedJobs = (surveyId: string) =>

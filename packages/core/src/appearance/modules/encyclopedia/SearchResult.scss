@@ -48,4 +48,97 @@
     flex-direction: column;
     gap: 8px;
   }
+
+  // 분류로 찾기(2026-11-14) — 검색어가 들어간 1·2차 분류 칩. 누르면 그 분류의 직업 전체
+  &__groups {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  &__groups-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #999;
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 7px 10px 7px 12px;
+    border: 1px solid #CFE3F5;
+    border-radius: 100px;
+    background: #F2F8FE;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #1F6FA8;
+    text-align: left;
+    cursor: pointer;
+
+    &:active { background: #E3F0FC; }
+  }
+
+  &__chip-name { min-width: 0; overflow-wrap: anywhere; }
+
+  &__chip-count {
+    flex-shrink: 0;
+    min-width: 20px;
+    padding: 1px 6px;
+    border-radius: 100px;
+    background: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    color: #2E8FCC;
+    text-align: center;
+  }
+
+  // 분류 보기 머리
+  &__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 0 10px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+  }
+
+  &__kind {
+    font-size: 11.5px;
+    color: #999;
+  }
+
+  &__header { flex-wrap: wrap; }
+
+  &__state--column {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  &__state-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__hint {
+    font-size: 12px;
+    color: #999;
+    line-height: 1.5;
+  }
 }
