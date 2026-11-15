@@ -49,7 +49,8 @@
             <span class="cd-tpl__who">{{ t.who }}</span>
           </span>
           <span class="cd-tpl__name">{{ t.name }}</span>
-          <span class="cd-tpl__meta">약 {{ t.months }}개월 · 프로젝트 {{ t.projects.length }}개</span>
+          <!-- 기간은 진로백과 준비과정 탭과 같은 계산 — 하나씩 차례로 할 때를 더한 값(2026-11-16) -->
+          <span class="cd-tpl__meta">차례로 하면 {{ formatWeeks(t.weeks) }} · 프로젝트 {{ t.projects.length }}개</span>
           <span class="cd-tpl__cats">
             <span
               v-for="c in CATS"
@@ -63,6 +64,11 @@
 
         <div v-if="openId === t.id" class="cd-tpl__detail">
           <p v-if="t.note" class="cd-tpl__note">ⓘ {{ t.note }}</p>
+          <!-- 학교·수련 과정이 든 플랜 — 그 기간과, 다니면서 하는 프로젝트를 어떻게 놓는지 -->
+          <p v-if="t.courseWeeks" class="cd-tpl__course">
+            학교·수련 과정 {{ formatWeeks(t.courseWeeks) }}{{ josaI(formatWeeks(t.courseWeeks)) }} 들어 있어요.
+            <template v-if="t.projects.some((p) => p.during)">다니면서 하는 프로젝트는 과정이 끝나는 때에 맞춰 겹쳐 놓아요.</template>
+          </p>
           <!-- 해 나갈 순서대로 -->
           <ol class="cd-tpl__projects">
             <li v-for="(p, i) in t.projects" :key="p.id" class="cd-tpl__project">
@@ -70,13 +76,29 @@
               <span class="cd-tpl__project-main">
                 <span class="cd-tpl__project-top">
                   <span class="cd-tpl__project-cat" :style="{ background: COLORS[p.category].bg, color: COLORS[p.category].text }">{{ LABEL[p.category] }}</span>
-                  <span class="cd-tpl__project-meta">{{ p.curriculum?.length ?? 0 }}주 · 주 {{ p.days.length }}회 {{ p.duration }}분</span>
+                  <span v-if="p.course" class="cd-tpl__project-tag">정해진 과정</span>
+                  <span v-else-if="p.during" class="cd-tpl__project-tag">과정 중에</span>
+                  <span class="cd-tpl__project-meta">{{ formatWeeks(p.curriculum?.length ?? 0) }} · 주 {{ p.days.length }}회 {{ p.duration }}분</span>
                 </span>
                 <span class="cd-tpl__project-name">{{ p.name }}</span>
-                <span v-if="methodLine(p.method, p.methodDetail)" class="cd-tpl__project-method"><AppIcon :name="methodIcon(p.method)" /> {{ methodLine(p.method, p.methodDetail) }}</span>
+                <!-- '기타'는 알려 주는 것이 없어 적지 않는다(준비과정 탭과 같게) -->
+                <span v-if="p.method !== 'etc' && methodLine(p.method, p.methodDetail)" class="cd-tpl__project-method"><AppIcon :name="methodIcon(p.method)" /> {{ methodLine(p.method, p.methodDetail) }}</span>
               </span>
+              <!-- 운전면허·어학 성적처럼 이미 가지고 있을 수 있는 것 — 누르면 플랜과 기간에서 빠진다 -->
+              <button v-if="t.skipRefs[p.id]" type="button" class="cd-tpl__have" @click="setHave(t.skipRefs[p.id]!, true)">이미 있어요</button>
             </li>
           </ol>
+
+          <!-- 이미 있어서 뺀 것 — 잘못 눌렀으면 다시 넣는다 -->
+          <div v-if="t.skipped.length" class="cd-tpl__dropped">
+            <p class="cd-tpl__dropped-toggle cd-tpl__dropped-toggle--static">이미 있어서 뺀 것 {{ t.skipped.length }}개</p>
+            <ul class="cd-tpl__dropped-list">
+              <li v-for="s in t.skipped" :key="s.ref" class="cd-tpl__dropped-item cd-tpl__dropped-item--row">
+                <span class="cd-tpl__dropped-name">{{ s.name }}</span>
+                <button type="button" class="cd-tpl__have cd-tpl__have--undo" @click="setHave(s.ref, false)">다시 넣기</button>
+              </li>
+            </ul>
+          </div>
 
           <!-- 앞 단계에서 뺀 것 — 왜 짧아졌는지 -->
           <div v-if="t.dropped.length" class="cd-tpl__dropped">
@@ -130,6 +152,7 @@ import { useCareerDesign } from '../composables/useCareerDesign'
 import { loadLibraryPlan } from '../composables/useHelperExamples'
 import { buildPlanTemplates, type PlanTemplate } from '../composables/usePlanTemplates'
 import { toDateKey } from '../composables/usePlanTimeline'
+import { formatWeeks } from '@/modules/encyclopedia/lib/preparation'
 import { getToday } from '@/shared/utils/dev-date'
 import { startManualPlan } from '../composables/startManualPlan'
 import { fetchTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
@@ -178,7 +201,17 @@ onMounted(async () => {
   }
 })
 
-const templates = computed(() => (prep.value ? buildPlanTemplates(prep.value, track.value) : []))
+// '이미 있어요'라고 한 것(운전면허·어학 성적 등) — 플랜과 기간에서 뺀다. 갈래를 바꿔도 남는다(가진 것은 그대로니까)
+const have = ref<Set<string>>(new Set())
+function setHave(refId: string, on: boolean) {
+  const next = new Set(have.value)
+  if (on) next.add(refId)
+  else next.delete(refId)
+  have.value = next
+}
+const templates = computed(() => (prep.value ? buildPlanTemplates(prep.value, track.value, have.value) : []))
+// '약 4년' + '이' / '8주' + '가' — 받침에 맞춘다
+const josaI = (s: string) => { const c = s.charCodeAt(s.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 === 0 ? '가' : '이' }
 const trackInfo = computed(() => prep.value?.tracks.find((t) => t.id === track.value) ?? null)
 const openId = ref<string | null>(null)
 watch(track, () => { openId.value = null })   // 갈래를 바꾸면 플랜이 통째로 바뀐다 — 펼친 것을 접는다
@@ -309,6 +342,27 @@ function startFrom(t: PlanTemplate) {
   &__project-cat { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
   &__project-name { font-size: 14px; font-weight: 600; color: #333; }
   &__project-meta { font-size: 11px; color: #999; }
+  &__project-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; background: #ECEEF1; color: #666; }
+  &__course { font-size: 12px; color: #666; line-height: 1.55; padding: 0 2px; word-break: keep-all; }
+  // '이미 있어요' — 가지고 있는 면허·성적을 플랜에서 뺀다
+  &__have {
+    flex-shrink: 0;
+    align-self: center;
+    padding: 6px 10px;
+    border: 1px solid #DADDE2;
+    border-radius: 999px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    color: #555;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:active { background: #F2F3F5; }
+    &:focus-visible { outline: 2px solid #FFC700; outline-offset: 2px; }
+    &--undo { color: #1D6FD8; border-color: #C9DCF7; }
+  }
   &__project-method { font-size: 12px; color: #666; }
 
   &__dropped { display: flex; flex-direction: column; gap: 8px; }
@@ -331,6 +385,8 @@ function startFrom(t: PlanTemplate) {
     border: 1px dashed #E2E2E2;
     border-radius: 10px;
   }
+  &__dropped-toggle--static { cursor: default; }
+  &__dropped-item--row { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; }
   &__dropped-name { font-size: 13px; color: #aaa; text-decoration: line-through; }
   &__dropped-reason { font-size: 12px; color: #777; }
   &__optional-name { font-size: 13px; color: #444; }

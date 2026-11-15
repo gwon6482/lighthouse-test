@@ -337,6 +337,33 @@ describe('autoSchedule', () => {
   })
 })
 
+// 2026-11-16: 학교·수련 과정(course)과 그 과정 중에 하는 프로젝트(during)
+describe('autoSchedule — 과정 중에 하는 프로젝트', () => {
+  const course = (id: string, weeks: number): Project => ({ ...mk(id, weeks, 5, 360), course: true })   // 주 30시간
+  const during = (id: string, weeks: number): Project => ({ ...mk(id, weeks, 5, 480), during: true })
+
+  it('과정 끝에 맞춰 차례로 겹쳐 놓는다 — 예산·순서 규칙 밖', () => {
+    const ps = [mk('수능', 4, 6, 360), course('대학', 20), during('실습', 5), during('시험', 3), mk('채용', 2, 3, 60)]
+    const r = autoSchedule(ps, 8)
+    const at = (id: string) => r.find((x) => x.project.id === id)!.week
+    expect(at('수능')).toBe(1)
+    expect(at('대학')).toBe(5)            // 5~24주
+    expect(at('실습')).toBe(17)           // 17~21주 — 과정 마지막 8주 안에
+    expect(at('시험')).toBe(22)           // 22~24주 — 과정과 함께 끝난다
+    expect(at('채용')).toBe(25)           // 과정이 끝난 뒤
+  })
+
+  it('딸린 프로젝트가 과정보다 길면 과정 시작부터 놓는다', () => {
+    const r = autoSchedule([course('과정', 4), during('긴 실습', 6), mk('다음', 1, 1, 60)], 8)
+    expect(r.map((x) => x.week)).toEqual([1, 1, 7])   // 실습이 과정 뒤로 2주 넘어가고, 다음 프로젝트는 그 뒤
+  })
+
+  it('앞에 과정이 없으면 보통 프로젝트처럼 놓는다(전공자 플랜 · 과정을 지운 계획)', () => {
+    const plain = autoSchedule([mk('a', 2, 5, 480), mk('b', 3, 5, 480)], 8).map((x) => x.week)
+    expect(autoSchedule([during('a', 2), during('b', 3)], 8).map((x) => x.week)).toEqual(plain)
+  })
+})
+
 describe('lastWeekOfMonth', () => {
   // 2026-10-19(월) 시작: 1주 10.19 · 2주 10.26 · 3주 11.2 … 7주 11.30 · 8주 12.7
   it('그 주가 속한 달(월요일 기준)의 마지막 주차', () => {
@@ -395,3 +422,30 @@ describe('rescheduleFrom — 주간결산 속도 바꾸기', async () => {
     expect(rescheduleFrom(zero, tl, 4, 3).endWeek).toBe(rescheduleFrom(ps, tl, 4, 3).endWeek)
   })
 })
+
+describe('rescheduleFrom — 과정에 딸린 프로젝트는 과정을 따라 움직인다(2026-11-16)', async () => {
+  const { rescheduleFrom } = await import('../composables/usePlanPace')
+  const P = (id: string, weeks: number, over: Partial<Project> = {}): Project => ({ ...mk(id, weeks, 3, 60), days: ['월', '수', '금'], weeks, curriculum: [], ...over })
+  const at = (r: { timeline: TimelineSlot[] }, id: string) => r.timeline.find((s) => s.projects.some((p) => p.id === id))!.week
+
+  it('과정이 진행 중이면 딸린 프로젝트는 제자리 — 속도를 바꿔도 과정 뒤로 밀리지 않는다', () => {
+    // 과정 1~20주(진행 중), 실습 16~20주(아직 시작 전), 채용 21~22주
+    const ps = [P('과정', 20, { course: true, days: ['월', '화', '수', '목', '금'], duration: 360 }), P('실습', 5, { during: true }), P('채용', 2)]
+    const tl: TimelineSlot[] = [{ week: 1, projects: [ps[0]!] }, { week: 16, projects: [ps[1]!] }, { week: 21, projects: [ps[2]!] }]
+    const r = rescheduleFrom(ps, tl, 6, 3)
+    expect(at(r, '과정')).toBe(1)
+    expect(at(r, '실습')).toBe(16)
+    expect(at(r, '채용')).toBe(21)
+    expect(r.moved).toBe(0)
+  })
+
+  it('과정이 옮겨지면 딸린 프로젝트도 같은 만큼 옮겨진다', () => {
+    // 준비 1~4주(진행 중·주 3시간), 과정 5~14주, 실습 12~14주 — 속도를 올리면 과정이 준비와 겹쳐 앞으로 온다
+    const ps = [P('준비', 4), P('과정', 10, { course: true, duration: 60 }), P('실습', 3, { during: true })]
+    const tl: TimelineSlot[] = [{ week: 1, projects: [ps[0]!] }, { week: 5, projects: [ps[1]!] }, { week: 12, projects: [ps[2]!] }]
+    const r = rescheduleFrom(ps, tl, 2, 12)
+    expect(at(r, '과정')).toBe(2)
+    expect(at(r, '실습')).toBe(9)          // 3주 당겨졌다 — 여전히 과정의 마지막 3주
+  })
+})
+

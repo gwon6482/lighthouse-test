@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkLevelLabel, formatMinutes, formatWeeks, hasMajorSkip, pathOf, stepsOf } from '../lib/preparation'
+import { checkLevelLabel, formatMinutes, formatWeeks, hasMajorSkip, pathOf, stepsOf, sumWeeks } from '../lib/preparation'
 import type { JobPreparation, PrepProject } from '../types/encyclopedia'
 
 const project = (id: string, weeks: number): PrepProject => ({
@@ -75,3 +75,34 @@ describe('준비과정 탭 계산', () => {
     expect(checkLevelLabel(null)).toBe('출처와 대조')
   })
 })
+
+// 2026-11-16: 학교·수련 과정(course)과 그 과정 중에 하는 걸음(during) — 서버 totals 와 같은 규칙
+describe('차례로 할 때의 주 수', () => {
+  const row = (weeks: number, over: { course?: boolean; during?: boolean; optional?: boolean; major?: boolean } = {}) => ({
+    item: { optional: !!over.optional, during: over.during, major: over.major !== false },
+    project: { weeks, course: over.course },
+  })
+  // 수능 52주(전공자 생략) → 대학 4년(과정, 전공자 생략) → 임상실습 25주(과정 중) → 국가시험 16주(과정 중) → 채용 준비 4주 → 토익 8주(선택)
+  const rows = [row(52, { major: false }), row(208, { course: true, major: false }), row(25, { during: true }), row(16, { during: true }), row(4), row(8, { optional: true })]
+
+  it('과정 중에 하는 걸음은 과정 기간에 들어 있어 겹쳐 세지 않는다 — 선택 항목도 세지 않는다', () => {
+    expect(sumWeeks(rows)).toEqual({ count: 5, weeks: 52 + 208 + 4, courseWeeks: 208 })
+  })
+
+  it('과정을 건너뛰는 대상(전공자)에게는 과정 중 걸음을 그대로 센다', () => {
+    expect(sumWeeks(rows, (r) => r.item.major)).toEqual({ count: 3, weeks: 25 + 16 + 4, courseWeeks: 0 })
+  })
+
+  it('선택 과정 걸음은 기간을 품지 않는다 · 과정이 없으면 표시가 있어도 그대로 센다', () => {
+    expect(sumWeeks([row(104, { course: true, optional: true }), row(10, { during: true })])).toEqual({ count: 1, weeks: 10, courseWeeks: 0 })
+    expect(sumWeeks([row(10, { during: true }), row(3)])).toEqual({ count: 2, weeks: 13, courseWeeks: 0 })
+  })
+
+  it('과정이 둘이면 걸음은 바로 앞의 과정에 딸린다', () => {
+    // 학부 4년(생략 대상) → LEET(과정 중) → 로스쿨 3년 → 변호사시험(과정 중) → 면접
+    const law = [row(208, { course: true, major: false }), row(12, { during: true }), row(156, { course: true }), row(24, { during: true }), row(3)]
+    expect(sumWeeks(law).weeks).toBe(208 + 156 + 3)
+    expect(sumWeeks(law, (r) => r.item.major).weeks).toBe(12 + 156 + 3)     // 학부를 건너뛰면 LEET 는 따로 센다, 변호사시험은 로스쿨 안
+  })
+})
+

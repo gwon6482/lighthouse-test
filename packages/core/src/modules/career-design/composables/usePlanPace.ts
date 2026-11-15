@@ -4,7 +4,8 @@
 //   숫자를 계산하게 하지 않고 "어떤 생활이면 언제 끝나는지"를 보고 고르게 한다.
 // ⚠️ 주당 시간 값(5·8·12·16·24)은 데이터 근거 없이 정한 출발값이다(생활 모습 설명에 맞춘 대략치). 사용 데이터로 다듬을 것.
 import type { Project, TimelineSlot } from '../types/career-design'
-import { autoSchedule, projectEndWeek, projectWeeks, projectHoursPerWeek, weekDateRange, type WeekStart } from './usePlanTimeline'
+import { formatWeeks } from '@/modules/encyclopedia/lib/preparation'
+import { autoSchedule, duringOwners, projectEndWeek, projectWeeks, projectHoursPerWeek, weekDateRange, type WeekStart } from './usePlanTimeline'
 
 export interface Pace {
   key: 'light' | 'steady' | 'focus' | 'full' | 'allin'
@@ -58,22 +59,27 @@ export function monthLabelOfWeek(startDate: string, week: number, start?: WeekSt
 }
 
 /** "약 13개월" */
-export const monthsLabel = (weeks: number) => `약 ${Math.max(1, Math.round(weeks / 4.33))}개월`
+// 2년이 넘으면 '약 5년 2개월'로 — 진로백과 준비과정 탭·템플릿 카드와 같은 꼴로 적는다(2026-11-16. 그전에는 '약 62개월')
+export const monthsLabel = (weeks: number) => (weeks > 12 ? formatWeeks(weeks) : `약 ${Math.max(1, Math.round(weeks / 4.33))}개월`)
 
 // ── 주간결산에서 속도 바꾸기(2026-10-30) — 남은 계획 다시 배치 ──
 // 규칙: fromWeek(다음 주) 전에 이미 시작한 프로젝트는 **그대로 둔다**(옮기면 커리큘럼 주차·완료 기록이 어긋난다).
 //       아직 시작 안 한 프로젝트(미배치 포함)만 원래 순서(시작 주차 → 미배치는 계획 순서)대로 fromWeek 부터 새 속도로 놓는다.
 //       진행 중인 프로젝트가 남은 주에 쓰는 시간은 미리 깔고 그 위에 얹는다.
 // 시간이 0인(서버 수정 전) 프로젝트는 fallbackMin 분으로 본다 — 안 그러면 '시간이 안 드는 프로젝트'가 된다
+// 과정 중에 하는 프로젝트(during, 2026-11-16)는 속도와 상관없이 과정에 묶여 있다 — 과정이 옮겨진 만큼 함께 옮기고, 과정이 그대로면 그대로 둔다
 export function rescheduleFrom(
   projects: Project[], timeline: TimelineSlot[], fromWeek: number, hours: number, fallbackMin = 60,
 ): { timeline: TimelineSlot[]; endWeek: number; moved: number } {
   const timed = (p: Project) => (p.duration ? p : { ...p, duration: fallbackMin })
   const startOf = new Map<string, number>()
   for (const s of timeline) for (const p of s.projects) if (!startOf.has(p.id) || s.week < startOf.get(p.id)!) startOf.set(p.id, s.week)
+  const owners = duringOwners(projects)
   const kept = projects.filter((p) => (startOf.get(p.id) ?? Infinity) < fromWeek)
-  const toPlace = projects
-    .filter((p) => !((startOf.get(p.id) ?? Infinity) < fromWeek))
+  const notStarted = projects.filter((p) => !((startOf.get(p.id) ?? Infinity) < fromWeek))
+  const riders = notStarted.filter((p) => owners.has(p.id))          // 과정에 딸린 것 — 아래에서 과정을 따라 놓는다
+  const toPlace = notStarted
+    .filter((p) => !owners.has(p.id))
     .sort((a, b) => (startOf.get(a.id) ?? Infinity) - (startOf.get(b.id) ?? Infinity))
   // 진행 중인 프로젝트가 fromWeek 이후에 쓰는 시간 = 미리 깔린 부하(0 = fromWeek)
   const preload: number[] = []
@@ -97,6 +103,18 @@ export function rescheduleFrom(
     for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
     placed.push({ week: fromWeek + s, project: p })
     floor = s
+  }
+  // 과정에 딸린 프로젝트: 과정이 옮겨진 만큼 함께 옮긴다. 자리가 없던 것은 과정 끝에 맞춘다
+  const newStart = new Map(placed.map(({ week, project }) => [project.id, week]))
+  for (const p of riders) {
+    const o = owners.get(p.id)!
+    const oOld = startOf.get(o.id)
+    const oNew = newStart.get(o.id) ?? oOld
+    const old = startOf.get(p.id)
+    let s = fromWeek
+    if (old != null && oOld != null && oNew != null) s = old + (oNew - oOld)
+    else if (oNew != null) s = projectEndWeek(oNew, o) - projectWeeks(p) + 1
+    placed.push({ week: Math.max(fromWeek, s), project: p })
   }
   const slots: TimelineSlot[] = []
   const put = (week: number, p: Project) => { let sl = slots.find((x) => x.week === week); if (!sl) { sl = { week, projects: [] }; slots.push(sl) } sl.projects.push(p) }

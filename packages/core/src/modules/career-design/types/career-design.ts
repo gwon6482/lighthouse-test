@@ -41,6 +41,9 @@ export interface Project {
   // 진행 방식(영역 × 방식, 🧪 시안 2026-10-26) — composables/projectMethods.ts. 새로 만들 땐 필수, 예전·템플릿 프로젝트는 없을 수 있다(= 방식 미정)
   method?: ProjectMethod | null
   methodDetail?: Partial<Record<MethodField, string>>
+  // 템플릿에서 온 표시(2026-11-16) — 자동 배치가 쓴다. 서버에는 저장하지 않는다(임시 계획 단계에서만 살아 있다)
+  course?: boolean      // 대학·대학원·수련처럼 기간이 정해진 과정
+  during?: boolean      // 앞의 과정 기간 안에 하는 프로젝트 — 과정 끝에 맞춰 겹쳐 놓는다
 }
 
 export interface Routine {

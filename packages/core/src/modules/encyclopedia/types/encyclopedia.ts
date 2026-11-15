@@ -256,6 +256,8 @@ export interface PrepProject {
   note?: string
   caution?: string
   checked?: PrepChecked
+  course?: boolean                        // 대학·대학원·수련처럼 기간이 정해진 과정(2026-11-16)
+  mayHave?: boolean                       // 이미 가지고 있을 수 있는 것 — 운전면허·어학 성적 등(2026-11-16)
 }
 
 /** 길 위의 한 걸음 — ref 로 projects 에서 프로젝트를 찾는다 */
@@ -267,11 +269,14 @@ export interface PrepItem {
   fromTrack: boolean    // 고른 갈래에서만 하는 것
   skip?: string
   note?: string
+  during?: boolean      // 앞의 과정 걸음(course) 기간 안에 하는 일 — 기간을 따로 더하지 않는다(2026-11-16)
 }
 
+/** 선택 항목을 뺀 것. 주 수는 하나씩 차례로 할 때의 합이고, 과정 중에 하는 걸음은 겹쳐 세지 않는다. courseWeeks = 그 가운데 학교·수련 과정 */
+export interface PrepSum { count: number; weeks: number; courseWeeks?: number }
 export interface PrepTotals {
-  nonMajor: { count: number; weeks: number }   // 선택 항목을 뺀 것. 주 수는 하나씩 차례로 할 때의 합
-  major: { count: number; weeks: number }
+  nonMajor: PrepSum
+  major: PrepSum
   optional: number
 }
 
@@ -305,6 +310,10 @@ export interface JobPreparation {
     gate: string | null
     caution: string | null
     checked: PrepChecked | null
+    // 지원 자격(나이·신체·결격) — 준비를 시작하기 전에 알아야 하는 것(2026-11-16)
+    eligibility?: { lines: string[]; checked: PrepChecked | null } | null
+    // 먼저 알아 둘 것 — career: 경력을 쌓은 뒤에 가는 직업(via = 먼저 거치는 직업) / early: 대부분 일찍 시작하는 길(2026-11-16)
+    reality?: { kind: 'career' | 'early'; text: string; via: { jobCode: string; name: string }[] } | null
   }
   tracks: PrepTrack[]   // 이 직업이 보여 줄 갈래만 온다(같은 계획에 묶인 다른 직업의 길은 빠진다). 하나뿐이면 고르는 단추를 그리지 않는다
   defaultTrack: string | null

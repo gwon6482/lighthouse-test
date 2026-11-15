@@ -162,7 +162,8 @@ const close = () => { selected.value = null }
 async function add(ex: HelperExample) {
   if (isAdded(ex) || adding.value) return
   adding.value = true
-  const project = helperExampleToProject(ex, props.category)
+  // 앞에 담긴 프로젝트들과 요일이 겹치지 않게
+  const project = helperExampleToProject(ex, props.category, draftPlan.projects.map((p) => p.days))
   draftPlan.projects.push(project)
   // 진행 중인 계획(planId)이 있으면 서버 반영, 없으면 로컬 드래프트에만 담긴다(붙여넣기와 같은 경로)
   await syncAddProject(project)

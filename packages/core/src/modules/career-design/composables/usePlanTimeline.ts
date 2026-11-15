@@ -241,16 +241,45 @@ export function projectHoursPerWeek(p: Pick<Project, 'days' | 'duration'>): numb
   return ((p.days?.length ?? 0) * (p.duration ?? 0)) / 60
 }
 
+// 과정 중에 하는 프로젝트(during) → 그것이 딸린 과정 프로젝트(course). 순서에서 바로 앞에 있는 과정이 주인이다(2026-11-16)
+//   예) 간호학과 4년(course) 뒤의 임상실습·국가시험 준비(during) — 학교를 다니면서 하는 일이라 과정 기간 안에 놓여야 한다.
+//   과정을 지우거나 과정보다 앞으로 옮기면 주인이 없어져 보통 프로젝트처럼 놓인다
+export function duringOwners(projects: Project[]): Map<string, Project> {
+  const out = new Map<string, Project>()
+  let course: Project | null = null
+  for (const p of projects) {
+    if (p.course) course = p
+    else if (p.during && course) out.set(p.id, course)
+  }
+  return out
+}
+
 // 순서대로, 각 주의 시간 합이 예산을 넘지 않는 가장 이른 주에 놓는다. 앞 프로젝트보다 먼저 시작하지는 않는다(순서 유지).
 // 한 프로젝트만으로 예산을 넘으면 그 프로젝트는 혼자 있는 주에 놓는다(안 그러면 영원히 못 놓는다).
+// 과정 중에 하는 프로젝트는 이 규칙 밖이다 — 과정이 끝나는 주에 맞춰 차례로 겹쳐 놓는다(학교 다니는 마지막 구간에 실습·시험 준비를 하는 꼴).
 // 반환: 시작 주차(1부터)
 export function autoSchedule(projects: Project[], budgetHours: number): { week: number; project: Project }[] {
   const load: number[] = []
   const out: { week: number; project: Project }[] = []
+  const owners = duringOwners(projects)
+  const tail = new Map<string, number>()      // 과정 id → 딸린 프로젝트의 주 수 합
+  for (const p of projects) {
+    const o = owners.get(p.id)
+    if (o) tail.set(o.id, (tail.get(o.id) ?? 0) + projectWeeks(p))
+  }
+  const cursor = new Map<string, number>()    // 과정 id → 다음 딸린 프로젝트가 시작할 자리(0부터)
   let floor = 0
   for (const p of projects) {
     const w = projectWeeks(p)
     const h = projectHoursPerWeek(p)
+    const owner = owners.get(p.id)
+    if (owner && cursor.has(owner.id)) {
+      const s = cursor.get(owner.id)!
+      for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
+      out.push({ week: s + 1, project: p })
+      cursor.set(owner.id, s + w)
+      continue
+    }
     let s = floor
     for (;; s++) {
       let ok = true
@@ -263,6 +292,8 @@ export function autoSchedule(projects: Project[], budgetHours: number): { week: 
     for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
     out.push({ week: s + 1, project: p })
     floor = s
+    // 딸린 프로젝트를 과정 끝에 맞춘다. 딸린 것이 과정보다 길면 과정 시작부터 놓는다(끝은 과정 뒤로 넘어간다)
+    if (p.course) cursor.set(p.id, Math.max(s, s + w - (tail.get(p.id) ?? 0)))
   }
   return out
 }

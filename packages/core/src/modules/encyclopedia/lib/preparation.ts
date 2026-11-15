@@ -1,6 +1,6 @@
 // 진로백과 준비과정 탭의 계산(2026-11-15) — 화면과 무관한 순수 함수만 둔다.
 // 자료는 서버(진로계획 라이브러리)가 갈래별로 순서까지 풀어서 준다. 여기서는 고르고 글자로 바꾸기만 한다.
-import type { JobPreparation, PrepChecked, PrepItem, PrepPath, PrepProject } from '../types/encyclopedia'
+import type { JobPreparation, PrepChecked, PrepItem, PrepPath, PrepProject, PrepSum } from '../types/encyclopedia'
 
 export interface PrepStep {
   key: string            // 펼침 상태를 기억하는 열쇠 — 프로젝트 id + 순서. 갈래를 바꿔도 공통 항목은 같은 열쇠라 열린 채로 남는다
@@ -57,6 +57,31 @@ const CHECK_LEVEL: Record<NonNullable<PrepChecked['level']>, string> = {
   secondary: '안내 자료와 대조',
 }
 export const checkLevelLabel = (c?: PrepChecked | null) => (c?.level && CHECK_LEVEL[c.level]) || '출처와 대조'
+
+/**
+ * 차례로 할 때의 주 수 — 서버가 주는 totals 와 같은 규칙(2026-11-16). 진로설계 템플릿이 '이미 있어요'로 뺀 뒤 다시 셀 때 쓴다.
+ *   · 선택 항목은 세지 않는다
+ *   · 과정 걸음(대학·대학원·수련) 뒤의 '과정 중에' 걸음은 그 과정이 들어 있으면 세지 않는다 — 과정 기간에 이미 들어 있다
+ * rows 는 길 전체(순서대로), include 는 이 대상이 하는 걸음인지(전공자는 major 만).
+ */
+export function sumWeeks<T extends { item: Pick<PrepItem, 'optional' | 'during'>; project: Pick<PrepProject, 'weeks' | 'course'> }>(
+  rows: T[],
+  include: (row: T) => boolean = () => true,
+): Required<PrepSum> {
+  let count = 0
+  let weeks = 0
+  let courseWeeks = 0
+  let ownerIn = false          // 바로 앞의 필수 과정 걸음이 이 대상에게 들어 있는가
+  for (const row of rows) {
+    const { item, project } = row
+    if (project.course) ownerIn = !item.optional && include(row)
+    if (item.optional || !include(row)) continue
+    count += 1
+    if (project.course) { weeks += project.weeks; courseWeeks += project.weeks }
+    else if (!(item.during && ownerIn)) weeks += project.weeks
+  }
+  return { count, weeks, courseWeeks }
+}
 
 /** 전공자에게 줄어드는 것이 있는 길인가(없으면 전공자 줄을 보여 주지 않는다) */
 export const hasMajorSkip = (path: PrepPath | null) =>

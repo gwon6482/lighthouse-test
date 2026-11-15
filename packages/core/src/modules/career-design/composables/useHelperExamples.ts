@@ -48,6 +48,8 @@ function basisOf(prep: JobPreparation, item: PrepItem, project: PrepProject): st
   else if (item.note) lines.push(`${item.note}.`)
   if (project.checked) lines.push(`${checkLevelLabel(project.checked)}: ${project.checked.note ?? project.checked.source}.`)
   if (project.caution) lines.push(`${project.caution}.`)
+  if (item.during) lines.push('학교·수련 과정을 다니면서 해요.')
+  if (project.mayHave) lines.push('이미 가지고 있으면 건너뛰어도 돼요.')
   if (!lines.length) lines.push(`${prep.displayName} 준비과정 예시에 들어 있는 프로젝트예요.`)
   return lines.join(' ').replace(/\.\./g, '.')
 }
@@ -91,14 +93,54 @@ const DAYS_BY_COUNT: Record<number, DayOfWeek[]> = {
   5: ['월', '화', '수', '목', '금'],
   6: ['월', '화', '수', '목', '금', '토'],
 }
+const SPREAD_DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토']     // 일요일은 쉬는 날로 비워 둔다(주 7회일 때만 쓴다)
+const DAY_INDEX: Record<DayOfWeek, number> = { 월: 0, 화: 1, 수: 2, 목: 3, 금: 4, 토: 5, 일: 6 }
 
-export function helperExampleToProject(ex: HelperExample, category: ProjectCategory): Project {
+function combos(n: number, from = 0): DayOfWeek[][] {
+  if (n === 0) return [[]]
+  const out: DayOfWeek[][] = []
+  for (let i = from; i <= SPREAD_DAYS.length - n; i += 1) for (const rest of combos(n - 1, i + 1)) out.push([SPREAD_DAYS[i]!, ...rest])
+  return out
+}
+
+/**
+ * 주 N회를 어느 요일에 놓을지 — 앞의 프로젝트들과 겹치지 않게 나눈다(2026-11-16).
+ * 그전에는 주 3회는 늘 월·수·금, 주 2회는 늘 화·목이라 템플릿으로 만든 계획의 할 일이 같은 날에 몰렸다.
+ *   · recent = 앞에 있는 프로젝트들의 요일(맨 뒤가 가장 가까운 것). 가까운 두 개와 겹치는 날을 피한다(가장 가까운 것을 더)
+ *   · 고르게 띄운 조합을 먼저 고르고(월·목 > 월·화), 겹침이 같으면 기본 요일을 쓴다. 앞에 아무것도 없으면 기본 요일 그대로다
+ *   · 주 5회 이상은 나눌 여지가 없어 기본 요일 그대로 두고(학교 과정이 월~목·토가 되면 이상하다), 앞에 있어도 피할 대상으로 보지 않는다
+ */
+export function pickDays(count: number, recent: DayOfWeek[][] = []): DayOfWeek[] {
+  const n = Math.min(7, Math.max(1, Math.round(count) || 1))
+  if (n >= 7) return [...SPREAD_DAYS, '일']
+  if (n >= 5) return [...DAYS_BY_COUNT[n]!]
+  const base = DAYS_BY_COUNT[n]!
+  const light = recent.filter((d) => d.length <= 4)
+  const last = light[light.length - 1] ?? []
+  const before = light[light.length - 2] ?? []
+  const ideal = Math.floor(7 / n)
+  let best = base
+  let bestScore = Infinity
+  for (const c of combos(n)) {
+    const overlap = c.filter((d) => last.includes(d)).length * 3 + c.filter((d) => before.includes(d)).length
+    const idx = c.map((d) => DAY_INDEX[d])
+    const minGap = Math.min(...idx.map((v, k) => ((idx[(k + 1) % n]! - v + 7) % 7) || 7))
+    // 기본 요일은 간격·토요일 감점을 받지 않는다 — 겹치는 것이 없으면 늘 기본 요일이 뽑힌다
+    // 붙어 있는 요일(월·화·목)은 크게 깎는다 — 바로 앞 프로젝트와 겹칠 때가 아니면 고르게 띄운 조합이 이긴다
+    const score = c.join() === base.join() ? overlap - 0.01 : overlap + Math.max(0, ideal - minGap) * 2.5 + (c.includes('토') ? 0.25 : 0)
+    if (score < bestScore) { bestScore = score; best = c }
+  }
+  return [...best]
+}
+
+/** recentDays = 계획에서 앞에 있는 프로젝트들의 요일(순서대로) — 넘기면 겹치지 않게 요일을 나눈다 */
+export function helperExampleToProject(ex: HelperExample, category: ProjectCategory, recentDays: DayOfWeek[][] = []): Project {
   return {
     id: `helper-${ex.id}-${Date.now()}`,
     category,
     name: ex.name,
     goal: ex.goal,
-    days: [...(DAYS_BY_COUNT[Math.min(6, Math.max(1, ex.daysPerWeek))] ?? ['월', '수', '금'])],
+    days: pickDays(ex.daysPerWeek, recentDays),
     duration: ex.minutesPerSession,
     priority: 'normal',
     notification: false,

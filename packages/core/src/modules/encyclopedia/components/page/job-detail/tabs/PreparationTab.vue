@@ -15,13 +15,35 @@
 
       <template v-else>
         <!-- 꼭 거쳐야 하는 것 · 함께 쓰는 계획 안내 · 법령 대조 -->
-        <div v-if="prep.shared || prep.plan.gate || prep.plan.checked || prep.plan.caution" class="prep-intro">
+        <div v-if="prep.shared || prep.plan.gate || prep.plan.checked || prep.plan.caution || prep.plan.reality || prep.plan.eligibility" class="prep-intro">
           <p v-if="prep.shared" class="prep-intro__shared">
             준비하는 길이 비슷한 <strong>{{ prep.plan.displayName }}</strong>의 계획을 함께 보여드려요.
           </p>
+          <!-- 먼저 알아 둘 것(2026-11-16) — 경력을 쌓은 뒤에 가는 직업·대부분 일찍 시작하는 길. 계획을 읽기 전에 알아야 해서 맨 앞에 둔다 -->
+          <div v-if="prep.plan.reality" class="prep-gate prep-gate--reality">
+            <span class="prep-gate__label">{{ prep.plan.reality.kind === 'career' ? '경력을 쌓은 뒤에 가는 직업이에요' : '대부분 일찍 시작하는 길이에요' }}</span>
+            <p class="prep-gate__text">{{ prep.plan.reality.text }}</p>
+            <div v-if="prep.plan.reality.via.length" class="prep-via">
+              <span class="prep-via__label">먼저 거치는 직업</span>
+              <RouterLink
+                v-for="v in prep.plan.reality.via"
+                :key="v.jobCode"
+                class="prep-via__link"
+                :to="`/career-encyclopedia/job/${v.jobCode}`"
+              >{{ v.name }}<AppIcon name="ui-chevron-right" :size="12" /></RouterLink>
+            </div>
+          </div>
           <div v-if="prep.plan.gate" class="prep-gate">
             <span class="prep-gate__label">꼭 거쳐야 하는 것</span>
             <p class="prep-gate__text">{{ prep.plan.gate }}</p>
+          </div>
+          <!-- 지원 자격(2026-11-16) — 나이·신체·결격. 1년을 준비한 뒤에 자격이 안 된다는 것을 알게 되면 안 된다 -->
+          <div v-if="prep.plan.eligibility" class="prep-gate prep-gate--elig">
+            <span class="prep-gate__label">지원 자격을 먼저 확인해요</span>
+            <ul class="prep-elig">
+              <li v-for="(line, li) in prep.plan.eligibility.lines" :key="li"><span class="list-dot" />{{ line }}</li>
+            </ul>
+            <PreparationNotes :checked="prep.plan.eligibility.checked" />
           </div>
           <PreparationNotes :checked="prep.plan.checked" :caution="prep.plan.caution" />
         </div>
@@ -47,7 +69,11 @@
           <p class="prep-total__main">
             <span class="prep-total__part">프로젝트 <strong>{{ path.totals.nonMajor.count }}개</strong></span>
             <span class="prep-total__sep" aria-hidden="true" />
-            <span class="prep-total__part">모두 <strong>{{ formatWeeks(path.totals.nonMajor.weeks) }}</strong> 분량</span>
+            <span class="prep-total__part">차례로 하면 <strong>{{ formatWeeks(path.totals.nonMajor.weeks) }}</strong></span>
+          </p>
+          <!-- 학교·수련 과정이 든 길은 그 기간을 따로 적는다 — 스스로 준비하는 기간과 헷갈리지 않게 -->
+          <p v-if="path.totals.nonMajor.courseWeeks" class="prep-total__line">
+            이 가운데 학교·수련 과정이 {{ formatWeeks(path.totals.nonMajor.courseWeeks) }}{{ josaIeyo(formatWeeks(path.totals.nonMajor.courseWeeks)) }}
           </p>
           <p v-if="majorSkip" class="prep-total__line">
             관련 학과 전공자는 {{ path.totals.major.count }}개 · {{ formatWeeks(path.totals.major.weeks) }}
@@ -91,6 +117,9 @@
                     >{{ labelOf(s.project.category) }}</span>
                     <span v-if="s.item.optional" class="prep-tag prep-tag--plain">선택</span>
                     <span v-if="!s.item.major" class="prep-tag prep-tag--plain">전공자는 생략</span>
+                    <span v-if="s.project.course" class="prep-tag prep-tag--plain">정해진 과정</span>
+                    <span v-if="s.item.during" class="prep-tag prep-tag--plain">과정 중에</span>
+                    <span v-if="s.project.mayHave" class="prep-tag prep-tag--plain">이미 있으면 생략</span>
                     <!-- 갈래 표시는 고를 갈래가 여럿일 때만 — 하나뿐이면(판사 화면의 '판사') 군더더기다 -->
                     <span v-if="s.item.fromTrack && trackInfo && prep.tracks.length > 1" class="prep-tag prep-tag--track">{{ trackInfo.name }}</span>
                   </span>
@@ -115,6 +144,12 @@
             <div v-if="isOpen(s)" class="prep-step__body">
               <p v-if="!s.item.major && s.item.skip" class="prep-step__skip">
                 <strong>관련 학과 전공자는 건너뛰어요</strong>{{ s.item.skip }}
+              </p>
+              <p v-if="s.item.during" class="prep-step__skip">
+                <strong>학교·수련 과정을 다니면서 해요</strong>기간은 앞의 과정 걸음에 들어 있어 따로 더하지 않았어요
+              </p>
+              <p v-if="s.project.mayHave" class="prep-step__skip">
+                <strong>이미 있으면 건너뛰어요</strong>면허·성적을 이미 가지고 있다면 이 걸음은 넘어가도 돼요
               </p>
               <ol class="prep-phases">
                 <li v-for="(ph, pi) in s.project.phases" :key="pi" class="prep-phase">
@@ -156,6 +191,7 @@
           </p>
           <p class="prep-section__desc">
             기간은 하나씩 차례로 할 때를 더한 값이에요. 여러 개를 함께 하면 더 짧아져요.
+            <template v-if="path?.totals.nonMajor.courseWeeks">학교를 다니면서 하는 걸음은 학교 과정 기간에 들어 있어 따로 더하지 않았어요.</template>
             시험·채용 조건은 공고로 다시 확인해 주세요.
           </p>
         </div>
@@ -244,6 +280,8 @@ const categoryCounts = computed(() =>
 const colorOf = (c: ProjectCategory) => CATEGORY_META[c]?.color ?? '#888888'
 const tintOf = (c: ProjectCategory) => `${colorOf(c)}1A`     // 같은 색을 10%로 깐다
 const labelOf = (c: ProjectCategory) => CATEGORY_META[c]?.label ?? ''
+// '약 4년' + '이에요' / '약 13개월' + '이에요' / '8주' + '예요' — 받침에 맞춘다
+const josaIeyo = (s: string) => { const c = s.charCodeAt(s.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 === 0 ? '예요' : '이에요' }
 // 진행 방식 — '기타'는 알려 주는 것이 없어 적지 않는다
 const methodLabel = (m: ProjectMethod) => (m === 'etc' ? '' : methodDef(m)?.label ?? '')
 

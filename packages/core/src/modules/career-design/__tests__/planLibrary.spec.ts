@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { libraryToHelperJob, phasesToCurriculum, projectToExample } from '../composables/useHelperExamples'
+import { libraryToHelperJob, phasesToCurriculum, pickDays, projectToExample } from '../composables/useHelperExamples'
 import { buildPlanTemplates } from '../composables/usePlanTemplates'
 import type { JobPreparation, PrepItem, PrepProject } from '@/modules/encyclopedia/types/encyclopedia'
 
@@ -129,3 +129,85 @@ describe('템플릿', () => {
     expect(buildPlanTemplates(prep({ paths: [] }), null)).toEqual([])
   })
 })
+
+// 2026-11-16: 기간은 준비과정 탭과 같은 계산 · 이미 가진 것 빼기 · 과정 표시 · 요일 나눠 넣기
+describe('템플릿 — 기간·이미 있는 것·과정', () => {
+  const school = (): JobPreparation => {
+    const p = prep({
+      displayName: '간호사', shared: false,
+      tracks: [], defaultTrack: null,
+      paths: [{
+        track: null,
+        items: [
+          item('cp.csat', 1, { major: false, skip: '이미 다니고 있다' }),
+          item('cp.degree', 1.5, { major: false, skip: '이미 다니고 있다' }),
+          item('p.practice', 2, { during: true }),
+          item('cp.license', 3, { mayHave: undefined } as Partial<PrepItem>),
+          item('cp.apply', 4),
+        ],
+        totals: { nonMajor: { count: 5, weeks: 0 }, major: { count: 3, weeks: 0 }, optional: 0 },
+      }],
+    })
+    p.projects = {
+      'cp.csat': project('cp.csat', { weeks: 52, phases: [{ weeks: 52, title: '수능', items: ['가'] }] }),
+      'cp.degree': project('cp.degree', { weeks: 208, course: true, phases: [{ weeks: 208, title: '과정', items: ['가'] }] }),
+      'p.practice': project('p.practice', { weeks: 25, phases: [{ weeks: 25, title: '실습', items: ['가'] }] }),
+      'cp.license': project('cp.license', { weeks: 3, mayHave: true }),
+      'cp.apply': project('cp.apply', { weeks: 3 }),
+    }
+    return p
+  }
+
+  it('기간은 차례로 더한 값 — 과정 중에 하는 프로젝트는 겹쳐 세지 않고, 학교·수련 과정이 얼마인지 따로 준다', () => {
+    const [nonmajor, major] = buildPlanTemplates(school(), null)
+    expect([nonmajor!.weeks, nonmajor!.courseWeeks]).toEqual([52 + 208 + 3 + 3, 208])
+    // 전공자는 과정을 건너뛰므로 실습을 그대로 센다
+    expect([major!.weeks, major!.courseWeeks]).toEqual([25 + 3 + 3, 0])
+    // 자동 배치가 쓰는 표시가 프로젝트에 실린다
+    expect(nonmajor!.projects.map((p) => [p.name, !!p.course, !!p.during])).toEqual([
+      ['cp.csat', false, false], ['cp.degree', true, false], ['p.practice', false, true], ['cp.license', false, false], ['cp.apply', false, false],
+    ])
+  })
+
+  it('이미 가지고 있는 것(운전면허·어학 성적 등)은 빼고 다시 센다 — 뺄 수 있는 것만 표시한다', () => {
+    const [t] = buildPlanTemplates(school(), null)
+    expect(Object.values(t!.skipRefs)).toEqual(['cp.license'])
+    const [had] = buildPlanTemplates(school(), null, new Set(['cp.license', 'cp.apply']))   // cp.apply 는 뺄 수 없는 프로젝트라 무시된다
+    expect(had!.projects.map((p) => p.name)).toEqual(['cp.csat', 'cp.degree', 'p.practice', 'cp.apply'])
+    expect(had!.skipped).toEqual([{ ref: 'cp.license', name: 'cp.license', category: 'skill' }])
+    expect(had!.weeks).toBe(t!.weeks - 3)
+  })
+
+  it('요일은 앞의 프로젝트와 겹치지 않게 나눠 넣는다', () => {
+    const [t] = buildPlanTemplates(prep(), 'b')       // 주 3회 프로젝트 셋
+    expect(t!.projects.map((p) => p.days.join(''))).toEqual(['월수금', '화목토', '월수금'])
+  })
+})
+
+describe('요일 고르기', () => {
+  it('앞에 아무것도 없으면 기본 요일 그대로', () => {
+    expect(pickDays(1)).toEqual(['토'])
+    expect(pickDays(2)).toEqual(['화', '목'])
+    expect(pickDays(3)).toEqual(['월', '수', '금'])
+    expect(pickDays(5)).toEqual(['월', '화', '수', '목', '금'])
+    expect(pickDays(6)).toEqual(['월', '화', '수', '목', '금', '토'])
+    expect(pickDays(7)).toHaveLength(7)
+  })
+
+  it('바로 앞 프로젝트와 겹치는 날을 피하고, 고르게 띄운다', () => {
+    expect(pickDays(3, [['월', '수', '금']])).toEqual(['화', '목', '토'])
+    expect(pickDays(2, [['화', '목']])).toEqual(['월', '금'])
+    // 가까운 것(맨 뒤)을 더 피한다 — 화·목·토 다음의 주 2회는 월·금
+    expect(pickDays(2, [['월', '수', '금'], ['화', '목', '토']])).toEqual(['월', '금'])
+    // 일요일은 비워 둔다
+    for (const n of [1, 2, 3, 4, 5]) expect(pickDays(n, [['월', '수', '금'], ['화', '목', '토']])).not.toContain('일')
+  })
+
+  it('주 5회 이상은 기본 요일 그대로 — 앞에 있어도 피할 대상으로 보지 않는다', () => {
+    expect(pickDays(5, [['월', '수', '금']])).toEqual(['월', '화', '수', '목', '금'])
+    // 수능(주 6회) 다음의 주 3회는 기본 요일. 그 앞의 가벼운 프로젝트만 본다
+    expect(pickDays(3, [['월', '화', '수', '목', '금', '토']])).toEqual(['월', '수', '금'])
+    expect(pickDays(3, [['월', '수', '금'], ['월', '화', '수', '목', '금', '토']])).toEqual(['화', '목', '토'])
+  })
+})
+

@@ -1472,6 +1472,8 @@ export function useCareerDesign() {
   const projectSettingsPayload = (p: Project) => ({
     duration: p.duration, priority: p.priority, notification: p.notification,
     missedNotification: p.missedNotification, notificationTime: p.notificationTime, memo: p.memo,
+    // 과정·과정 중 표시(2026-11-16) — 주간결산에서 속도를 바꿔 다시 배치할 때도 과정에 묶여 있게 서버에 남긴다
+    ...(p.course ? { course: true } : {}), ...(p.during ? { during: true } : {}),
   })
 
   // STEP2: 프로젝트 추가
