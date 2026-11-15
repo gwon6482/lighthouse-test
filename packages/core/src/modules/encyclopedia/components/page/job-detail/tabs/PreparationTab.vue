@@ -43,10 +43,11 @@
 
         <!-- 분량 -->
         <div v-if="path" class="prep-total">
+          <!-- 두 덩어리로 묶어 둔다 — 기간이 길어지면('약 2년 2개월') '분량'만 다음 줄로 떨어지지 않게 -->
           <p class="prep-total__main">
-            프로젝트 <strong>{{ path.totals.nonMajor.count }}개</strong>
+            <span class="prep-total__part">프로젝트 <strong>{{ path.totals.nonMajor.count }}개</strong></span>
             <span class="prep-total__sep" aria-hidden="true" />
-            모두 <strong>{{ formatWeeks(path.totals.nonMajor.weeks) }}</strong> 분량
+            <span class="prep-total__part">모두 <strong>{{ formatWeeks(path.totals.nonMajor.weeks) }}</strong> 분량</span>
           </p>
           <p v-if="majorSkip" class="prep-total__line">
             관련 학과 전공자는 {{ path.totals.major.count }}개 · {{ formatWeeks(path.totals.major.weeks) }}

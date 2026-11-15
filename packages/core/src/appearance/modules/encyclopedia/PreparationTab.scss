@@ -227,6 +227,13 @@
     strong { font-size: 16px; font-weight: 800; color: #222; }
   }
 
+  &__part {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    white-space: nowrap;
+  }
+
   &__sep {
     width: 3px;
     height: 3px;
