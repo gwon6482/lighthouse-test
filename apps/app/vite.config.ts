@@ -44,7 +44,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        globIgnores: ['**/t3_img/**'],
+        // t23_img = 랜딩 www /survey 가 app.lighthouse.career 에서 직접 불러오는 가치관 그림(앱 화면은 2026-11-15 부터 안 씀).
+        // 지우면 랜딩이 깨지니 파일은 두고, 앱 설치 때 미리 받지 않게만 뺀다(21MB)
+        globIgnores: ['**/t23_img/**'],
       },
     }),
   ],
