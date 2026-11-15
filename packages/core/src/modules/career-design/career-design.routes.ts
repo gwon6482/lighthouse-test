@@ -10,6 +10,18 @@ export default [
     component: () => import('./pages/CareerDesignExplorePage.vue'),
   },
   {
+    // 내 진로상황(2026-11-16) — [진로계획 세우기] 다음, 템플릿 앞. 학교·관련 학과·이미 해 둔 것·경력·성과
+    path: '/career-design/situation',
+    name: 'Career Design Situation',
+    component: () => import('./pages/CareerDesignSituationPage.vue'),
+  },
+  {
+    // 마이페이지 > 내 진로상황 — 언제든 적고 고치고 지운다(진로계획 단계와 같은 질문)
+    path: '/mypage/career-situation',
+    name: 'My Career Situation',
+    component: () => import('./pages/MyCareerSituationPage.vue'),
+  },
+  {
     // 템플릿에서 수정하기(베타) — 라이트하우스가 미리 설계한 진로계획을 골라 고친다
     path: '/career-design/templates',
     name: 'Career Design Templates',

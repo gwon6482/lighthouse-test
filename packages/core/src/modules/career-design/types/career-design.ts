@@ -142,3 +142,21 @@ export interface HelperJobExamples {
   title: string            // 계획의 통칭(예: 마케터)
   examples: Partial<Record<ProjectCategory, HelperExample[]>>
 }
+
+// ── 내 진로상황(2026-11-16) — 진로계획을 세울 때 묻고 마이페이지에서 고친다. 서버 User.careerProfile(services/careerProfile.js) ──
+//   school: high 고등학생 / hs_grad 고등학교 졸업 / college 대학생(휴학 포함) / college_grad 대학 졸업 / grad_school 대학원생 / grad_done 대학원 졸업
+//   (중학생은 대상이 아니다 — 2026-11-16 오너)
+export type CareerSchool = 'high' | 'hs_grad' | 'college' | 'college_grad' | 'grad_school' | 'grad_done'
+export type CareerRecordKind = 'cert' | 'language' | 'work' | 'activity' | 'award' | 'education' | 'project' | 'etc'
+/** 이용자가 적은 경력·성과 — 계획에는 반영하지 않는다(나중에 포트폴리오에 쓴다) */
+export interface CareerRecord { id: string; kind: CareerRecordKind; title: string; start: string; end: string; detail: string }
+export interface CareerProfile {
+  school?: CareerSchool
+  year?: number                                   // 대학생 학년 1~4(4 = 4학년 이상)
+  major?: string                                  // 학과(선택)
+  relatedJobs: { jobCode: string; name: string }[] // "관련 학과예요"라고 답한 목표 직업
+  has: { ref: string; name: string }[]            // 이미 해 둔 것 — ref 는 'cp.번호' 또는 '계획 코드:p.번호'
+  records: CareerRecord[]
+  updatedAt?: string
+}
+

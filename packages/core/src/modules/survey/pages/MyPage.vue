@@ -29,6 +29,23 @@
 
     <!-- 내 검사 — 자기이해 검사 카드(2026-10-30 진로정보 탭에서 옮겨 와 예전 '내 검사결과' 목록을 대신한다).
          스타일은 진로정보와 같은 .ci-test(전역 CareerInfo.scss) -->
+    <!-- 내 진로상황(2026-11-16) — 진로계획을 내 상황에 맞추는 데 쓴다. 진로계획을 세우지 않아도 언제든 적고 고친다 -->
+    <section class="mp-sec">
+      <h2 class="mp-sec__title">내 진로상황</h2>
+      <button v-if="situation" type="button" class="mp-situ" @click="router.push('/mypage/career-situation')">
+        <dl class="mp-situ__rows">
+          <div v-if="schoolLine"><dt>학교</dt><dd>{{ schoolLine }}</dd></div>
+          <div v-if="situation.has.length"><dt>이미 해 둔 것</dt><dd>{{ hasLine }}</dd></div>
+          <div v-if="situation.records.length"><dt>경력·성과</dt><dd>{{ situation.records.length }}개</dd></div>
+        </dl>
+        <span class="mp-situ__edit">고치기 <AppIcon name="ui-chevron-right" /></span>
+      </button>
+      <div v-else-if="!loadingSituation" class="mp-situ mp-situ--empty">
+        <p><strong>아직 적지 않았어요</strong>적어 두면 진로계획을 내 상황에 맞춰 드려요</p>
+        <button type="button" class="ci-btn" @click="router.push('/mypage/career-situation')">적기</button>
+      </div>
+    </section>
+
     <section id="mp-surveys" class="mp-sec">
       <h2 class="mp-sec__title">내 검사</h2>
       <div v-if="loadingSurveys" class="mp-empty">불러오는 중...</div>
@@ -135,6 +152,7 @@ import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 import { AREA_ICON } from '@/modules/survey/surveyIcons'
 import { useAchievementEntries } from '@/modules/career-achievement/composables/useAchievementEntries'
 import { fetchDeletedPlans } from '@/modules/career-design/planTrash.api'
+import { hasAnything, schoolSummary, useCareerProfile } from '@/modules/career-design/composables/useCareerProfile'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -201,8 +219,19 @@ const activePlanId = computed(() => achievementStore.plan?.planId ?? '')
 const trashCount = ref(0)
 function jump(id: string) { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 
+// 내 진로상황 — 적은 것이 없으면 '적기' 카드
+const { profile: careerProfile, load: loadCareerProfile } = useCareerProfile()
+const loadingSituation = ref(true)
+const situation = computed(() => (hasAnything(careerProfile.value) ? careerProfile.value : null))
+const schoolLine = computed(() => schoolSummary(situation.value))
+const hasLine = computed(() => {
+  const names = (situation.value?.has ?? []).map((h) => h.name).filter(Boolean)
+  return names.length > 2 ? `${names.slice(0, 2).join(', ')} 외 ${names.length - 2}개` : names.join(', ')
+})
+
 onMounted(async () => {
   achievementStore.loadActivePlan() // 완료 기록을 함께 읽는다(이미 읽었으면 그대로)
+  loadCareerProfile(true).finally(() => { loadingSituation.value = false })
   fetchDeletedPlans().then((r) => { trashCount.value = r.plans.length }).catch(() => {})
   if (!authStore.isLoggedIn) {
     router.replace('/')

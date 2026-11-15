@@ -337,7 +337,8 @@ async function goToTemplates() {
     const target = targetCareer.value
     const title = target?.title ?? target?.ref ?? ''
     const plan = target?.refType === 'jobCode' ? await loadLibraryPlan(target.ref) : null
-    if (plan) router.push('/career-design/templates')
+    // 예시 진로설계가 있으면 내 진로상황을 먼저 묻는다(2026-11-16) — 거기서 템플릿으로. 건너뛰기도 그 화면에 있다
+    if (plan) router.push('/career-design/situation')
     else startManualPlan(router, title)
   } finally {
     goingToTemplates = false

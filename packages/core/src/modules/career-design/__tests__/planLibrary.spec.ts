@@ -171,10 +171,10 @@ describe('템플릿 — 기간·이미 있는 것·과정', () => {
 
   it('이미 가지고 있는 것(운전면허·어학 성적 등)은 빼고 다시 센다 — 뺄 수 있는 것만 표시한다', () => {
     const [t] = buildPlanTemplates(school(), null)
-    expect(Object.values(t!.skipRefs)).toEqual(['cp.license'])
-    const [had] = buildPlanTemplates(school(), null, new Set(['cp.license', 'cp.apply']))   // cp.apply 는 뺄 수 없는 프로젝트라 무시된다
+    expect(Object.values(t!.skipRefs).map((r) => r.key)).toEqual(['cp.license'])
+    const [had] = buildPlanTemplates(school(), null, [{ ref: 'cp.license', name: 'cp.license' }, { ref: 'cp.apply', name: 'cp.apply' }])   // cp.apply 는 뺄 수 없는 프로젝트라 무시된다
     expect(had!.projects.map((p) => p.name)).toEqual(['cp.csat', 'cp.degree', 'p.practice', 'cp.apply'])
-    expect(had!.skipped).toEqual([{ ref: 'cp.license', name: 'cp.license', category: 'skill' }])
+    expect(had!.skipped).toEqual([{ key: 'cp.license', label: 'cp.license', byNote: false, name: 'cp.license', category: 'skill' }])
     expect(had!.weeks).toBe(t!.weeks - 3)
   })
 

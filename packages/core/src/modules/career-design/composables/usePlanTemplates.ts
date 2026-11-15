@@ -12,13 +12,17 @@
 import { pathOf, sumWeeks } from '@/modules/encyclopedia/lib/preparation'
 import type { JobPreparation, PrepItem, PrepProject } from '@/modules/encyclopedia/types/encyclopedia'
 import { helperExampleToProject, projectToExample } from './useHelperExamples'
-import type { DayOfWeek, Project, ProjectCategory } from '../types/career-design'
+import type { CareerProfile, DayOfWeek, Project, ProjectCategory } from '../types/career-design'
+import { applySituation, canHave, haveRefOf, isHad, situationSentence, type HaveRef, type SituationChange } from '../lib/situation'
 
-export type StageKey = 'nonmajor' | 'major' | 'basic'
+// mine = 내 진로상황에 맞춘 플랜(2026-11-16). 내 진로상황이 있으면 이 카드 하나를 먼저 보여 주고, 나머지는 '처음부터 전부 보기'
+export type StageKey = 'nonmajor' | 'major' | 'basic' | 'mine'
 
 export interface DroppedItem { name: string; category: ProjectCategory; reason: string }
-/** 이미 가지고 있어서 뺀 것 — ref 로 다시 넣는다 */
-export interface SkippedItem { ref: string; name: string; category: ProjectCategory }
+/** 이미 해 둔 것으로 뺄 수 있는 것 — 열쇠·이름으로 내 진로상황의 '이미 해 둔 것'에 저장한다 */
+export type HaveTarget = HaveRef & { byNote: boolean }
+/** 이미 해 둬서 뺀 것 — 다시 넣을 수 있다 */
+export interface SkippedItem extends HaveTarget { name: string; category: ProjectCategory }
 
 export interface PlanTemplate {
   id: string
@@ -35,18 +39,28 @@ export interface PlanTemplate {
   courseWeeks: number      // 그 가운데 학교·수련 과정
   note?: string            // 꼭 거쳐야 하는 것(관문)
   projects: Project[]      // 해 나갈 순서대로(이미 있어서 뺀 것은 들어 있지 않다)
-  skipRefs: Record<string, string>   // 프로젝트 id → 라이브러리 ref. '이미 있어요'로 뺄 수 있는 것(운전면허·어학 성적 등)만 들어 있다
+  skipRefs: Record<string, HaveTarget>   // 템플릿 프로젝트 id → '이미 있어요'로 뺄 때 저장할 열쇠·이름(자격·면허·어학·근무 경험만)
   skipped: SkippedItem[]   // 이미 있어서 뺀 것
   dropped: DroppedItem[]   // 전공자라서 뺀 것
   optional: DroppedItem[]  // 지원하는 곳에 따라 고르는 것(플랜에는 없다)
+  changes?: SituationChange[]   // 내 진로상황이라 뺀 것·줄인 것과 이유(mine 플랜만)
 }
 
 interface Row { item: PrepItem; project: PrepProject }
 
+/** 템플릿 프로젝트 하나 — 과정·과정 중 표시를 싣고, 요일은 앞 프로젝트와 겹치지 않게 */
+function toProject(prep: JobPreparation, item: PrepItem, project: PrepProject, during: boolean, recent: DayOfWeek[][]): Project {
+  const p = helperExampleToProject(projectToExample(prep, item, project), project.category, recent)
+  if (project.course) p.course = true
+  if (during) p.during = true
+  recent.push(p.days)
+  return p
+}
+
 /**
- * @param have 사용자가 '이미 있어요'라고 한 프로젝트의 ref — 플랜과 기간 계산에서 뺀다
+ * @param has 내 진로상황의 '이미 해 둔 것'(템플릿에서 '이미 있어요'를 누른 것 포함) — 플랜과 기간 계산에서 뺀다
  */
-export function buildPlanTemplates(prep: JobPreparation, track: string | null | undefined, have: ReadonlySet<string> = new Set()): PlanTemplate[] {
+export function buildPlanTemplates(prep: JobPreparation, track: string | null | undefined, has: CareerProfile['has'] = []): PlanTemplate[] {
   const path = pathOf(prep, track ?? prep.defaultTrack)
   if (!path) return []
   const rows: Row[] = path.items.flatMap((item) => {
@@ -70,20 +84,19 @@ export function buildPlanTemplates(prep: JobPreparation, track: string | null | 
       ]
     : [{ key: 'basic', label: '기본', who: '전공과 상관없이 같은 길이에요', inStage: () => true }]
 
+  const target = (r: Row): HaveTarget => ({ ...haveRefOf(prep, r.item, r.project), byNote: !!r.project.haveByNote })
+  const owned = (r: Row) => canHave(r.project) && isHad(has, haveRefOf(prep, r.item, r.project), !!r.project.haveByNote)
+
   return stages.map((st) => {
-    // 이 단계가 하는 것 — 이미 있는 것은 뺀다(뺄 수 있는 것은 mayHave 프로젝트뿐)
-    const owned = (r: Row) => !!r.project.mayHave && have.has(r.project.id)
+    // 이 단계가 하는 것 — 이미 해 둔 것은 뺀다(뺄 수 있는 것은 자격·면허·어학·근무 경험)
     const include = (r: Row) => st.inStage(r) && !owned(r)
     const sum = sumWeeks(rows, include)
-    const skipRefs: Record<string, string> = {}
+    const skipRefs: Record<string, HaveTarget> = {}
     const recent: DayOfWeek[][] = []        // 앞에 놓인 프로젝트들의 요일 — 겹치지 않게 나눠 넣는다
     const projects = must.filter(include).map((r) => {
-      const p = helperExampleToProject(projectToExample(prep, r.item, r.project), r.project.category, recent)
       // 자동 배치가 쓰는 표시 — 과정 중에 하는 프로젝트는 과정 끝에 맞춰 겹쳐 놓는다
-      if (r.project.course) p.course = true
-      if (r.item.during) p.during = true
-      if (r.project.mayHave) skipRefs[p.id] = r.project.id
-      recent.push(p.days)
+      const p = toProject(prep, r.item, r.project, !!r.item.during, recent)
+      if (canHave(r.project)) skipRefs[p.id] = target(r)
       return p
     })
     const stageWord = st.key === 'basic' ? '' : ` ${st.label}`
@@ -101,7 +114,7 @@ export function buildPlanTemplates(prep: JobPreparation, track: string | null | 
       note: prep.plan.gate ?? undefined,
       projects,
       skipRefs,
-      skipped: must.filter((r) => st.inStage(r) && owned(r)).map((r) => ({ ref: r.project.id, name: r.project.name, category: r.project.category })),
+      skipped: must.filter((r) => st.inStage(r) && owned(r)).map((r) => ({ ...target(r), name: r.project.name, category: r.project.category })),
       dropped: st.key === 'major'
         ? majorSkipped.map((r) => ({ name: r.project.name, category: r.project.category, reason: r.item.skip ?? '' }))
         : [],
@@ -109,3 +122,42 @@ export function buildPlanTemplates(prep: JobPreparation, track: string | null | 
     }
   })
 }
+
+/**
+ * 내 진로상황에 맞춘 플랜 하나(2026-11-16) — 학교·관련 학과·이미 해 둔 것으로 걸음을 빼고 남은 학교 과정을 줄인다.
+ * 계산 규칙은 lib/situation.ts. 뺀 것·줄인 것은 이유와 함께 changes 로 준다(카드 맨 위 '내 상황이라 바뀐 것')
+ */
+export function buildSituationTemplate(prep: JobPreparation, track: string | null | undefined, profile: CareerProfile): PlanTemplate | null {
+  const path = pathOf(prep, track ?? prep.defaultTrack)
+  if (!path) return null
+  const res = applySituation(prep, path, profile)
+  if (!res.rows.length) return null
+  const trackName = prep.tracks.length > 1 ? (prep.tracks.find((t) => t.id === path.track)?.name ?? '') : ''
+  const skipRefs: Record<string, HaveTarget> = {}
+  const recent: DayOfWeek[][] = []
+  const projects = res.rows.map((r) => {
+    const p = toProject(prep, r.item, r.project, r.during, recent)
+    if (canHave(r.project)) skipRefs[p.id] = { ...haveRefOf(prep, r.item, r.project), byNote: !!r.project.haveByNote }
+    return p
+  })
+  return {
+    id: `${prep.plan.jobCode}-${path.track ?? 'all'}-mine`,
+    stage: 'mine',
+    jobCode: prep.jobCode,
+    jobTitle: prep.title,
+    track: path.track,
+    name: `${prep.displayName} 플랜${trackName ? ` · ${trackName}` : ''}`,
+    stageLabel: '내 상황',
+    who: situationSentence(prep, profile),
+    weeks: res.weeks,
+    courseWeeks: res.courseWeeks,
+    note: prep.plan.gate ?? undefined,
+    projects,
+    skipRefs,
+    skipped: [],
+    dropped: [],
+    optional: res.optional.map((r) => ({ name: r.project.name, category: r.project.category, reason: r.item.note ?? '' })),
+    changes: res.changes,
+  }
+}
+

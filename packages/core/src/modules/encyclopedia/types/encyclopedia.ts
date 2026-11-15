@@ -258,6 +258,8 @@ export interface PrepProject {
   checked?: PrepChecked
   course?: boolean                        // 대학·대학원·수련처럼 기간이 정해진 과정(2026-11-16)
   mayHave?: boolean                       // 이미 가지고 있을 수 있는 것 — 운전면허·어학 성적 등(2026-11-16)
+  haveLabel?: string                      // 내 진로상황 '이미 해 둔 것' 목록의 이름(토익 점수·운전면허)
+  haveByNote?: boolean                    // 항목 메모가 실제 자격 이름이다(간호사 국가시험·지게차운전기능사) — 메모를 먼저 쓴다
 }
 
 /** 길 위의 한 걸음 — ref 로 projects 에서 프로젝트를 찾는다 */
@@ -270,6 +272,7 @@ export interface PrepItem {
   skip?: string
   note?: string
   during?: boolean      // 앞의 과정 걸음(course) 기간 안에 하는 일 — 기간을 따로 더하지 않는다(2026-11-16)
+  skipFor?: 'any'       // 학과와 상관없이 대학에 다니면 건너뛴다(법조). 없으면 관련 학과일 때만
 }
 
 /** 선택 항목을 뺀 것. 주 수는 하나씩 차례로 할 때의 합이고, 과정 중에 하는 걸음은 겹쳐 세지 않는다. courseWeeks = 그 가운데 학교·수련 과정 */
@@ -310,6 +313,8 @@ export interface JobPreparation {
     gate: string | null
     caution: string | null
     checked: PrepChecked | null
+    // 내 진로상황의 학과 질문에 쓰는 이름 — "간호학과에 다니고 있거나 졸업했나요?"(2026-11-16)
+    relatedMajor?: string | null
     // 지원 자격(나이·신체·결격) — 준비를 시작하기 전에 알아야 하는 것(2026-11-16)
     eligibility?: { lines: string[]; checked: PrepChecked | null } | null
     // 먼저 알아 둘 것 — career: 경력을 쌓은 뒤에 가는 직업(via = 먼저 거치는 직업) / early: 대부분 일찍 시작하는 길(2026-11-16)

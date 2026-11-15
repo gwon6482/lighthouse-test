@@ -3,7 +3,7 @@
     <CdYellowHeader
       title="진로계획 세우기"
       :subtitle="prep ? `${prep.displayName} 예시 계획에서 시작해요` : '라이트하우스가 미리 설계한 진로계획에서 시작해요'"
-      back-to="/career-design"
+      back-to="/career-design/situation"
     />
 
     <div class="cd-tpl__body">
@@ -21,6 +21,14 @@
         <!-- 진입 관문 직업(전공·시험·면허 필수)이면 무엇을 중심에 둘지 먼저 보여준다(2026-10-27) -->
         <JobGateGuide :job-code="prep.jobCode" variant="plan" class="cd-tpl__gate" />
 
+        <!-- 내 진로상황(2026-11-16) — 맨 위 플랜이 무엇에 맞췄는지. 고치면 묻는 화면으로 돌아간다 -->
+        <div v-if="situationOn" class="cd-tpl__situ">
+          <span class="cd-tpl__situ-label">내 진로상황</span>
+          <span class="cd-tpl__situ-text">{{ situationLine }}</span>
+          <button type="button" class="cd-tpl__situ-edit" @click="router.push('/career-design/situation')">고치기</button>
+        </div>
+        <button v-else type="button" class="cd-tpl__situ-link" @click="router.push('/career-design/situation')">내 진로상황에 맞춰 보기 <AppIcon name="ui-chevron-right" /></button>
+
         <!-- 갈래 — 준비하는 길이 갈리는 직업만. 진로백과 준비과정 탭과 같은 말을 쓴다 -->
         <div v-if="prep.tracks.length > 1" class="cd-tpl__tracks">
           <div class="cd-tpl__tracks-chips" role="group" aria-label="준비하는 갈래">
@@ -37,13 +45,14 @@
         </div>
       </template>
 
+      <template v-for="(t, ti) in shownTemplates" :key="t.id">
+      <!-- 내 상황 플랜 아래의 처음부터 전부(비전공·전공 플랜) -->
+      <p v-if="situationOn && ti === 1" class="cd-tpl__divider">처음부터 전부 보기</p>
       <article
-        v-for="t in templates"
-        :key="t.id"
         class="cd-tpl__card"
-        :class="{ 'cd-tpl__card--open': openId === t.id }"
+        :class="{ 'cd-tpl__card--open': isOpen(t) }"
       >
-        <button type="button" class="cd-tpl__card-head" @click="openId = openId === t.id ? null : t.id">
+        <button type="button" class="cd-tpl__card-head" :aria-expanded="isOpen(t)" @click="toggle(t)">
           <span class="cd-tpl__badge-row">
             <span class="cd-tpl__badge" :class="`cd-tpl__badge--${t.stage}`">{{ t.stageLabel }}</span>
             <span class="cd-tpl__who">{{ t.who }}</span>
@@ -59,11 +68,19 @@
               :style="{ background: COLORS[c.value].bg, color: COLORS[c.value].text }"
             >{{ c.label }} {{ countOf(t, c.value) }}</span>
           </span>
-          <span class="cd-tpl__toggle">{{ openId === t.id ? '접기' : '구성 보기' }} <AppIcon name="ui-chevron-down" class="chevron-toggle" :class="{ 'chevron-toggle--open': openId === t.id }" /></span>
+          <span class="cd-tpl__toggle">{{ isOpen(t) ? '접기' : '구성 보기' }} <AppIcon name="ui-chevron-down" class="chevron-toggle" :class="{ 'chevron-toggle--open': isOpen(t) }" /></span>
         </button>
 
-        <div v-if="openId === t.id" class="cd-tpl__detail">
+        <div v-if="isOpen(t)" class="cd-tpl__detail">
           <p v-if="t.note" class="cd-tpl__note">ⓘ {{ t.note }}</p>
+          <!-- 내 상황이라 뺀 것·줄인 것 — 이유와 함께(2026-11-16) -->
+          <div v-if="t.changes?.length" class="cd-tpl__changed">
+            <p class="cd-tpl__changed-title">내 상황이라 바뀐 것</p>
+            <p v-for="(c, ci) in groupChanges(t)" :key="ci" class="cd-tpl__changed-row">
+              <i>{{ c.kind === 'cut' ? '뺌' : '줄임' }}</i>
+              <span>{{ c.label }}<small>{{ c.reason }}</small></span>
+            </p>
+          </div>
           <!-- 학교·수련 과정이 든 플랜 — 그 기간과, 다니면서 하는 프로젝트를 어떻게 놓는지 -->
           <p v-if="t.courseWeeks" class="cd-tpl__course">
             학교·수련 과정 {{ formatWeeks(t.courseWeeks) }}{{ josaI(formatWeeks(t.courseWeeks)) }} 들어 있어요.
@@ -93,9 +110,9 @@
           <div v-if="t.skipped.length" class="cd-tpl__dropped">
             <p class="cd-tpl__dropped-toggle cd-tpl__dropped-toggle--static">이미 있어서 뺀 것 {{ t.skipped.length }}개</p>
             <ul class="cd-tpl__dropped-list">
-              <li v-for="s in t.skipped" :key="s.ref" class="cd-tpl__dropped-item cd-tpl__dropped-item--row">
+              <li v-for="s in t.skipped" :key="`${s.key}|${s.label}`" class="cd-tpl__dropped-item cd-tpl__dropped-item--row">
                 <span class="cd-tpl__dropped-name">{{ s.name }}</span>
-                <button type="button" class="cd-tpl__have cd-tpl__have--undo" @click="setHave(s.ref, false)">다시 넣기</button>
+                <button type="button" class="cd-tpl__have cd-tpl__have--undo" @click="setHave(s, false)">다시 넣기</button>
               </li>
             </ul>
           </div>
@@ -130,6 +147,16 @@
           <button type="button" class="cd-tpl__start" @click="startFrom(t)">이 템플릿으로 시작하기</button>
         </div>
       </article>
+      </template>
+
+      <!-- 내 상황 플랜만 보일 때 — 처음부터 전부(지금의 비전공·전공 플랜)를 펼친다 -->
+      <button v-if="situationOn && !showAll && templates.length" type="button" class="cd-tpl__more" @click="showAll = true">
+        <span class="cd-tpl__more-text">
+          <strong>처음부터 전부 보기</strong>
+          <span>{{ templates[0]!.stageLabel === '기본' ? '' : '비전공 기준 · ' }}차례로 하면 {{ formatWeeks(templates[0]!.weeks) }} · 프로젝트 {{ templates[0]!.projects.length }}개</span>
+        </span>
+        <AppIcon name="ui-chevron-down" class="cd-tpl__more-arrow" />
+      </button>
 
       <!-- 직접 설계하기 — 템플릿을 쓰지 않는 길. 직업·템플릿 유무와 상관없이 항상 맨 아래에 둔다 -->
       <button type="button" class="cd-tpl__manual" @click="startManual">
@@ -146,24 +173,27 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { loadLibraryPlan } from '../composables/useHelperExamples'
-import { buildPlanTemplates, type PlanTemplate } from '../composables/usePlanTemplates'
+import { buildPlanTemplates, buildSituationTemplate, type HaveTarget, type PlanTemplate } from '../composables/usePlanTemplates'
+import { hasAnything, schoolSummary, useCareerProfile } from '../composables/useCareerProfile'
 import { toDateKey } from '../composables/usePlanTimeline'
 import { formatWeeks } from '@/modules/encyclopedia/lib/preparation'
 import { getToday } from '@/shared/utils/dev-date'
 import { startManualPlan } from '../composables/startManualPlan'
 import { fetchTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
-import type { ProjectCategory } from '../types/career-design'
+import type { CareerProfile, ProjectCategory } from '../types/career-design'
 import type { JobPreparation } from '@/modules/encyclopedia/types/encyclopedia'
 import { methodLine, methodIcon } from '../composables/projectMethods'
 import JobGateGuide from '@/shared/components/JobGateGuide.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 
 const router = useRouter()
+const route = useRoute()
 const { draftPlan, resetDraftPlan } = useCareerDesign()
+const { profile: careerProfile, load: loadCareerProfile, save: saveCareerProfile } = useCareerProfile()
 
 const CATS: { value: ProjectCategory; label: string }[] = [
   { value: 'qualification', label: '자격요건' },
@@ -189,7 +219,8 @@ const loading = ref(true)
 const track = ref<string | null>(null)
 onMounted(async () => {
   try {
-    const { data } = await fetchTargetCareer()
+    const [{ data }, saved] = await Promise.all([fetchTargetCareer(), loadCareerProfile()])
+    has.value = saved?.has ? [...saved.has] : []
     const target = data.targetCareer
     targetTitle.value = target?.title ?? target?.ref ?? ''
     if (target?.refType === 'jobCode') {
@@ -201,20 +232,57 @@ onMounted(async () => {
   }
 })
 
-// '이미 있어요'라고 한 것(운전면허·어학 성적 등) — 플랜과 기간에서 뺀다. 갈래를 바꿔도 남는다(가진 것은 그대로니까)
-const have = ref<Set<string>>(new Set())
-function setHave(refId: string, on: boolean) {
-  const next = new Set(have.value)
-  if (on) next.add(refId)
-  else next.delete(refId)
-  have.value = next
+// 이미 해 둔 것(내 진로상황) — 플랜과 기간에서 뺀다. 갈래를 바꿔도 남는다(가진 것은 그대로니까).
+// 여기서 '이미 있어요'를 누르면 내 진로상황에도 저장한다(적어 둔 내 진로상황이 있을 때. 건너뛴 사람은 이 화면에서만)
+const has = ref<CareerProfile['has']>([])
+const sameHave = (h: CareerProfile['has'][number], t: HaveTarget) => h.ref === t.key && (!t.byNote || h.name === t.label)
+function setHave(target: HaveTarget, on: boolean) {
+  const exists = has.value.some((h) => sameHave(h, target))
+  const next = on ? (exists ? has.value : [...has.value, { ref: target.key, name: target.label }]) : has.value.filter((h) => !sameHave(h, target))
+  has.value = next
+  if (careerProfile.value) void saveCareerProfile({ ...careerProfile.value, has: next })
 }
-const templates = computed(() => (prep.value ? buildPlanTemplates(prep.value, track.value, have.value) : []))
+const templates = computed(() => (prep.value ? buildPlanTemplates(prep.value, track.value, has.value) : []))
+
+// 내 진로상황 플랜(2026-11-16) — 적어 둔 내 진로상황이 있으면 맨 위에 하나, 나머지(처음부터 전부)는 펼쳐야 보인다.
+// 내 진로상황 단계에서 '건너뛰기'로 왔으면(?situation=skip) 지금처럼 비전공·전공 플랜만
+const situationOn = computed(() => route.query.situation !== 'skip' && hasAnything(careerProfile.value))
+const mine = computed(() => (situationOn.value && prep.value && careerProfile.value
+  ? buildSituationTemplate(prep.value, track.value, { ...careerProfile.value, has: has.value })
+  : null))
+const showAll = ref(false)
+const shownTemplates = computed(() => (mine.value ? [mine.value, ...(showAll.value ? templates.value : [])] : templates.value))
+const situationLine = computed(() => {
+  const p = careerProfile.value
+  if (!p) return ''
+  return [schoolSummary(p), has.value.length ? `해 둔 것 ${has.value.length}개` : '', !p.school && p.records.length ? `경력·성과 ${p.records.length}개` : '']
+    .filter(Boolean).join(' · ') || '적어 둔 내용'
+})
+// 같은 이유로 뺀 것은 한 줄로 — "수능 개념 다지기 외 3개 · 관련 학과에 다니고 있어요"
+function groupChanges(t: PlanTemplate): { kind: 'cut' | 'shorten'; label: string; reason: string }[] {
+  const out: { kind: 'cut' | 'shorten'; label: string; reason: string; names: string[] }[] = []
+  for (const c of t.changes ?? []) {
+    if (c.kind === 'shorten') { out.push({ kind: 'shorten', label: `${c.name} → 남은 ${formatWeeks(c.toWeeks ?? 0)}`, reason: c.reason, names: [] }); continue }
+    const g = out.find((x) => x.kind === 'cut' && x.reason === c.reason)
+    if (g) g.names.push(c.name)
+    else out.push({ kind: 'cut', label: '', reason: c.reason, names: [c.name] })
+  }
+  return out.map((g) => ({ kind: g.kind, reason: g.reason, label: g.kind === 'shorten' ? g.label : g.names.length > 2 ? `${g.names[0]} 외 ${g.names.length - 1}개` : g.names.join(' · ') }))
+}
 // '약 4년' + '이' / '8주' + '가' — 받침에 맞춘다
 const josaI = (s: string) => { const c = s.charCodeAt(s.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 === 0 ? '가' : '이' }
 const trackInfo = computed(() => prep.value?.tracks.find((t) => t.id === track.value) ?? null)
 const openId = ref<string | null>(null)
 watch(track, () => { openId.value = null })   // 갈래를 바꾸면 플랜이 통째로 바뀐다 — 펼친 것을 접는다
+// 내 상황 플랜은 펼친 채로 보여 준다(무엇을 왜 뺐는지가 카드 안에 있다). 접거나 다른 카드를 열면 그때부터 접힌다
+const mineCollapsed = ref(false)
+const isOpen = (t: PlanTemplate) => (t.stage === 'mine' ? !mineCollapsed.value && (openId.value === null || openId.value === t.id) : openId.value === t.id)
+function toggle(t: PlanTemplate) {
+  const open = isOpen(t)
+  if (t.stage === 'mine') mineCollapsed.value = open
+  else if (!open) mineCollapsed.value = true
+  openId.value = open ? null : t.id
+}
 
 
 const countOf = (t: PlanTemplate, c: ProjectCategory) => t.projects.filter((p) => p.category === c).length
@@ -281,11 +349,33 @@ function startFrom(t: PlanTemplate) {
     padding: 3px 8px;
 
     &--nonmajor { color: #B07D00; background: #FFF6D6; }
+    &--mine { color: #8A6400; background: #FFF0B3; }
     &--major { color: #1D6FD8; background: #E8F1FE; }
     &--basic { color: #555; background: #F0F0F0; }
   }
   &__who { font-size: 12px; color: #888; }
   &__gate { margin-bottom: 4px; }
+
+  // 내 진로상황 요약 줄(2026-11-16)
+  &__situ { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: #fff; border-radius: 14px; }
+  &__situ-label { flex: none; font-size: 11px; font-weight: 700; color: #8A6400; background: #FFF6D6; padding: 3px 8px; border-radius: 6px; }
+  &__situ-text { flex: 1; min-width: 0; font-size: 12.5px; color: #555; overflow-wrap: anywhere; }
+  &__situ-edit { flex: none; border: 0; background: none; padding: 4px; font-family: inherit; font-size: 12.5px; font-weight: 700; color: #1D6FD8; cursor: pointer; }
+  &__situ-link { align-self: flex-start; display: inline-flex; align-items: center; gap: 2px; border: 0; background: none; padding: 2px 4px; font-family: inherit; font-size: 12.5px; font-weight: 700; color: #1D6FD8; cursor: pointer; }
+  &__changed { background: #FFF8E6; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; }
+  &__changed-title { font-size: 12px; font-weight: 800; color: #8A5A00; }
+  &__changed-row {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; font-size: 12.5px; color: #5C4500; line-height: 1.45;
+    i { font-style: normal; font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 5px; background: #fff; color: #8A5A00; align-self: start; margin-top: 1px; white-space: nowrap; }
+    small { display: block; font-size: 11.5px; color: #9A7A2A; }
+  }
+  &__divider { margin-top: 6px; padding: 0 4px; font-size: 13px; font-weight: 700; color: #888; }
+  &__more {
+    width: 100%; display: flex; align-items: center; gap: 12px; padding: 16px 18px; background: #fff; border: 0; border-radius: 16px; text-align: left; cursor: pointer; font-family: inherit;
+    &:active { background: #FAFAFA; }
+  }
+  &__more-text { flex: 1; display: flex; flex-direction: column; gap: 3px; strong { font-size: 15px; font-weight: 700; color: #222; } span { font-size: 12px; color: #888; } }
+  &__more-arrow { color: #bbb; font-size: 18px; }
 
   // 갈래 고르기 — 준비하는 길이 갈리는 직업만(진로백과 준비과정 탭과 같은 말·같은 자료)
   &__tracks { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; background: #fff; border-radius: 16px; }
