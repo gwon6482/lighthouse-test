@@ -22,6 +22,8 @@ describe('projectMethods — 영역 × 진행 방식', () => {
   it('자격요건은 방식과 상관없이 합격이 완료 기준(필수 교육 이수는 예외)', () => {
     expect(doneLabel('qualification', 'lecture')).toContain('합격')
     expect(doneLabel('qualification', 'required_course')).toContain('이수')
+    // 기타는 스스로 정한 기준(자기소개서·면접 준비 같은 지원 준비가 자격요건·기타다)
+    expect(doneLabel('qualification', 'etc')).toBe('스스로 정한 기준을 채우면 완료')
     expect(doneLabel('knowledge', 'book')).toContain('마지막 장')
   })
 

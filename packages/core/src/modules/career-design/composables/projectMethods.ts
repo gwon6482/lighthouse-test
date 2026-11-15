@@ -147,9 +147,13 @@ export const methodFits = (c?: ProjectCategory, m?: ProjectMethod | null) => !!m
 // 자격요건은 방식과 상관없이 끝 = 시험(이수). 시험일을 받으면 타임라인을 시험일에서 거꾸로 맞출 수 있다(다음 단계)
 export const QUALIFICATION_EXTRA = { key: 'deadline' as const, label: '시험일 (선택)', type: 'date' as const }
 
-/** 완료 기준 한 줄 — 자격요건은 방식보다 '합격'이 우선 */
+/**
+ * 완료 기준 한 줄 — 자격요건은 방식보다 '합격'이 우선.
+ * 예외: 필수 교육 이수(이수가 끝) · 기타(스스로 정한 기준이 끝). 2026-11-16 자기소개서·면접 준비 같은 지원·선발 준비를
+ *   자격요건(기타)으로 옮기면서, 자기소개서에 '시험에 합격하면 완료'가 붙지 않게 기타도 예외로 뺐다
+ */
 export function doneLabel(c?: ProjectCategory, m?: ProjectMethod | null): string {
-  if (c === 'qualification' && m !== 'required_course') return '시험에 합격(목표 점수 달성)하면 완료'
+  if (c === 'qualification' && m !== 'required_course' && m !== 'etc') return '시험에 합격(목표 점수 달성)하면 완료'
   return methodDef(m)?.done ?? ''
 }
 
