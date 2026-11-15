@@ -115,26 +115,28 @@ export interface DraftPlan {
   timelineManual?: boolean  // 자동 배치 뒤 타임라인을 직접 옮겼는가(속도를 다시 고를 때 덮어쓰기 안내용, 로컬만)
   editing?: boolean         // 이미 있는 계획을 고치는 중인가(계획 상세 '수정'으로 들어옴, 로컬만) — 단계 순서·완성 화면이 달라진다(useDesignSteps)
   editBase?: EditBase       // 수정을 시작할 때의 원본 — 마칠 때 바뀐 것만 서버에 반영하고(commitEdit), 취소하면 그냥 버린다
+  targetJobCode?: string    // 목표 직업의 진로백과 코드(로컬만) — 예시 진로설계(템플릿·도우미 추천)를 이 코드로 찾는다. 직접 적은 목표면 비어 있다
+  templateTrack?: string | null   // 템플릿 화면에서 고른 갈래(로컬만) — 도우미 추천이 같은 갈래의 프로젝트를 보여 준다
   timeline: TimelineMonth[]
 }
 
-// ── 진로 설계 도우미(베타) — 채용공고·직업정보 근거로 만든 프로젝트 예시 ──
+// ── 진로 설계 도우미(베타) — 목표 직업의 예시 진로설계(진로계획 라이브러리)에서 꺼낸 프로젝트 예시 ──
 export interface HelperExample {
   id: string
   name: string
   goal: string
-  level: '입문' | '중급'
+  level: '입문' | '중급' | '심화'
   daysPerWeek: number
   minutesPerSession: number
-  basis: string            // 근거 한 줄(예: "회계사무원 공고 97건 중 23%가 전산세무2급을 요구")
+  basis: string            // 왜 권하는지 한 줄(법령 대조 내용·'지원하는 곳에 따라' 같은 안내)
   curriculum: WeekCurriculum[]
-  method?: ProjectMethod          // 진행 방식(실데이터부터). 없으면 사용자가 고른다
+  method?: ProjectMethod          // 진행 방식. 없으면 사용자가 고른다
   methodDetail?: Partial<Record<MethodField, string>>
+  fullWeeks?: number       // 원래 길이(주) — 앱의 한 프로젝트 최대(52주)를 넘어 줄여 담았을 때만
 }
 
 export interface HelperJobExamples {
   jobCode: string
-  title: string
-  posts: number            // 분석한 채용공고 수
+  title: string            // 계획의 통칭(예: 마케터)
   examples: Partial<Record<ProjectCategory, HelperExample[]>>
 }

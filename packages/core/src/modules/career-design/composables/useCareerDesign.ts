@@ -1404,6 +1404,8 @@ export function useCareerDesign() {
     draftPlan.dailyHours = undefined
     draftPlan.editing = undefined
     draftPlan.editBase = undefined
+    draftPlan.targetJobCode = undefined
+    draftPlan.templateTrack = undefined
     draftPlan.timeline = []
     draftTimeline.value = []
   }

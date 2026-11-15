@@ -1,17 +1,21 @@
 <template>
-  <!-- 진로 설계 도우미(베타) — 목표 직업의 채용공고·직업정보 근거로 만든 프로젝트 예시.
-       예시가 있는 직업은 아직 시범 5개 — 다른 직업은 '준비 중'으로만 알린다(2026-11-11 사용자: 예시 직업 고르기 없앰) -->
+  <!-- 진로 설계 도우미(베타) — 목표 직업의 예시 진로설계(진로계획 라이브러리, 진로백과 준비과정 탭과 같은 자료)에서 꺼낸 프로젝트 예시.
+       진로백과에서 정한 목표는 모두 예시가 있다(2026-11-15~). 직접 적은 목표는 어느 계획인지 알 수 없어 안내만 한다 -->
   <section v-if="draftPlan.targetJob" class="cd-helper">
     <div class="cd-helper__head">
       <div class="cd-helper__title-row">
         <span class="cd-helper__title">도우미 추천</span>
         <span class="cd-helper__beta">BETA</span>
       </div>
-      <p v-if="job" class="cd-helper__desc">
-        {{ job.title }} 채용공고 {{ job.posts }}건을 분석해 만든 {{ categoryLabel }} 예시예요. 담은 뒤 자유롭게 고칠 수 있어요.
+      <p v-if="job && items.length" class="cd-helper__desc">
+        {{ job.title }} 준비과정 예시에 들어 있는 {{ categoryLabel }} 프로젝트예요. 담은 뒤 자유롭게 고칠 수 있어요.
       </p>
+      <p v-else-if="job" class="cd-helper__desc">
+        {{ job.title }} 준비과정 예시에는 {{ categoryLabel }} 프로젝트가 없어요.
+      </p>
+      <p v-else-if="loading" class="cd-helper__desc">예시를 불러오는 중이에요…</p>
       <p v-else class="cd-helper__desc">
-        <span class="cd-helper__soon">준비 중</span> '{{ draftPlan.targetJob }}' 예시는 아직 준비 중이에요.
+        '{{ draftPlan.targetJob }}'에 맞는 예시를 찾지 못했어요. 진로백과에서 목표 진로를 정하면 그 직업의 예시를 볼 수 있어요.
       </p>
     </div>
 
@@ -91,10 +95,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { weekEntriesOf } from '../composables/useProjectCurriculum'
-import { findHelperExamples, helperExampleToProject } from '../composables/useHelperExamples'
+import { helperExampleToProject, libraryToHelperJob, loadLibraryPlan } from '../composables/useHelperExamples'
+import { fetchTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
+import type { JobPreparation } from '@/modules/encyclopedia/types/encyclopedia'
 import type { HelperExample, ProjectCategory } from '../types/career-design'
 import { methodLine, methodIcon, doneLabel } from '../composables/projectMethods'
 import AppIcon from '@/shared/components/AppIcon.vue'
@@ -115,7 +121,34 @@ const LABELS: Record<ProjectCategory, string> = {
 }
 const categoryLabel = computed(() => LABELS[props.category])
 
-const job = computed(() => findHelperExamples(draftPlan.targetJob))
+// 목표 직업의 예시 진로설계 — 직업 코드로 찾는다.
+//   새 계획: 템플릿 화면을 거치며 draftPlan.targetJobCode 가 들어온다.
+//   이미 있는 계획을 고칠 때: 계획에는 직업 이름만 있다 → 지금 목표 진로(진로백과에서 정한 것)의 이름이 같으면 그 코드를 쓴다.
+const norm = (v?: string | null) => (v ?? '').replace(/[\s·‧,]/g, '')
+const prep = ref<JobPreparation | null>(null)
+const loading = ref(false)
+let loadSeq = 0
+async function resolveJobCode(): Promise<string | null> {
+  if (draftPlan.targetJobCode) return draftPlan.targetJobCode
+  if (!draftPlan.targetJob) return null
+  try {
+    const target = (await fetchTargetCareer()).data.targetCareer
+    return target?.refType === 'jobCode' && norm(target.title) === norm(draftPlan.targetJob) ? target.ref : null
+  } catch {
+    return null      // 비로그인 등
+  }
+}
+watch(() => [draftPlan.targetJobCode, draftPlan.targetJob], async () => {
+  const seq = ++loadSeq
+  loading.value = true
+  const found = await loadLibraryPlan(await resolveJobCode())
+  if (seq !== loadSeq) return
+  prep.value = found
+  loading.value = false
+}, { immediate: true })
+
+// 템플릿 화면에서 고른 갈래의 길을 보여 준다(고르지 않았으면 그 직업의 기본 갈래)
+const job = computed(() => (prep.value ? libraryToHelperJob(prep.value, draftPlan.templateTrack) : null))
 const items = computed(() => job.value?.examples[props.category] ?? [])
 
 // 같은 이름의 프로젝트가 이미 계획에 있으면 '담음' — 템플릿 붙여넣기와 같은 기준

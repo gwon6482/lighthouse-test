@@ -263,7 +263,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { fetchTargetCareer, updateTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import type { TargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
-import { findHelperExamples } from '../composables/useHelperExamples'
+import { loadLibraryPlan } from '../composables/useHelperExamples'
 import { startManualPlan } from '../composables/startManualPlan'
 
 const router = useRouter()
@@ -326,12 +326,22 @@ function runTyping() {
   }
 }
 
-// [진로계획 세우기] — 목표 직업에 템플릿이 있으면 템플릿 화면, 없으면 바로 직접 설계(2026-11-11 사용자 결정 B안).
-// 템플릿이 있는 직업은 아직 시범 5개라, 다른 직업에 '준비 중'·직업 고르기를 보이지 않는다(사용자: 요청한 적 없는 화면)
-function goToTemplates() {
-  const title = targetCareer.value?.title ?? targetCareer.value?.ref ?? ''
-  if (findHelperExamples(title)) router.push('/career-design/templates')
-  else startManualPlan(router, title)
+// [진로계획 세우기] — 목표 직업에 예시 진로설계가 있으면 템플릿 화면, 없으면 바로 직접 설계(2026-11-11 사용자 결정 B안).
+// 진로백과에서 정한 목표(refType 'jobCode')는 모두 계획이 있다(진로계획 라이브러리, 2026-11-15~). 직접 적은 목표는 맞는 계획을 알 수 없어
+// 바로 직접 설계로 간다 — '준비 중'·직업 고르기 화면은 보이지 않는다(사용자: 요청한 적 없는 화면)
+let goingToTemplates = false
+async function goToTemplates() {
+  if (goingToTemplates) return
+  goingToTemplates = true
+  try {
+    const target = targetCareer.value
+    const title = target?.title ?? target?.ref ?? ''
+    const plan = target?.refType === 'jobCode' ? await loadLibraryPlan(target.ref) : null
+    if (plan) router.push('/career-design/templates')
+    else startManualPlan(router, title)
+  } finally {
+    goingToTemplates = false
+  }
 }
 
 // ── 목표 진로 ──

@@ -8,7 +8,6 @@
 // 수정 여부는 draftPlan.editing(계획 상세에서 loadPlanFromApi 로 불렀을 때 true).
 import { computed } from 'vue'
 import { useCareerDesign } from './useCareerDesign'
-import { findHelperExamples } from './useHelperExamples'
 
 export type DesignStepKey = 'projects' | 'pace' | 'timeline' | 'routines' | 'reviewDay' | 'overview'
 
@@ -41,8 +40,9 @@ export function useDesignSteps() {
     if (i > 0) return steps.value[i - 1]!.path
     if (i === 0) {
       if (editing.value) return detailPath.value
-      // 템플릿이 없는 직업은 템플릿 화면을 거치지 않고 들어왔다(2026-11-11 B안) — 돌아갈 곳도 첫 화면
-      return findHelperExamples(draftPlan.targetJob ?? '') ? TEMPLATES_PATH : MAIN_PATH
+      // 예시 진로설계가 없는 목표(직접 적은 직업)는 템플릿 화면을 거치지 않고 들어왔다(2026-11-11 B안) — 돌아갈 곳도 첫 화면.
+      // 템플릿 화면을 거쳤으면 targetJobCode 가 들어 있다(템플릿으로 시작했든 '직접 설계하기'를 골랐든)
+      return draftPlan.targetJobCode ? TEMPLATES_PATH : MAIN_PATH
     }
     // 수정 흐름에 없는 단계(속도)에 '속도 다시 정하기'로 들어왔으면 타임라인으로 돌아간다
     return DESIGN_STEP_PATH.timeline

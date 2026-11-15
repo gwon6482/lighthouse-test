@@ -5,10 +5,13 @@ import { useCareerDesign } from './useCareerDesign'
 import { toDateKey } from './usePlanTimeline'
 import { getToday } from '@/shared/utils/dev-date'
 
-export function startManualPlan(router: Router, targetTitle?: string) {
+// targetJobCode: 목표 직업에 예시 진로설계가 있을 때만 넘긴다(템플릿 화면의 '직접 설계하기') — 프로젝트 구성의 도우미 추천이 이 코드로 예시를 찾고,
+//   첫 단계의 '이전'이 템플릿 화면으로 돌아간다. 직접 적은 목표처럼 계획이 없으면 비워 둔다
+export function startManualPlan(router: Router, targetTitle?: string, targetJobCode?: string) {
   const { draftPlan, resetDraftPlan } = useCareerDesign()
   resetDraftPlan()
   if (targetTitle) draftPlan.targetJob = targetTitle
+  if (targetJobCode) draftPlan.targetJobCode = targetJobCode
   draftPlan.startDate = toDateKey(getToday())
   router.push('/career-design/plan/projects')
 }

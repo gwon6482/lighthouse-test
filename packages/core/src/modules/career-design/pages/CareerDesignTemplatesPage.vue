@@ -2,18 +2,41 @@
   <div class="cd-tpl">
     <CdYellowHeader
       title="진로계획 세우기"
-      :subtitle="job ? `${job.title}을 위한 라이트하우스 진로계획` : '라이트하우스가 미리 설계한 진로계획에서 시작해요'"
+      :subtitle="prep ? `${prep.title} 예시 계획에서 시작해요` : '라이트하우스가 미리 설계한 진로계획에서 시작해요'"
       back-to="/career-design"
     />
 
     <div class="cd-tpl__body">
 
-      <p v-if="job" class="cd-tpl__intro">
-        {{ job.title }} 채용공고 {{ job.posts }}건과 직업정보를 바탕으로 설계했어요. 지금 내 상황에 맞는 단계를 골라 시작하고, 프로젝트는 자유롭게 고칠 수 있어요.
-      </p>
+      <p v-if="loading" class="cd-tpl__intro">예시 진로계획을 불러오는 중이에요…</p>
 
-      <!-- 진입 관문 직업(전공·시험·면허 필수)이면 무엇을 중심에 둘지 먼저 보여준다(2026-10-27) -->
-      <JobGateGuide :job-code="job?.jobCode" variant="plan" class="cd-tpl__gate" />
+      <template v-else-if="prep">
+        <!-- 자료는 진로백과 준비과정 탭과 같다(진로계획 라이브러리) — 예시이고 현직자 검토 전이라는 것을 여기서도 알린다 -->
+        <p class="cd-tpl__intro">
+          진로백과의 {{ prep.title }} 준비과정 예시를 내 계획의 출발점으로 써요.
+          <template v-if="prep.shared">준비하는 길이 비슷한 {{ prep.plan.displayName }}의 계획이에요.</template>
+          직업 정보와 법령·공식 자격 기준으로 정리했고 현직자 검토 전이에요. 프로젝트는 시작한 뒤에 자유롭게 고칠 수 있어요.
+        </p>
+
+        <!-- 진입 관문 직업(전공·시험·면허 필수)이면 무엇을 중심에 둘지 먼저 보여준다(2026-10-27) -->
+        <JobGateGuide :job-code="prep.jobCode" variant="plan" class="cd-tpl__gate" />
+
+        <!-- 갈래 — 준비하는 길이 갈리는 직업만. 진로백과 준비과정 탭과 같은 말을 쓴다 -->
+        <div v-if="prep.tracks.length > 1" class="cd-tpl__tracks">
+          <p class="cd-tpl__tracks-label">어느 쪽으로 준비하나요?</p>
+          <div class="cd-tpl__tracks-chips" role="group" aria-label="준비하는 갈래">
+            <button
+              v-for="tr in prep.tracks"
+              :key="tr.id"
+              type="button"
+              :class="['cd-tpl__chip', { 'is-on': tr.id === track }]"
+              :aria-pressed="tr.id === track"
+              @click="track = tr.id"
+            >{{ tr.name }}</button>
+          </div>
+          <p v-if="trackInfo?.desc" class="cd-tpl__tracks-desc">{{ trackInfo.desc }}</p>
+        </div>
+      </template>
 
       <article
         v-for="t in templates"
@@ -41,6 +64,11 @@
 
         <div v-if="openId === t.id" class="cd-tpl__detail">
           <p v-if="t.note" class="cd-tpl__note">ⓘ {{ t.note }}</p>
+          <!-- 앱의 한 프로젝트는 최대 52주다 — 더 긴 과정(로스쿨·수련 등)은 줄여 담았다는 것을 숨기지 않는다 -->
+          <p v-if="t.shortened.length" class="cd-tpl__note">
+            ⓘ 1년이 넘는 과정은 한 프로젝트 최대인 52주로 줄여 담았어요 —
+            {{ t.shortened.map((x) => `${x.name}(실제 ${x.full})`).join(', ') }}. 끝나면 이어서 한 번 더 만들어 주세요.
+          </p>
 
           <!-- 해 나갈 순서대로 -->
           <ol class="cd-tpl__projects">
@@ -60,13 +88,27 @@
           <!-- 앞 단계에서 뺀 것 — 왜 짧아졌는지 -->
           <div v-if="t.dropped.length" class="cd-tpl__dropped">
             <button type="button" class="cd-tpl__dropped-toggle" @click="toggleDropped(t.id)">
-              <AppIcon name="ui-chevron-right" class="chevron-toggle chevron-toggle--side" :class="{ 'chevron-toggle--open': droppedOpen[t.id] }" /> {{ t.stage === 'major' ? '전공자라서 뺀 것' : '경력자라서 뺀 것' }} {{ t.dropped.length }}개
+              <AppIcon name="ui-chevron-right" class="chevron-toggle chevron-toggle--side" :class="{ 'chevron-toggle--open': droppedOpen[t.id] }" /> 전공자라서 뺀 것 {{ t.dropped.length }}개
             </button>
             <ul v-if="droppedOpen[t.id]" class="cd-tpl__dropped-list">
               <li v-for="d in t.dropped" :key="d.name" class="cd-tpl__dropped-item">
                 <span class="cd-tpl__dropped-name">{{ d.name }}</span>
                 <span class="cd-tpl__dropped-reason">{{ d.reason }}</span>
               </li>
+            </ul>
+          </div>
+
+          <!-- 지원하는 곳에 따라 고르는 것 — 플랜에는 넣지 않았다. 다음 화면(프로젝트 구성)의 도우미 추천에서 담는다 -->
+          <div v-if="t.optional.length" class="cd-tpl__dropped">
+            <button type="button" class="cd-tpl__dropped-toggle" @click="toggleOptional(t.id)">
+              <AppIcon name="ui-chevron-right" class="chevron-toggle chevron-toggle--side" :class="{ 'chevron-toggle--open': optionalOpen[t.id] }" /> 지원하는 곳에 따라 더하는 것 {{ t.optional.length }}개
+            </button>
+            <ul v-if="optionalOpen[t.id]" class="cd-tpl__dropped-list">
+              <li v-for="d in t.optional" :key="d.name" class="cd-tpl__dropped-item">
+                <span class="cd-tpl__optional-name">{{ d.name }}</span>
+                <span v-if="d.reason" class="cd-tpl__dropped-reason">{{ d.reason }}</span>
+              </li>
+              <li class="cd-tpl__dropped-hint">시작한 뒤 프로젝트 구성 화면의 '도우미 추천'에서 담을 수 있어요.</li>
             </ul>
           </div>
 
@@ -88,17 +130,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import { useCareerDesign } from '../composables/useCareerDesign'
-import { findHelperExamples } from '../composables/useHelperExamples'
+import { loadLibraryPlan } from '../composables/useHelperExamples'
 import { buildPlanTemplates, type PlanTemplate } from '../composables/usePlanTemplates'
 import { toDateKey } from '../composables/usePlanTimeline'
 import { getToday } from '@/shared/utils/dev-date'
 import { startManualPlan } from '../composables/startManualPlan'
 import { fetchTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import type { ProjectCategory } from '../types/career-design'
+import type { JobPreparation } from '@/modules/encyclopedia/types/encyclopedia'
 import { methodLine, methodIcon } from '../composables/projectMethods'
 import JobGateGuide from '@/shared/components/JobGateGuide.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
@@ -122,30 +165,42 @@ const COLORS: Record<ProjectCategory, { bg: string; text: string }> = {
   experience: { bg: '#FFEDF2', text: '#F0507E' },
 }
 
-// 목표 진로(진로백과에서 정한 것)를 먼저 본다. 비로그인·미설정이면 비어 있다
+// 목표 진로(진로백과에서 정한 것)의 예시 진로설계를 불러온다. 비로그인·미설정·직접 적은 목표면 템플릿 없이 '직접 설계하기'만 남는다
+// (그런 목표는 진로계획 첫 화면이 이 화면을 건너뛰고 바로 직접 설계로 보낸다 — CareerDesignPage goToTemplates)
 const targetTitle = ref('')
+const prep = ref<JobPreparation | null>(null)
+const loading = ref(true)
+const track = ref<string | null>(null)
 onMounted(async () => {
   try {
     const { data } = await fetchTargetCareer()
-    targetTitle.value = data.targetCareer?.title ?? data.targetCareer?.ref ?? ''
-  } catch { /* 비로그인 등 */ }
+    const target = data.targetCareer
+    targetTitle.value = target?.title ?? target?.ref ?? ''
+    if (target?.refType === 'jobCode') {
+      prep.value = await loadLibraryPlan(target.ref)
+      track.value = prep.value?.defaultTrack ?? null
+    }
+  } catch { /* 비로그인 등 */ } finally {
+    loading.value = false
+  }
 })
 
-// 템플릿은 목표 직업에 맞는 것만 — 다른 직업 고르기는 없앴다(2026-11-11 사용자). 목표 직업에 템플릿이 없으면
-// 진로계획 첫 화면이 이 화면을 건너뛰고 바로 직접 설계로 보낸다(CareerDesignPage goToTemplates)
-const job = computed(() => findHelperExamples(targetTitle.value))
-const templates = computed(() => (job.value ? buildPlanTemplates(job.value) : []))
+const templates = computed(() => (prep.value ? buildPlanTemplates(prep.value, track.value) : []))
+const trackInfo = computed(() => prep.value?.tracks.find((t) => t.id === track.value) ?? null)
 const openId = ref<string | null>(null)
+watch(track, () => { openId.value = null })   // 갈래를 바꾸면 플랜이 통째로 바뀐다 — 펼친 것을 접는다
 
 
 const countOf = (t: PlanTemplate, c: ProjectCategory) => t.projects.filter((p) => p.category === c).length
 const LABEL = Object.fromEntries(CATS.map((c) => [c.value, c.label])) as Record<ProjectCategory, string>
 const droppedOpen = reactive<Record<string, boolean>>({})
 const toggleDropped = (id: string) => { droppedOpen[id] = !droppedOpen[id] }
+const optionalOpen = reactive<Record<string, boolean>>({})
+const toggleOptional = (id: string) => { optionalOpen[id] = !optionalOpen[id] }
 
 // 직접 설계하기 — 템플릿 없이 빈 계획으로(진로계획 첫 화면과 같은 함수)
 function startManual() {
-  startManualPlan(router, targetTitle.value)
+  startManualPlan(router, targetTitle.value, prep.value?.jobCode)
 }
 
 // 템플릿으로 임시 계획을 채우고 프로젝트 구성으로 — 고친 뒤 타임라인·루틴을 거쳐 맨 끝 목표 설정에서 이름·기간을 정한다
@@ -153,6 +208,8 @@ function startFrom(t: PlanTemplate) {
   resetDraftPlan()
   draftPlan.name = t.name
   draftPlan.targetJob = t.jobTitle
+  draftPlan.targetJobCode = t.jobCode       // 도우미 추천이 같은 직업·같은 갈래의 예시를 보여 준다
+  draftPlan.templateTrack = t.track
   draftPlan.startDate = toDateKey(getToday())
   // 종료일은 비워 둔다 — 맨 끝 목표 설정에서 타임라인 기준으로 추천한다(2026-10-20)
   draftPlan.projects = t.projects.map((p) => ({
@@ -199,9 +256,31 @@ function startFrom(t: PlanTemplate) {
 
     &--nonmajor { color: #B07D00; background: #FFF6D6; }
     &--major { color: #1D6FD8; background: #E8F1FE; }
+    &--basic { color: #555; background: #F0F0F0; }
   }
   &__who { font-size: 12px; color: #888; }
   &__gate { margin-bottom: 4px; }
+
+  // 갈래 고르기 — 준비하는 길이 갈리는 직업만(진로백과 준비과정 탭과 같은 말·같은 자료)
+  &__tracks { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; background: #fff; border-radius: 16px; }
+  &__tracks-label { font-size: 13px; font-weight: 700; color: #444; }
+  &__tracks-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  &__tracks-desc { font-size: 12px; color: #888; }
+  &__chip {
+    padding: 7px 13px;
+    border: 1.5px solid #E6E8EC;
+    border-radius: 999px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #666;
+    cursor: pointer;
+
+    &.is-on { border-color: #222; background: #222; color: #fff; }
+    &:focus-visible { outline: 2px solid #FFC700; outline-offset: 2px; }
+  }
   &__name { font-size: 16px; font-weight: 700; color: #222; line-height: 1.35; }
   &__meta { font-size: 12px; color: #999; }
   &__cats { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
@@ -262,6 +341,8 @@ function startFrom(t: PlanTemplate) {
   }
   &__dropped-name { font-size: 13px; color: #aaa; text-decoration: line-through; }
   &__dropped-reason { font-size: 12px; color: #777; }
+  &__optional-name { font-size: 13px; color: #444; }
+  &__dropped-hint { font-size: 12px; color: #999; line-height: 1.5; }
 
   &__manual {
     width: 100%;

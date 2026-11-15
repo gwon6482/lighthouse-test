@@ -9,9 +9,10 @@ describe('useDesignSteps', () => {
 
   it('새 계획: (템플릿) → 프로젝트 → 속도 → 타임라인 → 루틴 → 시작 요일 → 목표·기간 → 완성', () => {
     const { prevPath, nextPath, stepInfo } = useDesignSteps()
-    // 목표 직업에 템플릿이 없으면 템플릿 화면을 거치지 않았다 — 첫 화면으로(2026-11-11 B안)
+    // 예시 진로설계가 없는 목표(직접 적은 직업)는 템플릿 화면을 거치지 않았다 — 첫 화면으로(2026-11-11 B안)
+    draftPlan.targetJob = '내가 적은 직업'
     expect(prevPath('projects')).toBe('/career-design')
-    draftPlan.targetJob = '간호사'   // 템플릿이 있는 시범 직업
+    draftPlan.targetJobCode = '304004'   // 진로백과에서 정한 목표 — 템플릿 화면을 거쳐 왔다
     expect(prevPath('projects')).toBe('/career-design/templates')
     expect(nextPath('projects')).toBe('/career-design/plan/pace')
     expect(nextPath('pace')).toBe('/career-design/complete')

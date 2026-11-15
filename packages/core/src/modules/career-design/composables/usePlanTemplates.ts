@@ -1,38 +1,37 @@
-// 템플릿에서 수정하기(베타) — 라이트하우스가 미리 설계한 진로계획.
+// 템플릿에서 시작하기(베타) — 목표 직업의 예시 진로설계를 내 계획의 출발점으로 쓴다.
 //
-// 단계: 비전공 > 전공 (2026-10-22 사용자 제안. '이직'은 2026-10-27 사용자 결정으로 뺐다 — 서비스 단계상 시기상조)
-//   - 기존 전문성이 낮을수록 준비가 길다. 비전공 플랜을 가장 빈틈없이 설계하고,
-//     전공 플랜은 거기서 대학에서 배우는 것을 뺀다(누적: 전공 ⊂ 비전공)
-//   - 그래서 같은 프로젝트는 단계가 달라도 이름·커리큘럼이 같고, 화면에서 '이 단계에서 뺀 것'과 이유를 보여줄 수 있다
-//   (이전 '입문 3개월 / 취업 준비 6개월'은 덜 준비된 사람이 더 짧은 계획을 받는 거꾸로 된 구조라 바꿨다)
-// 🧪 프로토타입: 프로젝트는 도우미 예시 더미(helperExamples.mock.ts), 단계 표시는 planStages.mock.ts.
-//   실제 템플릿(API·운영자 편집)이 생기면 buildPlanTemplates 의 출처만 바꾼다.
+// 출처: 진로계획 라이브러리(진로백과 준비과정 탭과 같은 자료, 2026-11-15~). 그전의 시범 5직업 더미(planStages.mock.ts)는 지웠다.
+// 단계: 비전공 > 전공 (2026-10-22 사용자 제안. '이직'은 2026-10-27 사용자 결정으로 뺐다)
+//   - 계획은 비전공자 기준으로 빈틈없이 짜여 있고, 전공 플랜은 거기서 대학에서 배우는 것(major: false)을 뺀다(전공 ⊂ 비전공)
+//   - 그래서 화면에서 '전공자라서 뺀 것'과 이유를 보여 줄 수 있다
+//   - 전공자에게 줄어드는 것이 없는 길은 플랜이 하나다(기본)
+// 지원하는 곳에 따라 고르는 항목(optional)은 플랜에 넣지 않고 따로 보여 준다 — 다음 화면의 도우미 추천에서 담을 수 있다.
 // 고르면 임시 계획(draftPlan)을 채워 프로젝트 구성으로 → 직접 설계와 같은 흐름에서 고친다(목표 설정은 맨 끝).
-import { helperExampleToProject } from './useHelperExamples'
-import { PLAN_STAGES_MOCK, type StageKey, type UpTo } from '../data/planStages.mock'
-import type { HelperExample, HelperJobExamples, Project, ProjectCategory } from '../types/career-design'
+import { formatWeeks, pathOf } from '@/modules/encyclopedia/lib/preparation'
+import type { JobPreparation, PrepItem, PrepProject } from '@/modules/encyclopedia/types/encyclopedia'
+import { helperExampleToProject, projectToExample } from './useHelperExamples'
+import type { Project, ProjectCategory } from '../types/career-design'
+
+export type StageKey = 'nonmajor' | 'major' | 'basic'
 
 export interface DroppedItem { name: string; category: ProjectCategory; reason: string }
 
 export interface PlanTemplate {
   id: string
   stage: StageKey
-  jobCode: string
+  jobCode: string          // 목표 직업(계획의 대표 직업이 아니라 사용자가 정한 직업)
   jobTitle: string
+  track: string | null     // 고른 갈래
   name: string
-  stageLabel: string       // 비전공 / 전공
+  stageLabel: string       // 비전공 / 전공 / 기본
   who: string              // 누구를 위한 단계인지
   months: number           // 약 N개월(두 프로젝트를 나란히 한다고 보고 계산)
-  note?: string            // 자격 요건 등 꼭 알아야 할 안내
-  posts: number
+  note?: string            // 꼭 거쳐야 하는 것(관문)
   projects: Project[]      // 해 나갈 순서대로
-  dropped: DroppedItem[]   // 바로 앞 단계에서 이 단계로 오며 뺀 것
+  dropped: DroppedItem[]   // 전공자라서 뺀 것
+  optional: DroppedItem[]  // 지원하는 곳에 따라 고르는 것(플랜에는 없다)
+  shortened: { name: string; full: string }[]   // 한 프로젝트 최대(52주)를 넘어 줄여 담은 것과 원래 길이
 }
-
-const STAGES: { key: StageKey; label: string; who: string; keep: UpTo[] }[] = [
-  { key: 'nonmajor', label: '비전공', who: '관련 학과·경력이 없어요', keep: ['N', 'M', 'C'] },
-  { key: 'major', label: '전공', who: '관련 학과를 졸업했거나 졸업 예정이에요', keep: ['M', 'C'] },
-]
 
 // 프로젝트 두 개를 나란히 진행한다고 보고 대략의 기간을 낸다(실제 배치는 사용자가 타임라인에서 정한다)
 const PARALLEL = 2
@@ -40,44 +39,54 @@ const WEEKS_PER_MONTH = 4.33
 const monthsOf = (projects: Project[]) =>
   Math.max(1, Math.round(projects.reduce((n, p) => n + (p.curriculum?.length || p.weeks || 4), 0) / PARALLEL / WEEKS_PER_MONTH))
 
-function exampleById(job: HelperJobExamples): Map<string, { ex: HelperExample; category: ProjectCategory }> {
-  const m = new Map<string, { ex: HelperExample; category: ProjectCategory }>()
-  for (const [category, list] of Object.entries(job.examples) as [ProjectCategory, HelperExample[]][]) {
-    for (const ex of list) m.set(ex.id, { ex, category })
-  }
-  return m
-}
+interface Row { item: PrepItem; project: PrepProject }
 
-export function buildPlanTemplates(job: HelperJobExamples): PlanTemplate[] {
-  const plan = PLAN_STAGES_MOCK[job.jobCode]
-  if (!plan) return []
-  const byId = exampleById(job)
-  const items = plan.order.flatMap((it) => {
-    const found = byId.get(it.id)
-    return found ? [{ ...it, ...found }] : []
+export function buildPlanTemplates(prep: JobPreparation, track: string | null | undefined): PlanTemplate[] {
+  const path = pathOf(prep, track ?? prep.defaultTrack)
+  if (!path) return []
+  const rows: Row[] = path.items.flatMap((item) => {
+    const project = prep.projects[item.ref]
+    return project ? [{ item, project }] : []
   })
+  const must = rows.filter((r) => !r.item.optional)
+  if (!must.length) return []
 
-  return STAGES.map((st, i) => {
-    const prev = i > 0 ? STAGES[i - 1] : undefined
-    const kept = items.filter((it) => st.keep.includes(it.upTo))
-    const dropped = prev
-      ? items.filter((it) => prev.keep.includes(it.upTo) && !st.keep.includes(it.upTo))
-          .map((it) => ({ name: it.ex.name, category: it.category, reason: it.skip ?? '' }))
-      : []
-    const projects = kept.map((it) => helperExampleToProject(it.ex, it.category))
+  const optional: DroppedItem[] = rows
+    .filter((r) => r.item.optional)
+    .map((r) => ({ name: r.project.name, category: r.project.category, reason: r.item.note ?? '' }))
+  const skipped = must.filter((r) => !r.item.major)
+  // 갈래 이름이 직업 통칭과 같으면(변호사 계획의 '변호사' 갈래) 이름에 또 붙이지 않는다
+  const rawTrackName = prep.tracks.find((t) => t.id === path.track)?.name ?? ''
+  const trackName = rawTrackName === prep.plan.displayName ? '' : rawTrackName
+
+  const stages: { key: StageKey; label: string; who: string; rows: Row[] }[] = skipped.length
+    ? [
+        { key: 'nonmajor', label: '비전공', who: '관련 학과·경력이 없어요', rows: must },
+        { key: 'major', label: '전공', who: '관련 학과를 졸업했거나 졸업 예정이에요', rows: must.filter((r) => r.item.major) },
+      ]
+    : [{ key: 'basic', label: '기본', who: '전공과 상관없이 같은 길이에요', rows: must }]
+
+  return stages.map((st) => {
+    const examples = st.rows.map((r) => ({ category: r.project.category, ex: projectToExample(prep, r.item, r.project) }))
+    const projects = examples.map((e) => helperExampleToProject(e.ex, e.category))
+    const stageWord = st.key === 'basic' ? '' : ` ${st.label}`
     return {
-      id: `${job.jobCode}-${st.key}`,
+      id: `${prep.plan.jobCode}-${path.track ?? 'all'}-${st.key}`,
       stage: st.key,
-      jobCode: job.jobCode,
-      jobTitle: job.title,
-      name: `${job.title} ${st.label} 플랜`,
+      jobCode: prep.jobCode,
+      jobTitle: prep.title,
+      track: path.track,
+      name: `${prep.plan.displayName}${stageWord} 플랜${trackName ? ` · ${trackName}` : ''}`,
       stageLabel: st.label,
       who: st.who,
       months: monthsOf(projects),
-      note: plan.notes?.[st.key],
-      posts: job.posts,
+      note: prep.plan.gate ?? undefined,
       projects,
-      dropped,
+      dropped: st.key === 'major'
+        ? skipped.map((r) => ({ name: r.project.name, category: r.project.category, reason: r.item.skip ?? '' }))
+        : [],
+      optional,
+      shortened: examples.filter((e) => e.ex.fullWeeks).map((e) => ({ name: e.ex.name, full: formatWeeks(e.ex.fullWeeks!) })),
     }
   })
 }
