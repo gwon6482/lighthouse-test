@@ -48,7 +48,7 @@ function basisOf(prep: JobPreparation, item: PrepItem, project: PrepProject): st
   else if (item.note) lines.push(`${item.note}.`)
   if (project.checked) lines.push(`${checkLevelLabel(project.checked)}: ${project.checked.note ?? project.checked.source}.`)
   if (project.caution) lines.push(`${project.caution}.`)
-  if (!lines.length) lines.push(`${prep.plan.displayName} 준비과정 예시에 들어 있는 프로젝트예요.`)
+  if (!lines.length) lines.push(`${prep.displayName} 준비과정 예시에 들어 있는 프로젝트예요.`)
   return lines.join(' ').replace(/\.\./g, '.')
 }
 
@@ -79,7 +79,7 @@ export function libraryToHelperJob(prep: JobPreparation, track: string | null | 
     const list = examples[project.category] ?? (examples[project.category] = [])
     list.push(projectToExample(prep, item, project))
   }
-  return { jobCode: prep.jobCode, title: prep.plan.displayName, examples }
+  return { jobCode: prep.jobCode, title: prep.displayName, examples }
 }
 
 // 주 N회 → 기본 요일(담은 뒤 사용자가 고친다)

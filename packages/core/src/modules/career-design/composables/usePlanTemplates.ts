@@ -54,9 +54,8 @@ export function buildPlanTemplates(prep: JobPreparation, track: string | null | 
     .filter((r) => r.item.optional)
     .map((r) => ({ name: r.project.name, category: r.project.category, reason: r.item.note ?? '' }))
   const skipped = must.filter((r) => !r.item.major)
-  // 갈래 이름이 직업 통칭과 같으면(변호사 계획의 '변호사' 갈래) 이름에 또 붙이지 않는다
-  const rawTrackName = prep.tracks.find((t) => t.id === path.track)?.name ?? ''
-  const trackName = rawTrackName === prep.plan.displayName ? '' : rawTrackName
+  // 갈래 이름은 고를 갈래가 여럿일 때만 붙인다 — 하나뿐이면(판사의 '판사', 한식조리사의 '한식') 직업 이름으로 충분하다
+  const trackName = prep.tracks.length > 1 ? (prep.tracks.find((t) => t.id === path.track)?.name ?? '') : ''
 
   const stages: { key: StageKey; label: string; who: string; rows: Row[] }[] = skipped.length
     ? [
@@ -74,7 +73,7 @@ export function buildPlanTemplates(prep: JobPreparation, track: string | null | 
       jobCode: prep.jobCode,
       jobTitle: prep.title,
       track: path.track,
-      name: `${prep.plan.displayName}${stageWord} 플랜${trackName ? ` · ${trackName}` : ''}`,
+      name: `${prep.displayName}${stageWord} 플랜${trackName ? ` · ${trackName}` : ''}`,
       stageLabel: st.label,
       who: st.who,
       months: monthsOf(projects),

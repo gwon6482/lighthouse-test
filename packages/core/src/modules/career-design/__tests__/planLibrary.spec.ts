@@ -14,7 +14,7 @@ const item = (ref: string, step: number, over: Partial<PrepItem> = {}): PrepItem
   ({ ref, step, major: true, optional: false, fromTrack: false, ...over })
 
 const prep = (over: Partial<JobPreparation> = {}): JobPreparation => ({
-  jobCode: '026102', title: '광고·홍보·마케팅사무원', shared: true,
+  jobCode: '026102', title: '광고·홍보·마케팅사무원', displayName: '광고·홍보·마케팅사무원', shared: true,
   plan: { jobCode: '024101', title: '광고·홍보·마케팅전문가', displayName: '마케터', family: 'biz', familyName: '경영·사무', status: 'draft', updatedAt: null, summary: '', gate: '꼭 거쳐야 하는 것', caution: null, checked: null },
   tracks: [{ id: 'a', name: '가 갈래', desc: '' }, { id: 'b', name: '나 갈래', desc: '' }],
   defaultTrack: 'b',
@@ -63,13 +63,13 @@ describe('도우미 예시', () => {
     const long = project('p.school', { phases: [{ weeks: 108, title: '과정', items: ['가'] }], weeks: 108 })
     const ex = projectToExample(prep(), item('p.school', 1), long)
     expect(ex.curriculum).toHaveLength(108)
-    expect(ex.basis).toBe('마케터 준비과정 예시에 들어 있는 프로젝트예요.')
+    expect(ex.basis).toBe('광고·홍보·마케팅사무원 준비과정 예시에 들어 있는 프로젝트예요.')
   })
 
   it('고른 갈래의 길을 영역별로 묶는다 — 선택 항목도 들어가고, 같은 프로젝트는 한 번만', () => {
     const a = libraryToHelperJob(prep(), 'a')
     expect(a.jobCode).toBe('026102')
-    expect(a.title).toBe('마케터')
+    expect(a.title).toBe('광고·홍보·마케팅사무원')
     expect(a.examples.knowledge?.map((e) => e.name)).toEqual(['cp.research', 'p.basics'])
     expect(a.examples.qualification?.map((e) => e.name)).toEqual(['cp.toeic'])
     expect(a.examples.qualification?.[0]?.basis).toContain('지원하는 곳에 따라')
@@ -89,11 +89,11 @@ describe('템플릿', () => {
     expect(major!.dropped).toEqual([{ name: 'p.basics', category: 'knowledge', reason: '전공 과목에서 배운다' }])
     expect(nonmajor!.dropped).toEqual([])
     expect(nonmajor!.optional).toEqual([{ name: 'cp.toeic', category: 'qualification', reason: '대기업에 지원할 때' }])
-    // 목표 직업은 사용자가 정한 직업(대표 직업이 아니다), 이름에는 통칭과 갈래
+    // 목표 직업은 사용자가 정한 직업(대표 직업이 아니다), 이름에는 그 직업을 부르는 이름과 갈래
     expect(nonmajor!.jobCode).toBe('026102')
     expect(nonmajor!.jobTitle).toBe('광고·홍보·마케팅사무원')
     expect(nonmajor!.track).toBe('a')
-    expect(nonmajor!.name).toBe('마케터 비전공 플랜 · 가 갈래')
+    expect(nonmajor!.name).toBe('광고·홍보·마케팅사무원 비전공 플랜 · 가 갈래')
     expect(nonmajor!.note).toBe('꼭 거쳐야 하는 것')
     // 담기는 프로젝트는 주차별 커리큘럼과 진행 방식까지 채워져 있다
     expect(nonmajor!.projects[0]!.curriculum).toHaveLength(3)
@@ -103,26 +103,29 @@ describe('템플릿', () => {
   it('전공자에게 줄어드는 것이 없는 길은 플랜 하나(기본)', () => {
     const list = buildPlanTemplates(prep(), 'b')
     expect(list.map((t) => t.stage)).toEqual(['basic'])
-    expect(list[0]!.name).toBe('마케터 플랜 · 나 갈래')
+    expect(list[0]!.name).toBe('광고·홍보·마케팅사무원 플랜 · 나 갈래')
     expect(list[0]!.projects).toHaveLength(3)
   })
 
-  it('1년이 넘는 과정도 그대로 담는다 · 통칭과 같은 갈래 이름은 붙이지 않는다', () => {
+  it('1년이 넘는 과정도 그대로 담는다 · 보여 줄 갈래가 하나뿐이면 이름에 갈래를 붙이지 않는다', () => {
+    // 판사처럼 제 갈래만 받는 직업 — 서버가 갈래 하나만 준다
     const p = prep({
-      tracks: [{ id: 'self', name: '마케터', desc: '' }],
-      defaultTrack: 'self',
-      paths: [{ track: 'self', items: [item('cp.research', 1), item('p.school', 2)], totals: { nonMajor: { count: 2, weeks: 111 }, major: { count: 2, weeks: 111 }, optional: 0 } }],
+      displayName: '판사', shared: false,
+      tracks: [{ id: 'judge', name: '판사', desc: '' }],
+      defaultTrack: 'judge',
+      paths: [{ track: 'judge', items: [item('cp.research', 1), item('p.school', 2)], totals: { nonMajor: { count: 2, weeks: 111 }, major: { count: 2, weeks: 111 }, optional: 0 } }],
     })
     p.projects['p.school'] = project('p.school', { phases: [{ weeks: 108, title: '과정', items: ['가'] }], weeks: 108 })
-    const [t] = buildPlanTemplates(p, 'self')
-    expect(t!.name).toBe('마케터 플랜')
+    const [t] = buildPlanTemplates(p, 'judge')
+    expect(t!.name).toBe('판사 플랜')
+    expect(t!.track).toBe('judge')
     expect(t!.projects[1]!.weeks).toBe(108)
     expect(t!.projects[1]!.curriculum).toHaveLength(108)
   })
 
   it('갈래가 없는 계획 · 걸음이 없는 계획', () => {
     const noTrack = prep({ tracks: [], defaultTrack: null, paths: [{ track: null, items: [item('cp.research', 1)], totals: { nonMajor: { count: 1, weeks: 3 }, major: { count: 1, weeks: 3 }, optional: 0 } }] })
-    expect(buildPlanTemplates(noTrack, null).map((t) => t.name)).toEqual(['마케터 플랜'])
+    expect(buildPlanTemplates(noTrack, null).map((t) => t.name)).toEqual(['광고·홍보·마케팅사무원 플랜'])
     expect(buildPlanTemplates(prep({ paths: [] }), null)).toEqual([])
   })
 })

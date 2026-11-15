@@ -9,7 +9,7 @@ const project = (id: string, weeks: number): PrepProject => ({
 })
 
 const prep: JobPreparation = {
-  jobCode: '000001', title: '직업', shared: false,
+  jobCode: '000001', title: '직업', displayName: '직업', shared: false,
   plan: { jobCode: '000001', title: '직업', displayName: '직업', family: 'biz', familyName: '경영·사무', status: 'draft', updatedAt: null, summary: '', gate: null, caution: null, checked: null },
   tracks: [{ id: 'a', name: '가', desc: '' }, { id: 'b', name: '나', desc: '' }],
   defaultTrack: 'b',

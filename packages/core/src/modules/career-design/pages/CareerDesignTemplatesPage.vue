@@ -2,7 +2,7 @@
   <div class="cd-tpl">
     <CdYellowHeader
       title="진로계획 세우기"
-      :subtitle="prep ? `${prep.title} 예시 계획에서 시작해요` : '라이트하우스가 미리 설계한 진로계획에서 시작해요'"
+      :subtitle="prep ? `${prep.displayName} 예시 계획에서 시작해요` : '라이트하우스가 미리 설계한 진로계획에서 시작해요'"
       back-to="/career-design"
     />
 
@@ -13,7 +13,7 @@
       <template v-else-if="prep">
         <!-- 자료는 진로백과 준비과정 탭과 같다(진로계획 라이브러리) — 예시이고 현직자 검토 전이라는 것을 여기서도 알린다 -->
         <p class="cd-tpl__intro">
-          진로백과의 {{ prep.title }} 준비과정 예시를 내 계획의 출발점으로 써요.
+          진로백과의 {{ prep.displayName }} 준비과정 예시를 내 계획의 출발점으로 써요.
           <template v-if="prep.shared">준비하는 길이 비슷한 {{ prep.plan.displayName }}의 계획이에요.</template>
           직업 정보와 법령·공식 자격 기준으로 정리했고 현직자 검토 전이에요. 프로젝트는 시작한 뒤에 자유롭게 고칠 수 있어요.
         </p>

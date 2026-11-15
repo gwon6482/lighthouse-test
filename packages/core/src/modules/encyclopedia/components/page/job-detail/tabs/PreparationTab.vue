@@ -91,7 +91,8 @@
                     >{{ labelOf(s.project.category) }}</span>
                     <span v-if="s.item.optional" class="prep-tag prep-tag--plain">선택</span>
                     <span v-if="!s.item.major" class="prep-tag prep-tag--plain">전공자는 생략</span>
-                    <span v-if="s.item.fromTrack && trackInfo" class="prep-tag prep-tag--track">{{ trackInfo.name }}</span>
+                    <!-- 갈래 표시는 고를 갈래가 여럿일 때만 — 하나뿐이면(판사 화면의 '판사') 군더더기다 -->
+                    <span v-if="s.item.fromTrack && trackInfo && prep.tracks.length > 1" class="prep-tag prep-tag--track">{{ trackInfo.name }}</span>
                   </span>
                   <span class="prep-step__weeks">
                     {{ formatWeeks(s.project.weeks) }}

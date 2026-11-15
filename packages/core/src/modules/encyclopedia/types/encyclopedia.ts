@@ -291,7 +291,8 @@ export interface PrepTrack {
 export interface JobPreparation {
   jobCode: string
   title: string
-  shared: boolean
+  displayName: string   // 화면에 부를 이름 — 대표 직업은 통칭(마케터), 함께 덮는 직업은 제 이름(판사)
+  shared: boolean       // 대표 직업의 계획을 통째로 빌려 보는 직업(제 갈래가 따로 없다) — '비슷한 직업의 계획'이라고 알린다
   plan: {
     jobCode: string
     title: string
@@ -305,7 +306,7 @@ export interface JobPreparation {
     caution: string | null
     checked: PrepChecked | null
   }
-  tracks: PrepTrack[]
+  tracks: PrepTrack[]   // 이 직업이 보여 줄 갈래만 온다(같은 계획에 묶인 다른 직업의 길은 빠진다). 하나뿐이면 고르는 단추를 그리지 않는다
   defaultTrack: string | null
   paths: PrepPath[]
   projects: Record<string, PrepProject>
