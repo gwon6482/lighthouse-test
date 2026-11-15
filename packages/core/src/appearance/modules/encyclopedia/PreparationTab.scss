@@ -1,3 +1,4 @@
+// 진로백과 준비과정 탭 — 예시 진로설계(진로계획 라이브러리, 2026-11-15 다시 만듦)
 .prep-tab {
   display: flex;
   flex-direction: column;
@@ -11,214 +12,27 @@
   flex-direction: column;
   gap: 16px;
   background-color: #fff;
-  padding: 15px 25px;
+  padding: 15px 25px 22px;
   border-radius: 20px;
 
   &__head {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding-bottom: 8px;
+    padding-bottom: 10px;
     border-bottom: 1.5px solid #eee;
   }
 
   &__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 17px;
     font-weight: 700;
     color: #333;
   }
 
-  &__desc {
-    font-size: 13px;
-    color: #999;
-  }
-}
-
-.prep-empty {
-  text-align: center;
-  padding: 40px 0;
-  font-size: 14px;
-  color: #bbb;
-}
-
-.prep-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.prep-card {
-  background-color: #f8f9fa;
-  border-radius: 14px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-
-  &__head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-  }
-
-  &__person {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  &__avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background-color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    flex-shrink: 0;
-  }
-
-  &__who {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  &__author {
-    font-size: 15px;
-    font-weight: 700;
-    color: #222;
-  }
-
-  &__role {
-    font-size: 12px;
-    color: #888;
-  }
-
-  &__years {
-    font-size: 12px;
-    font-weight: 700;
-    color: #b57e00;
-    background-color: #fff6dc;
-    border-radius: 20px;
-    padding: 4px 10px;
-    flex-shrink: 0;
-  }
-
-  &__headline {
-    font-size: 14px;
-    font-weight: 600;
-    color: #444;
-    line-height: 1.55;
-  }
-
-  &__footer {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  &__cat {
-    font-size: 11px;
-    font-weight: 700;
-    border-radius: 20px;
-    padding: 3px 9px;
-  }
-}
-
-.prep-block {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #eee;
-
-  &__label {
-    font-size: 14px;
-    font-weight: 700;
-    color: #666;
-  }
-
-  // &--routine &__label {
-  //   color: #4a7fc1;
-  // }
-
-  &__groups {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  &__group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  &__group-head {
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  &__list {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  &__item {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    font-size: 13px;
-    color: #555;
-    line-height: 1.5;
-
-    .list-dot {
-      // 첫 줄(line-height 13px * 1.5) 세로 중앙에 점을 고정 — 문장이 두 줄 이상으로 넘어가도 위치 유지
-      margin-top: calc((13px * 1.5 - 3px) / 2);
-    }
-  }
-}
-
-.prep-routine {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  &__freq {
-    font-size: 11px;
-    font-weight: 700;
-    color: #4a7fc1;
-    background-color: #e8edf8;
-    border-radius: 6px;
-    padding: 2px 7px;
-    flex-shrink: 0;
-    min-width: 44px;
-    text-align: center;
-  }
-
-  &__name {
-    font-size: 13px;
-    color: #555;
-  }
-}
-
-
-/* '예시' 배지 — 2026-09-28 추가.
-   이 탭의 준비 여정은 실제 인물이 아니라 구성한 예시다.
-   표시가 없으면 사용자가 실제 사례로 믿고 진로를 정하게 된다. */
-.prep-section {
-  &__title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
+  // '예시' 배지 — 2026-09-28 추가. 표시가 없으면 사용자가 실제 사례로 믿고 진로를 정하게 된다
   &__badge {
     padding: 2px 8px;
     border-radius: 999px;
@@ -229,8 +43,499 @@
     letter-spacing: 0.02em;
   }
 
-  &__desc strong {
-    font-weight: 700;
-    color: #3c4043;
+  &__desc {
+    font-size: 13px;
+    line-height: 1.55;
+    color: #999;
+    word-break: keep-all;
+
+    strong { font-weight: 700; color: #3c4043; }
   }
+}
+
+.prep-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 40px 0;
+  font-size: 14px;
+  color: #bbb;
+
+  &--error { color: #e05050; }
+}
+
+.prep-retry {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a7fc1;
+  background: none;
+  border: 1px solid #c9d6ec;
+  border-radius: 20px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+// ── 한눈에 ──
+.prep-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &__shared {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: #777;
+    word-break: keep-all;
+
+    strong { font-weight: 700; color: #444; }
+  }
+
+  &__summary {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.6;
+    color: #2b2b2b;
+    word-break: keep-all;
+  }
+}
+
+.prep-gate {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background-color: #eef3ff;
+
+  &__label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #3365e3;
+  }
+
+  &__text {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.55;
+    color: #24365f;
+    word-break: keep-all;
+  }
+}
+
+// ── 확인 표시 · 주의 ──
+.prep-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.prep-note {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.55;
+  word-break: keep-all;
+
+  &--checked {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    background-color: #eef8f1;
+    border: 1px solid #d3ecdb;
+    color: #2f5f40;
+  }
+
+  &--caution {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    background-color: #fff8dc;
+    border: 1px solid #f3e3a1;
+    color: #6b5a1e;
+
+    .app-icon { margin-top: 2px; }
+  }
+
+  &__lead {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+
+    strong { font-weight: 700; color: #1f6b3a; }
+  }
+
+  &__date { color: #6f9a7e; }
+  &__text { color: #2f5f40; }
+  &__src { color: #6f9a7e; overflow-wrap: anywhere; }
+}
+
+// ── 갈래 ──
+.prep-tracks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f0f0;
+
+  &__label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #555;
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  &__desc {
+    font-size: 12.5px;
+    color: #888;
+    word-break: keep-all;
+  }
+}
+
+.prep-chip {
+  padding: 7px 13px;
+  border: 1.5px solid #e6e8ec;
+  border-radius: 999px;
+  background-color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #666;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  &.is-on {
+    border-color: #3365e3;
+    background-color: #3365e3;
+    color: #fff;
+  }
+
+  &:focus-visible { outline: 2px solid #1a1a1a; outline-offset: 2px; }
+}
+
+// ── 분량 ──
+.prep-total {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background-color: #f8f9fa;
+
+  &__main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    font-size: 14px;
+    color: #555;
+
+    strong { font-size: 16px; font-weight: 800; color: #222; }
+  }
+
+  &__sep {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background-color: #ccc;
+  }
+
+  &__line {
+    font-size: 12.5px;
+    color: #888;
+    word-break: keep-all;
+  }
+}
+
+.prep-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid #ececec;
+  list-style: none;
+
+  &__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+  }
+
+  &__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+}
+
+// ── 순서대로 ── 번호를 세로줄로 이은 길. 탭 안의 흰 상자가 이미 카드라, 걸음마다 상자를 또 두르지 않는다(폭이 좁아진다)
+.prep-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.prep-step {
+  position: relative;
+
+  // 다음 번호까지 잇는 줄
+  &::before {
+    content: '';
+    position: absolute;
+    top: 40px;
+    bottom: -8px;
+    left: 12px;
+    width: 2px;
+    border-radius: 1px;
+    background-color: #eceef1;
+  }
+  &:last-child::before { display: none; }
+
+  &__head {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    width: 100%;
+    padding: 10px 0 14px;
+    border: 0;
+    background: none;
+    font-family: inherit;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+
+    &:focus-visible { outline: 2px solid #1a1a1a; outline-offset: 2px; border-radius: 10px; }
+  }
+
+  &__no {
+    position: relative;      // 세로줄 위에 놓는다
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  // 지원하는 곳에 따라 고르는 것 — 번호를 비우고 점선으로 두른다
+  &--optional &__no {
+    background-color: #fff !important;
+    box-shadow: inset 0 0 0 1.5px currentColor;
+    opacity: 0.75;
+  }
+
+  &__main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 26px;
+  }
+
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    padding-top: 3px;
+  }
+
+  &__weeks {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding-top: 3px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #444;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+
+    .app-icon { color: #b0b0b0; }
+  }
+
+  &__name {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #222;
+    word-break: keep-all;
+  }
+
+  &__goal {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #666;
+    word-break: keep-all;
+  }
+
+  &__note {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #3365e3;
+    word-break: keep-all;
+  }
+
+  &__meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 2px;
+    font-size: 12px;
+    color: #999;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0 0 16px 38px;       // 번호 칸(26 + 12)만큼 들여 이름에 줄을 맞춘다
+    padding: 14px;
+    border-radius: 12px;
+    background-color: #f8f9fa;
+  }
+
+  &__skip {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: #666;
+    word-break: keep-all;
+
+    strong { display: block; font-weight: 700; color: #444; }
+  }
+
+  &__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    font-size: 12px;
+    color: #777;
+
+    span {
+      padding: 2px 8px;
+      border-radius: 6px;
+      background-color: #eceef1;
+    }
+  }
+}
+
+.prep-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+
+  &--plain { background-color: #eceef1; color: #666; }
+  &--track { background-color: #e8eeff; color: #3365e3; }
+}
+
+.prep-phases {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 12px;
+  border-left: 2px solid #e6e8ec;
+}
+
+.prep-phase {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  &__title {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #333;
+  }
+
+  &__weeks {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #999;
+  }
+
+  &__items {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #555;
+      word-break: keep-all;
+    }
+
+    // 첫 줄(13px × 1.5) 세로 가운데에 점을 고정 — 두 줄로 넘어가도 위치가 유지된다
+    .list-dot { margin-top: calc((13px * 1.5 - 3px) / 2); }
+  }
+}
+
+.prep-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &__label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #666;
+  }
+
+  &__list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    li {
+      padding: 7px 10px;
+      border-radius: 8px;
+      background-color: #fff;
+      box-shadow: inset 0 0 0 1px #e6e8ec;
+      font-size: 12.5px;
+      color: #555;
+    }
+  }
+}
+
+.prep-foot {
+  font-size: 12px;
+  line-height: 1.55;
+  color: #aaa;
+  word-break: keep-all;
 }

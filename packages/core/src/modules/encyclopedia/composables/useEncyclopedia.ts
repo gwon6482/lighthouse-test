@@ -17,7 +17,6 @@ import {
   fetchExploreJobs,
   fetchRecommendedJobs,
   fetchJobReviews,
-  fetchJobPreparations,
   fetchBookmarks,
   addBookmark,
   removeBookmark,
@@ -30,7 +29,6 @@ import type {
   JobSearchGroup,
   JobExploreItem,
   JobReview,
-  PreparationCard,
   JobDetailTab,
 } from '../types/encyclopedia'
 
@@ -63,7 +61,6 @@ const activeTab = ref<JobDetailTab>('overview')
 
 // 탭별 데이터
 const reviews = ref<JobReview[]>([])
-const preparations = ref<PreparationCard[]>([])
 
 // 북마크
 const bookmarkedJobCodes = ref<string[]>([])
@@ -274,25 +271,6 @@ export function useEncyclopedia() {
     }
   }
 
-  // ── 준비과정 탭 ──────────────────────────────────────────────────────────
-
-  async function loadPreparations(jobCode: string) {
-    isLoading.value = true
-    error.value = null
-    try {
-      const { data, status } = await fetchJobPreparations(jobCode)
-      if (status === 200) {
-        preparations.value = data.data
-      } else {
-        throw new Error('준비과정을 불러오는데 실패했습니다.')
-      }
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : '준비과정을 불러오는데 실패했습니다.'
-    } finally {
-      isLoading.value = false
-    }
-  }
-
   // ── 북마크 ────────────────────────────────────────────────────────────────
 
   /** 북마크 목록 로드 (로그인 상태에서만 호출) */
@@ -334,7 +312,6 @@ export function useEncyclopedia() {
     selectedJob,
     activeTab,
     reviews,
-    preparations,
     isLoading,
     error,
 
@@ -352,7 +329,6 @@ export function useEncyclopedia() {
 
     // 탭별
     loadReviews,
-    loadPreparations,
 
     // 북마크
     bookmarkedJobCodes,

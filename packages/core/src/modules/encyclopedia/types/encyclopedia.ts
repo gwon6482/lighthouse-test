@@ -1,3 +1,6 @@
+import type { ProjectCategory } from '@/modules/career-design/types/career-design'
+import type { ProjectMethod } from '@/modules/career-design/composables/projectMethods'
+
 // ────────────────────────────────────────────────────────────────────────────
 // 공통 타입
 // ────────────────────────────────────────────────────────────────────────────
@@ -212,18 +215,106 @@ export interface JobReviewResponse {
 
 
 // ────────────────────────────────────────────────────────────────────────────
-// 준비과정 (추후 API 연동 시 스펙에 맞게 수정)
+// 준비과정 — GET /api/job/:jobCode/preparation (진로계획 라이브러리, 2026-11-15)
+// 라이트하우스가 직업 정보·법령·공식 자격 기준으로 정리한 예시 진로설계다(현직자 검토 전).
+// 계획 하나가 비슷한 직업 여러 개를 함께 덮는다 — shared 면 plan 이 대표 직업의 것이다
 // ────────────────────────────────────────────────────────────────────────────
 
-export interface PreparationCard {
-  preparationId: string
-  title: string
-  description: string
+/** 출처와 대조한 표시 — law: 법령 원문 / official: 기관 공고·과목표 / secondary: 보도·수험 안내 등 */
+export interface PrepChecked {
+  at: string | null
+  level: 'law' | 'official' | 'secondary' | null
+  source: string
+  note: string | null
 }
 
+export interface PrepPhase {
+  weeks: number
+  title: string
+  items: string[]
+}
+
+/** 프로젝트 하나 — 여러 직업이 함께 쓰는 보편 프로젝트(cp.*)와 직업 전용(p.*)이 같은 모양이다 */
+export interface PrepProject {
+  id: string
+  name: string
+  type: string
+  typeName: string | null
+  subtype: string | null
+  subtypeName: string | null
+  category: ProjectCategory
+  method: ProjectMethod
+  level: string
+  daysPerWeek: number
+  minutesPerSession: number
+  goal: string
+  phases: PrepPhase[]
+  weeks: number                           // phases 의 주 수 합
+  scope: 'all' | 'family' | 'job'         // 거의 모든 진로 / 같은 계열 / 이 직업만
+  basis: 'law' | 'practice' | null        // 직업 전용 프로젝트의 근거 — 법령이 정한 요건 / 관행
+  options?: string[]
+  note?: string
+  caution?: string
+  checked?: PrepChecked
+}
+
+/** 길 위의 한 걸음 — ref 로 projects 에서 프로젝트를 찾는다 */
+export interface PrepItem {
+  ref: string
+  step: number
+  major: boolean        // false = 관련 학과 전공자는 건너뛴다(skip 에 이유)
+  optional: boolean     // 지원하는 곳에 따라 고른다
+  fromTrack: boolean    // 고른 갈래에서만 하는 것
+  skip?: string
+  note?: string
+}
+
+export interface PrepTotals {
+  nonMajor: { count: number; weeks: number }   // 선택 항목을 뺀 것. 주 수는 하나씩 차례로 할 때의 합
+  major: { count: number; weeks: number }
+  optional: number
+}
+
+/** 갈래(세부 분야) 하나의 길. 갈래가 없는 계획은 track: null 하나만 온다 */
+export interface PrepPath {
+  track: string | null
+  items: PrepItem[]
+  totals: PrepTotals
+}
+
+export interface PrepTrack {
+  id: string
+  name: string
+  desc: string
+}
+
+export interface JobPreparation {
+  jobCode: string
+  title: string
+  shared: boolean
+  plan: {
+    jobCode: string
+    title: string
+    displayName: string
+    family: string
+    familyName: string | null
+    status: string
+    updatedAt: string | null
+    summary: string
+    gate: string | null
+    caution: string | null
+    checked: PrepChecked | null
+  }
+  tracks: PrepTrack[]
+  defaultTrack: string | null
+  paths: PrepPath[]
+  projects: Record<string, PrepProject>
+}
+
+/** 계획이 없는 직업은 data: null */
 export interface JobPreparationResponse {
   success: boolean
-  data: PreparationCard[]
+  data: JobPreparation | null
 }
 
 // ────────────────────────────────────────────────────────────────────────────

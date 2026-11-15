@@ -51,8 +51,8 @@ export const fetchRecommendedJobs = (surveyId: string) =>
 export const fetchJobReviews = (jobCode: string) =>
   req.get<JobReviewResponse>(`/api/job/${jobCode}/reviews`)
 
-/** 직업 준비과정 조회 GET /api/job/:jobCode/preparation */
-export const fetchJobPreparations = (jobCode: string) =>
+/** 직업 준비과정(예시 진로설계) GET /api/job/:jobCode/preparation — 진로계획 라이브러리. 계획이 없는 직업은 data: null */
+export const fetchJobPreparation = (jobCode: string) =>
   req.get<JobPreparationResponse>(`/api/job/${jobCode}/preparation`)
 
 /** 직업 채용정보 조회 GET /api/job/:jobCode/recruitment */
