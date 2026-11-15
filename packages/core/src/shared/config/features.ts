@@ -11,3 +11,12 @@ export const features = {
 } as const
 
 export type FeatureKey = keyof typeof features
+
+// 내 진로상황(2026-11-16) — 학교·학과·경력·성과를 받는 기능이라 **개인정보처리방침 시행일(2026-11-23 0시)부터** 연다.
+//   (처리방침 제12조: 바뀐 방침은 시행 7일 전에 공지 — 11-16 게시·11-23 시행. 연구 설문 평가지를 날짜로 막은 것과 같은 방식)
+//   스테이징(deploy-test)·로컬 개발은 VITE_CAREER_SITUATION_EARLY=1 로 미리 연다. 날짜가 지나면 이 스위치는 지워도 된다
+export const CAREER_SITUATION_OPENS_AT = '2026-11-23T00:00:00+09:00'
+export function careerSituationOpen(now: number = Date.now()): boolean {
+  return import.meta.env.VITE_CAREER_SITUATION_EARLY === '1' || now >= Date.parse(CAREER_SITUATION_OPENS_AT)
+}
+

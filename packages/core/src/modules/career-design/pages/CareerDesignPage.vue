@@ -261,6 +261,7 @@ import AppHeader from '@/shared/components/AppHeader.vue'
 import JourneyIntro from '@/shared/components/JourneyIntro.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchTargetCareer, updateTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
+import { careerSituationOpen } from '@/shared/config/features'
 import type { TargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 import { loadLibraryPlan } from '../composables/useHelperExamples'
@@ -338,7 +339,7 @@ async function goToTemplates() {
     const title = target?.title ?? target?.ref ?? ''
     const plan = target?.refType === 'jobCode' ? await loadLibraryPlan(target.ref) : null
     // 예시 진로설계가 있으면 내 진로상황을 먼저 묻는다(2026-11-16) — 거기서 템플릿으로. 건너뛰기도 그 화면에 있다
-    if (plan) router.push('/career-design/situation')
+    if (plan) router.push(careerSituationOpen() ? '/career-design/situation' : '/career-design/templates')
     else startManualPlan(router, title)
   } finally {
     goingToTemplates = false
