@@ -75,10 +75,6 @@ $survey-desktop-min: 768px;
     background: $color-surface;
     border-bottom: 1px solid $color-border;
 
-    &--geunmu {
-      padding: 12px $survey-inner-x;
-    }
-
     // 모바일은 한 줄이 빠듯해 인사말을 뺀다 — 이름이 길면 옆 글씨와 겹친다
     @media (max-width: $survey-mobile-max) {
       grid-template-columns: 1fr auto;
@@ -106,14 +102,7 @@ $survey-desktop-min: 768px;
         font-size: 18px;
         font-weight: $fw-semibold; // 700 — 배지와 같은 굵기로 "파트 1 성격" 한 덩어리
         color: $color-text;
-      }
-
-      &--geunmu {
-        gap: 14px;
-
-        .part-name {
-          font-size: 16px;
-        }
+        white-space: nowrap;
       }
     }
 
