@@ -5,11 +5,10 @@
 // 목표 직업 찾기: **직업 코드로만** 찾는다 — 진로백과에서 정한 목표 진로(refType 'jobCode')의 코드가 draftPlan.targetJobCode 로 들어온다.
 //   직접 적은 목표(custom)는 어느 계획인지 알 수 없어 예시를 보여 주지 않는다(이름으로 어림잡지 않는다 — 엉뚱한 직업의 계획이 붙는다).
 import { fetchJobPreparation } from '@/modules/encyclopedia/encyclopedia.api'
-import { checkLevelLabel, formatWeeks, pathOf } from '@/modules/encyclopedia/lib/preparation'
+import { checkLevelLabel, pathOf } from '@/modules/encyclopedia/lib/preparation'
 import type { JobPreparation, PrepItem, PrepPhase, PrepProject } from '@/modules/encyclopedia/types/encyclopedia'
 import type { DayOfWeek, HelperExample, HelperJobExamples, Project, ProjectCategory, WeekCurriculum } from '../types/career-design'
 import { methodFits } from './projectMethods'
-import { MAX_WEEKS } from './useProjectCurriculum'
 
 // 같은 직업은 한 번만 부른다(템플릿 화면 → 프로젝트 구성 화면이 이어서 쓴다). 실패는 담아 두지 않아 다음에 다시 시도한다
 const cache = new Map<string, Promise<JobPreparation | null>>()
@@ -29,26 +28,16 @@ export function loadLibraryPlan(jobCode?: string | null): Promise<JobPreparation
 
 /**
  * 단계(phases)를 주차별 커리큘럼으로 편다 — 단계의 주 수만큼 같은 할 일을 되풀이한다(그 단계 동안 매주 해 나가는 것).
- * 앱의 한 프로젝트는 최대 52주라, 넘치면 단계마다 비례해 줄인다(로스쿨 108주 → 52주). 줄였다는 사실은 예시의 fullWeeks 로 남긴다.
+ * 길이는 자르지 않는다 — 로스쿨(108주)처럼 1년이 넘는 과정도 그대로 담는다(2026-11-15 사용자 결정: 프로젝트 길이를 제한하지 않는다).
  */
 export function phasesToCurriculum(phases: PrepPhase[]): WeekCurriculum[] {
-  const total = phases.reduce((n, ph) => n + ph.weeks, 0)
-  const weeks = phases.map((ph) => Math.max(1, ph.weeks))
-  if (total > MAX_WEEKS) {
-    const scale = MAX_WEEKS / total
-    weeks.forEach((w, i) => { weeks[i] = Math.max(1, Math.round(w * scale)) })
-    // 반올림으로 넘친 만큼은 가장 긴 단계에서 뺀다
-    for (let over = weeks.reduce((a, b) => a + b, 0) - MAX_WEEKS; over > 0; over -= 1) {
-      weeks[weeks.indexOf(Math.max(...weeks))]! -= 1
-    }
-  }
   const out: WeekCurriculum[] = []
-  phases.forEach((ph, i) => {
-    const n = weeks[i]!
+  for (const ph of phases) {
+    const n = Math.max(1, Math.trunc(ph.weeks))
     for (let k = 1; k <= n; k += 1) {
       out.push({ week: out.length + 1, title: n > 1 ? `${ph.title} (${k}/${n})` : ph.title, items: [...ph.items] })
     }
-  })
+  }
   return out
 }
 
@@ -59,7 +48,6 @@ function basisOf(prep: JobPreparation, item: PrepItem, project: PrepProject): st
   else if (item.note) lines.push(`${item.note}.`)
   if (project.checked) lines.push(`${checkLevelLabel(project.checked)}: ${project.checked.note ?? project.checked.source}.`)
   if (project.caution) lines.push(`${project.caution}.`)
-  if (project.weeks > MAX_WEEKS) lines.push(`실제로는 ${formatWeeks(project.weeks)} 걸리는 과정이에요. 한 프로젝트는 최대 ${MAX_WEEKS}주라 줄여 담았어요.`)
   if (!lines.length) lines.push(`${prep.plan.displayName} 준비과정 예시에 들어 있는 프로젝트예요.`)
   return lines.join(' ').replace(/\.\./g, '.')
 }
@@ -77,7 +65,6 @@ export function projectToExample(prep: JobPreparation, item: PrepItem, project: 
     curriculum: phasesToCurriculum(project.phases),
     method: project.method,
     methodDetail: {},
-    ...(project.weeks > MAX_WEEKS ? { fullWeeks: project.weeks } : {}),
   }
 }
 

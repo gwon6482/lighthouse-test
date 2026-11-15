@@ -50,22 +50,20 @@ describe('단계 → 주차별 커리큘럼', () => {
     expect(cur.map((w) => [w.week, w.title, w.items.length])).toEqual([[1, '기초 (1/2)', 2], [2, '기초 (2/2)', 2], [3, '마무리', 1]])
   })
 
-  it('52주를 넘으면 단계마다 비례해 줄인다 — 단계는 하나도 빠지지 않는다', () => {
+  it('1년이 넘는 과정도 자르지 않는다 — 단계의 주 수 그대로 편다', () => {
     const cur = phasesToCurriculum([{ weeks: 2, title: '준비', items: ['가'] }, { weeks: 104, title: '과정', items: ['나'] }, { weeks: 2, title: '시험', items: ['다'] }])
-    expect(cur).toHaveLength(52)
-    expect(new Set(cur.map((w) => w.title.replace(/ \(.*\)$/, '')))).toEqual(new Set(['준비', '과정', '시험']))
-    expect(cur.map((w) => w.week)).toEqual(Array.from({ length: 52 }, (_, i) => i + 1))
+    expect(cur).toHaveLength(108)
+    expect(cur[2]!.title).toBe('과정 (1/104)')
+    expect(cur.map((w) => w.week)).toEqual(Array.from({ length: 108 }, (_, i) => i + 1))
   })
 })
 
 describe('도우미 예시', () => {
-  it('줄여 담은 프로젝트는 원래 길이를 남기고 이유를 적는다', () => {
+  it('긴 프로젝트도 원래 길이대로 예시가 된다', () => {
     const long = project('p.school', { phases: [{ weeks: 108, title: '과정', items: ['가'] }], weeks: 108 })
     const ex = projectToExample(prep(), item('p.school', 1), long)
-    expect(ex.curriculum).toHaveLength(52)
-    expect(ex.fullWeeks).toBe(108)
-    expect(ex.basis).toContain('약 2년 1개월')
-    expect(projectToExample(prep(), item('cp.research', 1), prep().projects['cp.research']!).fullWeeks).toBeUndefined()
+    expect(ex.curriculum).toHaveLength(108)
+    expect(ex.basis).toBe('마케터 준비과정 예시에 들어 있는 프로젝트예요.')
   })
 
   it('고른 갈래의 길을 영역별로 묶는다 — 선택 항목도 들어가고, 같은 프로젝트는 한 번만', () => {
@@ -109,7 +107,7 @@ describe('템플릿', () => {
     expect(list[0]!.projects).toHaveLength(3)
   })
 
-  it('52주를 넘어 줄여 담은 프로젝트는 원래 길이와 함께 알린다 · 통칭과 같은 갈래 이름은 붙이지 않는다', () => {
+  it('1년이 넘는 과정도 그대로 담는다 · 통칭과 같은 갈래 이름은 붙이지 않는다', () => {
     const p = prep({
       tracks: [{ id: 'self', name: '마케터', desc: '' }],
       defaultTrack: 'self',
@@ -118,9 +116,8 @@ describe('템플릿', () => {
     p.projects['p.school'] = project('p.school', { phases: [{ weeks: 108, title: '과정', items: ['가'] }], weeks: 108 })
     const [t] = buildPlanTemplates(p, 'self')
     expect(t!.name).toBe('마케터 플랜')
-    expect(t!.shortened).toEqual([{ name: 'p.school', full: '약 2년 1개월' }])
-    expect(t!.projects[1]!.curriculum).toHaveLength(52)
-    expect(buildPlanTemplates(prep(), 'a')[0]!.shortened).toEqual([])
+    expect(t!.projects[1]!.weeks).toBe(108)
+    expect(t!.projects[1]!.curriculum).toHaveLength(108)
   })
 
   it('갈래가 없는 계획 · 걸음이 없는 계획', () => {

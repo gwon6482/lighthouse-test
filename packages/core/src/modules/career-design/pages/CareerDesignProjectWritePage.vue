@@ -190,7 +190,6 @@
           <span class="cd-proj-write__step-value">{{ weeks }}<em>주</em></span>
           <button
             class="cd-proj-write__step-btn"
-            :disabled="weeks >= MAX_WEEKS"
             @click="setWeeks(weeks + 1)"
           >+</button>
         </div>
@@ -213,7 +212,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUnsavedGuard } from '@/shared/composables/useUnsavedGuard'
 import { useCareerDesign } from '../composables/useCareerDesign'
-import { MIN_WEEKS, MAX_WEEKS, DEFAULT_WEEKS, clampWeeks } from '../composables/useProjectCurriculum'
+import { MIN_WEEKS, DEFAULT_WEEKS, clampWeeks } from '../composables/useProjectCurriculum'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { DayOfWeek, Priority, ProjectCategory } from '../types/career-design'
 import AppIcon from '@/shared/components/AppIcon.vue'

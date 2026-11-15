@@ -7,7 +7,7 @@
 //   - 전공자에게 줄어드는 것이 없는 길은 플랜이 하나다(기본)
 // 지원하는 곳에 따라 고르는 항목(optional)은 플랜에 넣지 않고 따로 보여 준다 — 다음 화면의 도우미 추천에서 담을 수 있다.
 // 고르면 임시 계획(draftPlan)을 채워 프로젝트 구성으로 → 직접 설계와 같은 흐름에서 고친다(목표 설정은 맨 끝).
-import { formatWeeks, pathOf } from '@/modules/encyclopedia/lib/preparation'
+import { pathOf } from '@/modules/encyclopedia/lib/preparation'
 import type { JobPreparation, PrepItem, PrepProject } from '@/modules/encyclopedia/types/encyclopedia'
 import { helperExampleToProject, projectToExample } from './useHelperExamples'
 import type { Project, ProjectCategory } from '../types/career-design'
@@ -30,7 +30,6 @@ export interface PlanTemplate {
   projects: Project[]      // 해 나갈 순서대로
   dropped: DroppedItem[]   // 전공자라서 뺀 것
   optional: DroppedItem[]  // 지원하는 곳에 따라 고르는 것(플랜에는 없다)
-  shortened: { name: string; full: string }[]   // 한 프로젝트 최대(52주)를 넘어 줄여 담은 것과 원래 길이
 }
 
 // 프로젝트 두 개를 나란히 진행한다고 보고 대략의 기간을 낸다(실제 배치는 사용자가 타임라인에서 정한다)
@@ -67,8 +66,7 @@ export function buildPlanTemplates(prep: JobPreparation, track: string | null | 
     : [{ key: 'basic', label: '기본', who: '전공과 상관없이 같은 길이에요', rows: must }]
 
   return stages.map((st) => {
-    const examples = st.rows.map((r) => ({ category: r.project.category, ex: projectToExample(prep, r.item, r.project) }))
-    const projects = examples.map((e) => helperExampleToProject(e.ex, e.category))
+    const projects = st.rows.map((r) => helperExampleToProject(projectToExample(prep, r.item, r.project), r.project.category))
     const stageWord = st.key === 'basic' ? '' : ` ${st.label}`
     return {
       id: `${prep.plan.jobCode}-${path.track ?? 'all'}-${st.key}`,
@@ -86,7 +84,6 @@ export function buildPlanTemplates(prep: JobPreparation, track: string | null | 
         ? skipped.map((r) => ({ name: r.project.name, category: r.project.category, reason: r.item.skip ?? '' }))
         : [],
       optional,
-      shortened: examples.filter((e) => e.ex.fullWeeks).map((e) => ({ name: e.ex.name, full: formatWeeks(e.ex.fullWeeks!) })),
     }
   })
 }

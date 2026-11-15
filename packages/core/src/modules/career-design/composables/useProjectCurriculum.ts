@@ -2,13 +2,14 @@ import type { WeekCurriculum } from '../types/career-design'
 
 // 프로젝트 기간(주차 수) 공통 규칙.
 // 1단계(ProjectWritePage)에서 주차 수를 정하고 2단계(ProjectCurriculumPage)에서 내용을 채운다.
+// 상한은 두지 않는다(2026-11-15 사용자 결정: "한 프로젝트의 최대길이를 제한할 필요 없음").
+//   예전에는 52주였다 — 로스쿨(2년)·수련(4년) 같은 과정을 한 프로젝트로 담을 수 없었다.
 export const MIN_WEEKS = 1
-export const MAX_WEEKS = 52
 export const DEFAULT_WEEKS = 4
 
 export function clampWeeks(n: number): number {
   if (!Number.isFinite(n)) return DEFAULT_WEEKS
-  return Math.min(MAX_WEEKS, Math.max(MIN_WEEKS, Math.trunc(n)))
+  return Math.max(MIN_WEEKS, Math.trunc(n))
 }
 
 // 주차 제목 기본값 — "프로젝트명 - n주차"

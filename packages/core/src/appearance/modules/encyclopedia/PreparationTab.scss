@@ -12,16 +12,8 @@
   flex-direction: column;
   gap: 16px;
   background-color: #fff;
-  padding: 15px 25px 22px;
+  padding: 22px 25px;
   border-radius: 20px;
-
-  &__head {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding-bottom: 10px;
-    border-bottom: 1.5px solid #eee;
-  }
 
   &__title {
     display: flex;
@@ -77,7 +69,17 @@
   cursor: pointer;
 }
 
-// ── 한눈에 ──
+// ── 맨 위(카드 밖) — 이 직업은 무엇으로 들어가는가 ──
+.prep-lead {
+  padding: 0 6px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: #222;
+  word-break: keep-all;
+}
+
+// ── 꼭 거쳐야 하는 것 · 안내 ──
 .prep-intro {
   display: flex;
   flex-direction: column;
@@ -90,14 +92,6 @@
     word-break: keep-all;
 
     strong { font-weight: 700; color: #444; }
-  }
-
-  &__summary {
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.6;
-    color: #2b2b2b;
-    word-break: keep-all;
   }
 }
 
@@ -177,14 +171,6 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding-top: 14px;
-  border-top: 1px solid #f0f0f0;
-
-  &__label {
-    font-size: 13px;
-    font-weight: 700;
-    color: #555;
-  }
 
   &__chips {
     display: flex;
@@ -533,9 +519,20 @@
   }
 }
 
-.prep-foot {
-  font-size: 12px;
-  line-height: 1.55;
-  color: #aaa;
-  word-break: keep-all;
+// 비회원에게만 보이는 걸음 목록 머리(오른쪽에 '가입 후')
+.prep-steps-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #555;
+}
+
+// ── 맨 밑 — '예시' 표시와 안내 ──
+.prep-about {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 16px;
+  border-top: 1.5px solid #eee;
+
+  .prep-section__title { font-size: 14px; color: #666; }
 }

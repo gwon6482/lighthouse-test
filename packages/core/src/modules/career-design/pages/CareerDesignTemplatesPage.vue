@@ -23,7 +23,6 @@
 
         <!-- 갈래 — 준비하는 길이 갈리는 직업만. 진로백과 준비과정 탭과 같은 말을 쓴다 -->
         <div v-if="prep.tracks.length > 1" class="cd-tpl__tracks">
-          <p class="cd-tpl__tracks-label">어느 쪽으로 준비하나요?</p>
           <div class="cd-tpl__tracks-chips" role="group" aria-label="준비하는 갈래">
             <button
               v-for="tr in prep.tracks"
@@ -64,12 +63,6 @@
 
         <div v-if="openId === t.id" class="cd-tpl__detail">
           <p v-if="t.note" class="cd-tpl__note">ⓘ {{ t.note }}</p>
-          <!-- 앱의 한 프로젝트는 최대 52주다 — 더 긴 과정(로스쿨·수련 등)은 줄여 담았다는 것을 숨기지 않는다 -->
-          <p v-if="t.shortened.length" class="cd-tpl__note">
-            ⓘ 1년이 넘는 과정은 한 프로젝트 최대인 52주로 줄여 담았어요 —
-            {{ t.shortened.map((x) => `${x.name}(실제 ${x.full})`).join(', ') }}. 끝나면 이어서 한 번 더 만들어 주세요.
-          </p>
-
           <!-- 해 나갈 순서대로 -->
           <ol class="cd-tpl__projects">
             <li v-for="(p, i) in t.projects" :key="p.id" class="cd-tpl__project">
@@ -263,7 +256,6 @@ function startFrom(t: PlanTemplate) {
 
   // 갈래 고르기 — 준비하는 길이 갈리는 직업만(진로백과 준비과정 탭과 같은 말·같은 자료)
   &__tracks { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; background: #fff; border-radius: 16px; }
-  &__tracks-label { font-size: 13px; font-weight: 700; color: #444; }
   &__tracks-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   &__tracks-desc { font-size: 12px; color: #888; }
   &__chip {

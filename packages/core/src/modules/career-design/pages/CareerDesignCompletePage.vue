@@ -174,7 +174,7 @@
           </div>
           <!-- 프로젝트를 골라 배치하려는 중에만 — 달력을 한 달씩 늘린다 -->
           <button
-            v-if="selectedProject && canAddMonth"
+            v-if="selectedProject"
             type="button"
             class="cd-complete__add-month"
             @click="extraMonths++"
@@ -255,7 +255,7 @@ import type { Project, ProjectCategory } from '../types/career-design'
 import {
   provisionalWeekCount, weekRangeLabel, projectWeeks, projectEndWeek, fitsInPlan,
   weekDateRange, monthWeekOf, monthWeekLabel, weeksInMonth, parseDateKey, resolveProject,
-  projectHoursPerWeek, lastWeekOfMonth, PROVISIONAL_MAX_WEEKS,
+  projectHoursPerWeek, lastWeekOfMonth,
 } from '../composables/usePlanTimeline'
 import { DEFAULT_PACE_HOURS, buildTimeline, monthsLabel, paceByKey, paceOfHours } from '../composables/usePlanPace'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
@@ -331,9 +331,8 @@ const totalWeeks = computed(() => {
   if (!last) return provisionalWeekCount(draftPlan.projects)
   let end = lastWeekOfMonth(draftPlan.startDate, last, draftPlan.reviewDay)
   for (let i = 0; i < extraMonths.value; i++) end = lastWeekOfMonth(draftPlan.startDate, end + 1, draftPlan.reviewDay)
-  return Math.min(PROVISIONAL_MAX_WEEKS, end)
+  return end
 })
-const canAddMonth = computed(() => totalWeeks.value < PROVISIONAL_MAX_WEEKS)
 
 type BarPos = 'only' | 'start' | 'middle' | 'end'
 interface WeekRow {

@@ -216,12 +216,12 @@ export function projectWeekIndexOn(
 
 // ── 목표 설정이 맨 끝으로 간 뒤(2026-10-20 사용자: "프로젝트를 배치하지도 않았는데 종료일을 설정하는 게 큰 의미가 없다") ──
 // 타임라인 배치 때는 아직 종료일이 없다 → 임시 범위를 보여준다.
-//   담은 프로젝트 기간을 모두 이어 붙여도 들어갈 만큼(최소 12주, 최대 104주 = 2년)
+//   담은 프로젝트 기간을 모두 이어 붙여도 들어갈 만큼(최소 12주). 상한은 없다 — 예전의 104주(2년) 상한은
+//   프로젝트 기간 상한을 없애면서 함께 뺐다(2026-11-15). 2년이 넘는 과정 하나만으로도 범위를 넘기 때문이다
 export const PROVISIONAL_MIN_WEEKS = 12
-export const PROVISIONAL_MAX_WEEKS = 104
 export function provisionalWeekCount(projects: Pick<Project, 'weeks' | 'curriculum'>[]): number {
   const sum = projects.reduce((n, p) => n + projectWeeks(p), 0)
-  return Math.min(PROVISIONAL_MAX_WEEKS, Math.max(PROVISIONAL_MIN_WEEKS, sum))
+  return Math.max(PROVISIONAL_MIN_WEEKS, sum)
 }
 
 // 예상 완료일 = 배치한 프로젝트 중 가장 늦게 끝나는 주의 마지막 날. 배치가 없으면 ''.

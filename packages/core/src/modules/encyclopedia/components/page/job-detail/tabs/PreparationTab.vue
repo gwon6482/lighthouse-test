@@ -1,24 +1,9 @@
 <template>
   <div :class="['prep-tab', { 'g-locked': locked }]" @click="onLockedClick">
-    <section class="prep-section">
-      <div class="prep-section__head">
-        <div v-if="locked && steps.length > 1" class="g-head">
-          <h3 class="prep-section__title">
-            준비과정
-            <span class="prep-section__badge">예시</span>
-          </h3>
-          <span class="g-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span>
-        </div>
-        <h3 v-else class="prep-section__title">
-          준비과정
-          <span class="prep-section__badge">예시</span>
-        </h3>
-        <p class="prep-section__desc">
-          라이트하우스가 직업 정보와 법령·공식 자격 기준을 바탕으로 정리한 <strong>예시</strong> 계획이에요.
-          현직자 검토 전이라 실제 경로는 사람마다 다를 수 있어요.
-        </p>
-      </div>
+    <!-- 맨 위(카드 밖) — 이 직업은 무엇으로 들어가는가. 2026-11-15 사용자: 친근한 말투로, 카드 밖 맨 위에 -->
+    <p v-if="prep && steps.length" class="prep-lead">{{ prep.plan.summary }}</p>
 
+    <section class="prep-section">
       <div v-if="isLoading" class="prep-empty">준비과정을 불러오는 중이에요…</div>
       <div v-else-if="error" class="prep-empty prep-empty--error">
         {{ error }}
@@ -29,12 +14,11 @@
       </div>
 
       <template v-else>
-        <!-- 한눈에 — 이 직업은 무엇으로 들어가는가 -->
-        <div class="prep-intro">
+        <!-- 꼭 거쳐야 하는 것 · 함께 쓰는 계획 안내 · 법령 대조 -->
+        <div v-if="prep.shared || prep.plan.gate || prep.plan.checked || prep.plan.caution" class="prep-intro">
           <p v-if="prep.shared" class="prep-intro__shared">
             준비하는 길이 비슷한 <strong>{{ prep.plan.displayName }}</strong>의 계획을 함께 보여드려요.
           </p>
-          <p class="prep-intro__summary">{{ prep.plan.summary }}</p>
           <div v-if="prep.plan.gate" class="prep-gate">
             <span class="prep-gate__label">꼭 거쳐야 하는 것</span>
             <p class="prep-gate__text">{{ prep.plan.gate }}</p>
@@ -42,9 +26,8 @@
           <PreparationNotes :checked="prep.plan.checked" :caution="prep.plan.caution" />
         </div>
 
-        <!-- 갈래 — 준비하는 길이 실제로 갈리는 직업만 -->
+        <!-- 갈래 — 준비하는 길이 실제로 갈리는 직업만. 안내 글 없이 고르는 단추만 둔다(2026-11-15 사용자: 분류만 있어도 무슨 뜻인지 안다) -->
         <div v-if="prep.tracks.length > 1" class="prep-tracks">
-          <p class="prep-tracks__label">어느 쪽으로 준비하나요?</p>
           <div class="prep-tracks__chips" role="group" aria-label="준비하는 갈래">
             <button
               v-for="t in prep.tracks"
@@ -79,6 +62,10 @@
         </div>
 
         <!-- 순서대로 -->
+        <div v-if="locked && steps.length > 1" class="g-head">
+          <span class="prep-steps-label">준비 순서 {{ steps.length }}걸음</span>
+          <span class="g-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span>
+        </div>
         <ol :class="['prep-steps', { 'g-clip': locked }]">
           <li
             v-for="(s, si) in steps"
@@ -155,10 +142,21 @@
           </li>
         </ol>
 
-        <p class="prep-foot">
-          기간은 하나씩 차례로 할 때를 더한 값이에요. 여러 개를 함께 하면 더 짧아져요.
-          시험·채용 조건은 공고로 다시 확인해 주세요.
-        </p>
+        <!-- 맨 밑 — '예시' 표시와 안내. 2026-11-15 사용자 결정으로 머리말에서 프로젝트 아래로 옮겼다(표시 자체는 남긴다) -->
+        <div class="prep-about">
+          <h3 class="prep-section__title">
+            준비과정
+            <span class="prep-section__badge">예시</span>
+          </h3>
+          <p class="prep-section__desc">
+            라이트하우스가 직업 정보와 법령·공식 자격 기준을 바탕으로 정리한 <strong>예시</strong> 계획이에요.
+            현직자 검토 전이라 실제 경로는 사람마다 다를 수 있어요.
+          </p>
+          <p class="prep-section__desc">
+            기간은 하나씩 차례로 할 때를 더한 값이에요. 여러 개를 함께 하면 더 짧아져요.
+            시험·채용 조건은 공고로 다시 확인해 주세요.
+          </p>
+        </div>
       </template>
     </section>
   </div>
@@ -171,9 +169,10 @@
  * 자료: 진로계획 라이브러리(GET /api/job/:jobCode/preparation, 2026-11-15~). 직업 537개 전부에 계획이 있다.
  *   라이트하우스가 직업 정보·법령·공식 자격 기준으로 정리한 **예시**이고 현직자 검토 전이다.
  *
- * ⚠️ '예시' 표시를 떼지 말 것. 2026-09-28 이전에는 "현직자들의 준비과정"이라는 제목에 실명 기관이 붙어 있어
- *    사용자가 실제 사례로 믿을 수 있었다. 실제 직업인의 과정(랜딩 /career-path 제출)을 붙이게 되면
- *    예시와 실제 사례를 섞지 말고 구역을 나눠 표시를 따로 단다.
+ * ⚠️ '예시' 표시를 떼지 말 것(자리는 2026-11-15 사용자 결정으로 맨 밑). 2026-09-28 이전에는 "현직자들의 준비과정"이라는
+ *    제목에 실명 기관이 붙어 있어 사용자가 실제 사례로 믿을 수 있었다. 실제 직업인의 과정(랜딩 /career-path 제출)을
+ *    붙이게 되면 예시와 실제 사례를 섞지 말고 구역을 나눠 표시를 따로 단다.
+ * 맨 위 문구(plan.summary)와 '꼭 거쳐야 하는 것'(plan.gate)은 자료에서 해요체로 온다 — 화면에서 말투를 바꾸지 않는다.
  * ⚠️ 서버가 주는 순서(paths[].items)를 그대로 그린다 — 여기서 다시 정렬하지 않는다.
  */
 import { computed, onMounted, ref, watch } from 'vue'

@@ -132,7 +132,6 @@ export interface HelperExample {
   curriculum: WeekCurriculum[]
   method?: ProjectMethod          // 진행 방식. 없으면 사용자가 고른다
   methodDetail?: Partial<Record<MethodField, string>>
-  fullWeeks?: number       // 원래 길이(주) — 앱의 한 프로젝트 최대(52주)를 넘어 줄여 담았을 때만
 }
 
 export interface HelperJobExamples {
