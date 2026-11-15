@@ -1,14 +1,15 @@
 <template>
-  <div class="t3-wrap">
-    <div
+  <div class="t3-wrap" :style="{ '--t3-area': AREA_COLOR.environment.text }">
+    <section
       v-for="(item, i) in items"
       :key="item.item_id"
       class="t3-part"
     >
-      <p class="t3-part-label">파트 {{ i + 1 }} · {{ item.item_name }}</p>
+      <!-- 헤더가 이미 '파트 3' 이라 문항 번호에는 '파트' 를 붙이지 않는다 (2026-11-15) -->
+      <p class="t3-part-label">{{ i + 1 }} · {{ item.item_name }}</p>
       <p class="t3-part-question">{{ item.item_question }}</p>
 
-      <!-- 레벨 카드 5개 (가로 스크롤) -->
+      <!-- 단계 5개 — 문장만 세로 목록(사진은 넣지 않는다: 앞 파트들과 같은 구성, 2026-11-15) -->
       <div class="t3-cards">
         <button
           v-for="level in 5"
@@ -16,23 +17,20 @@
           type="button"
           class="t3-card"
           :class="{ 'is-selected': modelValue[item.item_id as keyof T3Answers] === level }"
+          :aria-pressed="modelValue[item.item_id as keyof T3Answers] === level"
           @click="handleSelect(item.item_id, level)"
         >
-          <img
-            class="t3-card-img"
-            :src="`/t3_img/${item.item_id.replace('T3_', '')}_L${level}_transparent.png`"
-            :alt="`${item.item_name} 레벨 ${level}`"
-          />
-          <span class="t3-card-num">{{ level }}</span>
+          <span class="t3-card-num" aria-hidden="true">{{ level }}</span>
           <span class="t3-card-desc">{{ levelDesc(item, level) }}</span>
         </button>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { T3Answers, SurveyItem } from '@/modules/survey/types/survey'
+import { AREA_COLOR } from '@/modules/survey/surveyIcons'
 
 const props = defineProps<{ modelValue: T3Answers; items: SurveyItem[] }>()
 const emit = defineEmits<{ 'update:modelValue': [value: T3Answers] }>()
@@ -47,100 +45,109 @@ function levelDesc(item: SurveyItem, level: number): string {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use 'variables' as *;
+
+// 가치관(PriorityQuestion)과 같은 한 줄 카드·노랑 선택. 글씨 회색은 결과지 4단계만 쓴다
+// 검사 화면 색은 선택 버튼이 주인공 — 예외로 소제목 글자에만 영역색(파트 3 표지의 '파트 3' 라벨과 같은 방식, 2026-11-15)
 .t3-wrap {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 0 4px 24px;
-}
-
-.t3-part {
-  background: #fff;
-  border: 0.5px solid #E4E4E0;
-  border-radius: 16px;
-  padding: 18px 16px 16px;
+  gap: 40px; // 질문끼리는 상자 대신 간격으로 나눈다
+  padding: $space-lg 0 24px;
 }
 
 .t3-part-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #2E9090;
-  letter-spacing: 0.02em;
-  margin-bottom: 6px;
+  font-size: $fs-xs;
+  font-weight: $fw-semibold;
+  color: var(--t3-area); // AREA_COLOR.environment.text
+  margin: 0 0 6px;
 }
 
 .t3-part-question {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1A1A1A;
+  font-size: $fs-base;
+  font-weight: $fw-medium;
   line-height: 1.5;
-  margin-bottom: 14px;
+  color: $color-text;
+  word-break: keep-all;
+  margin: 0 0 $space-lg;
 }
 
-/* 카드 5개 그리드 — 화면 너비에 균등 분배 */
 .t3-cards {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-}
-
-/* 개별 레벨 카드 */
-.t3-card {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+}
+
+.t3-card {
+  display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 8px 4px 10px;
-  border: 1.5px solid #E4E4E0;
-  border-radius: 14px;
-  background: #FAFAF8;
-  cursor: pointer;
-  text-align: center;
-  transition: border-color 0.15s, background 0.15s;
-  -webkit-tap-highlight-color: transparent;
-  min-width: 0;
-}
-
-.t3-card.is-selected {
-  border-color: #219E92;
-  background: #EBF7F6;
-}
-
-.t3-card:active {
-  background: #E0F2F0;
-}
-
-/* 이미지 */
-.t3-card-img {
+  gap: 12px;
   width: 100%;
-  aspect-ratio: 1;
-  object-fit: contain;
+  padding: 14px 16px;
+  border: 2px solid $color-border;
   border-radius: 10px;
-  flex-shrink: 0;
+  background: $color-surface;
+  font-family: inherit; // button 은 글꼴을 물려받지 않는다 — 없으면 Arial 로 나온다
+  cursor: pointer;
+  text-align: left;
+  transition: border-color $transition-base, background $transition-base;
+  -webkit-tap-highlight-color: transparent;
+
+  // 터치 기기에서 탭 뒤 :hover 가 남지 않게 마우스 기기에서만
+  @media (hover: hover) {
+    &:hover:not(.is-selected) {
+      border-color: $color-text-secondary;
+      background: $color-surface-alt;
+    }
+  }
+
+  &:active {
+    background: $color-primary-tint;
+  }
+
+  &.is-selected {
+    border-color: $color-primary;
+    background: $color-primary-tint;
+  }
 }
 
-/* 레벨 번호 */
+/* 단계 번호 원 */
 .t3-card-num {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
+  border: 2px solid $color-border-strong;
+  border-radius: 50%;
   font-size: 13px;
-  font-weight: 700;
-  color: #AAAAAA;
+  font-weight: $fw-semibold;
   line-height: 1;
+  color: $color-text-meta;
+
+  .is-selected & {
+    border-color: $color-primary;
+    background: $color-primary;
+    color: $color-text; // 흰 숫자는 노랑 위에서 안 보인다
+  }
 }
 
-.t3-card.is-selected .t3-card-num {
-  color: #1A8A80;
-}
-
-/* 레벨 설명 */
+/* 단계 설명 */
 .t3-card-desc {
-  font-size: 10.5px;
-  color: #888;
+  min-width: 0;
+  font-size: $fs-md;
+  font-weight: $fw-regular;
   line-height: 1.45;
+  color: $color-text-body;
   word-break: keep-all;
-}
+  text-wrap: pretty;
 
-.t3-card.is-selected .t3-card-desc {
-  color: #2E7A76;
+  .is-selected & {
+    font-weight: $fw-medium;
+    color: $color-text;
+  }
 }
 </style>
