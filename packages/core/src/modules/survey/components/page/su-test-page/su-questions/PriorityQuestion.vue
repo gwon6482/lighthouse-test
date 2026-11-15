@@ -45,212 +45,134 @@ function togglePriority(itemId: string) {
   emit('update:modelValue', newValue)
 }
 
-function getSlotItem(slot: 'priority_1' | 'priority_2' | 'priority_3'): PriorityItem | null {
-  const id = props.modelValue[slot]
-  if (!id) return null
-  return props.items.find(i => i.item_id === id) ?? null
-}
-
-function imgSrc(item: PriorityItem): string {
-  return `/t23_img/${item.value_code}_transparent.png`
-}
 </script>
 
 <template>
   <div class="pq-wrap">
     <p class="pq-instruction">가장 중요하게 생각하는 가치를 순서대로 3개 선택해주세요.</p>
 
-    <!-- 선택 슬롯 -->
-    <div class="pq-slots">
-      <div
-        v-for="(slot, idx) in (['priority_1', 'priority_2', 'priority_3'] as const)"
-        :key="slot"
-        class="pq-slot"
-        :class="{ 'is-filled': !!getSlotItem(slot) }"
-      >
-        <span class="pq-slot-rank">{{ idx + 1 }}</span>
-        <template v-if="getSlotItem(slot)">
-          <img
-            class="pq-slot-img"
-            :src="imgSrc(getSlotItem(slot)!)"
-            :alt="getSlotItem(slot)!.item_text || ''"
-          />
-          <span class="pq-slot-name">{{ getSlotItem(slot)!.item_text }}</span>
-        </template>
-        <span v-else class="pq-slot-name">-</span>
-      </div>
-    </div>
-
-    <!-- 가치관 이미지 카드 그리드 -->
-    <div class="pq-grid">
+    <!-- 가치관 목록 — 문장만 보여준다(사진·가치관 이름은 넣지 않는다: 이름만 보고 고르지 않게, 2026-11-15) -->
+    <!-- 순위는 각 줄 왼쪽 원이 보여주므로 위쪽 슬롯은 두지 않는다 -->
+    <div class="pq-list">
       <button
         v-for="item in items"
         :key="item.item_id"
         type="button"
         class="pq-card"
         :class="{ 'is-selected': getPriorityRank(item.item_id) !== null }"
+        :aria-pressed="getPriorityRank(item.item_id) !== null"
         @click="togglePriority(item.item_id)"
       >
-        <!-- 순위 배지 -->
-        <span v-if="getPriorityRank(item.item_id)" class="pq-rank-badge">
-          {{ getPriorityRank(item.item_id) }}
-        </span>
-
-        <!-- 이미지 -->
-        <img
-          class="pq-card-img"
-          :src="imgSrc(item)"
-          :alt="item.item_text || ''"
-        />
-
-        <!-- 정의 문장 -->
+        <!-- 순위 원: 고르기 전 빈 원, 고르면 노란 원 안에 순위 -->
+        <span class="pq-rank" aria-hidden="true">{{ getPriorityRank(item.item_id) ?? '' }}</span>
         <span class="pq-card-name">{{ item.item_text }}</span>
       </button>
     </div>
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
+@use 'variables' as *;
+
+// 글씨 회색은 결과지 4단계(강조 $color-text · 본문 $color-text-body · 보조 $color-text-sub · 메타 $color-text-meta)만 쓴다 — SUQuestions.scss 와 같은 규칙
+// 지시문·간격은 흥미 화면(.multi-select-question)과 같다 — 위 여백·지시문→목록 $space-lg, 좌우 들여쓰기 없음
 .pq-wrap {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 0 4px 24px;
+  gap: $space-lg;
+  padding: $space-lg 0 24px;
+
+  // 데스크탑은 목록 아래가 많이 비어 지시문→목록만 32px 로 띄운다(지시문 위치는 그대로).
+  // 768px = SelfUnderstandingTest.scss 의 $survey-desktop-min(그 파일 안 변수라 여기서 못 불러온다)
+  @media (min-width: 768px) {
+    gap: 32px;
+  }
 }
 
 .pq-instruction {
-  font-size: 13px;
-  color: #666;
+  font-size: $fs-base;
+  font-weight: $fw-medium;
+  color: $color-text;
   line-height: 1.5;
+  word-break: keep-all; // 두 줄이 될 때 '선택해주 / 세요.'로 끊기지 않게
   margin: 0;
 }
 
-/* 선택 슬롯 3개 */
-.pq-slots {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.pq-slot {
+/* 가치관 목록 — 흥미 화면(.item-btn)과 같은 한 줄 카드 */
+.pq-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 10px 6px;
-  border: 1.5px dashed #D8D8D4;
-  border-radius: 12px;
-  background: #FAFAF8;
-  min-height: 58px;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.pq-slot-img {
-  width: 60%;
-  aspect-ratio: 1;
-  object-fit: contain;
-}
-
-.pq-slot.is-filled {
-  border-style: solid;
-  border-color: #6C63FF;
-  background: #F0EFFE;
-}
-
-.pq-slot-rank {
-  font-size: 11px;
-  font-weight: 700;
-  color: #BBBBBB;
-  line-height: 1;
-}
-
-.pq-slot.is-filled .pq-slot-rank {
-  color: #6C63FF;
-}
-
-.pq-slot-name {
-  font-size: 11px;
-  font-weight: 600;
-  color: #BBBBBB;
-  text-align: center;
-  word-break: keep-all;
-  line-height: 1.3;
-}
-
-.pq-slot.is-filled .pq-slot-name {
-  color: #4A44CC;
-}
-
-/* 카드 그리드 — 4열 */
-.pq-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
 }
 
-/* 개별 카드 */
 .pq-card {
-  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 10px 4px 10px;
-  border: 1.5px solid #E4E4E0;
-  border-radius: 14px;
-  background: #FAFAF8;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid $color-border;
+  border-radius: 10px;
+  background: $color-surface;
+  font-family: inherit; // button 은 글꼴을 물려받지 않는다 — 없으면 Arial 로 나온다
   cursor: pointer;
-  text-align: center;
-  transition: border-color 0.15s, background 0.15s;
+  text-align: left;
+  transition: border-color $transition-base, background $transition-base;
   -webkit-tap-highlight-color: transparent;
-  min-width: 0;
+
+  // 터치 기기에서 탭 뒤 :hover 가 남지 않게 마우스 기기에서만
+  @media (hover: hover) {
+    &:hover:not(.is-selected) {
+      border-color: $color-text-secondary;
+      background: $color-surface-alt;
+    }
+  }
+
+  &:active {
+    background: $color-primary-tint;
+  }
+
+  &.is-selected {
+    border-color: $color-primary;
+    background: $color-primary-tint;
+  }
 }
 
-.pq-card.is-selected {
-  border-color: #6C63FF;
-  background: #F0EFFE;
-}
-
-.pq-card:active {
-  background: #E8E6FC;
-}
-
-/* 순위 배지 */
-.pq-rank-badge {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #6C63FF;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
+/* 순위 원 */
+.pq-rank {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
+  border: 2px solid $color-border-strong;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: $fw-semibold;
   line-height: 1;
+  color: $color-text; // 흰 숫자는 노랑 위에서 안 보인다
+
+  .is-selected & {
+    border-color: $color-primary;
+    background: $color-primary;
+  }
 }
 
-/* 이미지 */
-.pq-card-img {
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: contain;
-  border-radius: 10px;
-}
-
-/* 가치관 이름 */
+/* 가치관 문장 */
 .pq-card-name {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: #555;
-  line-height: 1.3;
+  min-width: 0;
+  font-size: $fs-md;
+  font-weight: $fw-regular;
+  line-height: 1.45;
+  color: $color-text-body;
   word-break: keep-all;
-}
+  text-wrap: pretty; // 끝 단어 하나만 다음 줄로 떨어지지 않게
 
-.pq-card.is-selected .pq-card-name {
-  color: #4A44CC;
+  .is-selected & {
+    font-weight: $fw-medium;
+    color: $color-text;
+  }
 }
 </style>
