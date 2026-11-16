@@ -8,6 +8,30 @@
     />
 
     <div class="cd-proj-write__body">
+      <!-- 프로젝트 종류(2026-11-16, 등록 화면 시안 정할 것 1) — 기본은 진도. 과정이면 아래 칸 이름이 다니는 것에 맞게 바뀌고,
+           '다음'이 주차별 할 일 대신 '다니는 방식'(오늘 할 일 이름·점검)으로 간다 -->
+      <div class="cd-proj-write__section">
+        <h3 class="cd-proj-write__label">프로젝트 종류</h3>
+        <div class="cd-proj-write__kinds" role="radiogroup" aria-label="프로젝트 종류">
+          <button
+            type="button" class="cd-proj-write__kind" :class="{ 'cd-proj-write__kind--on': !isPeriodDraft }"
+            role="radio" :aria-checked="!isPeriodDraft" @click="setKind(false)"
+          >
+            <span class="cd-proj-write__kind-title"><AppIcon name="kind-progress" /> 진도<i class="cd-proj-write__kind-dot" /></span>
+            <span class="cd-proj-write__kind-desc">할 일을 주차별로 해 나가요</span>
+            <small>강의·시험 공부·포트폴리오</small>
+          </button>
+          <button
+            type="button" class="cd-proj-write__kind cd-proj-write__kind--period" :class="{ 'cd-proj-write__kind--on': isPeriodDraft }"
+            role="radio" :aria-checked="isPeriodDraft" @click="setKind(true)"
+          >
+            <span class="cd-proj-write__kind-title"><AppIcon name="kind-period" /> 과정<i class="cd-proj-write__kind-dot" /></span>
+            <span class="cd-proj-write__kind-desc">정해진 곳에 다녀요</span>
+            <small>학교·실습·인턴·아르바이트</small>
+          </button>
+        </div>
+      </div>
+
       <!-- 카테고리 선택 -->
       <div class="cd-proj-write__section">
         <h3 class="cd-proj-write__label">카테고리</h3>
@@ -59,7 +83,7 @@
               @input="setDetail(f.key, ($event.target as HTMLInputElement).value)"
             />
           </div>
-          <div class="cd-proj-write__done"><AppIcon name="ui-done" /> 완료 기준 · {{ doneLabel(draftProject.category, draftProject.method) }}</div>
+          <div class="cd-proj-write__done"><AppIcon name="ui-done" /> 완료 기준 · {{ isPeriodDraft ? '다니는 기간을 채우면 완료' : doneLabel(draftProject.category, draftProject.method) }}</div>
         </template>
       </div>
 
@@ -83,9 +107,9 @@
         />
       </div>
 
-      <!-- 실행 주기 -->
+      <!-- 실행 주기(과정이면 다니는 요일) -->
       <div class="cd-proj-write__section">
-        <h3 class="cd-proj-write__label">실행 주기</h3>
+        <h3 class="cd-proj-write__label">{{ isPeriodDraft ? '다니는 요일' : '실행 주기' }}</h3>
         <div class="cd-proj-write__days">
           <button
             v-for="day in allDays"
@@ -99,26 +123,29 @@
         </div>
       </div>
 
-      <!-- 실행 시간 -->
+      <!-- 실행 시간(과정이면 하루 다니는 시간 1~10시간 — 근무·수업을 담는다, 속도에는 넣지 않는다) -->
       <div class="cd-proj-write__section">
-        <h3 class="cd-proj-write__label">실행 시간</h3>
-        <p class="cd-proj-write__sub-label">1회 당 실행 시간</p>
+        <h3 class="cd-proj-write__label">{{ isPeriodDraft ? '하루 다니는 시간' : '실행 시간' }}</h3>
+        <p v-if="!isPeriodDraft" class="cd-proj-write__sub-label">1회 당 실행 시간</p>
         <div class="cd-proj-write__slider-row">
           <input
             v-model.number="draftProject.duration"
             type="range"
-            min="15"
-            max="180"
-            step="15"
+            :min="timeRange.min"
+            :max="timeRange.max"
+            :step="timeRange.step"
             class="cd-proj-write__slider"
+            :aria-label="isPeriodDraft ? '하루 다니는 시간' : '1회 당 실행 시간'"
           />
-          <span class="cd-proj-write__duration-badge">{{ draftProject.duration }}분</span>
+          <span class="cd-proj-write__duration-badge">{{ isPeriodDraft ? formatMinutes(draftProject.duration ?? 0) : `${draftProject.duration}분` }}</span>
         </div>
         <div class="cd-proj-write__slider-labels">
-          <span>15분</span><span>3시간</span>
+          <span>{{ timeRange.minLabel }}</span><span>{{ timeRange.maxLabel }}</span>
         </div>
         <div class="cd-proj-write__tip">
-          <AppIcon name="ui-tip" /> 추천: 처음 시작할 때는 30-60분이 적당해요. 너무 긴 시간을 설정하면 부담스러울 수 있어요
+          <AppIcon name="ui-tip" />
+          <template v-if="isPeriodDraft">과정 시간은 속도(한 주에 낼 수 있는 시간)에 넣지 않아요</template>
+          <template v-else>추천: 처음 시작할 때는 30-60분이 적당해요. 너무 긴 시간을 설정하면 부담스러울 수 있어요</template>
         </div>
       </div>
 
@@ -177,10 +204,10 @@
         />
       </div>
 
-      <!-- 프로젝트 기간 -->
+      <!-- 프로젝트 기간(과정이면 다니는 기간 + 빠른 선택 — 4년을 +로 208번 누를 수는 없다) -->
       <div class="cd-proj-write__section">
-        <h3 class="cd-proj-write__label">프로젝트 기간</h3>
-        <p class="cd-proj-write__sub-label">몇 주차 계획으로 만들까요?</p>
+        <h3 class="cd-proj-write__label">{{ isPeriodDraft ? '다니는 기간' : '프로젝트 기간' }}</h3>
+        <p class="cd-proj-write__sub-label">{{ isPeriodDraft ? '몇 주 다니나요?' : '몇 주차 계획으로 만들까요?' }}</p>
         <div class="cd-proj-write__stepper">
           <button
             class="cd-proj-write__step-btn"
@@ -193,8 +220,17 @@
             @click="setWeeks(weeks + 1)"
           >+</button>
         </div>
+        <div v-if="isPeriodDraft" class="cd-proj-write__quick" role="group" aria-label="다니는 기간 빠른 선택">
+          <button
+            v-for="q in PERIOD_QUICK_WEEKS" :key="q.weeks" type="button"
+            class="cd-proj-write__quick-btn" :class="{ 'cd-proj-write__quick-btn--on': weeks === q.weeks }"
+            :aria-pressed="weeks === q.weeks" @click="setWeeks(q.weeks)"
+          >{{ q.label }}</button>
+        </div>
         <div class="cd-proj-write__tip">
-          <AppIcon name="ui-tip" /> 다음 화면에서 {{ weeks }}개 주차의 커리큘럼을 채워요. 기간은 언제든 다시 바꿀 수 있어요
+          <AppIcon name="ui-tip" />
+          <template v-if="isPeriodDraft">주차별 할 일은 없어요. 다음 화면에서 다니는 날의 이름과 점검을 정해요</template>
+          <template v-else>다음 화면에서 {{ weeks }}개 주차의 커리큘럼을 채워요. 기간은 언제든 다시 바꿀 수 있어요</template>
         </div>
       </div>
     </div>
@@ -212,7 +248,9 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUnsavedGuard } from '@/shared/composables/useUnsavedGuard'
 import { useCareerDesign } from '../composables/useCareerDesign'
-import { MIN_WEEKS, DEFAULT_WEEKS, clampWeeks } from '../composables/useProjectCurriculum'
+import { MIN_WEEKS, DEFAULT_WEEKS, clampWeeks, weekEntriesOf } from '../composables/useProjectCurriculum'
+import { PERIOD_MINUTES, PERIOD_QUICK_WEEKS, periodActiveWeeks } from '../lib/period'
+import { formatMinutes } from '@/modules/encyclopedia/lib/preparation'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { DayOfWeek, Priority, ProjectCategory } from '../types/career-design'
 import AppIcon from '@/shared/components/AppIcon.vue'
@@ -222,13 +260,42 @@ import {
 } from '../composables/projectMethods'
 
 const router = useRouter()
-const { draftPlan, draftProject } = useCareerDesign()
+const { draftPlan, draftProject, editingProjectId } = useCareerDesign()
 
 onMounted(() => {
   window.scrollTo(0, 0)
   // 서버는 weeks 를 저장하지 않는다(curriculum 만 왕복) → 수정 진입 시 커리큘럼 길이에서 되살린다.
-  draftProject.weeks = clampWeeks(draftProject.weeks ?? draftProject.curriculum?.length ?? DEFAULT_WEEKS)
+  // 과정은 다니는 주만 센다 — 쉬는 주(주간결산 '잠시 쉬어요')는 '다니는 방식' 저장 때 같은 자리에 다시 끼운다
+  draftProject.weeks = draftProject.period && draftProject.curriculum?.length
+    ? clampWeeks(periodActiveWeeks(draftProject))
+    : clampWeeks(draftProject.weeks ?? draftProject.curriculum?.length ?? DEFAULT_WEEKS)
 })
+
+// ── 프로젝트 종류(2026-11-16) — 진도(기본)·과정 ──
+const isPeriodDraft = computed(() => !!draftProject.period)
+const timeRange = computed(() => (isPeriodDraft.value
+  ? { min: PERIOD_MINUTES.min, max: PERIOD_MINUTES.max, step: PERIOD_MINUTES.step, minLabel: '1시간', maxLabel: '10시간' }
+  : { min: 15, max: 180, step: 15, minLabel: '15분', maxLabel: '3시간' }))
+function setKind(period: boolean) {
+  if (period === isPeriodDraft.value) return
+  if (period) {
+    // 진도 → 과정: 과정에는 주차별 할 일이 없다 — 적어 둔 것이 있으면 한 번 묻는다(정할 것 7)
+    const filled = (draftProject.curriculum ?? []).reduce((n, w) => n + weekEntriesOf(w).filter((t) => t.trim()).length, 0)
+    if (filled > 0 && !confirm(`주차별 할 일 ${filled}개가 사라져요. 과정은 할 일 없이 다니는 날 '완료'를 한 번 눌러요.\n과정으로 바꿀까요?`)) return
+    draftProject.period = true
+    draftProject.curriculum = []
+    const d = draftProject.duration ?? 0
+    draftProject.duration = d < PERIOD_MINUTES.min ? PERIOD_MINUTES.fallback : Math.min(PERIOD_MINUTES.max, d)
+    return
+  }
+  // 과정 → 진도: 빈 주차별 할 일로. 원래 과정이던 프로젝트를 고치는 중이면 '끔'을 남겨야 서버도 끈다
+  const was = editingProjectId.value ? draftPlan.projects.find((p) => p.id === editingProjectId.value)?.period : false
+  if (was) draftProject.period = false
+  else delete draftProject.period
+  delete draftProject.stoppedAt
+  draftProject.curriculum = []
+  if ((draftProject.duration ?? 0) > 180) draftProject.duration = 60
+}
 
 // 미저장 이탈 가드 (R2)
 const { bypass } = useUnsavedGuard(() => JSON.stringify(draftProject))
@@ -315,7 +382,8 @@ function goNext() {
   tried.value = true
   if (blocker.value) return
   bypass()
-  router.push('/career-design/project/curriculum')
+  // 과정은 주차별 할 일 대신 '다니는 방식'(오늘 할 일 이름·점검·단계)으로
+  router.push(isPeriodDraft.value ? '/career-design/project/period' : '/career-design/project/curriculum')
 }
 </script>
 
@@ -358,6 +426,33 @@ function goNext() {
   &__categories {
     display: flex;
     justify-content: space-around;
+  }
+
+  /* 프로젝트 종류(2026-11-16) — 하나만 고르니 동그라미(라디오) */
+  &__kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  &__kind {
+    display: grid; gap: 3px; padding: 12px; border: 1.5px solid #eee; border-radius: 14px; background: #fff;
+    font-family: inherit; text-align: left; cursor: pointer;
+    small { font-size: 11px; color: #aaa; }
+    &:focus-visible { outline: 2px solid var(--cat-color); outline-offset: 2px; }
+  }
+  &__kind-title { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 800; color: #333; }
+  &__kind-desc { font-size: 12px; color: #666; line-height: 1.4; }
+  &__kind-dot {
+    margin-left: auto; width: 17px; height: 17px; border-radius: 50%; border: 1.8px solid #cfd3d9; background: #fff; box-sizing: border-box;
+  }
+  &__kind--on { border-color: #222; }
+  &__kind--on &__kind-dot { border-color: #222; background: #222; box-shadow: inset 0 0 0 3.5px #fff; }
+  &__kind--period.cd-proj-write__kind--on { border-color: #8a5a00; background: #fffaf0; }
+  &__kind--period.cd-proj-write__kind--on .cd-proj-write__kind-title { color: #8a5a00; }
+  &__kind--period.cd-proj-write__kind--on .cd-proj-write__kind-dot { border-color: #8a5a00; background: #8a5a00; }
+
+  /* 다니는 기간 빠른 선택 */
+  &__quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  &__quick-btn {
+    padding: 7px 12px; border: 0; border-radius: 999px; background: #f3f3f5; color: #666;
+    font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+    &--on { background: #222; color: #fff; }
   }
 
   &__cat-item {

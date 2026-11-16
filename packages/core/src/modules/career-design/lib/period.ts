@@ -201,3 +201,84 @@ export function periodShrinkable(p: Pick<Project, 'curriculum'>, curIdx: number)
 
 /** 바뀐 뒤 과정이 몇 주가 되는지(미리보기 문장용) */
 export const periodLength = (p: Pick<Project, 'curriculum' | 'weeks'>) => p.weeks || p.curriculum?.length || 0
+
+// ── 직접 만드는 과정(2026-11-16 등록 화면 시안 https://claude.ai/artifact/P9wtbADjxPdderuXobLXe8 — 정할 것 1~7 결정) ──
+
+/** 하루 다니는 시간(분) — 진도의 1회 실행 시간(15분~3시간)과 달리 근무·수업을 담는다. 속도에는 넣지 않는다 */
+export const PERIOD_MINUTES = { min: 60, max: 600, step: 30, fallback: 240 }
+/** 다니는 기간 빠른 선택 */
+export const PERIOD_QUICK_WEEKS: { label: string; weeks: number }[] = [
+  { label: '1개월', weeks: 4 }, { label: '3개월', weeks: 13 }, { label: '6개월', weeks: 26 }, { label: '1년', weeks: 52 }, { label: '4년', weeks: 208 },
+]
+export const PERIOD_CHECK_MAX = 3
+export const END_TITLE = '정리'
+
+/**
+ * 진행 방식별 기본값 — 오늘 할 일 이름·결산 점검(다니는 동안/끝날 때)·시작 준비 주(이름·점검).
+ * 문장 원칙(⚠️ 사용자와 함께 고심 중 — 정할 것 5 "채워 두되 내용은 한번 고심해보자"):
+ *   · 내가 할 수 있는 것만(평가·합격처럼 남이 정하는 것은 넣지 않는다), 3개까지, 20자 안, 라이브러리와 같은 명사꼴
+ *   · 다니는 동안 = 기록(무엇을 했나) + 배움(무엇을 얻었나) — 나중에 자기소개서·포트폴리오 재료
+ *   · 끝날 때(마무리 주) = 증명(증명서·수료증·확인서 — 끝나면 받기 어렵다) + 옮기기(내 진로상황 경력·성과)
+ *   · 시작 준비 주 = 시작 전에 확인 안 하면 탈 나는 것(계약·일정·서류)
+ */
+export interface PeriodDefaults { label: string; during: string[]; end: string[]; startLabel: string; start: string[] }
+const KEEP = '내 진로상황에 경력 남기기'
+const PERIOD_DEFAULTS: Record<string, PeriodDefaults> = {
+  parttime:        { label: '근무', during: ['맡은 일과 성과 기록', '배운 점 정리'], end: ['경력 증명서 받기', KEEP], startLabel: '지원', start: ['근로계약서 쓰기', '근무 시간·임금 확인'] },
+  internship:      { label: '근무', during: ['맡은 업무·결과물 기록', '받은 피드백 정리', '현직자에게 진로 묻기'], end: ['수료증·추천서 확인', KEEP], startLabel: '지원', start: ['맡을 업무·목표 정하기', '계약·근무 조건 확인'] },
+  field_practice:  { label: '실습', during: ['실습 일지 쓰기', '인정 시간 확인', '지도자 피드백 정리'], end: ['실습 확인서 받기', '관심 분야 정리'], startLabel: '준비', start: ['실습 기관·일정 확인', '필요 서류 준비'] },
+  school:          { label: '수업', during: ['과제·시험 일정 확인', '학점·졸업 요건 확인', '다음 학기 수강 계획'], end: ['졸업·성적 증명서 받기', '내 진로상황 학교 고치기'], startLabel: '준비', start: ['수강 신청', '학사 일정 확인'] },
+  required_course: { label: '교육', during: ['출석·이수 시간 확인', '남은 이수 요건 확인'], end: ['수료증·이수증 받기', '자격 신청 일정 확인'], startLabel: '등록', start: ['교육 신청·등록', '비용·일정 확인'] },
+  academy:         { label: '수업', during: ['출석 확인', '배운 내용 정리', '모르는 것 질문하기'], end: ['수료증 받기', '만든 결과물 모으기'], startLabel: '등록', start: ['등록·일정 확인'] },
+  club:            { label: '활동', during: ['활동 기록', '맡은 역할 정리'], end: ['활동 증명 확인', KEEP], startLabel: '지원', start: ['지원·가입'] },
+  activity:        { label: '활동', during: ['활동 기록', '활동 시간 확인'], end: ['활동 확인서 받기', KEEP], startLabel: '지원', start: ['지원·신청'] },
+}
+const PERIOD_FALLBACK: PeriodDefaults = { label: '참여', during: [], end: [], startLabel: '준비', start: [] }
+/** 진행 방식 → 기본값(과정에 어울리지 않는 방식·미정이면 이름만 '참여') */
+export function periodDefaults(method?: string | null): PeriodDefaults {
+  const d = (method && PERIOD_DEFAULTS[method]) || PERIOD_FALLBACK
+  return { ...d, during: [...d.during], end: [...d.end], start: [...d.start] }
+}
+
+/** 단계 목록에서 늘리고 줄이는 단계 — 마지막 단계가 짧은 마무리(4주 이하·앞 단계보다 짧음)면 그 앞, 아니면 마지막 */
+export function stretchPhaseIndex(phases: { weeks: number }[]): number {
+  const n = phases.length
+  if (n < 2) return 0
+  const last = phases[n - 1]!.weeks
+  return last <= PREP_MAX && last < phases[n - 2]!.weeks ? n - 2 : n - 1
+}
+
+/**
+ * 과정 커리큘럼 → 단계(고치기 화면이 쓴다). 같은 이름이 이어진 주를 한 단계로 묶고(쉬는 주는 건너뜀),
+ * 그 단계의 점검 = 단계 안 점검 주들의 checks 를 합친 것(겹치면 한 번)
+ */
+export function phasesFromCurriculum(cur: WeekCurriculum[] = []): PeriodPhase[] {
+  const out: PeriodPhase[] = []
+  let prevTitle: string | null = null
+  for (const w of cur) {
+    if (w.pause) continue
+    const last = out[out.length - 1]
+    if (last && prevTitle === w.title) last.weeks += 1
+    else out.push({ weeks: 1, title: w.title, items: [] })
+    prevTitle = w.title
+    const cur2 = out[out.length - 1]!
+    for (const c of w.checks ?? []) if (!cur2.items.includes(c)) cur2.items.push(c)
+  }
+  return out
+}
+
+/**
+ * 단계 → 커리큘럼(저장). 예전 커리큘럼에 쉬는 주(주간결산 '잠시 쉬어요')가 있었으면 같은 주차에 다시 끼운다 —
+ * 고치기 화면에서 이름·점검만 고쳐도 쉬는 주가 사라지지 않게
+ */
+export function rebuildPeriodCurriculum(phases: PeriodPhase[], old: WeekCurriculum[] = []): WeekCurriculum[] {
+  const base = periodCurriculum(phases.filter((ph) => ph.title.trim()).map((ph) => ({ ...ph, title: ph.title.trim(), items: ph.items.map((x) => x.trim()).filter(Boolean) })))
+  const pauses = old.filter((w) => w.pause).map((w) => w.week).sort((a, b) => a - b)
+  if (!pauses.length) return base
+  const list = [...base]
+  for (const wk of pauses) {
+    const at = Math.min(Math.max(0, wk - 1), list.length)
+    list.splice(at, 0, { week: 0, title: PAUSE_TITLE, items: [], pause: true })
+  }
+  return list.map((c, i) => ({ ...c, week: i + 1 }))
+}

@@ -59,6 +59,12 @@ export default [
     component: () => import('./pages/CareerDesignProjectCurriculumPage.vue'),
   },
   {
+    // 과정 프로젝트의 둘째 화면(2026-11-16) — 주차별 할 일 대신 '다니는 방식'(오늘 할 일 이름·기간·결산 점검). ⚠️ :id 보다 위에
+    path: '/career-design/project/period',
+    name: 'Career Design Project Period',
+    component: () => import('./pages/CareerDesignProjectPeriodPage.vue'),
+  },
+  {
     path: '/career-design/project/:id',
     name: 'Career Design Project Detail',
     component: () => import('./pages/CareerDesignProjectDetailPage.vue'),

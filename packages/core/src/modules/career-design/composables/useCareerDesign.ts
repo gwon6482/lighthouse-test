@@ -1476,6 +1476,8 @@ export function useCareerDesign() {
     ...(p.course ? { course: true } : {}), ...(p.during ? { during: true } : {}),
     // 프로젝트 종류 '과정'(2026-11-16) — 집중모드 없이 '완료' 한 번, 속도와 상관없이 기간 그대로. 그만둔 날은 주간결산이 적는다
     ...(p.period ? { period: true } : {}), ...(p.stoppedAt ? { stoppedAt: p.stoppedAt } : {}),
+    // 고치기에서 과정 → 진도로 바꾸면 false 가 온다 — 서버는 false 를 받아야 끈다(projectSettings partial)
+    ...(p.period === false ? { period: false } : {}),
   })
 
   // STEP2: 프로젝트 추가
@@ -1702,6 +1704,11 @@ export function useCareerDesign() {
     draftProject.curriculum = []
     draftProject.method = null
     draftProject.methodDetail = {}
+    // 템플릿·과정 표시(2026-11-16) — 고치던 프로젝트의 표시가 새 프로젝트에 따라붙지 않게
+    delete draftProject.period
+    delete draftProject.stoppedAt
+    delete draftProject.course
+    delete draftProject.during
   }
 
   return {

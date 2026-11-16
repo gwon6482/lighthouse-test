@@ -214,6 +214,8 @@ async function saveProject() {
     // ⚠️ 필드를 하나씩 옮겨 담는 곳이다 — Project 에 필드를 늘리면 여기도 넣을 것(진행 방식이 한 번 빠졌었다)
     method: draftProject.method ?? null,
     methodDetail: { ...(draftProject.methodDetail ?? {}) },
+    // 고치기에서 과정 → 진도로 바꾼 것(2026-11-16) — 끈다는 값을 실어야 서버도 끈다. 그 밖엔 싣지 않는다
+    ...(draftProject.period === false ? { period: false as const } : {}),
   }
 
   if (editingProjectId.value) {

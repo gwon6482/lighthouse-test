@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyPeriodChange, isPeriod, periodActiveWeeks, periodCheckWeeks, periodCurriculum, periodWeekInfo, PAUSE_TITLE,
+  periodDefaults, phasesFromCurriculum, rebuildPeriodCurriculum,
 } from '../lib/period'
 import type { Project } from '../types/career-design'
 
@@ -121,5 +122,44 @@ describe('과정 — 주간결산에서 일정 바꾸기', () => {
     applyPeriodChange(p, { kind: 'end', weeks: -2 }, 2, '2026-11-20')
     expect(p.curriculum).toHaveLength(14)
     expect(p.curriculum![13]!.checks).toEqual(PARTTIME[2]!.items)
+  })
+})
+
+describe('과정 — 직접 만들고 고치기(등록 화면)', () => {
+  it('진행 방식별 기본값 — 아르바이트는 근무, 모르는 방식은 이름만', () => {
+    expect(periodDefaults('parttime')).toMatchObject({ label: '근무', startLabel: '지원' })
+    expect(periodDefaults('parttime').during.length).toBeGreaterThan(0)
+    expect(periodDefaults('book')).toEqual({ label: '참여', during: [], end: [], startLabel: '준비', start: [] })
+    // 돌려준 목록을 고쳐도 표가 바뀌지 않는다
+    periodDefaults('parttime').during.push('x')
+    expect(periodDefaults('parttime').during).not.toContain('x')
+  })
+  it('기본 점검 문장은 3개 이하·20자 이하', () => {
+    for (const m of ['parttime', 'internship', 'field_practice', 'school', 'required_course', 'academy', 'club', 'activity']) {
+      const d = periodDefaults(m)
+      for (const list of [d.during, d.end, d.start]) {
+        expect(list.length).toBeLessThanOrEqual(3)
+        for (const s of list) expect(s.length).toBeLessThanOrEqual(20)
+      }
+    }
+  })
+  it('커리큘럼 → 단계: 예시 계획의 찾기·근무·정리가 그대로 되살아난다', () => {
+    const phases = phasesFromCurriculum(periodCurriculum(PARTTIME))
+    expect(phases).toEqual(PARTTIME)
+  })
+  it('쉬는 주는 단계에서 빠지고, 다시 저장하면 같은 주차에 남는다', () => {
+    const paused = applyPeriodChange(project(), { kind: 'pause', weeks: 2 }, 7, '2026-11-20')
+    const phases = phasesFromCurriculum(paused.curriculum)
+    expect(phases.map((ph) => [ph.title, ph.weeks])).toEqual([['찾기', 1], ['근무', 12], ['정리', 1]])
+    phases[1]!.title = '카페 근무'
+    const again = rebuildPeriodCurriculum(phases, paused.curriculum)
+    expect(again).toHaveLength(16)
+    expect(again.filter((w) => w.pause).map((w) => w.week)).toEqual([8, 9])
+    expect(again[9]).toMatchObject({ week: 10, title: '카페 근무' })
+  })
+  it('이름을 비운 단계는 저장하지 않고, 점검의 빈 줄은 버린다', () => {
+    const cur = rebuildPeriodCurriculum([{ weeks: 2, title: ' ', items: [] }, { weeks: 3, title: '근무', items: ['기록', ' '] }])
+    expect(cur).toHaveLength(3)
+    expect(cur[2]).toMatchObject({ title: '근무', checks: ['기록'] })
   })
 })

@@ -40,7 +40,7 @@
             :style="{ background: currentColors.chipBg }"
           >
             <span class="cd-projects__chip-name" :style="{ color: currentColors.chipText }">
-              {{ project.name }}
+              <PeriodTag v-if="project.period" /> {{ project.name }}
               <!-- 진행 방식(🧪 시안) — 템플릿·예전 프로젝트는 없을 수 있다 → 고치기에서 고르게 안내 -->
               <small v-if="methodDef(project.method)" class="cd-projects__chip-method"><AppIcon :name="methodIcon(project.method)" /> {{ methodDef(project.method)!.label }}<template v-if="methodSummary(project)"> · {{ methodSummary(project) }}</template></small>
               <small v-else class="cd-projects__chip-method cd-projects__chip-method--missing" @click="editProject(project)">진행 방식을 정해주세요 <AppIcon name="ui-chevron-right" /></small>
@@ -105,6 +105,7 @@ import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { DEFAULT_WEEKS } from '../composables/useProjectCurriculum'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
+import PeriodTag from '../components/PeriodTag.vue'
 import CdStepIndicator from '../components/CdStepIndicator.vue'
 import { useDesignSteps } from '../composables/useDesignSteps'
 import CdHelperSuggest from '../components/CdHelperSuggest.vue'
