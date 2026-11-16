@@ -93,8 +93,10 @@
               <span class="cd-tpl__project-main">
                 <span class="cd-tpl__project-top">
                   <span class="cd-tpl__project-cat" :style="{ background: COLORS[p.category].bg, color: COLORS[p.category].text }">{{ LABEL[p.category] }}</span>
-                  <span v-if="p.course" class="cd-tpl__project-tag">정해진 과정</span>
-                  <span v-else-if="p.during" class="cd-tpl__project-tag">과정 중에</span>
+                  <!-- 프로젝트 종류 '과정'(2026-11-16) — 진도(기본)는 꼬리표 없음 -->
+                  <PeriodTag v-if="p.period" />
+                  <span v-else-if="p.course" class="cd-tpl__project-tag">정해진 과정</span>
+                  <span v-if="p.during" class="cd-tpl__project-tag">과정 중에</span>
                   <span class="cd-tpl__project-meta">{{ formatWeeks(p.curriculum?.length ?? 0) }} · 주 {{ p.days.length }}회 {{ p.duration }}분</span>
                 </span>
                 <span class="cd-tpl__project-name">{{ p.name }}</span>
@@ -175,6 +177,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
+import PeriodTag from '../components/PeriodTag.vue'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { loadLibraryPlan } from '../composables/useHelperExamples'
 import { buildPlanTemplates, buildSituationTemplate, type HaveTarget, type PlanTemplate } from '../composables/usePlanTemplates'

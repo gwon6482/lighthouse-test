@@ -322,6 +322,11 @@ export const ICONS: Record<string, IconDef> = {
     "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2.5 21.5h5v-4h5v-4h5v-4h4\"/><path d=\"M20 9.5v-7h-5.5l1.5 2-1.5 2H20\"/></g>",
     "bg": null
   },
+  "kind-period": {
+    "viewBox": "0 0 24 24",
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3.5 6.5v11M20.5 6.5v11M3.5 12h17\"/><path d=\"M9 9.5v5M15 9.5v5\" stroke-width=\"1.6\"/></g>",
+    "bg": null
+  },
   "method-academy": {
     "viewBox": "0 0 24 24",
     "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"12\" rx=\"1.5\"/><path d=\"M7 7.5h6M7 11h9\"/><path d=\"m8 15-2 6M16 15l2 6\"/></g>",

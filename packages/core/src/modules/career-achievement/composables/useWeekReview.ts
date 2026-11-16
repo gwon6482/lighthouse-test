@@ -1,19 +1,20 @@
 // 주간결산(2026-10-30 시안) — 5단계 화면이 같이 쓰는 데이터.
 // 결산 대상 주 = 시작 요일이 오늘이면 어제까지의 한 주, 아니면 오늘이 든 주(시작 요일 전날 결산).
 // ⚠️ 시안: 평가·템포 변경은 아직 저장하지 않는다(4단계 API 작업 때). 단계를 오가도 값이 남게 모듈 상태로 둔다.
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { usePlanBoard } from './usePlanBoard'
 import { useAchievementEntries } from './useAchievementEntries'
 import { computeWeekRangeContaining, parseDateKey, toDateKey } from './useWeeklySchedule'
-import { weekOfDate, projectStartWeek, planWeekCount, weekDateRange } from '@/modules/career-design/composables/usePlanTimeline'
+import { weekOfDate, projectStartWeek, planWeekCount, weekDateRange, duringOwners } from '@/modules/career-design/composables/usePlanTimeline'
 import { weekEntriesOf } from '@/modules/career-design/composables/useProjectCurriculum'
 import { PACES, paceOfHours, paceByKey, rescheduleFrom, DEFAULT_PACE_HOURS, type Pace } from '@/modules/career-design/composables/usePlanPace'
+import { applyPeriodChange, periodWeekInfo, type PeriodChange, type PeriodWeekInfo } from '@/modules/career-design/lib/period'
 import { req } from '@/shared/api'
 import { useAchievementStore } from '@/shared/stores/achievement'
-import { putWeeklyReview } from '../achievement.api'
+import { fetchWeeklyReview, putWeeklyReview, type WeeklyReviewDto } from '../achievement.api'
 import { reviewState } from './useReviewState'
 import { categoryColor } from '../lib/planBoard'
-import type { DayOfWeek, TimelineSlot } from '@/modules/career-design/types/career-design'
+import type { DayOfWeek, Project, TimelineSlot } from '@/modules/career-design/types/career-design'
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -25,6 +26,25 @@ export const reviewDraft = reactive({
   feel: '' as '' | 'tight' | 'fit' | 'loose', // 이번 주 속도 느낌
   paceKey: '' as string,                       // 다음 주부터 쓸 속도
 })
+
+// 과정(2026-11-16, 정할 것 1번) — 결산 3단계의 과정 카드마다 점검·일정 입력. 단계를 오가도 남게 모듈 상태
+export type PeriodKind = PeriodChange['kind']
+export interface PeriodDraft { checked: string[]; changed: boolean; kind: PeriodKind | ''; endDelta: number; pauseWeeks: number; days: DayOfWeek[] }
+export const periodDrafts = reactive<Record<string, PeriodDraft>>({})
+/** 그 과정의 결산 입력(없으면 만든다) — 반응형 객체를 돌려준다(카드가 바로 고친다) */
+export function periodDraftOf(p: Project): PeriodDraft {
+  if (!periodDrafts[p.id]) periodDrafts[p.id] = { checked: [], changed: false, kind: '', endDelta: 0, pauseWeeks: 2, days: [...p.days] }
+  return periodDrafts[p.id]!
+}
+export interface PeriodCard {
+  project: Project
+  idx: number                 // 결산하는 주가 그 과정의 몇 주째인지(1부터)
+  info: PeriodWeekInfo | null // '근무 6/12주'
+  checks: string[]            // 이번 주 점검(지난주에 못 한 것 포함)
+  carried: number             // 그 가운데 지난주에서 넘어온 것
+  startWeek: number
+  endWeek: number             // 지금 일정으로 끝나는 계획 주차
+}
 
 export function useWeekReview() {
   const board = usePlanBoard()
@@ -111,6 +131,89 @@ export function useWeekReview() {
   })
   const totalWeeks = computed(() => (plan.value ? planWeekCount(plan.value.startDate, plan.value.endDate, plan.value.reviewDay) : 0))
 
+  // 다음 주(결산 뒤 바뀜이 적용되는 첫 주)
+  const nextWeek = computed(() => (weekNo.value ?? 0) + 1)
+
+  // ── 3. 과정 카드(2026-11-16) — 결산하는 주에 진행 중인 과정마다: 점검 + 일정(그대로/바뀜) ──
+  // 지난주 결산 — 그때 체크하지 못한 점검을 이번 주에 한 번 더 묻는다(결산을 건너뛰었으면 지난주 점검 전부)
+  const prevReview = ref<WeeklyReviewDto | null>(null)
+  watch([() => plan.value?.planId, weekNo], async ([planId, wk]) => {
+    prevReview.value = null
+    const pl = plan.value
+    if (!planId || !pl || !wk || wk < 2) return
+    const prev = weekDateRange(pl.startDate, wk - 1, pl.reviewDay)
+    if (prev) prevReview.value = await fetchWeeklyReview(planId, prev.start).catch(() => null)
+  }, { immediate: true })
+
+  const periodCards = computed<PeriodCard[]>(() => {
+    const pl = plan.value; const wk = weekNo.value
+    if (!pl || !wk) return []
+    const out: PeriodCard[] = []
+    for (const p of pl.projects) {
+      if (!p.period || p.stoppedAt) continue
+      const sw = projectStartWeek(pl.timeline, p.id)
+      const len = p.curriculum?.length ?? 0
+      if (sw === null || !len) continue
+      const idx = wk - sw + 1
+      if (idx < 1 || idx > len) continue
+      const here = p.curriculum!.find((c) => c.week === idx)?.checks ?? []
+      const asked = p.curriculum!.find((c) => c.week === idx - 1)?.checks ?? []
+      const done = prevReview.value?.periodChecks?.find((c) => c.projectId === p.id)?.done ?? []
+      const carried = asked.filter((x) => !done.includes(x) && !here.includes(x))
+      out.push({ project: p, idx, info: periodWeekInfo(p, idx), checks: [...here, ...carried], carried: carried.length, startWeek: sw, endWeek: sw + len - 1 })
+    }
+    return out
+  })
+  function changeOf(d: PeriodDraft): PeriodChange | null {
+    if (!d.changed) return null
+    if (d.kind === 'end') return d.endDelta ? { kind: 'end', weeks: d.endDelta } : null
+    if (d.kind === 'pause') return d.pauseWeeks > 0 ? { kind: 'pause', weeks: d.pauseWeeks } : null
+    if (d.kind === 'days') return d.days.length ? { kind: 'days', days: [...d.days] } : null
+    if (d.kind === 'stop') return { kind: 'stop' }
+    return null
+  }
+  // 바뀐 일정을 반영한 프로젝트들 — 미리보기·속도 재배치·저장이 모두 이것을 쓴다
+  const periodChanges = computed(() => {
+    const r = range.value
+    const list: { before: Project; after: Project; change: PeriodChange }[] = []
+    for (const c of periodCards.value) {
+      const d = periodDrafts[c.project.id]
+      const ch = d ? changeOf(d) : null
+      if (ch) list.push({ before: c.project, after: applyPeriodChange(c.project, ch, c.idx, r?.weekEnd ?? toDateKey(today.value)), change: ch })
+    }
+    return list
+  })
+  const projectsNow = computed<Project[]>(() => {
+    const pl = plan.value
+    if (!pl) return []
+    const changed = new Map(periodChanges.value.map((x) => [x.after.id, x.after]))
+    return pl.projects.map((p) => changed.get(p.id) ?? p)
+  })
+  // 학교 과정이 늘거나 쉬면 그 과정 끝에 맞춰 놓인 '과정 중에' 프로젝트(아직 시작 전)도 같은 만큼 옮긴다
+  const timelineNow = computed<TimelineSlot[]>(() => {
+    const pl = plan.value
+    if (!pl) return []
+    const shift = new Map<string, number>()
+    for (const { before, after } of periodChanges.value) {
+      const d = (after.curriculum?.length ?? 0) - (before.curriculum?.length ?? 0)
+      if (d && !after.stoppedAt) shift.set(after.id, d)
+    }
+    if (!shift.size) return pl.timeline
+    const owners = duringOwners(projectsNow.value)
+    const starts: { id: string; week: number; p: Project }[] = []
+    for (const sl of pl.timeline) for (const p of sl.projects) starts.push({ id: p.id, week: sl.week, p })
+    const slots: TimelineSlot[] = []
+    for (const s of starts) {
+      const o = owners.get(s.id)
+      const move = o && s.week >= nextWeek.value ? (shift.get(o.id) ?? 0) : 0
+      const week = s.week + move
+      let sl = slots.find((x) => x.week === week)
+      if (!sl) { sl = { week, projects: [] }; slots.push(sl) }
+      sl.projects.push(s.p)
+    }
+    return slots.sort((a, b) => a.week - b.week)
+  })
+
   // ── 4. 템포 ──
   // ⚠️ 계획의 속도는 서버에 저장되지 않는다(paceKey 는 설계 중 로컬만) — 시안은 프로젝트 주당 시간 합으로 짐작하고, 모르면 '꾸준히'
   // ⚠️ 2026-10-29 서버 수정 전 계획은 프로젝트 시간이 0분 — 그대로 계산하면 '시간이 안 드는 프로젝트'가 돼서
@@ -121,8 +224,9 @@ export function useWeekReview() {
     const pl = plan.value
     const wk = weekNo.value
     if (!pl || !wk) return 0
-    // 결산한 주에 동시에 진행한 프로젝트들의 주당 시간 합
+    // 결산한 주에 동시에 진행한 프로젝트들의 주당 시간 합 — 과정(학교·근무)은 속도와 상관없어 세지 않는다(2026-11-16)
     const active = pl.projects.filter((p) => {
+      if (p.period) return false
       const sw = projectStartWeek(pl.timeline, p.id)
       return sw !== null && sw <= wk && wk <= sw + (p.curriculum?.length || 2) - 1
     })
@@ -137,16 +241,32 @@ export function useWeekReview() {
     if (!h) return paceOfHours(DEFAULT_PACE_HOURS)!
     return [...PACES].sort((a, b) => Math.abs(a.hours - h) - Math.abs(b.hours - h))[0]!
   })
-  // 다음 주부터 남은 프로젝트를 그 속도로 다시 배치하면 언제 끝나는가
-  const nextWeek = computed(() => (weekNo.value ?? 0) + 1)
-  // 그 속도로 다음 주부터 다시 배치하면(이미 시작한 프로젝트는 그대로) — 미리보기와 실제 적용이 같은 계산을 쓴다
+  // 그 속도로 다음 주부터 다시 배치하면(이미 시작한 프로젝트는 그대로) — 미리보기와 실제 적용이 같은 계산을 쓴다.
+  // 과정 일정을 바꿨으면(3단계) 바뀐 과정을 넣고 계산한다. moved = 시작 주가 달라지는 프로젝트 수(지금 배치와 비교)
   function endIfPace(pace: Pace) {
     const pl = plan.value
-    if (!pl) return { endDate: '', weeks: 0, remaining: 0, timeline: [] as TimelineSlot[] }
-    const r = rescheduleFrom(pl.projects, pl.timeline, nextWeek.value, pace.hours)
+    if (!pl) return { endDate: '', weeks: 0, remaining: 0, moved: 0, timeline: [] as TimelineSlot[] }
+    const r = rescheduleFrom(projectsNow.value, timelineNow.value, nextWeek.value, pace.hours)
     const remaining = pl.projects.filter((p) => { const sw = projectStartWeek(pl.timeline, p.id); return sw === null || sw >= nextWeek.value }).length
     const end = weekDateRange(pl.startDate, r.endWeek, pl.reviewDay)?.end ?? ''
-    return { endDate: end, weeks: r.endWeek, remaining, timeline: r.timeline }
+    const moved = pl.projects.filter((p) => {
+      const was = projectStartWeek(pl.timeline, p.id)
+      const now = projectStartWeek(r.timeline, p.id)
+      return was !== null && was >= nextWeek.value && now !== was
+    }).length
+    return { endDate: end, weeks: r.endWeek, remaining, moved, timeline: r.timeline }
+  }
+  // 과정 카드의 한 줄 미리보기 — 지금 속도 기준(4단계에서 속도를 바꾸면 거기서 다시 보여 준다)
+  function periodPreview(id: string): { endFrom: number; endTo: number; moved: number; planEndFrom: string; planEndTo: string } | null {
+    const pl = plan.value
+    const card = periodCards.value.find((c) => c.project.id === id)
+    const pc = periodChanges.value.find((x) => x.after.id === id)
+    if (!pl || !card || !pc) return null
+    const after = endIfPace(currentPace.value)
+    return {
+      endFrom: card.endWeek, endTo: card.startWeek + (pc.after.curriculum?.length ?? 0) - 1,
+      moved: after.moved, planEndFrom: currentEnd.value, planEndTo: after.endDate,
+    }
   }
   // 지금 실제 타임라인이 끝나는 날 — 비교 기준(같은 속도로 '다시 계산한 날'과 비교하면 실제 배치와 어긋나
   // 아무것도 안 바뀌는데 '늦어져요'로 나왔다, 2026-10-30)
@@ -192,12 +312,22 @@ export function useWeekReview() {
     if (!pl || !r) return false
     const from = currentPace.value
     const changed = pace.key !== from.key
+    const periodList = periodChanges.value
     const beforeEnd = currentEnd.value; const after = endIfPace(pace)
-    if (changed) {
+    // 과정 일정(2026-11-16) — 바뀐 과정을 먼저 저장한다(서버는 커리큘럼·요일이 바뀌면 이번 주부터 일정을 새로 만든다)
+    for (const { after: p } of periodList) {
+      await req.put(`/api/career-plan/${pl.planId}/projects/${p.id}`, {
+        curriculum: p.curriculum, days: p.days, ...(p.stoppedAt ? { stoppedAt: p.stoppedAt } : {}),
+      })
+    }
+    if (changed || periodList.length) {
       // 1) 남은 프로젝트 재배치 → 2) 계획에 속도·종료일. 종료일은 예상 완료일이라 재배치 결과 그대로(당겨질 수도 있다, 2026-11-04~)
       //    서버는 타임라인·기간이 바뀌면 이번 주부터 일정을 새로 만든다
       await req.put(`/api/career-plan/${pl.planId}/timeline`, { timeline: after.timeline })
-      await req.put(`/api/career-plan/${pl.planId}`, { paceKey: pace.key, paceHours: pace.hours, ...(after.endDate ? { endDate: after.endDate } : {}) })
+      await req.put(`/api/career-plan/${pl.planId}`, {
+        ...(changed ? { paceKey: pace.key, paceHours: pace.hours } : !pl.paceKey ? { paceKey: from.key, paceHours: from.hours } : {}),
+        ...(after.endDate ? { endDate: after.endDate } : {}),
+      })
     } else if (!pl.paceKey) {
       await req.put(`/api/career-plan/${pl.planId}`, { paceKey: from.key, paceHours: from.hours }).catch(() => {}) // 예전 계획: 짐작한 속도를 저장해 둔다
     }
@@ -205,7 +335,16 @@ export function useWeekReview() {
       complete: true, weekEnd: r.weekEnd, weekNo: weekNo.value ?? undefined,
       satisfaction: reviewDraft.satisfaction, note: reviewDraft.note, pledge: reviewDraft.pledge, feel: reviewDraft.feel,
       paceFrom: from.key, paceTo: pace.key,
-      endDateFrom: changed ? beforeEnd : '', endDateTo: changed ? after.endDate : '',
+      endDateFrom: changed || periodList.length ? beforeEnd : '', endDateTo: changed || periodList.length ? after.endDate : '',
+      // 과정 점검·일정 변경 기록(2026-11-16)
+      periodChecks: periodCards.value.filter((c) => c.checks.length).map((c) => ({
+        projectId: c.project.id, week: c.idx, items: c.checks, done: (periodDrafts[c.project.id]?.checked ?? []).filter((x) => c.checks.includes(x)),
+      })),
+      periodChanges: periodList.map(({ after: p, before, change }) => ({
+        projectId: p.id, name: before.name, kind: change.kind,
+        weeks: change.kind === 'end' || change.kind === 'pause' ? change.weeks : 0,
+        ...(change.kind === 'days' ? { days: change.days } : {}),
+      })),
       stats: {
         planned: planned.value, done: done.value, percent: percent.value, fullDays: fullDays.value, workDays: workDays.value,
         minutes: minutes.value, photos: photos.value, streak: board.streak.value,
@@ -214,7 +353,8 @@ export function useWeekReview() {
     })
     reviewState(pl.planId, r.weekStart).markDone()
     Object.assign(reviewDraft, { satisfaction: 0, note: '', pledge: '', feel: '', paceKey: '' })
-    if (changed) await store.loadActivePlan(true)
+    for (const k of Object.keys(periodDrafts)) delete periodDrafts[k]
+    if (changed || periodList.length) await store.loadActivePlan(true)
     return true
   }
 
@@ -226,5 +366,6 @@ export function useWeekReview() {
     weekGain, beforePercent,
     weeklyHours, currentPace, recommendedPace, endIfPace, nextWeek, currentEnd,
     nextDays,
+    periodCards, periodChanges, periodPreview,
   }
 }

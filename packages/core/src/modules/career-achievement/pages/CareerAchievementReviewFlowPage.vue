@@ -68,6 +68,11 @@
       <!-- 3. 스스로 평가 -->
       <section v-else-if="step === 3" class="wv-page">
         <h1 class="wv-title">이번 주는 어땠나요?</h1>
+        <!-- 과정(2026-11-16) — 진행 중인 과정마다 점검 + 일정. 바꾼 일정은 마칠 때 적용 -->
+        <PeriodReviewCard
+          v-for="c in periodCards" :key="c.project.id"
+          :card="c" :preview="periodPreview(c.project.id)" :week-label="weekLabel"
+        />
         <div class="wv-sat" role="radiogroup" aria-label="만족도">
           <button
             v-for="s in SATISFACTION" :key="s.v" type="button" class="wv-sat__btn"
@@ -108,14 +113,15 @@
             </li>
           </ul>
           <!-- 바뀌는 내용을 먼저 알려 준다(사용자: 전체 계획이 수정되니 알려 줘야 한다) -->
-          <div class="wv-impact" :class="{ 'wv-impact--same': chosenKey === currentPace.key }">
-            <template v-if="chosenKey === currentPace.key">
+          <div class="wv-impact" :class="{ 'wv-impact--same': samePlan }">
+            <template v-if="samePlan">
               <strong>지금 속도를 유지해요</strong>
               <p>계획은 그대로예요. 지금 속도로 가면 {{ ymd(baseline.endDate) }}쯤 끝나요.</p>
             </template>
             <template v-else>
               <strong>전체 계획이 다시 짜여요</strong>
-              <p>아직 시작 안 한 프로젝트 {{ impact.remaining }}개를 {{ nextWeek }}주차부터 '{{ chosen.title }}' 속도로 다시 배치해요. 진행 중인 프로젝트는 그대로예요.</p>
+              <p v-if="chosenKey !== currentPace.key">아직 시작 안 한 프로젝트 {{ impact.remaining }}개를 {{ nextWeek }}주차부터 '{{ chosen.title }}' 속도로 다시 배치해요. 진행 중인 프로젝트<template v-if="periodNames">와 과정({{ periodNames }})</template>은 그대로예요.</p>
+              <p v-else>3단계에서 바꾼 과정 일정에 맞춰 아직 시작 안 한 프로젝트를 {{ nextWeek }}주차부터 다시 배치해요. 속도는 그대로예요.</p>
               <p class="wv-impact__date">완료 예정 {{ ymd(baseline.endDate) }} → <b>{{ ymd(impact.endDate) }}</b> <em>{{ diffLabel }}</em></p>
               <p class="wv-impact__note">마지막 단계에서 [다음 주 시작하기]를 누르면 적용돼요.</p>
             </template>
@@ -151,7 +157,9 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { useWeekReview, reviewDraft } from '../composables/useWeekReview'
+import PeriodReviewCard from '../components/PeriodReviewCard.vue'
 import { PACES } from '@/modules/career-design/composables/usePlanPace'
+import { weekDateRange } from '@/modules/career-design/composables/usePlanTimeline'
 import { parsePlanDate, daysBetween } from '../lib/planBoard'
 
 const route = useRoute()
@@ -163,7 +171,17 @@ const {
   days, planned, done, percent, fullDays, workDays, minutes, photos, headline,
   weekGain, beforePercent,
   currentPace, recommendedPace, endIfPace, nextWeek, nextDays, finishReview, currentEnd,
+  periodCards, periodChanges, periodPreview,
 } = useWeekReview()
+// 계획 주차 → 그 주 마지막 날 'M/D'(과정 카드의 끝 예정)
+function weekLabel(week: number): string {
+  const pl = plan.value
+  const r = pl ? weekDateRange(pl.startDate, week, pl.reviewDay) : null
+  const d = r ? parsePlanDate(r.end) : null
+  return d ? `${d.getMonth() + 1}/${d.getDate()}` : ''
+}
+// 진행 중인 과정 이름 — 속도를 바꿔도 그대로라고 알려 준다
+const periodNames = computed(() => periodCards.value.map((c) => c.project.name).join(', '))
 
 const SATISFACTION = [
   { v: 1 as const, label: '아쉬워요' }, { v: 2 as const, label: '조금 아쉬워요' }, { v: 3 as const, label: '보통이에요' },
@@ -179,6 +197,8 @@ function pickFeel(k: 'tight' | 'fit' | 'loose') {
 const chosenKey = computed(() => reviewDraft.paceKey || recommendedPace.value.key)
 const chosen = computed(() => PACES.find((p) => p.key === chosenKey.value)!)
 const impact = computed(() => endIfPace(chosen.value))
+// 속도도 그대로이고 과정 일정도 그대로면 계획이 바뀌지 않는다
+const samePlan = computed(() => chosenKey.value === currentPace.value.key && !periodChanges.value.length)
 const ymd = (s?: string) => { const d = parsePlanDate(s); return d ? `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}` : '-' }
 // 비교 기준 = 지금 속도로 남은 프로젝트를 다시 놓았을 때(같은 계산끼리 비교해야 늦어짐/빨라짐이 맞다)
 const baseline = computed(() => ({ endDate: currentEnd.value }))
@@ -196,8 +216,9 @@ const saving = ref(false)
 async function finish() {
   if (saving.value) return
   const changed = chosen.value.key !== currentPace.value.key
-  // 속도를 바꾸면 계획 전체가 다시 짜인다 — 한 번 더 알려 주고 확인(사용자: 알려 줘야 한다)
-  if (changed && !confirm(`속도를 '${chosen.value.title}'(으)로 바꾸면 남은 프로젝트 ${impact.value.remaining}개가 다시 배치되고\n완료 예정이 ${ymd(baseline.value.endDate)} → ${ymd(impact.value.endDate)}로 바뀌어요.\n적용할까요?`)) return
+  // 속도·과정 일정을 바꾸면 계획 전체가 다시 짜인다 — 한 번 더 알려 주고 확인(사용자: 알려 줘야 한다)
+  const what = [changed ? `속도를 '${chosen.value.title}'(으)로` : '', periodChanges.value.length ? `과정 일정(${periodChanges.value.map((x) => x.before.name).join(', ')})을` : ''].filter(Boolean).join(', ')
+  if (what && !confirm(`${what} 바꾸면 남은 계획이 다시 배치되고\n완료 예정이 ${ymd(baseline.value.endDate)} → ${ymd(impact.value.endDate)}로 바뀌어요.\n적용할까요?`)) return
   saving.value = true
   try {
     await finishReview(chosen.value)

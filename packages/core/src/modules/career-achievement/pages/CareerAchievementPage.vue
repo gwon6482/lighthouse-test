@@ -74,11 +74,12 @@
             <span class="ah-task__chip" :style="t.chipStyle"><AppIcon :name="t.icon" /></span>
             <div class="ah-task__body">
               <span v-if="i === 0" class="ah-task__eyebrow">지금 할 일</span>
-              <span class="ah-task__name">{{ t.name }}</span>
+              <span class="ah-task__name"><PeriodTag v-if="t.type === 'period'" /> {{ t.name }}</span>
               <span class="ah-task__focus">{{ t.sub }}</span>
             </div>
             <button v-if="t.type === 'project'" type="button" class="ah-task__btn" @click="startProject(t.project!)">시작</button>
-            <button v-else type="button" class="ah-task__check" :aria-pressed="false" @click="toggleRoutine(t.id)">완료</button>
+            <!-- 루틴·과정(2026-11-16)은 집중모드 없이 '완료' 한 번 -->
+            <button v-else type="button" class="ah-task__check" :aria-pressed="false" @click="toggleRow(t)">완료</button>
           </li>
         </ul>
         <button v-if="hiddenCount" type="button" class="ah-today__more" @click="showAll = true">+{{ hiddenCount }}개 더 보기</button>
@@ -90,8 +91,8 @@
               <span class="ah-task__chip" :style="t.chipStyle"><AppIcon :name="t.icon" /></span>
               <div class="ah-task__body"><span class="ah-task__name">{{ t.name }}</span></div>
               <button
-                v-if="t.type === 'routine'" type="button" class="ah-task__check ah-task__check--on"
-                :aria-pressed="true" @click="toggleRoutine(t.id)"
+                v-if="t.type !== 'project'" type="button" class="ah-task__check ah-task__check--on"
+                :aria-pressed="true" @click="toggleRow(t)"
               ><AppIcon name="ui-check" /> 완료</button>
               <span v-else class="ah-task__state"><AppIcon name="ui-check" /> 완료</span>
             </li>
@@ -118,8 +119,8 @@
           </div>
           <ul class="ah-week__list">
             <li v-for="g in weekGoals" :key="g.project.id" class="ah-goal">
-              <span class="ah-goal__name"><i class="ah-day__dot" :style="{ background: categoryColor(g.project.category) }" />{{ g.project.name }}</span>
-              <span class="ah-goal__count"><strong>{{ g.done }}</strong>/{{ g.total }}</span>
+              <span class="ah-goal__name"><i class="ah-day__dot" :style="{ background: categoryColor(g.project.category) }" /><PeriodTag v-if="g.period" /> {{ g.project.name }}</span>
+              <span class="ah-goal__count"><strong>{{ g.done }}</strong>/{{ g.total }}{{ g.period ? '일' : '' }}</span>
               <span class="ah-goal__bar">
                 <i
                   v-for="i in g.total" :key="i" class="ah-goal__seg"
@@ -176,6 +177,7 @@ import { usePlanBoard } from '../composables/usePlanBoard'
 import { categoryColor, reviewMoment, shouldPromptReview } from '../lib/planBoard'
 import { reviewState } from '../composables/useReviewState'
 import { methodIcon } from '@/modules/career-design/composables/projectMethods'
+import PeriodTag from '@/modules/career-design/components/PeriodTag.vue'
 import type { Project } from '@/modules/career-design/types/career-design'
 
 const router = useRouter()
@@ -187,7 +189,7 @@ const {
   streak, progress, dDay,
   userName, headline, message, todayTotal, todayDone,
   previews,
-  todayProjects, todayRoutines, todayFocus, startProject, toggleRoutine, isProjectDone, isRoutineDone,
+  todayProjects, todayRoutines, todayFocus, startProject, toggleRoutine, toggleProject, periodToday, isProjectDone, isRoutineDone,
   weekGoals, weekNumber, review,
 } = usePlanBoard()
 
@@ -197,11 +199,26 @@ const tint = (c: string) => `color-mix(in srgb, ${c} 14%, white)`
 const allDone = computed(() => todayTotal.value > 0 && todayDone.value >= todayTotal.value)
 
 // 오늘 할 일 한 줄 — 프로젝트·루틴을 한 목록으로(구분은 칩 색: 프로젝트=분류 색, 루틴=파랑)
-interface TodayRow { key: string; type: 'project' | 'routine'; id: string; name: string; sub: string; icon: string; chipStyle?: Record<string, string>; project?: Project }
+// 과정(2026-11-16)은 루틴처럼 '완료' 한 번 — 칩은 과정 그림, 아래 줄은 '근무 · 6/12주'
+interface TodayRow { key: string; type: 'project' | 'routine' | 'period'; id: string; name: string; sub: string; icon: string; chipStyle?: Record<string, string>; project?: Project }
+const PERIOD_CHIP = { color: '#8A5A00', background: '#FFF4D6' }
+function toggleRow(t: TodayRow) {
+  if (t.type === 'period') toggleProject(t.id)
+  else toggleRoutine(t.id)
+}
 const rows = computed(() => {
   const pending: TodayRow[] = []
   const finished: TodayRow[] = []
   for (const p of todayProjects.value) {
+    if (p.period) {
+      const info = periodToday(p)
+      const row: TodayRow = {
+        key: 'p' + p.id, type: 'period', id: p.id, name: p.name, project: p,
+        sub: info ? `${info.label} · ${info.nth}/${info.of}주` : '과정', icon: 'kind-period', chipStyle: PERIOD_CHIP,
+      }
+      ;(isProjectDone(p.id) ? finished : pending).push(row)
+      continue
+    }
     const f = todayFocus(p)
     const c = categoryColor(p.category)
     const row: TodayRow = {

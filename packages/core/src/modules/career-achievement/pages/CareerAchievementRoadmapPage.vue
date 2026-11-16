@@ -43,13 +43,13 @@
             <button type="button" class="rm-stop" :aria-expanded="open[s.project.id] === 'all'" @click="toggle(s.project.id)">
               <span class="rm-stop__top">
                 <span class="rm-stop__chip" :style="{ color: categoryColor(s.project.category), background: tint(categoryColor(s.project.category)) }">
-                  <AppIcon :name="methodIcon(s.project.method) || 'ui-target'" />
+                  <AppIcon :name="s.project.period ? 'kind-period' : (methodIcon(s.project.method) || 'ui-target')" />
                 </span>
                 <span class="rm-stop__when">{{ s.startWeek }}~{{ s.endWeek }}주차 · {{ weekSpanLabel(s.startWeek, s.endWeek) }}</span>
                 <span class="rm-stop__status">{{ statusLabel(s) }}</span>
                 <AppIcon name="ui-chevron-down" class="rm-stop__chev chevron-toggle" :class="{ 'chevron-toggle--open': open[s.project.id] === 'all' }" />
               </span>
-              <span class="rm-stop__name">{{ s.project.name }}</span>
+              <span class="rm-stop__name"><PeriodTag v-if="s.project.period" /> {{ s.project.name }}</span>
               <span class="rm-stop__cat">{{ categoryLabel(s.project.category) }}</span>
               <span v-if="s.total" class="rm-stop__bar">
                 <i :style="{ width: `${(s.done / s.total) * 100}%`, background: categoryColor(s.project.category) }" />
@@ -69,6 +69,8 @@
                 <span v-for="(e, k) in w.entries" :key="k" class="rm-week__item" :class="{ 'rm-week__item--done': e.done }">
                   <AppIcon :name="e.done ? 'ui-check' : 'ui-chevron-right'" />{{ e.text }}
                 </span>
+                <!-- 과정은 할 일 대신 그 주에 다니는 이름(근무·실습·쉬는 주) -->
+                <span v-if="s.project.period && w.title" class="rm-week__item"><AppIcon name="kind-period" />{{ w.title }}</span>
               </li>
               <li v-if="open[s.project.id] === 'week' && s.weeks.length > 1">
                 <button type="button" class="rm-weeks__all" @click="open[s.project.id] = 'all'">전체 {{ s.weeks.length }}주 보기</button>
@@ -103,6 +105,7 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import { usePlanBoard } from '../composables/usePlanBoard'
 import { categoryColor, categoryLabel, parsePlanDate, daysBetween, type RoadmapStop } from '../lib/planBoard'
 import { methodIcon } from '@/modules/career-design/composables/projectMethods'
+import PeriodTag from '@/modules/career-design/components/PeriodTag.vue'
 
 const router = useRouter()
 const { loading, plan, phase, today, load, progress, dDay, weekNumber, totalWeeks, roadmap, weekSpanLabel } = usePlanBoard()
@@ -129,6 +132,7 @@ const hereIndex = computed(() => {
 })
 
 function statusLabel(s: RoadmapStop): string {
+  if (s.project.stoppedAt) return '그만둠'          // 과정을 주간결산에서 그만둔 것(2026-11-16)
   if (s.status === 'done') return '완료'
   if (s.status === 'now') return '진행 중'
   if (s.status === 'past') return `남은 항목 ${s.total - s.done}`

@@ -7,6 +7,7 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { projectWeekIndexOn, weekOfDate, projectsActiveInWeek, planWeekCount, weekDateRange } from '@/modules/career-design/composables/usePlanTimeline'
 import { weekEntriesOf } from '@/modules/career-design/composables/useProjectCurriculum'
 import type { DayOfWeek, Project, Routine } from '@/modules/career-design/types/career-design'
+import { periodWeekInfo, type PeriodWeekInfo } from '@/modules/career-design/lib/period'
 import { useAchievement } from './useAchievement'
 import { useCurriculumCompletion } from './useCurriculumCompletion'
 import {
@@ -20,7 +21,8 @@ import {
 
 export interface PreviewLine { name: string; color: string }
 export interface DayPreview { key: string; dow: string; md: string; weekend: boolean; lines: PreviewLine[]; more: number; rest: boolean }
-export interface WeekGoalBar { project: Project; weekIdx: number; total: number; done: number }
+// period: 과정(2026-11-16) — total·done 이 그 주에 다니는 날·완료한 날이다
+export interface WeekGoalBar { project: Project; weekIdx: number; total: number; done: number; period?: boolean }
 
 const DOW: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토']
 const ROUTINE_COLOR = '#9AA0A6'
@@ -85,9 +87,19 @@ export function usePlanBoard() {
     return i === -1 ? { text: '이번 주 항목을 모두 마쳤어요', allDone: true, weekIdx: wIdx } : { text: entries[i]!, allDone: false, weekIdx: wIdx }
   }
   function startProject(p: Project) {
+    if (p.period) { ach.toggleProject(p.id); return }   // 과정은 집중모드 없이 '완료' 한 번(2026-11-16)
     router.push({ path: `/career-achievement/start/project/${p.id}`, query: { date: todayKey.value } })
   }
   const toggleRoutine = (id: string) => ach.toggleRoutine(id)
+  // 과정(2026-11-16) — 다니는 날 '완료' 한 번(루틴처럼). 하루 완료 기록은 프로젝트와 같은 자리에 남는다
+  const toggleProject = (id: string) => ach.toggleProject(id)
+  // 과정의 오늘 표시 — '근무 · 6/12주'. 쉬는 주면 pause
+  function periodToday(p: Project): PeriodWeekInfo | null {
+    const pl = plan.value
+    if (!pl) return null
+    const wIdx = projectWeekIndexOn(pl.timeline, pl.startDate, p.id, today.value, pl.reviewDay)
+    return wIdx ? periodWeekInfo(p, wIdx) : null
+  }
 
   // ── ① 지표 ──
   const streak = computed(() => {
@@ -135,9 +147,27 @@ export function usePlanBoard() {
     const wk = weekNumber.value
     if (!pl || !wk || phase.value !== 'running') return []
     const out: WeekGoalBar[] = []
+    const range = weekDateRange(pl.startDate, wk, pl.reviewDay)
     for (const p of projectsActiveInWeek(pl.timeline, wk, pl.projects)) {
       const full = projectOf(p.id) ?? p
       const wIdx = projectWeekIndexOn(pl.timeline, pl.startDate, full.id, today.value, pl.reviewDay)
+      // 과정 — 그 주에 다니는 날 중 '완료'한 날(쉬는 주면 다니는 날이 없어 빠진다)
+      if (full.period) {
+        if (!range || !wIdx) continue
+        let total = 0
+        let done = 0
+        const d = parseDateKey(range.start)!
+        for (let i = 0; i < 14 && toDateKey(d) <= range.end; i += 1) {
+          const key = toDateKey(d)
+          if (itemsOn(d).some((it) => it.itemType === 'project' && it.itemId === full.id)) {
+            total += 1
+            if (ach.isProjectDone(full.id, key)) done += 1
+          }
+          d.setDate(d.getDate() + 1)
+        }
+        if (total) out.push({ project: full, weekIdx: wIdx, total, done, period: true })
+        continue
+      }
       const cw = wIdx ? full.curriculum?.find((c) => c.week === wIdx) : undefined
       const n = weekEntriesOf(cw).length
       if (!cw || !n) continue
@@ -185,7 +215,7 @@ export function usePlanBoard() {
     streak, progress, dDay,
     userName, headline, message, todayTotal, todayDone,
     previews,
-    todayProjects, todayRoutines, todayFocus, startProject, toggleRoutine,
+    todayProjects, todayRoutines, todayFocus, startProject, toggleRoutine, toggleProject, periodToday,
     isProjectDone: ach.isProjectDone, isRoutineDone: ach.isRoutineDone,
     weekGoals, weekNumber, review,
     totalWeeks, roadmap, weekSpanLabel,

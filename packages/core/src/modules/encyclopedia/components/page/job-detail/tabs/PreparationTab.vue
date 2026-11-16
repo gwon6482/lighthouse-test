@@ -117,7 +117,9 @@
                     >{{ labelOf(s.project.category) }}</span>
                     <span v-if="s.item.optional" class="prep-tag prep-tag--plain">선택</span>
                     <span v-if="!s.item.major" class="prep-tag prep-tag--plain">전공자는 생략</span>
-                    <span v-if="s.project.course" class="prep-tag prep-tag--plain">정해진 과정</span>
+                    <!-- 프로젝트 종류 '과정'(2026-11-16) — 정해진 곳에 다니는 기간. 진도(기본)는 꼬리표 없음 -->
+                    <PeriodTag v-if="s.project.period" />
+                    <span v-else-if="s.project.course" class="prep-tag prep-tag--plain">정해진 과정</span>
                     <span v-if="s.item.during" class="prep-tag prep-tag--plain">과정 중에</span>
                     <span v-if="s.project.mayHave" class="prep-tag prep-tag--plain">이미 있으면 생략</span>
                     <!-- 갈래 표시는 고를 갈래가 여럿일 때만 — 하나뿐이면(판사 화면의 '판사') 군더더기다 -->
@@ -216,6 +218,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import PreparationNotes from './PreparationNotes.vue'
+import PeriodTag from '@/modules/career-design/components/PeriodTag.vue'
 import { fetchJobPreparation } from '../../../../encyclopedia.api'
 import { formatMinutes, formatWeeks, hasMajorSkip, pathOf, stepsOf, type PrepStep } from '../../../../lib/preparation'
 import type { JobPreparation, PrepProject } from '../../../../types/encyclopedia'

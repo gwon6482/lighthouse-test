@@ -81,28 +81,37 @@ export function rescheduleFrom(
   const toPlace = notStarted
     .filter((p) => !owners.has(p.id))
     .sort((a, b) => (startOf.get(a.id) ?? Infinity) - (startOf.get(b.id) ?? Infinity))
-  // 진행 중인 프로젝트가 fromWeek 이후에 쓰는 시간 = 미리 깔린 부하(0 = fromWeek)
+  // 진행 중인 프로젝트가 fromWeek 이후에 쓰는 시간 = 미리 깔린 부하(0 = fromWeek). '과정'(period)은 시간을 세지 않는 대신 문이 된다
   const preload: number[] = []
+  let gate = 0       // 진행 중인 과정이 끝나는 자리(fromWeek 기준 0부터, 미포함) — 아직 시작 안 한 프로젝트는 그 뒤에
+  let lastEnd = 0    // 진행 중인 것(딸린 것 빼고) 가운데 가장 늦게 끝나는 자리 — 아직 시작 안 한 과정은 그 뒤에
   for (const p of kept) {
     const s = startOf.get(p.id)!
     const end = projectEndWeek(s, p)
-    for (let w = Math.max(s, fromWeek); w <= end; w++) preload[w - fromWeek] = (preload[w - fromWeek] ?? 0) + projectHoursPerWeek(timed(p))
+    const h = p.period ? 0 : projectHoursPerWeek(timed(p))
+    for (let w = Math.max(s, fromWeek); w <= end; w++) preload[w - fromWeek] = (preload[w - fromWeek] ?? 0) + h
+    if (owners.has(p.id)) continue
+    lastEnd = Math.max(lastEnd, end - fromWeek + 1)
+    if (p.period) gate = Math.max(gate, end - fromWeek + 1)
   }
-  // autoSchedule 와 같은 규칙(순서 유지·예산 안 넘는 가장 이른 주) + 미리 깔린 부하
+  // autoSchedule 와 같은 규칙(순서 유지·예산 안 넘는 가장 이른 주·과정은 문) + 미리 깔린 부하
   const load = [...preload]
   let floor = 0
   const placed: { week: number; project: Project }[] = []
   for (const p of toPlace) {
-    const w = projectWeeks(p); const h = projectHoursPerWeek(timed(p))
-    let s = floor
+    const per = !!p.period
+    const w = projectWeeks(p); const h = per ? 0 : projectHoursPerWeek(timed(p))
+    let s = Math.max(floor, gate, per ? lastEnd : 0)
     for (;; s++) {
       let ok = true
-      for (let k = 0; k < w; k++) { const l = load[s + k] ?? 0; if (l > 0 && l + h > hours) { ok = false; break } }
+      for (let k = 0; k < w && !per; k++) { const l = load[s + k] ?? 0; if (l > 0 && l + h > hours) { ok = false; break } }
       if (ok) break
     }
     for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
     placed.push({ week: fromWeek + s, project: p })
     floor = s
+    lastEnd = Math.max(lastEnd, s + w)
+    if (per) gate = Math.max(gate, s + w)
   }
   // 과정에 딸린 프로젝트: 과정이 옮겨진 만큼 함께 옮긴다. 자리가 없던 것은 과정 끝에 맞춘다
   const newStart = new Map(placed.map(({ week, project }) => [project.id, week]))

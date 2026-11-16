@@ -9,6 +9,7 @@ import { checkLevelLabel, pathOf } from '@/modules/encyclopedia/lib/preparation'
 import type { JobPreparation, PrepItem, PrepPhase, PrepProject } from '@/modules/encyclopedia/types/encyclopedia'
 import type { DayOfWeek, HelperExample, HelperJobExamples, Project, ProjectCategory, WeekCurriculum } from '../types/career-design'
 import { methodFits } from './projectMethods'
+import { periodCurriculum } from '../lib/period'
 
 // 같은 직업은 한 번만 부른다(템플릿 화면 → 프로젝트 구성 화면이 이어서 쓴다). 실패는 담아 두지 않아 다음에 다시 시도한다
 const cache = new Map<string, Promise<JobPreparation | null>>()
@@ -64,9 +65,11 @@ export function projectToExample(prep: JobPreparation, item: PrepItem, project: 
     daysPerWeek: project.daysPerWeek,
     minutesPerSession: project.minutesPerSession,
     basis: basisOf(prep, item, project),
-    curriculum: phasesToCurriculum(project.phases),
+    // 과정(정해진 곳에 다니는 기간)은 주간 할 일 없이 단계 제목 = 오늘 할 일 이름, 단계 할 일 = 주간결산 점검(2026-11-16)
+    curriculum: project.period ? periodCurriculum(project.phases) : phasesToCurriculum(project.phases),
     method: project.method,
     methodDetail: {},
+    ...(project.period ? { period: true } : {}),
   }
 }
 
@@ -151,10 +154,14 @@ export function helperExampleToProject(ex: HelperExample, category: ProjectCateg
     level: ex.level,
     weeks: ex.curriculum.length,
     description: ex.basis,
-    // 커리큘럼 표준(주차별 할 일 목록) 그대로 담는다
-    curriculum: ex.curriculum.map((w) => ({ week: w.week, title: w.title, items: [...w.items] })),
+    // 커리큘럼 표준(주차별 할 일 목록) 그대로 담는다. 과정의 점검·쉬는 주 표시도 함께
+    curriculum: ex.curriculum.map((w) => ({
+      week: w.week, title: w.title, items: [...w.items],
+      ...(w.checks?.length ? { checks: [...w.checks] } : {}), ...(w.pause ? { pause: true } : {}),
+    })),
     // 진행 방식 — 영역에 맞지 않으면 버린다(사용자가 고르게 '방식 미정'으로)
     method: methodFits(category, ex.method) ? ex.method : null,
     methodDetail: methodFits(category, ex.method) ? { ...(ex.methodDetail ?? {}) } : {},
+    ...(ex.period ? { period: true } : {}),
   }
 }

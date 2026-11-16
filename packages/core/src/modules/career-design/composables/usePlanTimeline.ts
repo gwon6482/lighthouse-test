@@ -257,6 +257,9 @@ export function duringOwners(projects: Project[]): Map<string, Project> {
 // 순서대로, 각 주의 시간 합이 예산을 넘지 않는 가장 이른 주에 놓는다. 앞 프로젝트보다 먼저 시작하지는 않는다(순서 유지).
 // 한 프로젝트만으로 예산을 넘으면 그 프로젝트는 혼자 있는 주에 놓는다(안 그러면 영원히 못 놓는다).
 // 과정 중에 하는 프로젝트는 이 규칙 밖이다 — 과정이 끝나는 주에 맞춰 차례로 겹쳐 놓는다(학교 다니는 마지막 구간에 실습·시험 준비를 하는 꼴).
+// 프로젝트 종류 '과정'(period, 2026-11-16)은 속도와 상관없다 — 주당 시간을 예산에 세지 않는 대신 앞뒤의 문이 된다:
+//   과정은 앞에 놓인 것이 다 끝난 뒤 시작하고, 뒤의 프로젝트는 과정이 끝난 뒤 시작한다(과정 중에 하는 것만 예외).
+//   그전에는 과정의 큰 주당 시간이 예산을 넘겨 사실상 같은 꼴로 놓였다 — 과정이 없는 계획은 배치가 그대로다
 // 반환: 시작 주차(1부터)
 export function autoSchedule(projects: Project[], budgetHours: number): { week: number; project: Project }[] {
   const load: number[] = []
@@ -269,9 +272,12 @@ export function autoSchedule(projects: Project[], budgetHours: number): { week: 
   }
   const cursor = new Map<string, number>()    // 과정 id → 다음 딸린 프로젝트가 시작할 자리(0부터)
   let floor = 0
+  let gate = 0       // 마지막 '과정'이 끝나는 자리(0부터, 미포함) — 뒤의 프로젝트는 여기부터
+  let lastEnd = 0    // 지금까지 놓은 프로젝트(딸린 것 빼고) 가운데 가장 늦게 끝나는 자리 — 과정은 여기부터
   for (const p of projects) {
     const w = projectWeeks(p)
-    const h = projectHoursPerWeek(p)
+    const per = !!p.period
+    const h = per ? 0 : projectHoursPerWeek(p)
     const owner = owners.get(p.id)
     if (owner && cursor.has(owner.id)) {
       const s = cursor.get(owner.id)!
@@ -280,10 +286,10 @@ export function autoSchedule(projects: Project[], budgetHours: number): { week: 
       cursor.set(owner.id, s + w)
       continue
     }
-    let s = floor
+    let s = Math.max(floor, gate, per ? lastEnd : 0)
     for (;; s++) {
       let ok = true
-      for (let k = 0; k < w; k++) {
+      for (let k = 0; k < w && !per; k++) {
         const l = load[s + k] ?? 0
         if (l > 0 && l + h > budgetHours) { ok = false; break }
       }
@@ -292,6 +298,8 @@ export function autoSchedule(projects: Project[], budgetHours: number): { week: 
     for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
     out.push({ week: s + 1, project: p })
     floor = s
+    lastEnd = Math.max(lastEnd, s + w)
+    if (per) gate = Math.max(gate, s + w)
     // 딸린 프로젝트를 과정 끝에 맞춘다. 딸린 것이 과정보다 길면 과정 시작부터 놓는다(끝은 과정 뒤로 넘어간다)
     if (p.course) cursor.set(p.id, Math.max(s, s + w - (tail.get(p.id) ?? 0)))
   }

@@ -173,7 +173,7 @@ export interface RoadmapStop {
   status: StopStatus      // done=항목 다 함 · now=지금 주차가 기간 안 · past=기간 지났는데 남은 항목 · next=아직 시작 전
   done: number
   total: number
-  weeks: { week: number; entries: { text: string; done: boolean }[] }[] // week = 그 프로젝트의 n주차
+  weeks: { week: number; entries: { text: string; done: boolean }[]; title?: string }[] // week = 그 프로젝트의 n주차. title = 과정의 그 주 이름
 }
 export function roadmapStops(
   projects: Project[],
@@ -197,11 +197,13 @@ export function roadmapStops(
       const entries = weekEntriesOf(cw).map((text, i) => ({ text, done: isItemDone(p.id, cw.week, i) }))
       total += entries.length
       done += entries.filter((e) => e.done).length
-      return { week: cw.week, entries }
+      return p.period ? { week: cw.week, entries, title: cw.title } : { week: cw.week, entries }
     })
     const cur = currentWeek ?? 0
+    // 과정(2026-11-16)은 할 일이 없다 — 기간이 지나면(그만둔 것 포함) 끝난 것
     const status: StopStatus =
-      total > 0 && done >= total ? 'done'
+      p.period ? (start > cur ? 'next' : end < cur ? 'done' : 'now')
+      : total > 0 && done >= total ? 'done'
       : start > cur ? 'next'
       : end < cur ? 'past'
       : 'now'

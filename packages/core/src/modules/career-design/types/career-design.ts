@@ -15,6 +15,9 @@ export interface WeekCurriculum {
   items: string[]
   // 옛 형식. 2026-08-27 ~ 10-22 사이에는 '한 주 = 설명 글 한 덩어리'로 썼다. 읽을 때만 줄 단위로 나눠 항목처럼 쓴다.
   description?: string
+  // 과정 프로젝트(2026-11-16)의 주 — items 는 비고 title 이 그 주 '오늘 할 일' 이름이다(lib/period.ts).
+  checks?: string[]     // 그 주 주간결산에서 묻는 점검(점검 주에만)
+  pause?: boolean       // 쉬는 주 — 오늘 할 일에 나오지 않는다(주간결산 '잠시 쉬어요')
 }
 
 export interface Project {
@@ -44,6 +47,10 @@ export interface Project {
   // 템플릿에서 온 표시(2026-11-16) — 자동 배치가 쓴다. 서버에는 저장하지 않는다(임시 계획 단계에서만 살아 있다)
   course?: boolean      // 대학·대학원·수련처럼 기간이 정해진 과정
   during?: boolean      // 앞의 과정 기간 안에 하는 프로젝트 — 과정 끝에 맞춰 겹쳐 놓는다
+  // 프로젝트 종류 '과정'(2026-11-16, 진로설계 검토 정할 것 1번) — 정해진 곳에 다니는 기간(학교·실습·근무·수련).
+  //   주간 할 일 없이 다니는 날 '완료' 한 번(집중모드 없음), 점검은 주간결산, 속도와 상관없이 기간 그대로. 없으면 '진도'(기본)
+  period?: boolean
+  stoppedAt?: string    // 과정을 그만둔 날('YYYY-MM-DD') — 주간결산 '그만뒀어요'
 }
 
 export interface Routine {
@@ -135,6 +142,7 @@ export interface HelperExample {
   curriculum: WeekCurriculum[]
   method?: ProjectMethod          // 진행 방식. 없으면 사용자가 고른다
   methodDetail?: Partial<Record<MethodField, string>>
+  period?: boolean                // 프로젝트 종류 '과정'(2026-11-16) — 커리큘럼은 lib/period.ts 의 periodCurriculum
 }
 
 export interface HelperJobExamples {

@@ -121,6 +121,8 @@ export function generateItemsForWeek(
       // 주차 모델에서는 배치 자체가 주 단위라 나눗셈 없이 바로 떨어진다.
       const startWeek = startWeekOf.get(p.id)
       const curriculumWeek = startWeek === undefined ? null : planWeek - startWeek + 1
+      // 과정의 쉬는 주(주간결산 '잠시 쉬어요')에는 오늘 할 일을 만들지 않는다(2026-11-16)
+      if (p.period && curriculumWeek && p.curriculum?.find((c) => c.week === curriculumWeek)?.pause) continue
 
       out.push({
         id: uid(),

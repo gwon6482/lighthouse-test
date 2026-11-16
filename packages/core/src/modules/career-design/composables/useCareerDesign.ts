@@ -1474,6 +1474,8 @@ export function useCareerDesign() {
     missedNotification: p.missedNotification, notificationTime: p.notificationTime, memo: p.memo,
     // 과정·과정 중 표시(2026-11-16) — 주간결산에서 속도를 바꿔 다시 배치할 때도 과정에 묶여 있게 서버에 남긴다
     ...(p.course ? { course: true } : {}), ...(p.during ? { during: true } : {}),
+    // 프로젝트 종류 '과정'(2026-11-16) — 집중모드 없이 '완료' 한 번, 속도와 상관없이 기간 그대로. 그만둔 날은 주간결산이 적는다
+    ...(p.period ? { period: true } : {}), ...(p.stoppedAt ? { stoppedAt: p.stoppedAt } : {}),
   })
 
   // STEP2: 프로젝트 추가

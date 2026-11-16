@@ -449,3 +449,41 @@ describe('rescheduleFrom — 과정에 딸린 프로젝트는 과정을 따라 �
   })
 })
 
+// 2026-11-16: 프로젝트 종류 '과정'(period, 정할 것 1번) — 속도(주당 시간)에 세지 않고 앞뒤의 문이 된다
+describe('autoSchedule·rescheduleFrom — 과정(period)은 속도와 상관없이 문이 된다', async () => {
+  const { rescheduleFrom } = await import('../composables/usePlanPace')
+  const per = (id: string, weeks: number, days = 3, minutes = 300): Project => ({ ...mk(id, weeks, days, minutes), period: true })
+  const at = (r: { week: number; project: Project }[], id: string) => r.find((x) => x.project.id === id)!.week
+  const atTl = (r: { timeline: TimelineSlot[] }, id: string) => r.timeline.find((s) => s.projects.some((p) => p.id === id))!.week
+
+  it('승무원 꼴 — 조사·토익·말하기가 끝난 뒤 아르바이트, 아르바이트가 끝난 뒤 나머지', () => {
+    const ps = [mk('조사', 2, 2, 60), mk('토익', 8, 5, 60), mk('말하기', 4, 4, 40), per('아르바이트', 14), mk('응대', 2, 2, 60), mk('면접', 3, 3, 90)]
+    const r = autoSchedule(ps, 8)
+    expect(at(r, '조사')).toBe(1); expect(at(r, '토익')).toBe(1); expect(at(r, '말하기')).toBe(3)
+    expect(at(r, '아르바이트')).toBe(9)   // 토익(1~8주)이 끝난 뒤
+    expect(at(r, '응대')).toBe(23)        // 아르바이트(9~22주)가 끝난 뒤
+    expect(at(r, '면접')).toBe(23)
+  })
+  it('예산이 커도(올인) 과정과 뒤 프로젝트를 겹치지 않는다 — 그전엔 15시간 과정이 24시간 예산 안이라 겹쳤다', () => {
+    const r = autoSchedule([per('근무', 10, 3, 300), mk('면접', 3, 3, 90)], 24)
+    expect(at(r, '근무')).toBe(1); expect(at(r, '면접')).toBe(11)
+  })
+  it('속도를 바꿔도 과정의 길이·자리는 그대로', () => {
+    const ps = [mk('a', 2, 3, 60), per('학교', 20, 5, 360), mk('b', 2, 3, 60)]
+    expect(autoSchedule(ps, 5).map((x) => x.week)).toEqual([1, 3, 23])
+    expect(autoSchedule(ps, 24).map((x) => x.week)).toEqual([1, 3, 23])
+  })
+  it('주간결산에서 속도를 바꿔도 진행 중인 과정은 그대로, 시작 안 한 것은 과정이 끝난 뒤', () => {
+    const ps = [per('아르바이트', 14), mk('응대', 2, 2, 60), mk('면접', 3, 3, 90)]
+    const tl: TimelineSlot[] = [{ week: 1, projects: [ps[0]!] }, { week: 15, projects: [ps[1]!] }, { week: 17, projects: [ps[2]!] }]
+    const r = rescheduleFrom(ps, tl, 6, 24)
+    expect(atTl(r, '아르바이트')).toBe(1)
+    expect(atTl(r, '응대')).toBe(15); expect(atTl(r, '면접')).toBe(15)   // 빠른 속도라 둘이 나란히 — 그래도 과정 뒤
+  })
+  it('과정이 늘어나면(주간결산 일정 바꾸기) 뒤 프로젝트가 그만큼 밀린다', () => {
+    const longer = [per('아르바이트', 18), mk('응대', 2, 2, 60)]
+    const tl: TimelineSlot[] = [{ week: 1, projects: [longer[0]!] }, { week: 15, projects: [longer[1]!] }]
+    expect(atTl(rescheduleFrom(longer, tl, 8, 8), '응대')).toBe(19)
+  })
+})
+

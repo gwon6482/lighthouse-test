@@ -80,6 +80,9 @@ export interface WeeklyReviewDto {
   satisfaction: number | null; note: string; pledge: string; feel: '' | 'tight' | 'fit' | 'loose'
   paceFrom: string; paceTo: string; endDateFrom: string; endDateTo: string
   stats: WeeklyReviewStats
+  // 과정(2026-11-16) — 그 주에 물은 점검과 체크한 것, 바꾼 일정(기록)
+  periodChecks?: { projectId: string; week: number | null; items: string[]; done: string[] }[]
+  periodChanges?: { projectId: string; name: string; kind: 'end' | 'pause' | 'days' | 'stop'; weeks: number; days?: string[] }[]
 }
 export async function fetchWeeklyReviews(planId: string): Promise<WeeklyReviewDto[]> {
   const res = await req.get(`/api/career-plan/${planId}/weekly-reviews`)

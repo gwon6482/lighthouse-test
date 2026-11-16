@@ -257,6 +257,7 @@ export interface PrepProject {
   caution?: string
   checked?: PrepChecked
   course?: boolean                        // 대학·대학원·수련처럼 기간이 정해진 과정(2026-11-16)
+  period?: boolean                        // 프로젝트 종류 '과정' — 정해진 곳에 다니는 기간(2026-11-16, 없으면 진도)
   mayHave?: boolean                       // 이미 가지고 있을 수 있는 것 — 운전면허·어학 성적 등(2026-11-16)
   haveLabel?: string                      // 내 진로상황 '이미 해 둔 것' 목록의 이름(토익 점수·운전면허)
   haveByNote?: boolean                    // 항목 메모가 실제 자격 이름이다(간호사 국가시험·지게차운전기능사) — 메모를 먼저 쓴다
