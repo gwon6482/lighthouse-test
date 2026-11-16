@@ -46,6 +46,7 @@ jobs:
       # 올리는 순서(2026-11-17 핫픽스): ① 새 파일을 먼저 ② 시작 파일(index.html·sw.js·registerSW.js·manifest)을 맨 나중에.
       # 옛 화면 파일(assets/)은 지우지 않는다 — 이미 열려 있던 화면이나 서비스 워커가 내준 옛 화면이 다음 화면 파일을 부를 때
       # 없으면 CloudFront 가 index.html 을 200 으로 줘서 이동이 멈췄다(아이폰 사파리는 복구도 안 됐다). 쌓이는 옛 파일 정리는 따로.
+      # 시작 파일은 '매번 확인'(no-cache) — 브라우저가 옛 index.html 을 저장해 두고 내주지 않게.
       - name: Upload new files first (keep old assets)
         run: >-
           aws s3 sync apps/app/dist/ s3://lighthouse-career-app
@@ -53,7 +54,7 @@ jobs:
           --exclude "registerSW.js" --exclude "manifest.webmanifest"
 
       - name: Upload entry files last and prune (except assets/ and uploads/)
-        run: aws s3 sync apps/app/dist/ s3://lighthouse-career-app --delete --exclude "uploads/*" --exclude "assets/*"
+        run: aws s3 sync apps/app/dist/ s3://lighthouse-career-app --delete --exclude "uploads/*" --exclude "assets/*" --cache-control "no-cache"
 
       - name: Invalidate CloudFront cache
         run: |
