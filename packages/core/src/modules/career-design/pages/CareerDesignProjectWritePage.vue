@@ -284,8 +284,9 @@ function setKind(period: boolean) {
     if (filled > 0 && !confirm(`주차별 할 일 ${filled}개가 사라져요. 과정은 할 일 없이 다니는 날 '완료'를 한 번 눌러요.\n과정으로 바꿀까요?`)) return
     draftProject.period = true
     draftProject.curriculum = []
+    // 진도 범위(3시간 이하)의 값 — 새 프로젝트의 기본 1시간 포함 — 은 근무·수업에 맞지 않아 기본 4시간으로
     const d = draftProject.duration ?? 0
-    draftProject.duration = d < PERIOD_MINUTES.min ? PERIOD_MINUTES.fallback : Math.min(PERIOD_MINUTES.max, d)
+    draftProject.duration = d > 180 ? Math.min(PERIOD_MINUTES.max, d) : PERIOD_MINUTES.fallback
     return
   }
   // 과정 → 진도: 빈 주차별 할 일로. 원래 과정이던 프로젝트를 고치는 중이면 '끔'을 남겨야 서버도 끈다
