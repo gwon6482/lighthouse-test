@@ -13,7 +13,7 @@
       <button
         v-for="c in card.checks" :key="c" type="button" class="prc__check" :class="{ 'is-on': draft.checked.includes(c) }"
         role="checkbox" :aria-checked="draft.checked.includes(c)" @click="toggleCheck(c)"
-      >{{ c }}</button>
+      ><span class="prc__box" aria-hidden="true" />{{ c }}</button>
       <p class="prc__note">못 한 것은 다음 주 결산에 한 번 더 나와요</p>
     </div>
 
@@ -137,13 +137,15 @@ function toggleDay(day: DayOfWeek) {
   &__sub { font-size: 12px; color: #999999; }
   &__checks { display: grid; gap: 6px; }
   &__label { font-size: 12px; font-weight: 800; color: #666666; small { font-weight: 600; color: #999999; } }
+  // 점검은 여러 개를 고르는 체크 목록 — 라디오(동그라미)로 보이지 않게 앱의 체크박스(내 진로상황 '이미 해 둔 것')와 같은 네모 + ✓
   &__check {
-    display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 11px; border: 0; border-radius: 10px;
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; border-radius: 10px;
     background: #fafafa; font-family: inherit; font-size: 13px; font-weight: 600; color: #333333; text-align: left; cursor: pointer;
-    &::before { content: ""; flex: none; width: 18px; height: 18px; border-radius: 50%; border: 1.8px solid #cfd3d9; background: #ffffff; box-sizing: border-box; }
-    &.is-on::before { background: #639922; border-color: #639922; box-shadow: inset 0 0 0 3.5px #ffffff; }
     &:focus-visible { outline: 2px solid #ffc700; outline-offset: 2px; }
   }
+  &__box { flex: none; width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #cfd3d9; background: #ffffff; display: grid; place-items: center; box-sizing: border-box; }
+  &__check.is-on &__box { background: #ffc700; border-color: #ffc700; }
+  &__check.is-on &__box::after { content: ''; width: 9px; height: 5px; border-left: 2px solid #ffffff; border-bottom: 2px solid #ffffff; transform: rotate(-45deg) translate(1px, -1px); }
   &__note { font-size: 11.5px; color: #999999; }
   &__sched {
     display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px; align-items: center; padding-top: 10px; border-top: 1px solid #f3ecdc;
