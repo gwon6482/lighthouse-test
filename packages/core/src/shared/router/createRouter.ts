@@ -1,12 +1,27 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import { isChunkLoadError, nextChunkRecovery, resetAppCache } from './chunkReload'
+import { isChunkLoadError, nextChunkRecovery, resetAppCache, retryChunk } from './chunkReload'
 import { applyThemeColor } from './themeColor'
+
+// 화면 파일(lazy 컴포넌트) 불러오기를 감싼다 — 실패하면 같은 화면 안에서 한 번 더(chunkReload.ts retryChunk, 2026-11-17).
+// 라우터는 함수인 component 를 lazy 로 다루므로 함수만 감싼다
+function withChunkRetry(routes: RouteRecordRaw[]): RouteRecordRaw[] {
+  return routes.map((r) => {
+    const next = { ...r } as Record<string, unknown>
+    if (typeof r.component === 'function') next.component = retryChunk(r.component as () => Promise<unknown>)
+    if (r.components) {
+      next.components = Object.fromEntries(Object.entries(r.components).map(([k, c]) =>
+        [k, typeof c === 'function' ? retryChunk(c as () => Promise<unknown>) : c]))
+    }
+    if (r.children) next.children = withChunkRetry(r.children)
+    return next as unknown as RouteRecordRaw
+  })
+}
 
 // 공통 라우터 팩토리 — test/app 셸이 각자 라우트 목록을 넘겨 생성한다.
 export function makeRouter(routes: RouteRecordRaw[]) {
   const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
-    routes,
+    routes: withChunkRetry(routes),
     scrollBehavior: () => ({ top: 0 }),
   })
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isChunkLoadError, nextChunkRecovery } from '../chunkReload'
+import { isChunkLoadError, nextChunkRecovery, chunkUrlsOf, retryChunk } from '../chunkReload'
 
 // 2026-11-03: 배포 직후 홈 화면 앱(옛 버전)에서 바로가기가 전부 무반응 — 지워진 청크를 import 하다 실패했다
 // 2026-11-17: 아이폰 사파리는 복구가 아예 안 돌았다 — HTML 을 받은 청크의 사파리 문구를 몰랐다
@@ -48,5 +48,42 @@ describe('nextChunkRecovery', () => {
   it('저장소를 못 쓰면 반복을 막을 수 없으니 멈춘다', () => {
     const broken = { getItem: () => { throw new Error('denied') }, setItem: () => {} }
     expect(nextChunkRecovery(broken, '/a', 1000)).toBe('stop')
+  })
+})
+
+describe('chunkUrlsOf', () => {
+  it('브라우저 문구에서 실패한 파일 주소를 뽑는다', () => {
+    expect(chunkUrlsOf(new TypeError("'text/html' is not a valid JavaScript MIME type for module script 'https://x/assets/A-1.js'."))).toEqual(['https://x/assets/A-1.js'])
+    expect(chunkUrlsOf(new TypeError('Failed to fetch dynamically imported module: https://x/assets/B-2.js'))).toEqual(['https://x/assets/B-2.js'])
+    expect(chunkUrlsOf(new Error('Unable to preload CSS for /assets/C-3.css'))).toEqual(['/assets/C-3.css'])
+    expect(chunkUrlsOf(new TypeError('Importing a module script failed.'))).toEqual([])
+  })
+})
+
+describe('retryChunk', () => {
+  // 사파리: 같은 화면 안에서 실패한 파일을 캐시 없이 받은 뒤 다시 부르면 성공한다(2026-11-17 WebKit 실측)
+  const safariErr = () => new TypeError("'text/html' is not a valid JavaScript MIME type for module script 'https://x/assets/W-1.js'.")
+  it('화면 파일 실패면 그 파일을 다시 받고 한 번 더 부른다', async () => {
+    let calls = 0
+    const refetched: string[] = []
+    const load = retryChunk(async () => { if (calls++ === 0) throw safariErr(); return 'page' }, async (u) => { refetched.push(u) })
+    await expect(load()).resolves.toBe('page')
+    expect(calls).toBe(2)
+    expect(refetched).toEqual(['https://x/assets/W-1.js'])
+  })
+  it('또 실패하면 오류를 넘긴다(라우터 onError 가 새로 불러온다)', async () => {
+    const load = retryChunk(async () => { throw safariErr() }, async () => undefined)
+    await expect(load()).rejects.toThrow('not a valid JavaScript MIME type')
+  })
+  it('화면 파일 오류가 아니면 다시 부르지 않는다', async () => {
+    let calls = 0
+    const load = retryChunk(async () => { calls++; throw new Error('boom') }, async () => undefined)
+    await expect(load()).rejects.toThrow('boom')
+    expect(calls).toBe(1)
+  })
+  it('다시 받기가 실패해도 한 번 더 부른다', async () => {
+    let calls = 0
+    const load = retryChunk(async () => { if (calls++ === 0) throw safariErr(); return 'ok' }, async () => { throw new Error('offline') })
+    await expect(load()).resolves.toBe('ok')
   })
 })

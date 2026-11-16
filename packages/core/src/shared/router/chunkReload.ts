@@ -22,6 +22,35 @@ export function isChunkLoadError(err: unknown): boolean {
   return CHUNK_ERROR.test(msg)
 }
 
+/** 오류 문구에서 실패한 화면 파일 주소를 뽑는다 — 사파리·크롬·파이어폭스·Vite 모두 문구에 주소를 싣는다 */
+export function chunkUrlsOf(err: unknown): string[] {
+  const msg = err instanceof Error ? err.message : String(err ?? '')
+  return [...new Set(msg.match(/(?:https?:\/\/[^\s'"]+|\/assets\/[^\s'"]+)\.(?:js|css)/g) ?? [])]
+}
+
+/**
+ * 화면 파일 불러오기를 **같은 화면 안에서** 한 번 더 한다(라우트 lazy 컴포넌트를 감싼다 — createRouter.ts).
+ *
+ * 사파리(WebKit)는 한 번 HTML 을 받아 실패한 화면 파일 주소를, 같은 탭에서 다시 열거나 새로 고친 뒤에도 기억해
+ * 네트워크에 묻지도 않고 다시 실패한다(2026-11-17 WebKit 실측 — 다시 열기·새로고침·캐시 무시 받기 뒤 다시 열기 모두 실패,
+ * 캐시 지시 no-cache 를 붙여도 같음). 같은 화면 안에서 그 파일을 캐시 없이 한 번 받고 다시 불러오면 성공했다.
+ * 그래도 실패하면 오류를 그대로 넘겨 라우터 onError(새로 불러오기 → 앱 캐시 비우기)가 이어 받는다.
+ */
+export function retryChunk<T>(
+  load: () => Promise<T>,
+  refetch: (url: string) => Promise<unknown> = (u) => fetch(u, { cache: 'reload' }),
+): () => Promise<T> {
+  return async () => {
+    try {
+      return await load()
+    } catch (err) {
+      if (!isChunkLoadError(err)) throw err
+      await Promise.all(chunkUrlsOf(err).map((u) => refetch(u).catch(() => undefined)))
+      return await load()
+    }
+  }
+}
+
 export const CHUNK_RELOAD_KEY = 'lh_chunk_reload'
 // 새로 불러온 뒤 같은 주소에서 '곧바로 또' 실패했는지 보는 시간. 휴대폰 망에서 다시 불러오기가 느려도 잡히게 넉넉히 둔다(예전 10초)
 const RETRY_WINDOW_MS = 60_000
