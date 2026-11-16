@@ -183,9 +183,13 @@ async function handleSubmit() {
 // 검사 시작 이후 뒤로가기 처리
 // - 진행 중 페이지(>0)에서 뒤로 → 이전 문항으로 (라우트 이탈 취소)
 // - 첫 페이지에서 한 번 더 뒤로 → 초기화 확인 → 동의 시 리셋 후 답변방식 선택으로
+//   ⚠️ 선택 화면을 새로 쌓지 않고 되돌아간다(2026-11-17 핫픽스). push 하면 방문 기록이 '선택 → 검사 → 선택'이 되어
+//      선택 화면에서 뒤로 가면 다시 검사(파트1 소개)로 갔다. 바로 앞이 선택 화면이 아니면(직접 들어온 경우) 바꿔치기한다
 function handlePrev() {
-  if (currentPageIndex.value > 0) goToPrevPage()
-  else router.push('/self-understanding/select') // 가드가 초기화 확인을 처리
+  if (currentPageIndex.value > 0) { goToPrevPage(); return }
+  const back = window.history.state?.back
+  if (typeof back === 'string' && back.split('?')[0] === '/self-understanding/select') router.back() // 가드가 초기화 확인을 처리
+  else router.replace('/self-understanding/select')
 }
 
 onBeforeRouteLeave((to) => {
