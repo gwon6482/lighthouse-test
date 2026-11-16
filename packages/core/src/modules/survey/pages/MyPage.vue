@@ -136,6 +136,9 @@
       <p class="mp-danger-note">탈퇴하면 검사 결과와 진로 기록이 모두 삭제되고 되돌릴 수 없어요.</p>
     </section>
 
+    <!-- 서비스 콘텐츠 무단 복제·수집 금지 고지(2026-11-17, 이용약관 제10조의2와 함께) -->
+    <p class="mp-copy">© 라이트하우스 · 서비스 콘텐츠의 무단 복제·수집을 금합니다.</p>
+
     <AccountDeleteSheet v-model="showDelete" @deleted="onDeleted" />
   </div>
 </template>
