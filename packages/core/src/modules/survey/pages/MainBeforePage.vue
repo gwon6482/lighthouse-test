@@ -1,6 +1,9 @@
 <template>
   <div class="mb">
-    <AppHeader />
+    <AppHeader>
+      <!-- 진로계획 전에는 하단 메뉴(마이)가 없어 로그아웃할 길이 없었다(2026-11-17 핫픽스) -->
+      <button type="button" class="mb__logout" @click="logout">로그아웃</button>
+    </AppHeader>
 
     <div class="mb__body">
       <header class="mb__intro">
@@ -159,6 +162,14 @@ function onStepClick(step: Step) {
 
 function startAchievement() {
   router.push('/career-achievement')
+}
+
+// 마이페이지 로그아웃과 같다 — replace 로 보내 뒤로가기로 로그인된 화면에 돌아오지 않게
+function logout() {
+  if (!confirm('로그아웃할까요?')) return
+  authStore.logout()
+  achievementStore.reset()
+  router.replace('/onboarding')
 }
 
 async function load() {
