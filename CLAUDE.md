@@ -9,7 +9,7 @@
   - `shared/` — `api` · `auth` · `router`(`app.ts` 운영 셸 라우트, `entryGuard.ts`, `chunkReload.ts`) · `config/features.ts` · `icons` · `guest`(비회원 진입)
 - `apps/test` — 스테이징 셸(워크벤치, 전체 기능)
 - `apps/app` — 운영 셸(완성된 기능만). **승격 = `packages/core/src/shared/router/app.ts`에 모듈 라우트를 import**
-- 진입 가드(운영): 토큰 없음 → `/onboarding`, 계획 없음 → `/main/before`, 계획 있음 → `/main`
+- 진입 가드(운영, `shared/router/entryGuard.ts`): 토큰 없음 → `/onboarding`, 소셜 가입 후 가입 설문 미완 → `/onboarding/signup?social=1`, 진행 중인 계획 없음 → `/main/before`, 있음 → `/career-achievement`
 - `android/` · `ios/` · `capacitor.config.ts` — 모바일 껍데기(캐패시터). **아직 템플릿 그대로**다(앱 ID `com.vue3.app`, 이름 'Vue3 App', 서버 주소 자리표시). 첫 스토어 출시 전에 앱 ID·이름·서버 주소 방식을 정해야 한다. 앱 ID는 출시 뒤 바꿀 수 없다.
 
 ## 명령
