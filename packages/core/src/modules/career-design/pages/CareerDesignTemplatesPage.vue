@@ -3,7 +3,7 @@
     <CdYellowHeader
       title="진로계획 세우기"
       :subtitle="prep ? `${prep.displayName} 예시 계획에서 시작해요` : '라이트하우스가 미리 설계한 진로계획에서 시작해요'"
-      :back-to="situationOpen ? '/career-design/situation' : '/career-design'"
+      back-to="/career-design/situation"
     />
 
     <div class="cd-tpl__body">
@@ -27,7 +27,7 @@
           <span class="cd-tpl__situ-text">{{ situationLine }}</span>
           <button type="button" class="cd-tpl__situ-edit" @click="router.push('/career-design/situation')">고치기</button>
         </div>
-        <button v-else-if="situationOpen" type="button" class="cd-tpl__situ-link" @click="router.push('/career-design/situation')">내 진로상황에 맞춰 보기 <AppIcon name="ui-chevron-right" /></button>
+        <button v-else type="button" class="cd-tpl__situ-link" @click="router.push('/career-design/situation')">내 진로상황에 맞춰 보기 <AppIcon name="ui-chevron-right" /></button>
 
         <!-- 갈래 — 준비하는 길이 갈리는 직업만. 진로백과 준비과정 탭과 같은 말을 쓴다 -->
         <div v-if="prep.tracks.length > 1" class="cd-tpl__tracks">
@@ -179,7 +179,6 @@ import { useCareerDesign } from '../composables/useCareerDesign'
 import { loadLibraryPlan } from '../composables/useHelperExamples'
 import { buildPlanTemplates, buildSituationTemplate, type HaveTarget, type PlanTemplate } from '../composables/usePlanTemplates'
 import { hasAnything, schoolSummary, useCareerProfile } from '../composables/useCareerProfile'
-import { careerSituationOpen } from '@/shared/config/features'
 import { toDateKey } from '../composables/usePlanTimeline'
 import { formatWeeks } from '@/modules/encyclopedia/lib/preparation'
 import { getToday } from '@/shared/utils/dev-date'
@@ -195,8 +194,6 @@ const router = useRouter()
 const route = useRoute()
 const { draftPlan, resetDraftPlan } = useCareerDesign()
 const { profile: careerProfile, load: loadCareerProfile, save: saveCareerProfile } = useCareerProfile()
-// 내 진로상황은 처리방침 시행일(2026-11-23)부터 — 그 전에는 지금처럼 비전공·전공 플랜만(스테이징은 미리 연다)
-const situationOpen = careerSituationOpen()
 
 const CATS: { value: ProjectCategory; label: string }[] = [
   { value: 'qualification', label: '자격요건' },
@@ -222,7 +219,7 @@ const loading = ref(true)
 const track = ref<string | null>(null)
 onMounted(async () => {
   try {
-    const [{ data }, saved] = await Promise.all([fetchTargetCareer(), situationOpen ? loadCareerProfile() : Promise.resolve(null)])
+    const [{ data }, saved] = await Promise.all([fetchTargetCareer(), loadCareerProfile()])
     has.value = saved?.has ? [...saved.has] : []
     const target = data.targetCareer
     targetTitle.value = target?.title ?? target?.ref ?? ''
@@ -243,13 +240,13 @@ function setHave(target: HaveTarget, on: boolean) {
   const exists = has.value.some((h) => sameHave(h, target))
   const next = on ? (exists ? has.value : [...has.value, { ref: target.key, name: target.label }]) : has.value.filter((h) => !sameHave(h, target))
   has.value = next
-  if (situationOpen && careerProfile.value) void saveCareerProfile({ ...careerProfile.value, has: next })
+  if (careerProfile.value) void saveCareerProfile({ ...careerProfile.value, has: next })
 }
 const templates = computed(() => (prep.value ? buildPlanTemplates(prep.value, track.value, has.value) : []))
 
 // 내 진로상황 플랜(2026-11-16) — 적어 둔 내 진로상황이 있으면 맨 위에 하나, 나머지(처음부터 전부)는 펼쳐야 보인다.
 // 내 진로상황 단계에서 '건너뛰기'로 왔으면(?situation=skip) 지금처럼 비전공·전공 플랜만
-const situationOn = computed(() => situationOpen && route.query.situation !== 'skip' && hasAnything(careerProfile.value))
+const situationOn = computed(() => route.query.situation !== 'skip' && hasAnything(careerProfile.value))
 const mine = computed(() => (situationOn.value && prep.value && careerProfile.value
   ? buildSituationTemplate(prep.value, track.value, { ...careerProfile.value, has: has.value })
   : null))

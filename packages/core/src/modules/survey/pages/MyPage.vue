@@ -30,7 +30,7 @@
     <!-- 내 검사 — 자기이해 검사 카드(2026-10-30 진로정보 탭에서 옮겨 와 예전 '내 검사결과' 목록을 대신한다).
          스타일은 진로정보와 같은 .ci-test(전역 CareerInfo.scss) -->
     <!-- 내 진로상황(2026-11-16) — 진로계획을 내 상황에 맞추는 데 쓴다. 진로계획을 세우지 않아도 언제든 적고 고친다 -->
-    <section v-if="situationOpen" class="mp-sec">
+    <section class="mp-sec">
       <h2 class="mp-sec__title">내 진로상황</h2>
       <button v-if="situation" type="button" class="mp-situ" @click="router.push('/mypage/career-situation')">
         <dl class="mp-situ__rows">
@@ -153,7 +153,6 @@ import { AREA_ICON } from '@/modules/survey/surveyIcons'
 import { useAchievementEntries } from '@/modules/career-achievement/composables/useAchievementEntries'
 import { fetchDeletedPlans } from '@/modules/career-design/planTrash.api'
 import { hasAnything, schoolSummary, useCareerProfile } from '@/modules/career-design/composables/useCareerProfile'
-import { careerSituationOpen } from '@/shared/config/features'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -222,7 +221,6 @@ function jump(id: string) { document.getElementById(id)?.scrollIntoView({ behavi
 
 // 내 진로상황 — 적은 것이 없으면 '적기' 카드
 const { profile: careerProfile, load: loadCareerProfile } = useCareerProfile()
-const situationOpen = careerSituationOpen()   // 처리방침 시행일(11-23) 전에는 카드를 숨긴다
 const loadingSituation = ref(true)
 const situation = computed(() => (hasAnything(careerProfile.value) ? careerProfile.value : null))
 const schoolLine = computed(() => schoolSummary(situation.value))
@@ -233,7 +231,7 @@ const hasLine = computed(() => {
 
 onMounted(async () => {
   achievementStore.loadActivePlan() // 완료 기록을 함께 읽는다(이미 읽었으면 그대로)
-  if (situationOpen) loadCareerProfile(true).finally(() => { loadingSituation.value = false })
+  loadCareerProfile(true).finally(() => { loadingSituation.value = false })
   fetchDeletedPlans().then((r) => { trashCount.value = r.plans.length }).catch(() => {})
   if (!authStore.isLoggedIn) {
     router.replace('/')

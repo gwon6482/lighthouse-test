@@ -32,7 +32,6 @@ import { loadLibraryPlan } from '../composables/useHelperExamples'
 import { cloneProfile, emptyProfile, hasAnything, schoolFromOnboarding, useCareerProfile } from '../composables/useCareerProfile'
 import { fetchTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import { useAuthStore } from '@/shared/stores/auth'
-import { careerSituationOpen } from '@/shared/config/features'
 import type { JobPreparation } from '@/modules/encyclopedia/types/encyclopedia'
 import type { CareerProfile } from '../types/career-design'
 
@@ -51,7 +50,6 @@ const draft = ref<CareerProfile>(emptyProfile())
 
 onMounted(async () => {
   if (!auth.isLoggedIn) { router.replace('/'); return }
-  if (!careerSituationOpen()) { router.replace(TEMPLATES); return }   // 처리방침 시행일(11-23) 전
   try {
     const [{ data }, saved] = await Promise.all([fetchTargetCareer(), load()])
     const target = data.targetCareer

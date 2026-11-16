@@ -38,7 +38,6 @@ import { loadLibraryPlan } from '../composables/useHelperExamples'
 import { cloneProfile, emptyProfile, schoolFromOnboarding, useCareerProfile } from '../composables/useCareerProfile'
 import { fetchTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
 import { useAuthStore } from '@/shared/stores/auth'
-import { careerSituationOpen } from '@/shared/config/features'
 import { safeBack } from '@/shared/utils/navigation'
 import type { JobPreparation } from '@/modules/encyclopedia/types/encyclopedia'
 import type { CareerProfile } from '../types/career-design'
@@ -61,7 +60,6 @@ const jobTitle = ref('')
 
 onMounted(async () => {
   if (!auth.isLoggedIn) { router.replace('/'); return }
-  if (!careerSituationOpen()) { router.replace('/mypage'); return }   // 처리방침 시행일(11-23) 전
   const [profile, target] = await Promise.all([load(true), fetchTargetCareer().then((r) => r.data.targetCareer).catch(() => null)])
   saved.value = !!profile
   draft.value = profile ? cloneProfile(profile) : { ...emptyProfile(), school: schoolFromOnboarding(onboardingStatus.value) }
