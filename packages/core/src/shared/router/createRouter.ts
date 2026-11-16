@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import { isChunkLoadError, shouldReloadForChunk } from './chunkReload'
+import { isChunkLoadError, nextChunkRecovery, resetAppCache } from './chunkReload'
 import { applyThemeColor } from './themeColor'
 
 // 공통 라우터 팩토리 — test/app 셸이 각자 라우트 목록을 넘겨 생성한다.
@@ -20,10 +20,15 @@ export function makeRouter(routes: RouteRecordRaw[]) {
   })
 
   // 배포 직후 옛 화면이 지워진 청크를 부르면 이동이 멈춘다 → 가려던 주소로 새로 불러온다(자세한 이유는 chunkReload.ts)
+  //   곧바로 또 실패하면 앱 캐시(서비스 워커·캐시)를 비우고 한 번 더, 그래도 안 되면 멈춘다(2026-11-17 아이폰 사파리 핫픽스)
   router.onError((err, to) => {
-    if (isChunkLoadError(err) && shouldReloadForChunk(sessionStorage, to.fullPath, Date.now())) {
-      window.location.assign(to.fullPath)
-    }
+    if (!isChunkLoadError(err)) return
+    let store: Storage | null = null
+    try { store = window.sessionStorage } catch { /* 막힌 환경 */ }
+    const next = store ? nextChunkRecovery(store, to.fullPath, Date.now()) : 'stop'
+    if (next === 'reload') window.location.assign(to.fullPath)
+    else if (next === 'reset-and-reload') void resetAppCache().finally(() => window.location.assign(to.fullPath))
+    else console.warn('[chunk] 새 버전 화면을 불러오지 못했어요', to.fullPath)
   })
   // ⚠️ 'vite:preloadError' 에서 새로 고치지 말 것 — 라우터보다 먼저 불려서, 아직 바뀌기 전 주소(지금 화면)로 새로 고친다.
   //    거기서 아무것도 안 하면 오류가 그대로 라우터로 와서 위 onError 가 가려던 주소로 처리한다
