@@ -50,11 +50,12 @@
         </div>
       </section>
 
-      <div v-if="phases.length === 1" class="cd-per__adds">
-        <button type="button" @click="addStart">+ 시작 준비 주 넣기<small>예: {{ defaults.start[0] || '지원·등록' }}</small></button>
-        <button type="button" @click="addEnd">+ 마무리 주 넣기<small>예: {{ defaults.end[0] || '증명서 받기' }}</small></button>
+      <!-- 시작 준비·마무리 주는 아직 없을 때만(새로 만든 4주 넘는 과정은 마무리가 기본으로 들어 있다) -->
+      <div v-if="!startShown || !endShown" class="cd-per__adds" :class="{ 'cd-per__adds--one': startShown !== endShown }">
+        <button v-if="!startShown" type="button" @click="addStart">+ 시작 준비 주 넣기<small>예: {{ defaults.start[0] || '지원·등록' }}</small></button>
+        <button v-if="!endShown" type="button" @click="addEnd">+ 마무리 주 넣기<small>예: {{ defaults.end[0] || '증명서 받기' }}</small></button>
       </div>
-      <button v-else type="button" class="cd-per__add cd-per__add--phase" @click="addPhase">+ 단계 추가</button>
+      <button v-if="phases.length > 1" type="button" class="cd-per__add cd-per__add--phase" @click="addPhase">+ 단계 추가</button>
 
       <p class="cd-per__when">
         <template v-if="checkWeeks.length"><b>{{ checkWeeks.map((w) => `${w}주차`).join(' · ') }}</b> 결산에서 그 단계의 점검을 물어요. </template>
@@ -77,7 +78,8 @@ import CdYellowHeader from '../components/CdYellowHeader.vue'
 import PeriodTag from '../components/PeriodTag.vue'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import {
-  END_TITLE, PERIOD_CHECK_MAX, periodCheckWeeks, periodDefaults, phasesFromCurriculum, rebuildPeriodCurriculum, stretchPhaseIndex,
+  END_TITLE, PERIOD_CHECK_MAX, defaultPeriodPhases, hasEndPhase, hasStartPhase, periodCheckWeeks, periodDefaults,
+  phasesFromCurriculum, rebuildPeriodCurriculum, stretchPhaseIndex,
 } from '../lib/period'
 import { formatMinutes } from '@/modules/encyclopedia/lib/preparation'
 import type { ProjectCategory } from '../types/career-design'
@@ -106,6 +108,8 @@ const summary = computed(() => {
   const days = draftProject.days?.length ? draftProject.days.join('·') : '요일 미정'
   return `${draftProject.name ?? ''} · ${total.value}주 · ${days} · 하루 ${formatMinutes(draftProject.duration ?? 0)}`
 })
+const startShown = computed(() => hasStartPhase(phases.value))
+const endShown = computed(() => hasEndPhase(phases.value))
 const checkWeeks = computed(() => [...periodCheckWeeks(phases.value.map((ph) => ({ weeks: ph.weeks, title: ph.title, items: ph.items.filter((x) => x.trim()) }))).keys()])
 function rangeLabel(i: number): string {
   const start = phases.value.slice(0, i).reduce((s, ph) => s + ph.weeks, 0) + 1
@@ -124,8 +128,8 @@ onMounted(() => {
     const sum = list.reduce((s, ph) => s + ph.weeks, 0)
     if (sum !== want) { const k = stretchPhaseIndex(list); list[k]!.weeks = Math.max(1, list[k]!.weeks + (want - sum)) }
   } else {
-    // 새로 만들거나 진도에서 바꿨다 — 단계 하나(기간 전체), 이름·점검은 진행 방식 기본값(정할 것 5)
-    list = [{ title: defaults.value.label, weeks: want, items: [...defaults.value.during] }]
+    // 새로 만들거나 진도에서 바꿨다 — 이름·점검은 진행 방식 기본값(정할 것 5). 4주 넘으면 마무리 1주를 기간 안에서 떼어 둔다
+    list = defaultPeriodPhases(draftProject.method, want)
   }
   phases.value = list.map((ph) => ({ key: ++seq, title: ph.title, weeks: ph.weeks, items: [...ph.items] }))
   open.value = list.length > 1 ? stretchPhaseIndex(list) : 0
@@ -261,6 +265,7 @@ async function save() {
   &__remove { align-self: flex-end; border: 0; background: none; font-family: inherit; font-size: 12px; color: #999; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
   &__adds {
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    &--one { grid-template-columns: 1fr; }
     button {
       padding: 11px 6px; border: 1.5px dashed #D5D5D5; border-radius: 12px; background: #fff;
       font-family: inherit; font-size: 12.5px; font-weight: 700; color: #555; cursor: pointer; text-align: center;

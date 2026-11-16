@@ -240,6 +240,29 @@ export function periodDefaults(method?: string | null): PeriodDefaults {
   return { ...d, during: [...d.during], end: [...d.end], start: [...d.start] }
 }
 
+/**
+ * 새로 만드는 과정의 기본 단계(2026-11-16 '고심할 것' 1 확정 — 권장대로).
+ * 4주 넘는 과정은 다니는 기간 안에서 마무리 1주를 떼어 '정리'로 둔다(12주 → 근무 11주 + 정리 1주) —
+ * 끝날 때 점검(증명서·내 진로상황에 경력 남기기)이 기본으로 물어진다. 끝날 때 기본 문장이 없는 방식이면 한 단계
+ */
+export function defaultPeriodPhases(method: string | null | undefined, weeks: number): PeriodPhase[] {
+  const d = periodDefaults(method)
+  const total = Math.max(1, Math.trunc(weeks) || 1)
+  if (total > PREP_MAX && d.end.length) {
+    return [{ title: d.label, weeks: total - 1, items: d.during }, { title: END_TITLE, weeks: 1, items: d.end }]
+  }
+  return [{ title: d.label, weeks: total, items: d.during }]
+}
+
+/** 앞에 짧은 시작 준비 단계가 있는가 / 뒤에 짧은 마무리 단계가 있는가 — '다니는 방식'의 넣기 단추를 가린다 */
+export function hasStartPhase(phases: { weeks: number }[]): boolean {
+  return phases.length > 1 && phases[0]!.weeks <= PREP_MAX && phases[0]!.weeks < phases[1]!.weeks
+}
+export function hasEndPhase(phases: { weeks: number }[]): boolean {
+  const n = phases.length
+  return n > 1 && phases[n - 1]!.weeks <= PREP_MAX && phases[n - 1]!.weeks < phases[n - 2]!.weeks
+}
+
 /** 단계 목록에서 늘리고 줄이는 단계 — 마지막 단계가 짧은 마무리(4주 이하·앞 단계보다 짧음)면 그 앞, 아니면 마지막 */
 export function stretchPhaseIndex(phases: { weeks: number }[]): number {
   const n = phases.length

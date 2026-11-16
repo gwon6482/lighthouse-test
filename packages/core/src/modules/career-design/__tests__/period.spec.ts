@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyPeriodChange, isPeriod, periodActiveWeeks, periodCheckWeeks, periodCurriculum, periodWeekInfo, PAUSE_TITLE,
-  periodDefaults, phasesFromCurriculum, rebuildPeriodCurriculum,
+  periodDefaults, phasesFromCurriculum, rebuildPeriodCurriculum, defaultPeriodPhases, hasStartPhase, hasEndPhase,
 } from '../lib/period'
 import type { Project } from '../types/career-design'
 
@@ -161,5 +161,28 @@ describe('과정 — 직접 만들고 고치기(등록 화면)', () => {
     const cur = rebuildPeriodCurriculum([{ weeks: 2, title: ' ', items: [] }, { weeks: 3, title: '근무', items: ['기록', ' '] }])
     expect(cur).toHaveLength(3)
     expect(cur[2]).toMatchObject({ title: '근무', checks: ['기록'] })
+  })
+  it('새 과정 기본 단계 — 4주 넘으면 기간 안에서 마무리 1주(정리, 끝날 때 점검)를 뗀다', () => {
+    const d = periodDefaults('parttime')
+    expect(defaultPeriodPhases('parttime', 12)).toEqual([
+      { title: '근무', weeks: 11, items: d.during },
+      { title: '정리', weeks: 1, items: d.end },
+    ])
+    // 12주 → 점검은 가운데(근무)와 마지막 주(정리 = 끝날 때)
+    const m = periodCheckWeeks(defaultPeriodPhases('parttime', 12))
+    expect([...m.keys()]).toEqual([6, 12])
+    expect(m.get(12)).toEqual(d.end)
+    // 4주 이하·끝날 때 문장이 없는 방식은 한 단계
+    expect(defaultPeriodPhases('parttime', 4)).toEqual([{ title: '근무', weeks: 4, items: d.during }])
+    expect(defaultPeriodPhases('etc', 12)).toEqual([{ title: '참여', weeks: 12, items: [] }])
+  })
+  it('넣기 단추 판정 — 짧은 앞·뒤 단계가 있으면 시작 준비·마무리가 있는 것', () => {
+    expect(hasEndPhase(defaultPeriodPhases('parttime', 12))).toBe(true)
+    expect(hasStartPhase(defaultPeriodPhases('parttime', 12))).toBe(false)
+    expect(hasStartPhase(PARTTIME)).toBe(true)
+    expect(hasEndPhase(PARTTIME)).toBe(true)
+    expect(hasStartPhase(DEGREE4)).toBe(false)
+    expect(hasEndPhase(DEGREE4)).toBe(false)
+    expect(hasEndPhase([{ weeks: 3 }])).toBe(false)
   })
 })
