@@ -318,7 +318,7 @@
 // 두 칸(2026-11-17, 정할 것 2·3) — 스스로 준비 · 과정. 좁은 폰에서는 위아래로
 .prep-cells {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: 1fr 1fr;     // 시안처럼 두 칸 나란히. 시험이 있어 줄이 길면 칸마다 한 줄 전체(--wide)
   gap: 8px;
 }
 
@@ -347,6 +347,7 @@
   &__sub { font-size: 12px; color: #888; word-break: keep-all; }
 
   &--period { background-color: #f6f7ff; border-color: #e3e7fb; }
+  &--wide { grid-column: 1 / -1; }
 }
 
 // 큰 시험 걸음(2026-11-17, 시안 화면 3) — 분량 · 두 줄 · 합격자 수치

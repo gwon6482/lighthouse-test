@@ -67,7 +67,7 @@
              합친 기간은 적지 않는다(끝나는 때는 진로설계의 속도 고르기에서 날짜로 본다). 계산은 앱이 한다(sumParts — 서버 totals 와 같은 규칙) -->
         <div v-if="path" class="prep-total">
           <div class="prep-cells">
-            <div class="prep-cell">
+            <div :class="['prep-cell', { 'prep-cell--wide': cellsWide }]">
               <span class="prep-cell__label">스스로 준비</span>
               <template v-if="parts.examHours">
                 <span class="prep-cell__value prep-cell__value--two">
@@ -78,7 +78,7 @@
               <strong v-else class="prep-cell__value">{{ formatWeeks(parts.selfWeeks) }}</strong>
               <span class="prep-cell__sub">프로젝트 {{ parts.selfCount }}개</span>
             </div>
-            <div v-if="parts.periodWeeks" class="prep-cell prep-cell--period">
+            <div v-if="parts.periodWeeks" :class="['prep-cell', 'prep-cell--period', { 'prep-cell--wide': cellsWide }]">
               <span class="prep-cell__label">과정</span>
               <strong class="prep-cell__value">{{ formatWeeks(parts.periodWeeks) }}</strong>
               <span class="prep-cell__sub">{{ periodSub }}</span>
@@ -293,6 +293,8 @@ const majorSkip = computed(() => hasMajorSkip(path.value))
 const rows = computed(() => steps.value.map((s) => ({ item: s.item, project: s.project })))
 const parts = computed(() => sumParts(rows.value))
 const partsMajor = computed(() => sumParts(rows.value, (r) => r.item.major))
+// 칸 하나뿐이거나 큰 시험(두 줄)이 있으면 칸마다 한 줄 전체 — 폰에서 두 줄 문장이 좁게 접히지 않게
+const cellsWide = computed(() => !!parts.value.examHours || !parts.value.periodWeeks)
 // 과정 칸의 아랫줄 — 과정이 하나면 그 이름, 여럿이면 개수. 과정 안에서 하는 걸음이 있으면 함께
 const periodSub = computed(() => {
   const list = steps.value.filter((s) => !s.item.optional && (s.project.course || (s.project.period && !s.item.during)))
