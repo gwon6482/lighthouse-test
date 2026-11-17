@@ -17,6 +17,11 @@ export const ICONS: Record<string, IconDef> = {
     "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M14.5 21.5v-3h2.5a2 2 0 0 0 2-2V14l1.8-.7-1.8-3.3C18.6 6 15.6 3 11.5 3a7.2 7.2 0 0 0-4.5 12.8v5.7\"/><path d=\"M11.5 12.3s-2.6-1.5-2.6-3.3a1.3 1.3 0 0 1 2.6-.5 1.3 1.3 0 0 1 2.6.5c0 1.8-2.6 3.3-2.6 3.3Z\"/></g>",
     "bg": null
   },
+  "browse-salary": {
+    "viewBox": "0 0 24 24",
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"m7.5 8.5 2 7 2.5-5.5 2.5 5.5 2-7\"/><path d=\"M6.8 12h10.4\"/></g>",
+    "bg": null
+  },
   "env-bad": {
     "viewBox": "0 0 24 24",
     "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9.5\"/><path d=\"m9 9 6 6M15 9l-6 6\"/></g>",

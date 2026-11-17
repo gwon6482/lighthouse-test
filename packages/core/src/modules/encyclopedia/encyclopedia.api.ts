@@ -9,6 +9,7 @@ import type {
   JobRecruitmentResponse,
   JobGroupRecruitmentResponse,
 } from './types/encyclopedia'
+import type { BrowseAxesResponse, BrowseResult } from './types/browse'
 
 /**
  * encyclopediaApi 서비스
@@ -42,6 +43,17 @@ export const fetchJobsByClassification = (level: 'primary' | 'secondary', name: 
 /** 진로 둘러보기 GET /api/job/explore — 서로 다른 직무에서 직업 하나씩 무작위. 부를 때마다 달라진다 */
 export const fetchExploreJobs = (count = 5) =>
   req.get<JobExploreResponse>(`/api/job/explore`, { params: { count } })
+
+/** 분류로 찾기 — 축·보기·보기마다 줄 수 GET /api/job/browse/axes (2026-11-17) */
+export const fetchBrowseAxes = () =>
+  req.get<BrowseAxesResponse>(`/api/job/browse/axes`)
+
+/**
+ * 분류로 찾기 목록 GET /api/job/browse — 조건은 코드로만, 쉼표로 여럿(축끼리 '그리고', 한 축 안 '또는').
+ * 모르는 코드는 서버가 버리고 applied.dropped 로 알린다
+ */
+export const fetchBrowseJobs = (params: Record<string, string | number>, signal?: AbortSignal) =>
+  req.get<BrowseResult>(`/api/job/browse`, { params, signal })
 
 /** 추천 진로 조회 GET /api/job/recommend/:survey_id */
 export const fetchRecommendedJobs = (surveyId: string) =>

@@ -1,0 +1,358 @@
+// 진로백과 '분류로 찾기'(2026-11-17 시안 2판) — 입구(be) · 머리글(bhd) · 고르기(bp) · 목록(bl) · 카드 덧붙임(bjc)
+// 고르는 UI: 여럿 고르기는 네모 체크박스, 하나만 고르기는 동그라미(design-copy). 0개가 되는 보기는 흐리게
+
+// ── 진로백과 홈 입구 ──
+.be {
+  display: grid;
+  gap: 10px;
+
+  &__title { margin: 0; font-size: 16px; font-weight: 700; color: #222; }
+  &__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  &__tile {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    padding: 14px 6px 12px;
+    border: 1px solid #EEEEED;
+    border-radius: 16px;
+    background: #fff;
+    font: inherit;
+    text-align: center;
+    cursor: pointer;
+    &:active { background: #F7F7F5; }
+  }
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    font-size: 20px;
+  }
+  &__name { font-size: 13.5px; font-weight: 700; color: #222; }
+  &__hint { font-size: 10.5px; line-height: 1.3; color: #8a8a8a; word-break: keep-all; }
+  &__mine {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    border-radius: 14px;
+    background: #FFFBEA;
+    font: inherit;
+    font-size: 13px;
+    color: #5C4A00;
+    text-align: left;
+    cursor: pointer;
+    b { font-weight: 700; color: #3D3100; }
+    span { flex: 1; min-width: 0; }
+  }
+  &__mine-arrow { flex: none; color: #B08A00; font-size: 16px; }
+  &__hintline {
+    display: block;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: #fff;
+    font-size: 12.5px;
+    color: #777;
+    text-decoration: none;
+  }
+}
+
+// ── 머리글(뒤로 + 제목) ──
+.bhd {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 52px;
+  padding: 0 12px 0 6px;
+  border-bottom: 1px solid #EEEEE8;
+  background: #fff;
+
+  &__back {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: none;
+    font-size: 20px;
+    color: #333;
+    cursor: pointer;
+  }
+  &__title { font-size: 16px; font-weight: 700; color: #222; }
+}
+
+// ── 고르기 ──
+.bp {
+  min-height: 100%;
+  background: #F5F5F5;
+
+  &__body { display: grid; gap: 12px; padding: 14px 16px 120px; }
+  &__tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
+  &__tab {
+    position: relative;
+    flex: none;
+    padding: 6px 12px;
+    border: 1px solid #E8E8E4;
+    border-radius: 999px;
+    background: #fff;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #777;
+    cursor: pointer;
+    &--on { border-color: #222; background: #222; color: #fff; }
+    &:disabled { opacity: 0.4; cursor: default; }
+  }
+  &__tab-dot { position: absolute; top: 3px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: #FFC700; }
+  &__q { margin: 4px 2px 0; font-size: 19px; font-weight: 800; color: #222; letter-spacing: -0.01em; }
+  &__fail, &__loading { margin: 0; padding: 20px 4px; font-size: 13px; color: #888; }
+  &__groups { display: grid; gap: 8px; }
+  &__list { display: grid; background: #fff; border-radius: 16px; overflow: hidden; }
+  &__list--in { border-radius: 0 0 16px 16px; }
+  &__sub { margin: 0; padding: 12px 14px 4px; font-size: 11.5px; font-weight: 800; color: #999; span { font-weight: 500; } }
+  &__limit { margin: 0; padding: 10px 14px 12px; font-size: 12px; color: #B4441C; }
+  &__note { margin: 10px 2px 0; padding: 10px 12px; border-radius: 12px; background: #EFEFED; font-size: 12px; line-height: 1.55; color: #666; b { color: #333; } }
+  // 고르는 칸은 보이지 않게 두고, 네모·동그라미를 그린다(키보드 초점은 남긴다)
+  &__input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+  &__foot {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(rgba(245, 245, 245, 0), #F5F5F5 30%);
+  }
+  &__cta {
+    display: block;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 14px;
+    border: none;
+    border-radius: 14px;
+    background: #FFC700;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 800;
+    color: #222;
+    cursor: pointer;
+    &:disabled { background: #E8E8E4; color: #999; cursor: default; }
+  }
+}
+
+// 줄(직무 대분류·직무·안내 줄)
+.bp-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 16px;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  border-bottom: 1px solid #F1F1EF;
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  color: #222;
+  text-align: left;
+  cursor: pointer;
+  &:last-child { border-bottom: 0; }
+  &:active { background: #FAFAF8; }
+  &--on { background: #FFFBEA; }
+  &--all { font-weight: 700; }
+  &--zero, &:disabled { opacity: 0.4; cursor: default; }
+  &__name { display: grid; gap: 1px; min-width: 0; small { font-size: 11px; color: #999; line-height: 1.35; } }
+  &__n { font-size: 12px; color: #888; font-variant-numeric: tabular-nums; }
+  &__go { color: #C8C8C8; font-size: 16px; }
+}
+
+// 관심 분야 묶음 머리
+.bp-grp {
+  border-radius: 16px;
+  background: #fff;
+  overflow: hidden;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 13px 14px;
+    border: none;
+    background: #fff;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  &__name { flex: 1; font-size: 14px; font-weight: 800; color: #333; }
+  &__picked { font-size: 11px; font-weight: 700; color: #8A5E00; background: #FFF4CC; border-radius: 999px; padding: 2px 8px; }
+  &__chev { color: #999; font-size: 16px; transition: transform 0.15s; &--open { transform: rotate(180deg); } }
+}
+
+// 네모(여럿) · 동그라미(하나)
+.bp-ck, .bp-rd {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 11px 14px;
+  border-top: 1px solid #F4F4F2;
+  font-size: 14px;
+  color: #222;
+  cursor: pointer;
+  &:focus-within { outline: 2px solid #FFC700; outline-offset: -2px; }
+}
+.bp-ck {
+  &__box {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border: 1.7px solid #C9C9C9;
+    border-radius: 5px;
+    background: #fff;
+  }
+  &__name { display: grid; gap: 1px; min-width: 0; small { font-size: 11px; color: #999; line-height: 1.35; } }
+  &__n { font-size: 12px; color: #888; font-variant-numeric: tabular-nums; }
+  &--on .bp-ck__box { border-color: #222; background: #222; }
+  &--on .bp-ck__box::after {
+    content: '';
+    width: 8px;
+    height: 4.5px;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(-45deg) translate(1px, -1px);
+  }
+  &--all { font-weight: 700; }
+  &--zero { opacity: 0.4; cursor: default; }
+}
+.bp-rd {
+  &__dot {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border: 1.7px solid #C9C9C9;
+    border-radius: 50%;
+    background: #fff;
+  }
+  &--on .bp-rd__dot { border-color: #222; }
+  &--on .bp-rd__dot::after { content: ''; width: 9px; height: 9px; border-radius: 50%; background: #222; }
+}
+
+// 비회원 연봉 잠금
+.bp-lock {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 26px 18px;
+  border-radius: 16px;
+  background: #fff;
+  text-align: center;
+  b { font-size: 14.5px; color: #222; }
+  &__icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: #F0F0F0; color: #5F6670; font-size: 20px; }
+  &__cta { padding: 11px 18px; border-radius: 12px; background: #FFC700; font-size: 14px; font-weight: 800; color: #222; text-decoration: none; }
+}
+
+// ── 목록 ──
+.bl {
+  min-height: 100%;
+  background: #F5F5F5;
+
+  &__body { display: grid; gap: 12px; padding: 14px 16px 40px; }
+  &__count { margin: 4px 2px 0; font-size: 18px; font-weight: 800; color: #222; }
+  &__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  &__list { display: grid; gap: 8px; }
+  &__more {
+    padding: 12px;
+    border: 1px solid #E4E4DE;
+    border-radius: 14px;
+    background: #fff;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    color: #555;
+    cursor: pointer;
+    &:disabled { opacity: 0.5; }
+  }
+  &__src { margin: 6px 0 0; font-size: 11px; line-height: 1.6; color: #999; text-align: center; }
+}
+.bl-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #222;
+  color: #fff;
+  &__label { padding: 5px 4px 5px 11px; border: none; background: none; font: inherit; font-size: 12px; font-weight: 700; color: inherit; cursor: pointer; }
+  &__x { padding: 5px 10px 5px 4px; border: none; background: none; font: inherit; font-size: 14px; line-height: 1; color: #BBB; cursor: pointer; }
+}
+.bl-add {
+  padding: 5px 11px;
+  border: 1.4px dashed #C9C9C9;
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #777;
+  cursor: pointer;
+  &--full { cursor: default; color: #AAA; border-style: solid; border-color: #E8E8E4; }
+}
+.bl-empty {
+  display: grid;
+  gap: 6px;
+  padding: 18px 16px;
+  border-radius: 16px;
+  background: #fff;
+  text-align: center;
+  b { font-size: 15px; line-height: 1.45; color: #222; }
+  span { font-size: 12px; color: #888; }
+}
+.bl-relax {
+  display: grid;
+  gap: 8px;
+  &__lead { margin: 6px 2px 0; font-size: 13px; font-weight: 700; color: #555; }
+}
+.bl-drop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1.3px solid #E3E3E0;
+  border-radius: 14px;
+  background: #fff;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #333;
+  text-align: left;
+  cursor: pointer;
+  span { flex: none; color: #B08A00; }
+  &--zero { opacity: 0.45; cursor: default; span { color: #999; } }
+}
+.bl-near {
+  display: grid;
+  gap: 8px;
+  &__title { margin: 10px 2px 0; font-size: 15px; font-weight: 800; color: #222; span { font-size: 12px; font-weight: 500; color: #999; margin-left: 4px; } }
+  &__explore { justify-self: center; padding: 6px 4px; font-size: 13px; color: #777; }
+}
+
+// ── 목록 카드 덧붙임(둘러보기 카드 rjc 위에) ──
+.bjc {
+  cursor: pointer;
+  &__why { margin: 4px 0 0; padding: 5px 9px; border-radius: 9px; background: #EEF7F3; font-size: 12px; line-height: 1.5; color: #2F5D50; }
+  &__near { margin: 4px 0 0; padding: 4px 8px; border-radius: 8px; background: #F4F4F2; font-size: 11.5px; color: #8A8A8A; b { color: #555; } }
+  &__sal { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 4px 0 0; font-size: 12px; color: #666; b { font-weight: 700; color: #222; } }
+  &__lock { padding: 2px 7px; font-size: 10.5px; }
+  &--near { opacity: 0.92; }
+}

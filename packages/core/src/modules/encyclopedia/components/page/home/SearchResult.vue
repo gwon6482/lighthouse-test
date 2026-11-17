@@ -43,9 +43,10 @@
         <span>검색하지 못했어요. 잠시 후 다시 시도해 주세요</span>
       </div>
       <template v-else>
-        <!-- 검색어가 들어간 분류 — 직업 이름이 생소할 때 분류로 들어가 찾는다(예: '농' → 농림어업직) -->
+        <!-- 검색어가 들어간 분류 — 직업 이름이 생소할 때 분류로 들어가 찾는다(예: '농' → 농림어업직).
+             제목은 '관련 분류'(2026-11-17) — 진로백과 홈의 '분류로 찾기'(직무·관심 분야… 로 좁히기)와 이름이 겹치지 않게 -->
         <div v-if="chips.length" class="search-result__groups">
-          <span class="search-result__groups-label">분류로 찾기</span>
+          <span class="search-result__groups-label">관련 분류</span>
           <div class="search-result__chips">
             <button v-for="g in chips" :key="`${g.level}:${g.name}`" type="button" class="search-result__chip" @click="emit('openGroup', g)">
               <span class="search-result__chip-name">{{ g.name }}</span>

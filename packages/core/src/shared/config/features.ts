@@ -8,6 +8,9 @@ export const features = {
   // 비회원 진입 경로(2026-11-09) — /start(비회원 검사) · /job/:jobCode(비회원 진로백과) · 결과지·진로백과 잠금.
   // 빌드 환경변수로 켠다: 스테이징(deploy-test)·운영(deploy-app) 모두 VITE_GUEST_ENTRY=1 (운영은 2026-11-12~)
   guestEntry: import.meta.env.VITE_GUEST_ENTRY === '1',
+  // 진로백과 '분류로 찾기'(2026-11-17 오너 결정 — 직무·관심 분야·업무 환경·재능·가치관·연봉으로 직업 좁히기).
+  // 스테이징(deploy-test)만 VITE_JOB_BROWSE=1. 운영(deploy-app)은 사용성 확인 뒤 오너 지시로 켠다
+  jobBrowse: import.meta.env.VITE_JOB_BROWSE === '1',
 } as const
 
 export type FeatureKey = keyof typeof features

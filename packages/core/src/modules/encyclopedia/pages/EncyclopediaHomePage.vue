@@ -62,6 +62,11 @@
         </div>
       </div>
 
+      <!-- 분류로 찾기(2026-11-17) — 둘러보기 아래, 나의 추천 진로 위. 기능 스위치가 켜진 빌드에만(스테이징 먼저) -->
+      <div v-if="features.jobBrowse" class="enc-home__section">
+        <BrowseEntry />
+      </div>
+
       <!-- 나의 추천 진로 -->
       <div class="enc-home__section">
         <button class="enc-home__menu-btn" @click="goToRecommended">
@@ -90,6 +95,7 @@ import JourneyIntro from '@/shared/components/JourneyIntro.vue'
 import SearchBar from '../components/page/home/SearchBar.vue'
 import RecommendedJobCard from '../components/page/home/RecommendedJobCard.vue'
 import SearchResult from '../components/page/home/SearchResult.vue'
+import BrowseEntry from '../components/page/browse/BrowseEntry.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
