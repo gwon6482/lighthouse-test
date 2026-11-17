@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { applySituation, asksRelated, haveCandidates, isHad, haveRefOf, situationSentence, toHaeyo, trimFront } from '../lib/situation'
-import { buildSituationTemplate } from '../composables/usePlanTemplates'
+import {
+  applySituation, asksRelated, haveCandidates, isHad, haveRefOf, situationSentence, toHaeyo, trimFront,
+  frontHaveLabel, haveTargetOf, isOwned, pairedBackIds, sameHave, withoutHave,
+} from '../lib/situation'
+import { buildPlanTemplates, buildSituationTemplate } from '../composables/usePlanTemplates'
 import type { JobPreparation, PrepItem, PrepProject } from '@/modules/encyclopedia/types/encyclopedia'
 import type { CareerProfile } from '../types/career-design'
 
@@ -170,5 +173,151 @@ describe('도움 함수', () => {
     expect(toHaeyo('사회복지학과 교육과정에 포함돼 있다')).toBe('사회복지학과 교육과정에 포함돼 있어요')
     expect(toHaeyo('상경 계열 전공 과목으로 채워진다')).toBe('상경 계열 전공 과목으로 채워져요')
     expect(toHaeyo('전공 교육과정이 대신한다')).toBe('전공 교육과정이 대신해요')
+  })
+})
+
+// ── 필기·실기(1·2차) 짝 걸음과 옛 열쇠(2026-11-17) ──
+// 자료(data/written-practical): 자격을 따는 뒤 걸음이 예전 id 그대로, 앞 걸음은 '<id>-written'·'<id>-first'. 짝 두 걸음은 메모가 같다
+const cert = (id: string, over: Partial<PrepProject> = {}) => project(id, 8, { type: 'cert', subtype: 'national-tech', category: 'qualification', ...over })
+const planOf = (items: PrepItem[], projects: Record<string, PrepProject>, jobCode = '135001'): JobPreparation => {
+  const prep = nurse()
+  return {
+    ...prep, jobCode, plan: { ...prep.plan, jobCode, relatedMajor: null },
+    paths: [{ ...prep.paths[0]!, items }],
+    projects: { 'cp.resume': prep.projects['cp.resume']!, ...projects },
+  }
+}
+const cutRefs = (prep: JobPreparation, has: CareerProfile['has']) =>
+  applySituation(prep, prep.paths[0]!, profile({ has })).changes.filter((c) => c.kind === 'cut').map((c) => `${c.ref} ${c.reason}`)
+// 기사 두 개(메모가 자격 이름) — 한 계획에 같은 앞 걸음 번호가 둘 나온다(140207 건축시공 qs 갈래와 같은 모양)
+const twoEngineers = () => planOf(
+  [item('cp.engineer-cert-written', 1, { note: '전기기사' }), item('cp.engineer-cert', 1.5, { note: '전기기사' }),
+    item('cp.engineer-cert-written', 2, { note: '정보통신기사 — 선임 자격' }), item('cp.engineer-cert', 2.5, { note: '정보통신기사 — 선임 자격' }), item('cp.resume', 3)],
+  { 'cp.engineer-cert-written': cert('cp.engineer-cert-written', { haveLabel: '기사 필기 합격' }), 'cp.engineer-cert': cert('cp.engineer-cert', { haveLabel: '기사 자격', haveByNote: true }) },
+)
+const infoEng = () => planOf(
+  [item('cp.info-eng-written', 1), item('cp.info-eng', 1.5), item('cp.resume', 2)],
+  { 'cp.info-eng-written': cert('cp.info-eng-written', { haveLabel: '정보처리기사 필기 합격' }), 'cp.info-eng': cert('cp.info-eng', { haveLabel: '정보처리기사' }) },
+)
+
+describe('짝 걸음 — 자격(뒤 걸음)을 해 뒀으면 필기·1차(앞 걸음)도 뺀다', () => {
+  it('꼬리 규칙: -written → 예전 id, -first → 예전 id 또는 -second, p.first → p.second', () => {
+    expect(pairedBackIds('cp.info-eng-written')).toEqual(['cp.info-eng'])
+    expect(pairedBackIds('cp.security-manager-first')).toEqual(['cp.security-manager', 'cp.security-manager-second'])
+    expect(pairedBackIds('p.cpa-first')).toEqual(['p.cpa', 'p.cpa-second'])
+    expect(pairedBackIds('p.first')).toEqual(['p.second'])
+    for (const id of ['cp.info-eng', 'cp.license-practical', 'p.cpa-second', 'p.second']) expect(pairedBackIds(id)).toEqual([])
+    // 보건 필기는 꼬리 규칙상 'cp.license' 를 찾지만 그런 걸음이 없어 짝이 생기지 않는다(아래 보건 시험)
+    expect(pairedBackIds('cp.license-written')).toEqual(['cp.license'])
+  })
+
+  it('자격을 해 뒀으면 필기도 함께 빠진다(이름이 정해진 자격 — 번호로 비교)', () => {
+    expect(cutRefs(infoEng(), [{ ref: 'cp.info-eng', name: '정보처리기사' }])).toEqual(['cp.info-eng-written 이미 해 뒀어요', 'cp.info-eng 이미 해 뒀어요'])
+  })
+
+  it('필기만 붙었으면 필기만 빠지고 실기는 남는다', () => {
+    expect(cutRefs(infoEng(), [{ ref: 'cp.info-eng-written', name: '정보처리기사 필기 합격' }])).toEqual(['cp.info-eng-written 이미 해 뒀어요'])
+  })
+
+  it('기사가 둘이면 해 둔 기사의 필기만 빠진다(메모가 자격 이름)', () => {
+    const prep = twoEngineers()
+    const r = applySituation(prep, prep.paths[0]!, profile({ has: [{ ref: 'cp.engineer-cert', name: '정보통신기사 — 선임 자격' }] }))
+    expect(r.rows.map((x) => `${x.item.ref} ${x.item.note ?? ''}`)).toEqual(['cp.engineer-cert-written 전기기사', 'cp.engineer-cert 전기기사', 'cp.resume '])
+  })
+
+  it('앞 걸음 체크리스트 이름에 자격 이름을 붙이고, 이름으로 비교한다(다른 기사의 필기는 안 빠진다)', () => {
+    const prep = twoEngineers()
+    expect(haveCandidates(prep).map((c) => `${c.label}${c.byNote ? '' : ' (번호만)'}`)).toEqual([
+      '전기기사 필기 합격', '전기기사', '정보통신기사 필기 합격 — 선임 자격', '정보통신기사 — 선임 자격',
+    ])
+    const r = applySituation(prep, prep.paths[0]!, profile({ has: [{ ref: 'cp.engineer-cert-written', name: '전기기사 필기 합격' }] }))
+    expect(r.rows.map((x) => `${x.item.ref} ${x.item.note ?? ''}`)).toEqual([
+      'cp.engineer-cert 전기기사', 'cp.engineer-cert-written 정보통신기사 — 선임 자격', 'cp.engineer-cert 정보통신기사 — 선임 자격', 'cp.resume ',
+    ])
+  })
+
+  it('앞 걸음 이름 — 끝의 \' — 설명\'은 뒤로, 괄호는 자격 이름이라 그대로, 1차는 \'1차 합격\'', () => {
+    expect(frontHaveLabel('정보보안기사', 'cp.engineer-cert-written')).toBe('정보보안기사 필기 합격')
+    expect(frontHaveLabel('가스기능사 — 가스 점검원 우대', 'cp.craftsman-cert-written')).toBe('가스기능사 필기 합격 — 가스 점검원 우대')
+    expect(frontHaveLabel('미용사(일반)', 'cp.craftsman-cert-written')).toBe('미용사(일반) 필기 합격')
+    expect(frontHaveLabel('경영지도사', 'p.co-cert-first')).toBe('경영지도사 1차 합격')
+  })
+
+  it('예전부터 나눈 전문자격 1·2차도 같은 원리(직업 전용 열쇠 \'계획 코드:p.번호\')', () => {
+    const cpa = planOf([item('p.cpa-first', 1), item('p.cpa-second', 2)], { 'p.cpa-first': cert('p.cpa-first'), 'p.cpa-second': cert('p.cpa-second') }, '023101')
+    expect(cutRefs(cpa, [{ ref: '023101:p.cpa-second', name: 'p.cpa-second' }])).toEqual(['p.cpa-first 이미 해 뒀어요', 'p.cpa-second 이미 해 뒀어요'])
+    const customs = planOf([item('p.first', 1), item('p.second', 2)], { 'p.first': cert('p.first'), 'p.second': cert('p.second') }, '023301')
+    expect(cutRefs(customs, [{ ref: '023301:p.second', name: 'p.second' }])).toEqual(['p.first 이미 해 뒀어요', 'p.second 이미 해 뒀어요'])
+    // 다른 직업의 같은 번호(p.second)는 다른 열쇠다
+    expect(cutRefs(customs, [{ ref: '023401:p.second', name: 'p.second' }])).toEqual([])
+  })
+
+  it('보건의료 국가시험 필기·실기는 짝이 아니다 — 직종마다 먼저 보는 시험이 달라 한쪽이 다른 쪽을 품지 않는다', () => {
+    const lic = planOf(
+      [item('cp.license-practical', 1, { note: '치과기공사 국가시험 실기' }), item('cp.license-written', 2, { note: '치과기공사 국가시험 필기' })],
+      { 'cp.license-written': cert('cp.license-written', { subtype: 'national-license', haveByNote: true }), 'cp.license-practical': cert('cp.license-practical', { subtype: 'national-license', haveByNote: true }) },
+    )
+    expect(cutRefs(lic, [{ ref: 'cp.license-written', name: '치과기공사 국가시험 필기' }])).toEqual(['cp.license-written 이미 해 뒀어요'])
+  })
+
+  it('템플릿(비전공·기본 플랜)도 같은 규칙 — 앞 걸음 \'다시 넣기\'는 짝인 자격도 함께 뺀다', () => {
+    const prep = infoEng()
+    const has = [{ ref: 'cp.info-eng', name: '정보처리기사' }]
+    const t = buildPlanTemplates(prep, null, has)[0]!
+    expect(t.projects.map((p) => p.name)).toEqual(['cp.resume'])
+    expect(t.skipped.map((s) => s.label)).toEqual(['정보처리기사 필기 합격', '정보처리기사'])
+    const front = t.skipped[0]!
+    expect(front.pair).toMatchObject({ key: 'cp.info-eng', label: '정보처리기사' })
+    expect(withoutHave(has, front)).toEqual([])
+    // 뒤 걸음만 다시 넣어도 둘 다 돌아온다(필기는 자격 때문에 빠졌던 것)
+    expect(buildPlanTemplates(prep, null, withoutHave(has, t.skipped[1]!))[0]!.projects).toHaveLength(3)
+  })
+
+  it('isOwned 는 자격·면허·어학·근무 경험만(채용 필기 같은 걸음은 짝이어도 보지 않는다)', () => {
+    const prep = planOf([item('cp.major-written', 1)], { 'cp.major-written': project('cp.major-written', 8, { type: 'hiring', subtype: 'ncs', category: 'qualification' }), 'cp.major': cert('cp.major') })
+    expect(isOwned(prep, [{ ref: 'cp.major', name: 'cp.major' }], prep.paths[0]!.items[0]!, prep.projects['cp.major-written']!)).toBe(false)
+  })
+})
+
+describe('옛 열쇠 — 나누기 전에 저장한 \'이미 해 둔 것\'도 새 걸음으로 읽는다', () => {
+  const doctor = () => planOf(
+    [item('cp.license-practical', 1, { note: '의사 국가시험 실기', during: true }), item('cp.license-written', 2, { note: '의사 국가시험 필기', during: true }), item('cp.resume', 3)],
+    { 'cp.license-written': cert('cp.license-written', { subtype: 'national-license', haveLabel: '보건의료 국가시험 필기 합격', haveByNote: true }),
+      'cp.license-practical': cert('cp.license-practical', { subtype: 'national-license', haveLabel: '보건의료 국가시험 실기 합격', haveByNote: true }) },
+    '301201',
+  )
+  const old = { ref: 'cp.license-exam', name: '의사 국가시험(필기·실기)' }
+
+  it('보건의료: \'○ 국가시험(필기·실기)\' 하나가 필기·실기 두 걸음을 뺀다', () => {
+    expect(cutRefs(doctor(), [old])).toEqual(['cp.license-practical 이미 해 뒀어요', 'cp.license-written 이미 해 뒀어요'])
+  })
+
+  it('다른 직업의 국가시험 저장값은 건드리지 않는다(간호사는 여전히 cp.license-exam 하나)', () => {
+    expect(cutRefs(doctor(), [{ ref: 'cp.license-exam', name: '간호사 국가시험' }])).toEqual([])
+    expect(names(run(profile({ has: [{ ref: 'cp.license', name: '간호사 국가시험' }] })))).not.toContain('cp.license')
+  })
+
+  it('체크리스트에 체크된 것으로 보이고, \'다른 계획에서 고른 것\'으로 따로 남지 않는다', () => {
+    const cands = haveCandidates(doctor())
+    expect(cands.map((c) => [c.label, isHad([old], c, c.byNote)])).toEqual([['의사 국가시험 실기', true], ['의사 국가시험 필기', true]])
+    expect(cands.some((c) => sameHave(old, c))).toBe(true)
+  })
+
+  it('하나만 체크를 풀면 남은 걸음은 새 열쇠로 풀어 남긴다', () => {
+    const written = haveCandidates(doctor()).find((c) => c.key === 'cp.license-written')!
+    expect(withoutHave([old, { ref: 'cp.toeic', name: '토익 점수' }], written)).toEqual([
+      { ref: 'cp.license-practical', name: '의사 국가시험 실기' }, { ref: 'cp.toeic', name: '토익 점수' },
+    ])
+  })
+
+  it('미용사: 메모에서 \'필기·실기\'를 뗀 기능사 — 옛 이름으로 저장한 것도 자격과 필기를 함께 뺀다', () => {
+    const beauty = planOf(
+      [item('cp.craftsman-cert-written', 1, { note: '미용사(네일)' }), item('cp.craftsman-cert', 1.5, { note: '미용사(네일)' })],
+      { 'cp.craftsman-cert-written': cert('cp.craftsman-cert-written', { haveLabel: '기능사 필기 합격' }), 'cp.craftsman-cert': cert('cp.craftsman-cert', { haveLabel: '기능사 자격', haveByNote: true }) },
+      '511201',
+    )
+    expect(cutRefs(beauty, [{ ref: 'cp.craftsman-cert', name: '미용사(네일) 필기·실기' }])).toEqual(['cp.craftsman-cert-written 이미 해 뒀어요', 'cp.craftsman-cert 이미 해 뒀어요'])
+    expect(cutRefs(beauty, [{ ref: 'cp.craftsman-cert', name: '미용사(일반) 필기·실기' }])).toEqual([])
+    expect(haveTargetOf(beauty, beauty.paths[0]!.items[0]!, beauty.projects['cp.craftsman-cert-written']!)).toMatchObject({ label: '미용사(네일) 필기 합격', byNote: true })
   })
 })

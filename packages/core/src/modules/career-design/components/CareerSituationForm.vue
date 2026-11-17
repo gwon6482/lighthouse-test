@@ -94,7 +94,7 @@ import { computed, ref } from 'vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import CareerRecordsEditor from './CareerRecordsEditor.vue'
 import { SCHOOL_OPTIONS, YEAR_OPTIONS, atCollege } from '../composables/useCareerProfile'
-import { asksRelated, haveCandidates, isHad, type HaveRef } from '../lib/situation'
+import { asksRelated, haveCandidates, isHad, sameHave, withoutHave, type HaveTarget } from '../lib/situation'
 import type { JobPreparation } from '@/modules/encyclopedia/types/encyclopedia'
 import type { CareerProfile, CareerSchool } from '../types/career-design'
 
@@ -131,11 +131,12 @@ const removeRelated = (code: string) => patch({ relatedJobs: props.modelValue.re
 
 // ── 이미 해 둔 것 ──
 const candidates = computed(() => (props.prep ? haveCandidates(props.prep) : []))
-const had = (c: HaveRef & { byNote: boolean }) => isHad(props.modelValue.has, c, c.byNote)
-const sameHave = (h: CareerProfile['has'][number], c: HaveRef & { byNote: boolean }) => h.ref === c.key && (!c.byNote || h.name === c.label)
-function toggleHave(c: HaveRef & { byNote: boolean }) {
+// 옛 열쇠로 저장된 것(필기·실기를 나누기 전)도 새 걸음으로 본다 — lib/situation.ts HAVE_ALIASES
+const had = (c: HaveTarget) => isHad(props.modelValue.has, c, c.byNote)
+// 끄면 이 걸음만 뺀다(옛 열쇠로 저장된 것은 남은 걸음을 새 열쇠로 풀어 둔다). 짝인 자격은 목록에 따로 있어 건드리지 않는다
+function toggleHave(c: HaveTarget) {
   const has = props.modelValue.has
-  patch({ has: had(c) ? has.filter((h) => !sameHave(h, c)) : [...has, { ref: c.key, name: c.label }] })
+  patch({ has: had(c) ? withoutHave(has, { ...c, pair: undefined }) : [...has, { ref: c.key, name: c.label }] })
 }
 const otherHas = computed(() => props.modelValue.has.filter((h) => !candidates.value.some((c) => sameHave(h, c))))
 const removeHas = (h: CareerProfile['has'][number]) => patch({ has: props.modelValue.has.filter((x) => !(x.ref === h.ref && x.name === h.name)) })
