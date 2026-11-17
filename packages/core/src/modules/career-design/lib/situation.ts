@@ -9,7 +9,7 @@
 //   · 다른 학과                      바뀌는 것 없음(수능 걸음의 '편입·학사편입' 안내가 보인다)
 //   · 법조(항목 skipFor:'any')       학과와 상관없이 대학생이면 입시 빼기·학부 남은 학년만, 졸업이면 학부까지 빼기
 //   · 대학원생·졸업 + 관련           학부는 졸업으로 보고, 석사 과정은 대학원생이면 남은 1년·졸업이면 빼기(그 과정의 학업 걸음·학위 논문도)
-//   · 이미 해 둔 것                  고른 걸음 빼기(자격·면허·어학·근무 경험)
+//   · 이미 해 둔 것                  고른 걸음 빼기(자격·면허·어학·근무 경험). 자격(뒤 걸음)을 해 뒀으면 짝인 필기·1차도 뺀다(2026-11-17)
 // 경력·성과는 계획에 반영하지 않는다.
 import type { JobPreparation, PrepItem, PrepPath, PrepPhase, PrepProject } from '@/modules/encyclopedia/types/encyclopedia'
 import { sumWeeks } from '@/modules/encyclopedia/lib/preparation'
@@ -35,22 +35,117 @@ export interface HaveRef { key: string; label: string }
 export const haveRefOf = (prep: Pick<JobPreparation, 'plan'>, item: Pick<PrepItem, 'note'>, p: PrepProject): HaveRef =>
   ({ key: haveKey(prep, p), label: haveLabelOf(item, p) })
 
+type HaveEntry = CareerProfile['has'][number]
+/** 저장·비교할 대상. 앞 걸음(필기·1차)이면 짝인 뒤 걸음(자격)을 pair 로 싣는다 — '다시 넣기'로 뺄 때 함께 뺀다 */
+export interface HaveTarget extends HaveRef { byNote: boolean; pair?: HaveTarget }
+
+// ── 열쇠가 바뀐 옛 저장값(2026-11-17 필기·실기 차수 나누기) ──
+// '이미 해 둔 것'은 프로젝트 id(+ 메모가 자격 이름인 것은 그 메모)로 저장한다. 자료를 나누면서 아래 저장값은 그대로는 맞지 않게 됐다
+// (운영 자료 main 과 data/written-practical 을 직업마다 맞대 본 결과 — 바뀐 저장값은 이 11개뿐이다. 한국사 3곳은 선택 항목이 됐을 뿐 열쇠는 그대로).
+//   · 보건의료 6직업: 국가시험 한 걸음(cp.license-exam '○ 국가시험(필기·실기)')이 필기·실기 두 걸음으로 — 옛 값은 둘 다 붙은 것
+//   · 미용사 4갈래: 기능사 메모에서 '필기·실기'를 뗐다(cp.craftsman-cert 는 메모가 저장 이름이다)
+// 옛 값은 고쳐 쓰지 않고 읽을 때 새 걸음으로 본다 — 자료와 앱 중 무엇이 먼저 나가도 맞게. 체크를 하나 풀면 그때 새 열쇠로 풀어 저장한다(withoutHave)
+const licenseSplit = (old: string, base: string) => ({
+  ref: 'cp.license-exam', name: old,
+  to: [{ ref: 'cp.license-written', name: `${base} 필기` }, { ref: 'cp.license-practical', name: `${base} 실기` }],
+})
+const craftsmanNote = (kind: string) => ({
+  ref: 'cp.craftsman-cert', name: `미용사(${kind}) 필기·실기`, to: [{ ref: 'cp.craftsman-cert', name: `미용사(${kind})` }],
+})
+export const HAVE_ALIASES: { ref: string; name: string; to: HaveEntry[] }[] = [
+  licenseSplit('의사 국가시험(필기·실기)', '의사 국가시험'),
+  licenseSplit('치과의사 국가시험(필기·실기)', '치과의사 국가시험'),
+  licenseSplit('치과기공사 국가시험(필기·실기)', '치과기공사 국가시험'),
+  licenseSplit('치과위생사 국가시험(필기·실기)', '치과위생사 국가시험'),
+  licenseSplit('의지·보조기 기사 국가시험', '의지·보조기 기사 국가시험'),
+  licenseSplit('1급 응급구조사 국가시험(필기·실기)', '1급 응급구조사 국가시험'),
+  licenseSplit('2급 응급구조사 시험(필기·실기)', '2급 응급구조사 시험'),
+  craftsmanNote('일반'), craftsmanNote('피부'), craftsmanNote('네일'), craftsmanNote('메이크업'),
+]
+const aliasesOf = (h: HaveEntry): HaveEntry[] => HAVE_ALIASES.find((a) => a.ref === h.ref && a.name === h.name)?.to ?? []
+const hits = (e: HaveEntry, t: HaveRef & { byNote: boolean }) => e.ref === t.key && (!t.byNote || e.name === t.label)
+
+/** 저장값 하나가 대상을 가리키는가 — 직접, 또는 옛 저장값(별칭)으로 */
+export const sameHave = (h: HaveEntry, t: HaveRef & { byNote: boolean }) => hits(h, t) || aliasesOf(h).some((a) => hits(a, t))
+
 /** 해 둔 것으로 저장돼 있는가 — 메모가 자격 이름인 보편 프로젝트(기능사·기사)는 번호가 같아도 이름이 같아야 한다 */
 export function isHad(has: CareerProfile['has'], ref: HaveRef, byNote: boolean): boolean {
-  return has.some((h) => h.ref === ref.key && (!byNote || h.name === ref.label))
+  return has.some((h) => sameHave(h, { ...ref, byNote }))
 }
 
-/** 체크리스트 — 보여 줄 길들의 필수 걸음 가운데 이미 해 뒀을 수 있는 것(같은 열쇠·이름은 한 번) */
-export function haveCandidates(prep: JobPreparation): (HaveRef & { byNote: boolean })[] {
-  const out = new Map<string, HaveRef & { byNote: boolean }>()
+/**
+ * 대상을 '이미 해 둔 것'에서 뺀다(체크 풀기·다시 넣기). 옛 저장값이 다른 걸음도 함께 가리키면 그 걸음들은 새 열쇠로 풀어 남긴다.
+ * 대상이 앞 걸음이면 짝인 뒤 걸음(자격)도 뺀다 — 필기에 안 붙었으면 자격도 없다
+ */
+export function withoutHave(has: CareerProfile['has'], t: HaveTarget): CareerProfile['has'] {
+  const out: HaveEntry[] = []
+  const add = (e: HaveEntry) => { if (!out.some((x) => x.ref === e.ref && x.name === e.name)) out.push(e) }
+  for (const h of has) {
+    if (hits(h, t)) continue
+    const to = aliasesOf(h)
+    if (to.some((a) => hits(a, t))) { to.filter((a) => !hits(a, t)).forEach(add); continue }
+    add(h)
+  }
+  return t.pair ? withoutHave(out, t.pair) : out
+}
+
+// ── 짝 걸음(2026-11-17 필기·실기 차수) ──
+// 자료의 id 꼬리 규칙(plan-library README '필기·실기(1·2차) 차수'): 자격을 따는 뒤 걸음이 예전 id 그대로, 앞 걸음은 '<id>-written'(필기·학과)·'<id>-first'(1차).
+// 예전부터 나눠 둔 전문자격 1·2차는 '<id>-first' → '<id>-second', 'p.first' → 'p.second'(관세사·감정평가사 등)다.
+// 짝이 같은 계획에 있는 것만 본다. 보건의료 국가시험 필기·실기(cp.license-written·cp.license-practical)는 꼬리 규칙 밖이다 —
+// 직종마다 먼저 보는 시험이 달라 한쪽이 다른 쪽을 품지 않는다
+export function pairedBackIds(id: string): string[] {
+  let m = id.match(/^(.+)-written$/)
+  if (m) return [m[1]!]
+  m = id.match(/^(.+)-first$/)
+  if (m) return [m[1]!, `${m[1]}-second`]
+  m = id.match(/^(.+\.)first$/)
+  if (m) return [`${m[1]}second`]
+  return []
+}
+export const pairedBackOf = (prep: Pick<JobPreparation, 'projects'>, p: PrepProject): PrepProject | undefined =>
+  pairedBackIds(p.id).map((id) => prep.projects[id]).find((b): b is PrepProject => !!b && canHave(b))
+
+/**
+ * 앞 걸음 이름 — 뒤 걸음이 메모를 자격 이름으로 쓰는 보편 자격(기사·기능사)이면 그 자격 이름을 붙인다: '정보보안기사 필기 합격'.
+ * 자료의 앞 걸음 이름은 '기사 필기 합격'처럼 자격 이름이 없어, 한 계획에 기사가 둘이면 체크 하나로 둘 다 빠졌다(2026-11-17 lead 점검).
+ * 메모 끝의 ' — 설명'은 이름 뒤로 둔다('가스기능사 필기 합격 — 가스 점검원 우대'). 괄호는 자격 이름의 일부일 수 있어(미용사(일반)) 그대로 둔다
+ */
+export function frontHaveLabel(note: string, id: string): string {
+  const word = /[.-]first$/.test(id) ? '1차 합격' : '필기 합격'
+  const dash = note.indexOf(' — ')
+  return dash > 0 ? `${note.slice(0, dash)} ${word}${note.slice(dash)}` : `${note} ${word}`
+}
+
+/** 저장·비교 대상 — 앞 걸음이면 짝인 뒤 걸음을 함께 싣는다. 짝 두 걸음은 메모가 같다(자료 약속) — 뒤 걸음 이름도 이 항목의 메모로 */
+export function haveTargetOf(prep: Pick<JobPreparation, 'plan' | 'projects'>, item: Pick<PrepItem, 'note'>, p: PrepProject): HaveTarget {
+  const back = pairedBackOf(prep, p)
+  const pair: HaveTarget | undefined = back ? { ...haveRefOf(prep, item, back), byNote: !!back.haveByNote } : undefined
+  // 뒤 걸음이 메모로 이름을 정하면 앞 걸음도 그 이름으로 저장·비교한다(번호만으로는 어느 기사의 필기인지 모른다)
+  const t: HaveTarget = pair?.byNote && !p.haveByNote && item.note
+    ? { key: haveKey(prep, p), label: frontHaveLabel(item.note, p.id), byNote: true }
+    : { ...haveRefOf(prep, item, p), byNote: !!p.haveByNote }
+  return pair ? { ...t, pair } : t
+}
+
+/** 이미 해 둔 걸음인가 — 저장돼 있거나(옛 열쇠 포함), 앞 걸음인데 짝인 뒤 걸음(자격)을 해 뒀으면(자격이 있으면 필기·1차도 붙은 것) */
+export function isOwned(prep: Pick<JobPreparation, 'plan' | 'projects'>, has: CareerProfile['has'], item: Pick<PrepItem, 'note'>, p: PrepProject): boolean {
+  if (!canHave(p)) return false
+  const t = haveTargetOf(prep, item, p)
+  return isHad(has, t, t.byNote) || (!!t.pair && isHad(has, t.pair, t.pair.byNote))
+}
+
+/** 체크리스트 — 보여 줄 길들의 필수 걸음 가운데 이미 해 뒀을 수 있는 것(같은 열쇠·이름은 한 번). 이름·비교 규칙은 haveTargetOf */
+export function haveCandidates(prep: JobPreparation): HaveTarget[] {
+  const out = new Map<string, HaveTarget>()
   for (const path of prep.paths) {
     for (const item of path.items) {
       if (item.optional) continue
       const p = prep.projects[item.ref]
       if (!p || !canHave(p)) continue
-      const ref = haveRefOf(prep, item, p)
-      const k = `${ref.key}|${p.haveByNote ? ref.label : ''}`
-      if (!out.has(k)) out.set(k, { ...ref, byNote: !!p.haveByNote })
+      const t = haveTargetOf(prep, item, p)
+      const k = `${t.key}|${t.byNote ? t.label : ''}`
+      if (!out.has(k)) out.set(k, t)
     }
   }
   return [...out.values()]
@@ -182,8 +277,8 @@ export function applySituation(prep: JobPreparation, path: PrepPath, profile: Ca
       const schoolWork = p.type === 'edu' || (cutCourse === 'degree' ? p.type === 'activity' : p.type === 'output' && p.subtype === 'research')
       if (schoolWork) { cut(item, p, '학교 과정에서 마쳤어요'); continue }
     }
-    // 6) 이미 해 둔 것
-    if (canHave(p) && isHad(profile.has, haveRefOf(prep, item, p), !!p.haveByNote)) {
+    // 6) 이미 해 둔 것(옛 열쇠로 저장한 것, 자격을 해 둬서 함께 빠지는 필기·1차 포함)
+    if (isOwned(prep, profile.has, item, p)) {
       cut(item, p, '이미 해 뒀어요')
       continue
     }

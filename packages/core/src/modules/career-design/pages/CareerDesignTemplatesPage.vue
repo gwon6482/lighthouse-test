@@ -180,6 +180,7 @@ import PeriodTag from '../components/PeriodTag.vue'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { loadLibraryPlan } from '../composables/useHelperExamples'
 import { buildPlanTemplates, buildSituationTemplate, type HaveTarget, type PlanTemplate } from '../composables/usePlanTemplates'
+import { sameHave, withoutHave } from '../lib/situation'
 import { hasAnything, schoolSummary, useCareerProfile } from '../composables/useCareerProfile'
 import { toDateKey } from '../composables/usePlanTimeline'
 import { formatWeeks } from '@/modules/encyclopedia/lib/preparation'
@@ -237,10 +238,10 @@ onMounted(async () => {
 // 이미 해 둔 것(내 진로상황) — 플랜과 기간에서 뺀다. 갈래를 바꿔도 남는다(가진 것은 그대로니까).
 // 여기서 '이미 있어요'를 누르면 내 진로상황에도 저장한다(적어 둔 내 진로상황이 있을 때. 건너뛴 사람은 이 화면에서만)
 const has = ref<CareerProfile['has']>([])
-const sameHave = (h: CareerProfile['has'][number], t: HaveTarget) => h.ref === t.key && (!t.byNote || h.name === t.label)
+// 옛 열쇠로 저장된 것도 새 걸음으로 본다. '다시 넣기'는 그 걸음을 빼고, 필기·1차면 짝인 자격도 함께 뺀다(lib/situation.ts withoutHave)
 function setHave(target: HaveTarget, on: boolean) {
   const exists = has.value.some((h) => sameHave(h, target))
-  const next = on ? (exists ? has.value : [...has.value, { ref: target.key, name: target.label }]) : has.value.filter((h) => !sameHave(h, target))
+  const next = on ? (exists ? has.value : [...has.value, { ref: target.key, name: target.label }]) : withoutHave(has.value, target)
   has.value = next
   if (careerProfile.value) void saveCareerProfile({ ...careerProfile.value, has: next })
 }

@@ -54,6 +54,9 @@ const ERROR_TEXT: Record<string, string> = {
   inactive: '비활성화된 계정이에요. 문의해 주세요.',
 }
 
+// 계정 확인이 연결 문제로 실패했을 때. 토큰은 남아 있어 '다시 시도하기'(로그인 화면 → 로그인 상태면 앱으로)가 이어 준다
+const OFFLINE_TEXT = '연결이 불안정해요. 잠시 뒤 다시 시도해 주세요.'
+
 function backToAuth() {
   router.replace('/onboarding/auth')
 }
@@ -61,7 +64,20 @@ function backToAuth() {
 onMounted(async () => {
   const err = new URLSearchParams(window.location.search).get('error')
   if (err) {
-    errorMessage.value = ERROR_TEXT[err] ?? '로그인 중 문제가 생겼어요. 다시 시도해 주세요.'
+    // ⚠️ 이 기기가 이미 로그인돼 있으면 오류를 보이지 않고 앱으로 보낸다(2026-11-17, 가입 흐름 시험 S10).
+    //    소셜 가입 직후 브라우저 뒤로 가면 제공자(구글·카카오) 화면이 다시 나오고, 거기서 다시 진행하면 이미 쓴 요청이라
+    //    invalid_state 로 돌아온다. 그러면 로그인된 상태인데도 '로그인 요청이 만료됐어요'가 떴다.
+    //    이번 시도가 실패했을 뿐 원래 로그인은 살아 있으니 '/' 로 — 진입 가드가 위저드 완료·계획 유무에 맞는 자리로 보낸다.
+    //    토큰이 없거나 서버가 거절하면(fetchMe 가 로그아웃함) 지금처럼 제공자 오류 문구.
+    //    연결 문제로 확인을 못 하면 제공자 오류 대신 연결 문구 — 로그인이 살아 있을 가능성이 크고, 토큰은 지킨다.
+    const me = authStore.token ? await authStore.fetchMe() : 'none'
+    if (me === 'ok') {
+      router.replace('/')
+      return
+    }
+    errorMessage.value = me === 'offline'
+      ? OFFLINE_TEXT
+      : ERROR_TEXT[err] ?? '로그인 중 문제가 생겼어요. 다시 시도해 주세요.'
     return
   }
 
@@ -85,7 +101,7 @@ onMounted(async () => {
   }
   if (!authStore.user) {
     // 연결 문제로 계정 정보를 못 받았다 — 토큰은 남아 있어 다시 열면 이어진다. 위저드 판정을 하지 않고 멈춘다
-    errorMessage.value = '연결이 불안정해요. 잠시 뒤 다시 시도해 주세요.'
+    errorMessage.value = OFFLINE_TEXT
     return
   }
 

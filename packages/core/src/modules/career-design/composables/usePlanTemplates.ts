@@ -13,14 +13,15 @@ import { pathOf, sumParts, sumWeeks } from '@/modules/encyclopedia/lib/preparati
 import type { JobPreparation, PrepItem, PrepProject } from '@/modules/encyclopedia/types/encyclopedia'
 import { helperExampleToProject, projectToExample } from './useHelperExamples'
 import type { CareerProfile, DayOfWeek, Project, ProjectCategory } from '../types/career-design'
-import { applySituation, canHave, haveRefOf, isHad, situationSentence, type HaveRef, type SituationChange } from '../lib/situation'
+import { applySituation, canHave, haveTargetOf, isOwned, situationSentence, type HaveTarget, type SituationChange } from '../lib/situation'
 
 // mine = 내 진로상황에 맞춘 플랜(2026-11-16). 내 진로상황이 있으면 이 카드 하나를 먼저 보여 주고, 나머지는 '처음부터 전부 보기'
 export type StageKey = 'nonmajor' | 'major' | 'basic' | 'mine'
 
 export interface DroppedItem { name: string; category: ProjectCategory; reason: string }
 /** 이미 해 둔 것으로 뺄 수 있는 것 — 열쇠·이름으로 내 진로상황의 '이미 해 둔 것'에 저장한다 */
-export type HaveTarget = HaveRef & { byNote: boolean }
+// 이름·비교 규칙(필기·1차는 짝인 자격을 pair 로 싣는다)은 lib/situation.ts haveTargetOf
+export type { HaveTarget }
 /** 이미 해 둬서 뺀 것 — 다시 넣을 수 있다 */
 export interface SkippedItem extends HaveTarget { name: string; category: ProjectCategory }
 
@@ -100,8 +101,8 @@ export function buildPlanTemplates(prep: JobPreparation, track: string | null | 
       ]
     : [{ key: 'basic', label: '기본', who: '전공과 상관없이 같은 길이에요', inStage: () => true }]
 
-  const target = (r: Row): HaveTarget => ({ ...haveRefOf(prep, r.item, r.project), byNote: !!r.project.haveByNote })
-  const owned = (r: Row) => canHave(r.project) && isHad(has, haveRefOf(prep, r.item, r.project), !!r.project.haveByNote)
+  const target = (r: Row): HaveTarget => haveTargetOf(prep, r.item, r.project)
+  const owned = (r: Row) => isOwned(prep, has, r.item, r.project)   // 자격을 해 뒀으면 짝인 필기·1차도(2026-11-17)
 
   return stages.map((st) => {
     // 이 단계가 하는 것 — 이미 해 둔 것은 뺀다(뺄 수 있는 것은 자격·면허·어학·근무 경험)
@@ -159,7 +160,7 @@ export function buildSituationTemplate(prep: JobPreparation, track: string | nul
   const recent: DayOfWeek[][] = []
   const projects = linkAlongside(res.rows, res.rows.map((r) => {
     const p = toProject(prep, r.item, r.project, r.during, recent)
-    if (canHave(r.project)) skipRefs[p.id] = { ...haveRefOf(prep, r.item, r.project), byNote: !!r.project.haveByNote }
+    if (canHave(r.project)) skipRefs[p.id] = haveTargetOf(prep, r.item, r.project)
     return p
   }))
   // 두 칸 — 내 진로상황으로 줄인 길 그대로(과정 중 표시는 applySituation 이 정한 것을 쓴다)
