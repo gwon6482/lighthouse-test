@@ -74,6 +74,7 @@ export function projectToExample(prep: JobPreparation, item: PrepItem, project: 
     // 큰 시험(2026-11-17) — 분량과 합격자 수치. 7급처럼 PSAT 과 나란히 하는 걸음(짝의 대상)은 근거 밖 줄을 두지 않는다(오너 결정 8)
     ...(project.studyHours ? { studyHours: project.studyHours } : {}),
     ...(project.minAge ? { minAge: project.minAge } : {}),
+    ...(project.firstPassRounds ? { firstPassRounds: project.firstPassRounds } : {}),
     ...(item.passStat && prep.passStats?.[item.passStat]
       ? { examStat: examStatOf(prep.passStats[item.passStat], isAlongsideTarget(prep, item)) }
       : {}),
@@ -180,6 +181,7 @@ export function helperExampleToProject(ex: HelperExample, category: ProjectCateg
     // 큰 시험 분량(2026-11-17) — 속도 고르기가 '분량 ÷ 주당 시간'으로 기간을 다시 잡는다(lib/examPace.ts)
     ...(ex.studyHours ? { studyHours: ex.studyHours } : {}),
     ...(ex.minAge ? { minAge: ex.minAge } : {}),
+    ...(ex.firstPassRounds ? { firstPassRounds: ex.firstPassRounds } : {}),
     ...(ex.examStat ? { examStat: { ...ex.examStat } } : {}),
   }
 }

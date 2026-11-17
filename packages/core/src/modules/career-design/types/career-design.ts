@@ -55,6 +55,7 @@ export interface Project {
   //   속도 고르기·주간결산 속도 바꾸기가 기간을 '분량 ÷ 주당 시간'으로 다시 잡는다. 0·없음 = 보통 프로젝트(사용자가 기간을 직접 고치면 끊는다)
   studyHours?: number
   minAge?: number       // 응시할 수 있는 나이(자료) — 시험 걸음을 그 해로 미룬다(설계 중에만 쓴다)
+  firstPassRounds?: number   // 1차 합격 효력이 미치는 2차 회차 수(자료, 회계사·세무사 1차 = 2) — 속도 고르기 사실 한 줄(설계 중에만 쓴다)
   alongside?: string    // 나란히 공부하는 대상 프로젝트 id(7·5급 PSAT ↔ 전문·2차) — 같은 때 시작해 주당 시간을 나눠 쓴다
   examStat?: ExamStat   // 속도 고르기에 보여 줄 합격자 수치(설계 중에만 — 서버에 저장하지 않는다)
 }
@@ -160,6 +161,7 @@ export interface HelperExample {
   period?: boolean                // 프로젝트 종류 '과정'(2026-11-16) — 커리큘럼은 lib/period.ts 의 periodCurriculum
   studyHours?: number             // 큰 시험 분량(2026-11-17) — Project.studyHours 로 넘어간다
   minAge?: number
+  firstPassRounds?: number
   examStat?: ExamStat
 }
 

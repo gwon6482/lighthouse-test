@@ -12,6 +12,7 @@
       <div v-if="hasExam || periodWeeksTotal" class="cd-pace__facts">
         <p v-if="examHead" class="cd-pace__stat">{{ examHead }}</p>
         <p v-if="hasExam" class="cd-pace__fact">날짜는 계획을 마치는 때예요. 합격하는 날이 아니에요.</p>
+        <p v-if="firstPass" class="cd-pace__fact">{{ firstPass }}</p>
         <p v-if="periodWeeksTotal" class="cd-pace__fact">과정 {{ formatWeeks(periodWeeksTotal) }}{{ josaEun(formatWeeks(periodWeeksTotal)) }} 속도와 상관없이 그대로예요.</p>
         <p v-if="ageRuleOn" class="cd-pace__fact">공무원 공채는 시험을 보는 해에 18세가 되면 응시할 수 있어요(교정·보호직은 20세). 그 해 시험에 맞춰 시험 공부 날짜를 잡았어요.</p>
       </div>
@@ -35,6 +36,8 @@
             <span class="cd-pace__main">
               <span class="cd-pace__title">{{ p.title }}</span>
               <span class="cd-pace__life">{{ p.life }}</span>
+              <!-- 내 진로상황으로 미리 고른 카드에만(오너 결정 2, 11-17) — 직접 고르면 없앤다 -->
+              <span v-if="presetBySituation && selectedKey === p.key" class="cd-pace__preset">내 진로상황에 맞춰 골라 뒀어요</span>
             </span>
             <span class="cd-pace__result">
               <span class="cd-pace__end">{{ p.endLabel }} 완성</span>
@@ -112,7 +115,7 @@ import { useDesignSteps } from '../composables/useDesignSteps'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { projectWeeks, toDateKey, type ScheduleOptions } from '../composables/usePlanTimeline'
 import { PACES, DEFAULT_PACE_HOURS, ALLIN_DAILY, allinWeeklyHours, examAgeDelayed, examAgeOptions, paceFromSituation, paceOfHours, buildTimeline, pacedProjects, scheduleEndWeek, monthLabelOfWeek, monthsLabel } from '../composables/usePlanPace'
-import { examPaceSummary, isExam } from '../lib/examPace'
+import { examPaceSummary, firstPassLine, isExam } from '../lib/examPace'
 import { useCareerProfile } from '../composables/useCareerProfile'
 import { useAuthStore } from '@/shared/stores/auth'
 import { formatWeeks } from '@/modules/encyclopedia/lib/preparation'
@@ -143,18 +146,24 @@ const startKey = computed(() => draftPlan.startDate || toDateKey(getToday()))
 
 // 고른 카드 — 사용자가 고르면 내 진로상황 기본값으로 덮지 않는다
 const touched = ref(false)
-function pick(key: string) { selectedKey.value = key; touched.value = true }
+// 내 진로상황으로 미리 고른 카드인가 — 표시를 달고, 사용자가 직접 고르면 뗀다
+const presetBySituation = ref(false)
+function pick(key: string) { selectedKey.value = key; touched.value = true; presetBySituation.value = false }
 
 // 큰 시험이 든 계획인가(검토 11-17 C2 — 수치가 없어도 '합격하는 날이 아니에요'를 단다)
 const hasExam = computed(() => draftPlan.projects.some(isExam))
+// 1차 합격 효력(오너 결정 3, 11-17) — 자료에 칸이 있는 시험이 든 계획에서 전업보다 느린 속도일 때 한 줄
+const firstPass = computed(() => firstPassLine(draftPlan.projects, hoursOf(selectedKey.value)))
 
 // 기본 속도는 내 진로상황에서(2026-11-17) — 큰 시험이 든 계획에만, 저장된 속도가 없을 때만(검토 C5). 내 진로상황을 모르면 '집중해서'
 const { profile: careerProfile, load: loadCareerProfile } = useCareerProfile()
 onMounted(async () => {
   if (draftPlan.paceKey || draftPlan.weeklyHours || !hasExam.value) return
   const prof = careerProfile.value ?? await loadCareerProfile().catch(() => null)
-  const key = paceFromSituation(prof?.school) ?? 'focus'
-  if (!touched.value) selectedKey.value = key
+  const fromSituation = paceFromSituation(prof?.school)
+  if (touched.value) return
+  selectedKey.value = fromSituation ?? 'focus'
+  presetBySituation.value = !!fromSituation       // 모를 때 고른 '집중해서'는 내 진로상황에 맞춘 것이 아니다
 })
 
 // 고등학생 응시 나이(2026-11-17) — 9급은 시험이 있는 해에 18세(교정·보호 20세) 이상. 시험 걸음이 그 해보다 먼저 끝나지 않게 시작을 미룬다(examAgeOptions)
@@ -355,6 +364,7 @@ function apply() {
   &__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   &__title { font-size: 16px; font-weight: 700; color: #222; }
   &__life { font-size: 12px; color: #888; }
+  &__preset { align-self: flex-start; margin-top: 4px; padding: 2px 8px; border-radius: 999px; background: #FFF1B8; color: #7A5C00; font-size: 11px; font-weight: 600; }
   &__result { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
   &__end { font-size: 14px; font-weight: 700; color: #222; white-space: nowrap; }
   &__meta { font-size: 11px; color: #999; white-space: nowrap; }

@@ -265,6 +265,7 @@ export interface PrepProject {
   // 계획에서는 고른 속도(주당 시간)로 기간을 다시 잡는다(career-design/lib/examPace.ts). 옛 서버는 이 칸이 없다
   studyHours?: number
   minAge?: number       // 응시할 수 있는 나이(공무원 공채 18·교정 20·경위 21 — 시험을 보는 해 기준). 없으면 앱의 이름 규칙
+  firstPassRounds?: number   // 1차 합격 효력이 미치는 2차 회차 수(회계사·세무사 1차 = 2 — 그 회와 다음 회)
 }
 
 /** 길 위의 한 걸음 — ref 로 projects 에서 프로젝트를 찾는다 */

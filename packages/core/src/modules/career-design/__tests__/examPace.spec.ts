@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { applyExamPace, curriculumPhases, examDurationAt, examMinAge, examPaceSummary, examStatOf, examUnits, expandPhases, meanHeadline, resizeExam, scalePhases } from '../lib/examPace'
+import { applyExamPace, curriculumPhases, examDurationAt, examMinAge, examPaceSummary, examStatOf, examUnits, expandPhases, firstPassLine, meanHeadline, resizeExam, scalePhases } from '../lib/examPace'
 import { autoSchedule, projectWeeks } from '../composables/usePlanTimeline'
 import { examAgeDelayed, examAgeOptions, rescheduleFrom } from '../composables/usePlanPace'
 import type { Project, TimelineSlot } from '../types/career-design'
@@ -111,6 +111,19 @@ describe('합격자 줄', () => {
     expect(examMinAge({ name: '9급 필기(국어·영어·교정학개론·형사소송법개론)', studyHours: 2496 })).toBe(20)
     expect(examMinAge({ name: '공인회계사 1차', studyHours: 2496 })).toBe(0)
     expect(examMinAge({ name: '9급 필기', studyHours: 0, minAge: 18 })).toBe(0)   // 사용자가 기간을 고쳐 끊은 것은 시험이 아니다
+  })
+})
+
+describe('1차 합격 효력 줄(오너 결정 3, 11-17)', () => {
+  const first = { ...exam9('cpa1', 2496), name: '공인회계사 1차', firstPassRounds: 2 }
+  const second = { ...exam9('cpa2', 3120), name: '공인회계사 2차' }
+  it('칸이 있는 시험이 든 계획 · 전업보다 느리면 한 줄', () => {
+    expect(firstPassLine([first, second], 12)).toBe('1차에 붙으면 그 해와 다음 해, 두 번 2차를 볼 수 있어요. 2차 공부가 그보다 길어지면 1차를 다시 봐야 해요.')
+    expect(firstPassLine([first, second], 47)).not.toBe('')
+  })
+  it('전업(주 48시간) 이상이거나 칸이 없으면 줄 없음', () => {
+    expect(firstPassLine([first, second], 48)).toBe('')
+    expect(firstPassLine([exam9(), second], 12)).toBe('')
   })
 })
 

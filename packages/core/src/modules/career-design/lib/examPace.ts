@@ -179,6 +179,16 @@ export function examPaceSummary(projects: Project[], hours: number): ExamPaceSum
 // '약 4년' + '이에요' / '8주' + '예요'
 const josaIeyo = (s: string) => { const c = s.charCodeAt(s.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 === 0 ? '예요' : '이에요' }
 
+// ── 1차 합격 효력(2026-11-17 오너 결정 3) ──
+// 자료의 firstPassRounds(회계사·세무사 1차 = 2: 1차에 붙은 회와 다음 회의 2차까지)가 있는 시험이 든 계획에서,
+// 고른 주당 시간이 전업(48)보다 적으면 속도 고르기 사실 상자에 한 줄. 칸이 없으면 줄도 없다
+export function firstPassLine(projects: Pick<Project, 'firstPassRounds'>[], hours: number): string {
+  const n = projects.reduce((m, p) => Math.max(m, p.firstPassRounds ?? 0), 0)
+  if (!n || hours >= FULL_TIME_HOURS) return ''
+  const rounds = n === 2 ? '그 해와 다음 해, 두 번' : `${n}번`
+  return `1차에 붙으면 ${rounds} 2차를 볼 수 있어요. 2차 공부가 그보다 길어지면 1차를 다시 봐야 해요.`
+}
+
 // ── 응시 나이(2026-11-17, 검토 C6) ──
 // 자료의 minAge(시험을 보는 해 기준 — 공무원 공채 18, 교정 20, 경위 공채 21)를 먼저 쓴다. 없으면 이름 규칙: 5·7·9급·PSAT 18, 교정·보호 20.
 // 계획의 시험 걸음이 응시할 수 있는 해보다 먼저 끝나면 그 해로 미룬다(속도 고르기). 나이는 가입 때 받은 나이로 출생 연도를 어림한다
