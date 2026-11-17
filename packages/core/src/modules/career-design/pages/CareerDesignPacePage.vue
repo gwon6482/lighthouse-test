@@ -110,9 +110,9 @@ import CdYellowHeader from '../components/CdYellowHeader.vue'
 import CdStepIndicator from '../components/CdStepIndicator.vue'
 import { useDesignSteps } from '../composables/useDesignSteps'
 import { useCareerDesign } from '../composables/useCareerDesign'
-import { parseDateKey, projectWeeks, toDateKey, weekOfDate, type ScheduleOptions } from '../composables/usePlanTimeline'
-import { PACES, DEFAULT_PACE_HOURS, ALLIN_DAILY, allinWeeklyHours, paceFromSituation, paceOfHours, buildTimeline, pacedProjects, scheduleEndWeek, monthLabelOfWeek, monthsLabel } from '../composables/usePlanPace'
-import { examMinAge, examPaceSummary, isExam } from '../lib/examPace'
+import { projectWeeks, toDateKey, type ScheduleOptions } from '../composables/usePlanTimeline'
+import { PACES, DEFAULT_PACE_HOURS, ALLIN_DAILY, allinWeeklyHours, examAgeDelayed, examAgeOptions, paceFromSituation, paceOfHours, buildTimeline, pacedProjects, scheduleEndWeek, monthLabelOfWeek, monthsLabel } from '../composables/usePlanPace'
+import { examPaceSummary, isExam } from '../lib/examPace'
 import { useCareerProfile } from '../composables/useCareerProfile'
 import { useAuthStore } from '@/shared/stores/auth'
 import { formatWeeks } from '@/modules/encyclopedia/lib/preparation'
@@ -157,35 +157,11 @@ onMounted(async () => {
   if (!touched.value) selectedKey.value = key
 })
 
-// 고등학생 응시 나이(2026-11-17) — 9급은 시험이 있는 해에 18세(교정·보호 20세) 이상. 시험 걸음이 그 해보다 먼저 끝나지 않게 시작을 미룬다.
-// 나이는 가입 때 받은 나이로 출생 연도를 어림한다
+// 고등학생 응시 나이(2026-11-17) — 9급은 시험이 있는 해에 18세(교정·보호 20세) 이상. 시험 걸음이 그 해보다 먼저 끝나지 않게 시작을 미룬다(examAgeOptions)
 const auth = useAuthStore()
-// 응시할 수 있는 해(출생 연도 + 나이 기준) — 계획 시작 해보다 뒤면 그 해로 미룬다(0 = 미룰 것 없음)
-const eligibleYear = (p: Parameters<typeof examMinAge>[0]) => {
-  const age = auth.user?.age
-  const start = parseDateKey(startKey.value)
-  const min = examMinAge(p)
-  if (!age || !start || !min) return 0
-  const year = start.getFullYear() - age + min
-  return year > start.getFullYear() ? year : 0
-}
-// 나이 규칙이 실제로 걸리는 계획인가 — 사실 상자에 한 줄(검토 C6)
-const ageRuleOn = computed(() => draftPlan.projects.some((p) => eligibleYear(p) > 0))
-const schedOpts = computed<ScheduleOptions>(() => {
-  const age = auth.user?.age
-  const start = parseDateKey(startKey.value)
-  if (!age || !start) return {}
-  const birthYear = start.getFullYear() - age
-  return {
-    minStart: (p) => {
-      const min = examMinAge(p)
-      const year = birthYear + min
-      if (!min || year <= start.getFullYear()) return 0
-      const firstWeek = weekOfDate(startKey.value, new Date(year, 0, 1), draftPlan.reviewDay) ?? 0
-      return Math.max(0, firstWeek - projectWeeks(p))   // 시험 걸음의 끝 주가 그 해 첫 주 이후가 되게(0부터 센 시작 자리)
-    },
-  }
-})
+const schedOpts = computed<ScheduleOptions>(() => examAgeOptions(startKey.value, auth.user?.age, draftPlan.reviewDay))
+// 고른 속도에서 나이 규칙 때문에 시험 시작이 실제로 밀렸을 때만 사실 상자에 한 줄(총괄 11-17 — 밀리지 않았으면 줄 없음)
+const ageRuleOn = computed(() => examAgeDelayed(draftPlan.projects, hoursOf(selectedKey.value), schedOpts.value))
 
 // 카드마다 그 속도로 배치했을 때의 완성 시기 — 순서를 바꾸면 함께 바뀐다. 큰 시험은 그 속도로 기간을 다시 잡는다(scheduleEndWeek 안에서)
 const options = computed(() => PACES.map((p) => {

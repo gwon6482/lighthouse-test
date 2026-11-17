@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { applyExamPace, curriculumPhases, examDurationAt, examMinAge, examPaceSummary, examStatOf, examUnits, expandPhases, meanHeadline, resizeExam, scalePhases } from '../lib/examPace'
 import { autoSchedule, projectWeeks } from '../composables/usePlanTimeline'
-import { rescheduleFrom } from '../composables/usePlanPace'
+import { examAgeDelayed, examAgeOptions, rescheduleFrom } from '../composables/usePlanPace'
 import type { Project, TimelineSlot } from '../types/career-design'
 import type { PrepPassStat } from '@/modules/encyclopedia/types/encyclopedia'
 
@@ -140,6 +140,25 @@ describe('배치', () => {
     const e = applyExamPace([exam9()], 48)[0]!
     const out = autoSchedule([e], 48, { minStart: (p) => (p.studyHours ? 30 : 0) })
     expect(out[0]!.week).toBe(31)
+  })
+})
+
+describe('응시 나이 줄 — 나이 규칙 때문에 시험 시작이 실제로 밀렸을 때만(총괄 11-17)', () => {
+  // 2026-11-17(화) 시작 · 앞 걸음 4주(주 3시간) 뒤에 9급 필기. 16세면 2028년에 18세 — 시험 걸음이 2028년 첫 주보다 먼저 끝나면 민다
+  const pre = P('pre', { weeks: 4, curriculum: expandPhases([{ title: 'p', weeks: 4, items: [] }]) })
+  const age16 = examAgeOptions('2026-11-17', 16, '화')
+  it('16세 집중해서(주 12시간) — 시험이 2030년에 끝나 미룰 것이 없다 → 줄 없음', () => {
+    expect(examAgeDelayed([pre, exam9()], 12, age16)).toBe(false)
+  })
+  it('16세 올인 하루 8시간(주 48시간) — 52주 시험이 2027년에 끝나 2028년 첫 주까지 민다 → 줄 있음', () => {
+    expect(examAgeDelayed([pre, exam9()], 48, age16)).toBe(true)
+    const start = (o: Parameters<typeof autoSchedule>[2]) => autoSchedule(applyExamPace([pre, exam9()], 48), 48, o).find((x) => x.project.id === 'g9')!.week
+    expect([start(undefined), start(age16)]).toEqual([5, 8])
+  })
+  it('21세 · 나이를 모르면 어느 속도든 줄 없음', () => {
+    const age21 = examAgeOptions('2026-11-17', 21, '화')
+    expect([5, 12, 48].map((h) => examAgeDelayed([pre, exam9()], h, age21))).toEqual([false, false, false])
+    expect(examAgeDelayed([pre, exam9()], 48, examAgeOptions('2026-11-17', null, '화'))).toBe(false)
   })
 })
 

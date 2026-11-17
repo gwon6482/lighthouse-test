@@ -5,8 +5,8 @@
 // ⚠️ 주당 시간 값(5·8·12·16·24)은 데이터 근거 없이 정한 출발값이다(생활 모습 설명에 맞춘 대략치). 사용 데이터로 다듬을 것.
 import type { CareerSchool, Project, TimelineSlot } from '../types/career-design'
 import { formatWeeks } from '@/modules/encyclopedia/lib/preparation'
-import { autoSchedule, countsInBudget, duringOwners, isGatePeriod, projectEndWeek, projectWeeks, projectHoursPerWeek, weekDateRange, type ScheduleOptions, type WeekStart } from './usePlanTimeline'
-import { EXAM_DAYS, applyExamPace, ceilWeeks, curriculumPhases, examDurationAt, examMates, expandPhases, isExam, resizeExam, scalePhases } from '../lib/examPace'
+import { autoSchedule, countsInBudget, duringOwners, isGatePeriod, parseDateKey, projectEndWeek, projectWeeks, projectHoursPerWeek, weekDateRange, weekOfDate, type ScheduleOptions, type WeekStart } from './usePlanTimeline'
+import { EXAM_DAYS, applyExamPace, ceilWeeks, curriculumPhases, examDurationAt, examMates, examMinAge, expandPhases, isExam, resizeExam, scalePhases } from '../lib/examPace'
 
 export interface Pace {
   key: 'light' | 'steady' | 'focus' | 'full' | 'allin'
@@ -64,6 +64,35 @@ export function buildTimeline(projects: Project[], hours: number, opts?: Schedul
 export function scheduleEndWeek(projects: Project[], hours: number, opts?: ScheduleOptions): number {
   const paced = pacedProjects(projects, hours)
   return autoSchedule(paced, hours, opts).reduce((m, { week, project }) => Math.max(m, projectEndWeek(week, project)), 0)
+}
+
+/**
+ * 응시 나이 규칙(2026-11-17, 검토 C6) — 시험 걸음이 응시할 수 있는 해(어림한 출생 연도 + 응시 나이)의 첫 주보다 먼저 끝나지 않게
+ * 시작 자리(0부터)를 정한다. 나이를 모르면 규칙 없음. 나이는 가입 때 받은 나이로 출생 연도를 어림한다
+ */
+export function examAgeOptions(startKey: string, age: number | null | undefined, reviewDay?: WeekStart): ScheduleOptions {
+  const start = parseDateKey(startKey)
+  if (!age || !start) return {}
+  const birthYear = start.getFullYear() - age
+  return {
+    minStart: (p) => {
+      const min = examMinAge(p)
+      const year = birthYear + min
+      if (!min || year <= start.getFullYear()) return 0
+      const firstWeek = weekOfDate(startKey, new Date(year, 0, 1), reviewDay) ?? 0
+      return Math.max(0, firstWeek - projectWeeks(p))   // 시험 걸음의 끝 주가 그 해 첫 주 이후가 되게
+    },
+  }
+}
+
+/** 나이 규칙 때문에 이 속도에서 시험 시작이 실제로 뒤로 밀렸는가 — 밀렸을 때만 속도 고르기 사실 상자에 한 줄(총괄 11-17) */
+export function examAgeDelayed(projects: Project[], hours: number, opts: ScheduleOptions): boolean {
+  if (!opts.minStart) return false
+  const paced = pacedProjects(projects, hours)
+  const startOf = (placed: { week: number; project: Project }[]) => new Map(placed.map(({ week, project }) => [project.id, week]))
+  const natural = startOf(autoSchedule(paced, hours))
+  const aged = startOf(autoSchedule(paced, hours, opts))
+  return paced.some((p) => isExam(p) && (aged.get(p.id) ?? 0) > (natural.get(p.id) ?? 0))
 }
 
 /** "2027년 6월" — 시작일 기준 그 주차의 마지막 날이 속한 달 */
