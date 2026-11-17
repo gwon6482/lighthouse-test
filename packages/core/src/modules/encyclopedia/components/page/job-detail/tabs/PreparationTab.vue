@@ -63,20 +63,29 @@
           <p v-if="trackInfo?.desc" class="prep-tracks__desc">{{ trackInfo.desc }}</p>
         </div>
 
-        <!-- 분량 -->
+        <!-- 분량 — 두 칸(2026-11-17, 정할 것 2·3 시안 화면 1): 스스로 준비(낼 수 있는 시간에 따라) · 과정(다니는 기간 — 속도와 상관없음).
+             합친 기간은 적지 않는다(끝나는 때는 진로설계의 속도 고르기에서 날짜로 본다). 계산은 앱이 한다(sumParts — 서버 totals 와 같은 규칙) -->
         <div v-if="path" class="prep-total">
-          <!-- 두 덩어리로 묶어 둔다 — 기간이 길어지면('약 2년 2개월') '분량'만 다음 줄로 떨어지지 않게 -->
-          <p class="prep-total__main">
-            <span class="prep-total__part">프로젝트 <strong>{{ path.totals.nonMajor.count }}개</strong></span>
-            <span class="prep-total__sep" aria-hidden="true" />
-            <span class="prep-total__part">차례로 하면 <strong>{{ formatWeeks(path.totals.nonMajor.weeks) }}</strong></span>
-          </p>
-          <!-- 학교·수련 과정이 든 길은 그 기간을 따로 적는다 — 스스로 준비하는 기간과 헷갈리지 않게 -->
-          <p v-if="path.totals.nonMajor.courseWeeks" class="prep-total__line">
-            이 가운데 학교·수련 과정이 {{ formatWeeks(path.totals.nonMajor.courseWeeks) }}{{ josaIeyo(formatWeeks(path.totals.nonMajor.courseWeeks)) }}
-          </p>
+          <div class="prep-cells">
+            <div class="prep-cell">
+              <span class="prep-cell__label">스스로 준비</span>
+              <template v-if="parts.examHours">
+                <span class="prep-cell__value prep-cell__value--two">
+                  <span>시험을 하루 8시간 공부하면 <strong>{{ formatWeeks(parts.selfWeeks) }}</strong></span>
+                  <span>하루 3시간이면 <strong>{{ formatWeeks(parts.selfWeeksPart) }}</strong></span>
+                </span>
+              </template>
+              <strong v-else class="prep-cell__value">{{ formatWeeks(parts.selfWeeks) }}</strong>
+              <span class="prep-cell__sub">프로젝트 {{ parts.selfCount }}개</span>
+            </div>
+            <div v-if="parts.periodWeeks" class="prep-cell prep-cell--period">
+              <span class="prep-cell__label">과정</span>
+              <strong class="prep-cell__value">{{ formatWeeks(parts.periodWeeks) }}</strong>
+              <span class="prep-cell__sub">{{ periodSub }}</span>
+            </div>
+          </div>
           <p v-if="majorSkip" class="prep-total__line">
-            관련 학과 전공자는 {{ path.totals.major.count }}개 · {{ formatWeeks(path.totals.major.weeks) }}
+            관련 학과 전공자는 스스로 준비 {{ formatWeeks(partsMajor.selfWeeks) }}<template v-if="partsMajor.periodWeeks"> · 과정 {{ formatWeeks(partsMajor.periodWeeks) }}</template>
           </p>
           <p v-if="path.totals.optional" class="prep-total__line">
             지원하는 곳에 따라 고르는 것 {{ path.totals.optional }}개는 따로예요
@@ -126,19 +135,31 @@
                     <span v-if="s.item.fromTrack && trackInfo && prep.tracks.length > 1" class="prep-tag prep-tag--track">{{ trackInfo.name }}</span>
                   </span>
                   <span class="prep-step__weeks">
-                    {{ formatWeeks(s.project.weeks) }}
+                    {{ formatWeeks(s.project.weeks) }}<template v-if="s.project.studyHours">~</template>
                     <AppIcon name="ui-chevron-down" :class="['chevron-toggle', { 'chevron-toggle--open': isOpen(s) }]" />
                   </span>
                 </span>
                 <span class="prep-step__name">{{ s.project.name }}</span>
                 <span class="prep-step__goal">{{ s.project.goal }}</span>
                 <span v-if="s.item.note" class="prep-step__note">{{ s.item.note }}</span>
+                <!-- 큰 시험(2026-11-17, 시안 화면 3) — 분량은 '첫 시험까지(빠른 경우)'로 잡은 가정, 기간은 하루 공부 시간에 따라 두 줄 -->
+                <span v-if="s.project.studyHours" class="prep-exam">
+                  <span class="prep-exam__amount">첫 시험까지(빠른 경우)로 잡은 분량 · {{ formatStudyHours(s.project.studyHours) }}</span>
+                  <span v-if="s.item.alongside && alongsideName(s.item.alongside)" class="prep-exam__mate">{{ alongsideName(s.item.alongside) }}과 나란히 공부해요</span>
+                  <span class="prep-exam__row"><span>전업 · 하루 8시간</span><strong>{{ formatWeeks(s.project.studyHours / FULL_TIME_HOURS) }}</strong></span>
+                  <span class="prep-exam__row"><span>일·학업과 함께 · 하루 3시간</span><strong>{{ formatWeeks(s.project.studyHours / PART_TIME_HOURS) }}</strong></span>
+                  <span class="prep-exam__note">전업(하루 8시간·주 6일) {{ formatWeeks(s.project.studyHours / FULL_TIME_HOURS) }}{{ josaRo(formatWeeks(s.project.studyHours / FULL_TIME_HOURS)) }} 잡은 양이에요(잰 값이 아니에요)</span>
+                  <template v-if="statOf(s)">
+                    <span class="prep-exam__stat">{{ statOf(s)!.headline }}</span>
+                    <span v-if="statOf(s)!.detail" class="prep-exam__detail">{{ statOf(s)!.detail }}</span>
+                  </template>
+                </span>
                 <span class="prep-step__meta">
                   <template v-if="methodLabel(s.project.method)">
                     <AppIcon :name="methodIcon(s.project.method)" :size="13" />
                     {{ methodLabel(s.project.method) }} ·
                   </template>
-                  주 {{ s.project.daysPerWeek }}일 · {{ formatMinutes(s.project.minutesPerSession) }}
+                  주 {{ s.project.daysPerWeek }}일<template v-if="!s.project.studyHours"> · {{ formatMinutes(s.project.minutesPerSession) }}</template>
                 </span>
               </span>
             </button>
@@ -192,8 +213,9 @@
             현직자 검토 전이라 실제 경로는 사람마다 다를 수 있어요.
           </p>
           <p class="prep-section__desc">
-            기간은 하나씩 차례로 할 때를 더한 값이에요. 여러 개를 함께 하면 더 짧아져요.
-            <template v-if="path?.totals.nonMajor.courseWeeks">학교를 다니면서 하는 걸음은 학교 과정 기간에 들어 있어 따로 더하지 않았어요.</template>
+            스스로 준비 기간은 하나씩 차례로 할 때를 더한 값이에요. 여러 개를 함께 하면 더 짧아져요.
+            <template v-if="parts.duringCount">과정을 다니면서 하는 걸음은 과정 기간에 들어 있어 따로 더하지 않았어요.</template>
+            <template v-if="parts.examHours">큰 시험은 하루 공부 시간에 따라 기간이 달라져요.</template>
             시험·채용 조건은 공고로 다시 확인해 주세요.
           </p>
         </div>
@@ -220,7 +242,7 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import PreparationNotes from './PreparationNotes.vue'
 import PeriodTag from '@/modules/career-design/components/PeriodTag.vue'
 import { fetchJobPreparation } from '../../../../encyclopedia.api'
-import { formatMinutes, formatWeeks, hasMajorSkip, pathOf, stepsOf, type PrepStep } from '../../../../lib/preparation'
+import { FULL_TIME_HOURS, PART_TIME_HOURS, formatMinutes, formatStudyHours, formatWeeks, hasMajorSkip, josaRo, pathOf, stepsOf, sumParts, type PrepStep } from '../../../../lib/preparation'
 import type { JobPreparation, PrepProject } from '../../../../types/encyclopedia'
 import type { ProjectCategory } from '@/modules/career-design/types/career-design'
 import { methodDef, methodIcon, type ProjectMethod } from '@/modules/career-design/composables/projectMethods'
@@ -266,6 +288,20 @@ const path = computed(() => (prep.value ? pathOf(prep.value, track.value) : null
 const steps = computed<PrepStep[]>(() => (prep.value ? stepsOf(prep.value, path.value) : []))
 const trackInfo = computed(() => prep.value?.tracks.find((t) => t.id === path.value?.track) ?? null)
 const majorSkip = computed(() => hasMajorSkip(path.value))
+
+// 두 칸(2026-11-17) — 옛 서버(새 칸 없음)에서도 같은 값이 나오게 앱이 센다
+const rows = computed(() => steps.value.map((s) => ({ item: s.item, project: s.project })))
+const parts = computed(() => sumParts(rows.value))
+const partsMajor = computed(() => sumParts(rows.value, (r) => r.item.major))
+// 과정 칸의 아랫줄 — 과정이 하나면 그 이름, 여럿이면 개수. 과정 안에서 하는 걸음이 있으면 함께
+const periodSub = computed(() => {
+  const list = steps.value.filter((s) => !s.item.optional && (s.project.course || (s.project.period && !s.item.during)))
+  const head = list.length === 1 ? list[0]!.project.name : `과정 ${parts.value.periodCount}개`
+  return parts.value.duringCount ? `${head} · 다니면서 하는 것 ${parts.value.duringCount}개` : head
+})
+// 큰 시험 — 합격자 수치(잰 걸음에만 온다)와 나란히 대상 이름
+const statOf = (s: PrepStep) => (s.item.passStat ? prep.value?.passStats?.[s.item.passStat] ?? null : null)
+const alongsideName = (ref: string) => prep.value?.projects[ref]?.name ?? ''
 
 // 영역별 개수 — 이 직업이 무엇 중심인지(자격·경험·포트폴리오…) 한 줄로 보이게
 const CATEGORY_ORDER: ProjectCategory[] = ['qualification', 'knowledge', 'skill', 'portfolio', 'experience']

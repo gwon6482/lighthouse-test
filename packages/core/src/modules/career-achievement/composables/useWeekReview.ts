@@ -245,7 +245,7 @@ export function useWeekReview() {
   // 과정 일정을 바꿨으면(3단계) 바뀐 과정을 넣고 계산한다. moved = 시작 주가 달라지는 프로젝트 수(지금 배치와 비교)
   function endIfPace(pace: Pace) {
     const pl = plan.value
-    if (!pl) return { endDate: '', weeks: 0, remaining: 0, moved: 0, timeline: [] as TimelineSlot[] }
+    if (!pl) return { endDate: '', weeks: 0, remaining: 0, moved: 0, timeline: [] as TimelineSlot[], changed: [] as Project[] }
     const r = rescheduleFrom(projectsNow.value, timelineNow.value, nextWeek.value, pace.hours)
     const remaining = pl.projects.filter((p) => { const sw = projectStartWeek(pl.timeline, p.id); return sw === null || sw >= nextWeek.value }).length
     const end = weekDateRange(pl.startDate, r.endWeek, pl.reviewDay)?.end ?? ''
@@ -254,7 +254,8 @@ export function useWeekReview() {
       const now = projectStartWeek(r.timeline, p.id)
       return was !== null && was >= nextWeek.value && now !== was
     }).length
-    return { endDate: end, weeks: r.endWeek, remaining, moved, timeline: r.timeline }
+    // changed = 새 속도로 다시 잡은 큰 시험(2026-11-17) — 결산을 마칠 때 저장한다
+    return { endDate: end, weeks: r.endWeek, remaining, moved, timeline: r.timeline, changed: r.changed }
   }
   // 과정 카드의 한 줄 미리보기 — 지금 속도 기준(4단계에서 속도를 바꾸면 거기서 다시 보여 준다)
   function periodPreview(id: string): { endFrom: number; endTo: number; moved: number; planEndFrom: string; planEndTo: string } | null {
@@ -321,6 +322,11 @@ export function useWeekReview() {
       })
     }
     if (changed || periodList.length) {
+      // 0) 큰 시험(2026-11-17) — 새 속도로 기간·요일·1회 시간·커리큘럼을 다시 잡은 것을 먼저 저장한다(남은 시험 기간을 그 시간으로 다시 셈)
+      for (const p of after.changed) {
+        if (periodList.some((x) => x.after.id === p.id)) continue
+        await req.put(`/api/career-plan/${pl.planId}/projects/${p.id}`, { curriculum: p.curriculum, days: p.days, duration: p.duration })
+      }
       // 1) 남은 프로젝트 재배치 → 2) 계획에 속도·종료일. 종료일은 예상 완료일이라 재배치 결과 그대로(당겨질 수도 있다, 2026-11-04~)
       //    서버는 타임라인·기간이 바뀌면 이번 주부터 일정을 새로 만든다
       await req.put(`/api/career-plan/${pl.planId}/timeline`, { timeline: after.timeline })

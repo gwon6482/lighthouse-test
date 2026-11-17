@@ -67,6 +67,8 @@
 </template>
 
 <script setup lang="ts">
+import { isExam } from '../lib/examPace'
+import { projectWeeks } from '../composables/usePlanTimeline'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
@@ -222,6 +224,10 @@ async function saveProject() {
     const idx = draftPlan.projects.findIndex(p => p.id === editingProjectId.value)
     const target = idx >= 0 ? draftPlan.projects[idx] : undefined
     if (target) {
+      // 큰 시험(2026-11-17) — 기간·요일·1회 시간을 직접 바꾸면 분량 연결을 끊고 그 길이로 고정한다(속도를 바꿔도 다시 잡지 않는다)
+      if (isExam(target) && (projectData.weeks !== projectWeeks(target) || projectData.duration !== target.duration || projectData.days.length !== target.days.length)) {
+        Object.assign(target, { studyHours: 0 })
+      }
       Object.assign(target, projectData)
       await syncUpdateProject(target)
     }

@@ -257,7 +257,7 @@ import {
   weekDateRange, monthWeekOf, monthWeekLabel, weeksInMonth, parseDateKey, resolveProject,
   projectHoursPerWeek, lastWeekOfMonth,
 } from '../composables/usePlanTimeline'
-import { DEFAULT_PACE_HOURS, buildTimeline, monthsLabel, paceByKey, paceOfHours } from '../composables/usePlanPace'
+import { DEFAULT_PACE_HOURS, buildTimeline, monthsLabel, paceByKey, paceOfHours, pacedProjects } from '../composables/usePlanPace'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 
@@ -491,6 +491,9 @@ onMounted(() => {
   // 속도 화면을 거치지 않고 비어 있는 채로 들어오면(예전 임시 계획 등) 기본 속도로 채워 둔다
   if (!draftTimeline.value.length && draftPlan.projects.length) {
     draftPlan.weeklyHours = draftPlan.weeklyHours ?? DEFAULT_PACE_HOURS
+    // 큰 시험은 그 속도로 기간을 다시 잡아 넣는다(속도 고르기와 같은 계산, 2026-11-17)
+    const paced = pacedProjects(draftPlan.projects, draftPlan.weeklyHours)
+    draftPlan.projects.splice(0, draftPlan.projects.length, ...paced)
     draftTimeline.value = buildTimeline(draftPlan.projects, draftPlan.weeklyHours)
     draftPlan.timelineManual = false
   }

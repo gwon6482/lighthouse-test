@@ -261,6 +261,9 @@ export interface PrepProject {
   mayHave?: boolean                       // 이미 가지고 있을 수 있는 것 — 운전면허·어학 성적 등(2026-11-16)
   haveLabel?: string                      // 내 진로상황 '이미 해 둔 것' 목록의 이름(토익 점수·운전면허)
   haveByNote?: boolean                    // 항목 메모가 실제 자격 이름이다(간호사 국가시험·지게차운전기능사) — 메모를 먼저 쓴다
+  // 큰 시험(2026-11-17, 정할 것 2·3) — '첫 시험까지(빠른 경우)' 공부 총량(시간). 자료의 주 수는 전업(주 48시간) 기준이다.
+  // 계획에서는 고른 속도(주당 시간)로 기간을 다시 잡는다(career-design/lib/examPace.ts). 옛 서버는 이 칸이 없다
+  studyHours?: number
 }
 
 /** 길 위의 한 걸음 — ref 로 projects 에서 프로젝트를 찾는다 */
@@ -274,10 +277,34 @@ export interface PrepItem {
   note?: string
   during?: boolean      // 앞의 과정 걸음(course) 기간 안에 하는 일 — 기간을 따로 더하지 않는다(2026-11-16)
   skipFor?: 'any'       // 학과와 상관없이 대학에 다니면 건너뛴다(법조). 없으면 관련 학과일 때만
+  alongside?: string    // 이 걸음과 나란히 공부하는 걸음의 ref(7·5급 PSAT ↔ 전문과목·2차, 2026-11-17)
+  passStat?: string     // 합격자 수치 id → JobPreparation.passStats(잰 시험·걸음에만, 2026-11-17)
+}
+
+/** 합격자 수치(2026-11-17) — 합격한 사람만 센 값. 분포가 있으면 평균보다 먼저 쓴다 */
+export interface PrepPassStat {
+  id: string
+  headline: string                                  // 요약 한 줄(연도·대상이 들어 있다 — 앞에 시험 이름을 붙이지 않는다)
+  detail: string | null
+  measure: string | null                            // 잰 구간(시작 → 합격 등)
+  dist: { weeks: number; label: string; pct: number }[] | null   // 누적 비율
+  mean: { months: number; label: string } | null
+  beyondWeeks: number | null                        // 근거 밖 안내 기준(누적 70%를 처음 넘는 구간)
+  source: { title: string | null; level: string | null; via: string | null; url: string | null; checkedAt: string | null; checkAgainAt: string | null }
 }
 
 /** 선택 항목을 뺀 것. 주 수는 하나씩 차례로 할 때의 합이고, 과정 중에 하는 걸음은 겹쳐 세지 않는다. courseWeeks = 그 가운데 학교·수련 과정 */
-export interface PrepSum { count: number; weeks: number; courseWeeks?: number }
+export interface PrepSum {
+  count: number
+  weeks: number
+  courseWeeks?: number
+  // 2026-11-17 두 칸 — weeks = selfWeeks + periodWeeks. 과정 = '과정' 꼬리표 걸음 전부(학교·수련 course + 과정 period)
+  selfWeeks?: number
+  periodWeeks?: number
+  duringCount?: number      // 과정 안에서 하는 걸음 수(기간은 과정에 들어 있다)
+  examHours?: number        // 큰 시험 분량 합(시간) — 있으면 selfWeeksPart 도 온다
+  selfWeeksPart?: number    // 큰 시험을 하루 3시간·주 6일로 할 때의 스스로 준비 주 수
+}
 export interface PrepTotals {
   nonMajor: PrepSum
   major: PrepSum
@@ -325,6 +352,7 @@ export interface JobPreparation {
   defaultTrack: string | null
   paths: PrepPath[]
   projects: Record<string, PrepProject>
+  passStats?: Record<string, PrepPassStat>   // 보여 주는 길에 쓰인 합격자 수치만(2026-11-17 — 옛 서버는 없다)
 }
 
 /** 계획이 없는 직업은 data: null */

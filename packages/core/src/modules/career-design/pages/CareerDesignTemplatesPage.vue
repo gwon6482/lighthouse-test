@@ -58,8 +58,8 @@
             <span class="cd-tpl__who">{{ t.who }}</span>
           </span>
           <span class="cd-tpl__name">{{ t.name }}</span>
-          <!-- 기간은 진로백과 준비과정 탭과 같은 계산 — 하나씩 차례로 할 때를 더한 값(2026-11-16) -->
-          <span class="cd-tpl__meta">차례로 하면 {{ formatWeeks(t.weeks) }} · 프로젝트 {{ t.projects.length }}개</span>
+          <!-- 기간은 진로백과 준비과정 탭과 같은 두 칸(2026-11-17, 정할 것 2·3 시안 화면 2) — 스스로 준비 · 과정. 큰 시험이 있으면 스스로 준비를 두 끝(하루 8시간 ~ 3시간)으로 -->
+          <span class="cd-tpl__meta">{{ durationLine(t) }} · 프로젝트 {{ t.projects.length }}개</span>
           <span class="cd-tpl__cats">
             <span
               v-for="c in CATS"
@@ -81,10 +81,9 @@
               <span>{{ c.label }}<small>{{ c.reason }}</small></span>
             </p>
           </div>
-          <!-- 학교·수련 과정이 든 플랜 — 그 기간과, 다니면서 하는 프로젝트를 어떻게 놓는지 -->
-          <p v-if="t.courseWeeks" class="cd-tpl__course">
-            학교·수련 과정 {{ formatWeeks(t.courseWeeks) }}{{ josaI(formatWeeks(t.courseWeeks)) }} 들어 있어요.
-            <template v-if="t.projects.some((p) => p.during)">다니면서 하는 프로젝트는 과정이 끝나는 때에 맞춰 겹쳐 놓아요.</template>
+          <!-- 과정이 든 플랜 — 다니면서 하는 프로젝트를 어떻게 놓는지(기간은 위 줄의 '과정' 칸과 겹쳐 지웠다, 2026-11-17 시안 화면 2) -->
+          <p v-if="t.projects.some((p) => p.during)" class="cd-tpl__course">
+            다니면서 하는 프로젝트는 과정이 끝나는 때에 맞춰 겹쳐 놓아요.
           </p>
           <!-- 해 나갈 순서대로 -->
           <ol class="cd-tpl__projects">
@@ -155,7 +154,7 @@
       <button v-if="situationOn && !showAll && templates.length" type="button" class="cd-tpl__more" @click="showAll = true">
         <span class="cd-tpl__more-text">
           <strong>처음부터 전부 보기</strong>
-          <span>{{ templates[0]!.stageLabel === '기본' ? '' : '비전공 기준 · ' }}차례로 하면 {{ formatWeeks(templates[0]!.weeks) }} · 프로젝트 {{ templates[0]!.projects.length }}개</span>
+          <span>{{ templates[0]!.stageLabel === '기본' ? '' : '비전공 기준 · ' }}{{ durationLine(templates[0]!) }} · 프로젝트 {{ templates[0]!.projects.length }}개</span>
         </span>
         <AppIcon name="ui-chevron-down" class="cd-tpl__more-arrow" />
       </button>
@@ -273,7 +272,14 @@ function groupChanges(t: PlanTemplate): { kind: 'cut' | 'shorten'; label: string
   return out.map((g) => ({ kind: g.kind, reason: g.reason, label: g.kind === 'shorten' ? g.label : g.names.length > 2 ? `${g.names[0]} 외 ${g.names.length - 1}개` : g.names.join(' · ') }))
 }
 // '약 4년' + '이' / '8주' + '가' — 받침에 맞춘다
-const josaI = (s: string) => { const c = s.charCodeAt(s.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 === 0 ? '가' : '이' }
+// 기간 줄(2026-11-17) — '스스로 준비 약 14개월 · 과정 약 4년'. 큰 시험이 있으면 스스로 준비를 두 끝으로('약 14개월 ~ 2년 10개월'):
+// 속도는 다음 화면에서 고르기 때문이다(시안 3판 '내가 정한 것')
+function durationLine(t: PlanTemplate): string {
+  const self = t.examHours && t.selfWeeksPart !== t.selfWeeks
+    ? `${formatWeeks(t.selfWeeks)} ~ ${formatWeeks(t.selfWeeksPart).replace(/^약 /, '')}`
+    : formatWeeks(t.selfWeeks)
+  return t.periodWeeks ? `스스로 준비 ${self} · 과정 ${formatWeeks(t.periodWeeks)}` : `스스로 준비 ${self}`
+}
 const trackInfo = computed(() => prep.value?.tracks.find((t) => t.id === track.value) ?? null)
 const openId = ref<string | null>(null)
 watch(track, () => { openId.value = null })   // 갈래를 바꾸면 플랜이 통째로 바뀐다 — 펼친 것을 접는다

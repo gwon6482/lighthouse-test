@@ -10,6 +10,7 @@ import type { JobPreparation, PrepItem, PrepPhase, PrepProject } from '@/modules
 import type { DayOfWeek, HelperExample, HelperJobExamples, Project, ProjectCategory, WeekCurriculum } from '../types/career-design'
 import { methodFits } from './projectMethods'
 import { periodCurriculum } from '../lib/period'
+import { examStatOf } from '../lib/examPace'
 
 // 같은 직업은 한 번만 부른다(템플릿 화면 → 프로젝트 구성 화면이 이어서 쓴다). 실패는 담아 두지 않아 다음에 다시 시도한다
 const cache = new Map<string, Promise<JobPreparation | null>>()
@@ -70,7 +71,17 @@ export function projectToExample(prep: JobPreparation, item: PrepItem, project: 
     method: project.method,
     methodDetail: {},
     ...(project.period ? { period: true } : {}),
+    // 큰 시험(2026-11-17) — 분량과 합격자 수치. 7급처럼 PSAT 과 나란히 하는 걸음(짝의 대상)은 근거 밖 줄을 두지 않는다(오너 결정 8)
+    ...(project.studyHours ? { studyHours: project.studyHours } : {}),
+    ...(item.passStat && prep.passStats?.[item.passStat]
+      ? { examStat: examStatOf(prep.passStats[item.passStat], isAlongsideTarget(prep, item)) }
+      : {}),
   }
+}
+
+/** 이 걸음이 다른 걸음의 나란히 대상인가(7·5급 전문과목·2차) */
+function isAlongsideTarget(prep: JobPreparation, item: PrepItem): boolean {
+  return prep.paths.some((path) => path.items.some((i) => i.alongside === item.ref))
 }
 
 /** 고른 갈래의 길을 영역별 예시로 — 프로젝트 구성 화면의 '도우미 추천'이 쓴다. 선택 항목도 들어 있다 */
@@ -163,5 +174,8 @@ export function helperExampleToProject(ex: HelperExample, category: ProjectCateg
     method: methodFits(category, ex.method) ? ex.method : null,
     methodDetail: methodFits(category, ex.method) ? { ...(ex.methodDetail ?? {}) } : {},
     ...(ex.period ? { period: true } : {}),
+    // 큰 시험 분량(2026-11-17) — 속도 고르기가 '분량 ÷ 주당 시간'으로 기간을 다시 잡는다(lib/examPace.ts)
+    ...(ex.studyHours ? { studyHours: ex.studyHours } : {}),
+    ...(ex.examStat ? { examStat: { ...ex.examStat } } : {}),
   }
 }

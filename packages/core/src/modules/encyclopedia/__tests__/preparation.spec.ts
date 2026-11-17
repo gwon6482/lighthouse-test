@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkLevelLabel, formatMinutes, formatWeeks, hasMajorSkip, pathOf, stepsOf, sumWeeks } from '../lib/preparation'
+import { checkLevelLabel, formatMinutes, formatStudyHours, formatWeeks, hasMajorSkip, josaRo, pathOf, stepsOf, sumParts, sumWeeks } from '../lib/preparation'
 import type { JobPreparation, PrepProject } from '../types/encyclopedia'
 
 const project = (id: string, weeks: number): PrepProject => ({
@@ -103,6 +103,33 @@ describe('차례로 할 때의 주 수', () => {
     const law = [row(208, { course: true, major: false }), row(12, { during: true }), row(156, { course: true }), row(24, { during: true }), row(3)]
     expect(sumWeeks(law).weeks).toBe(208 + 156 + 3)
     expect(sumWeeks(law, (r) => r.item.major).weeks).toBe(12 + 156 + 3)     // 학부를 건너뛰면 LEET 는 따로 센다, 변호사시험은 로스쿨 안
+  })
+})
+
+describe('sumParts — 두 칸(2026-11-17, 서버 totals 와 같은 규칙)', () => {
+  const r = (weeks: number, o: { course?: boolean; period?: boolean; during?: boolean; optional?: boolean; studyHours?: number } = {}) => ({
+    item: { optional: !!o.optional, during: !!o.during },
+    project: { weeks, course: o.course, period: o.period, studyHours: o.studyHours },
+  })
+  it('간호사 꼴 — 스스로 · 과정(학교) · 과정 안에서 하는 것', () => {
+    const rows = [r(10), r(208, { course: true }), r(8, { during: true }), r(6, { during: true }), r(20)]
+    const t = sumParts(rows)
+    expect([t.selfWeeks, t.periodWeeks, t.duringCount, t.weeks, t.courseWeeks, t.selfCount, t.periodCount]).toEqual([30, 208, 2, 238, 208, 2, 1])
+    expect(t.weeks).toBe(sumWeeks(rows).weeks)
+  })
+  it('과정(period)도 과정 칸 — 과정 안에서 하는 과정은 더하지 않는다', () => {
+    const t = sumParts([r(208, { course: true }), r(26, { period: true, during: true }), r(11, { period: true }), r(4)])
+    expect([t.periodWeeks, t.duringCount, t.selfWeeks]).toEqual([208 + 11, 1, 4])
+  })
+  it('큰 시험 — 하루 3시간 기준(2,496 ÷ 18 = 139주)', () => {
+    const t = sumParts([r(10), r(52, { studyHours: 2496 })])
+    expect([t.examHours, t.selfWeeks, t.selfWeeksPart]).toEqual([2496, 62, 10 + 139])
+  })
+  it('글자 — 약 2,500시간 · (으)로', () => {
+    expect(formatStudyHours(2496)).toBe('약 2,500시간')
+    expect(formatStudyHours(3744)).toBe('약 3,700시간')
+    expect(josaRo('약 12개월')).toBe('로')
+    expect(josaRo('약 1년')).toBe('으로')
   })
 })
 

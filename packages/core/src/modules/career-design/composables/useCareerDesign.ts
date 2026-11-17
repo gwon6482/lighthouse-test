@@ -1478,6 +1478,9 @@ export function useCareerDesign() {
     ...(p.period ? { period: true } : {}), ...(p.stoppedAt ? { stoppedAt: p.stoppedAt } : {}),
     // 고치기에서 과정 → 진도로 바꾸면 false 가 온다 — 서버는 false 를 받아야 끈다(projectSettings partial)
     ...(p.period === false ? { period: false } : {}),
+    // 큰 시험 분량·나란히(2026-11-17) — 주간결산 속도 바꾸기가 남은 시험 기간을 다시 센다. 사용자가 기간을 직접 고쳐 끊으면 0 이 간다
+    ...(p.studyHours !== undefined ? { studyHours: p.studyHours } : {}),
+    ...(p.alongside !== undefined ? { alongside: p.alongside } : {}),
   })
 
   // STEP2: 프로젝트 추가

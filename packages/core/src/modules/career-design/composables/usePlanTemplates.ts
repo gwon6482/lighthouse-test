@@ -9,7 +9,7 @@
 // 고르면 임시 계획(draftPlan)을 채워 프로젝트 구성으로 → 직접 설계와 같은 흐름에서 고친다(목표 설정은 맨 끝).
 // 2026-11-16: 기간은 준비과정 탭과 같은 계산(차례로 더하기, 과정 중에 하는 것은 겹쳐 세지 않는다), 운전면허·어학 성적처럼
 //   이미 가지고 있을 수 있는 것은 '이미 있어요'로 뺄 수 있다, 요일은 앞 프로젝트와 겹치지 않게 나눠 넣는다.
-import { pathOf, sumWeeks } from '@/modules/encyclopedia/lib/preparation'
+import { pathOf, sumParts, sumWeeks } from '@/modules/encyclopedia/lib/preparation'
 import type { JobPreparation, PrepItem, PrepProject } from '@/modules/encyclopedia/types/encyclopedia'
 import { helperExampleToProject, projectToExample } from './useHelperExamples'
 import type { CareerProfile, DayOfWeek, Project, ProjectCategory } from '../types/career-design'
@@ -37,6 +37,11 @@ export interface PlanTemplate {
   // 그전에는 '둘씩 나란히 한다'고 보고 반으로 어림해, 같은 계획이 탭에서는 11개월·여기서는 5개월로 보였다
   weeks: number
   courseWeeks: number      // 그 가운데 학교·수련 과정
+  // 두 칸(2026-11-17) — 준비과정 탭 맨 위와 같은 계산(sumParts). weeks = selfWeeks + periodWeeks
+  selfWeeks: number        // 스스로 준비
+  periodWeeks: number      // 과정('과정' 꼬리표 걸음 전부)
+  examHours: number        // 큰 시험 분량 합(0 = 없음)
+  selfWeeksPart: number    // 큰 시험을 하루 3시간으로 할 때의 스스로 준비
   note?: string            // 꼭 거쳐야 하는 것(관문)
   projects: Project[]      // 해 나갈 순서대로(이미 있어서 뺀 것은 들어 있지 않다)
   skipRefs: Record<string, HaveTarget>   // 템플릿 프로젝트 id → '이미 있어요'로 뺄 때 저장할 열쇠·이름(자격·면허·어학·근무 경험만)
@@ -55,6 +60,17 @@ function toProject(prep: JobPreparation, item: PrepItem, project: PrepProject, d
   if (during) p.during = true
   recent.push(p.days)
   return p
+}
+
+/** 나란히 걸음(item.alongside = 라이브러리 ref)을 계획 프로젝트 id 로 잇는다(2026-11-17). 대상이 빠졌으면(이미 있어요 등) 혼자 둔다 */
+function linkAlongside(rows: { item: PrepItem }[], projects: Project[]): Project[] {
+  const idOfRef = new Map<string, string>()
+  rows.forEach((r, i) => { if (!idOfRef.has(r.item.ref) && projects[i]) idOfRef.set(r.item.ref, projects[i]!.id) })
+  return projects.map((p, i) => {
+    const target = rows[i]?.item.alongside
+    const id = target ? idOfRef.get(target) : undefined
+    return id ? { ...p, alongside: id } : p
+  })
 }
 
 /**
@@ -91,14 +107,16 @@ export function buildPlanTemplates(prep: JobPreparation, track: string | null | 
     // 이 단계가 하는 것 — 이미 해 둔 것은 뺀다(뺄 수 있는 것은 자격·면허·어학·근무 경험)
     const include = (r: Row) => st.inStage(r) && !owned(r)
     const sum = sumWeeks(rows, include)
+    const parts = sumParts(rows, include)
     const skipRefs: Record<string, HaveTarget> = {}
     const recent: DayOfWeek[][] = []        // 앞에 놓인 프로젝트들의 요일 — 겹치지 않게 나눠 넣는다
-    const projects = must.filter(include).map((r) => {
+    const chosen = must.filter(include)
+    const projects = linkAlongside(chosen, chosen.map((r) => {
       // 자동 배치가 쓰는 표시 — 과정 중에 하는 프로젝트는 과정 끝에 맞춰 겹쳐 놓는다
       const p = toProject(prep, r.item, r.project, !!r.item.during, recent)
       if (canHave(r.project)) skipRefs[p.id] = target(r)
       return p
-    })
+    }))
     const stageWord = st.key === 'basic' ? '' : ` ${st.label}`
     return {
       id: `${prep.plan.jobCode}-${path.track ?? 'all'}-${st.key}`,
@@ -111,6 +129,10 @@ export function buildPlanTemplates(prep: JobPreparation, track: string | null | 
       who: st.who,
       weeks: sum.weeks,
       courseWeeks: sum.courseWeeks,
+      selfWeeks: parts.selfWeeks,
+      periodWeeks: parts.periodWeeks,
+      examHours: parts.examHours,
+      selfWeeksPart: parts.selfWeeksPart,
       note: prep.plan.gate ?? undefined,
       projects,
       skipRefs,
@@ -135,11 +157,13 @@ export function buildSituationTemplate(prep: JobPreparation, track: string | nul
   const trackName = prep.tracks.length > 1 ? (prep.tracks.find((t) => t.id === path.track)?.name ?? '') : ''
   const skipRefs: Record<string, HaveTarget> = {}
   const recent: DayOfWeek[][] = []
-  const projects = res.rows.map((r) => {
+  const projects = linkAlongside(res.rows, res.rows.map((r) => {
     const p = toProject(prep, r.item, r.project, r.during, recent)
     if (canHave(r.project)) skipRefs[p.id] = { ...haveRefOf(prep, r.item, r.project), byNote: !!r.project.haveByNote }
     return p
-  })
+  }))
+  // 두 칸 — 내 진로상황으로 줄인 길 그대로(과정 중 표시는 applySituation 이 정한 것을 쓴다)
+  const parts = sumParts(res.rows.map((r) => ({ item: { ...r.item, optional: false, during: r.during }, project: r.project })))
   return {
     id: `${prep.plan.jobCode}-${path.track ?? 'all'}-mine`,
     stage: 'mine',
@@ -151,6 +175,10 @@ export function buildSituationTemplate(prep: JobPreparation, track: string | nul
     who: situationSentence(prep, profile),
     weeks: res.weeks,
     courseWeeks: res.courseWeeks,
+    selfWeeks: parts.selfWeeks,
+    periodWeeks: parts.periodWeeks,
+    examHours: parts.examHours,
+    selfWeeksPart: parts.selfWeeksPart,
     note: prep.plan.gate ?? undefined,
     projects,
     skipRefs,

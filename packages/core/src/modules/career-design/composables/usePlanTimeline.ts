@@ -260,11 +260,32 @@ export function duringOwners(projects: Project[]): Map<string, Project> {
 // 프로젝트 종류 '과정'(period, 2026-11-16)은 속도와 상관없다 — 주당 시간을 예산에 세지 않는 대신 앞뒤의 문이 된다:
 //   과정은 앞에 놓인 것이 다 끝난 뒤 시작하고, 뒤의 프로젝트는 과정이 끝난 뒤 시작한다(과정 중에 하는 것만 예외).
 //   그전에는 과정의 큰 주당 시간이 예산을 넘겨 사실상 같은 꼴로 놓였다 — 과정이 없는 계획은 배치가 그대로다
+// 2026-11-17(정할 것 2·3, 시안 3판)
+//   · 주 15시간이 안 되는 가벼운 과정(봉사 주 3시간·2급 과목 이수 주 6시간 등)은 문이 아니다 — 시간도 세지 않고 다른 걸음과 나란히 놓는다
+//   · 나란히 짝(7·5급 PSAT ↔ 전문·2차, lib/examPace.ts)은 같은 주에 함께 시작한다 — 두 걸음의 주당 시간 합이 들어가는 첫 주
+//   · opts.minStart(p) — 그 프로젝트가 이보다 먼저 시작하면 안 되는 자리(0부터). 고등학생 응시 나이(9급 18세)에 쓴다
+export const LIGHT_PERIOD_HOURS = 15
+export const isGatePeriod = (p: Pick<Project, 'period' | 'days' | 'duration'>) => !!p.period && projectHoursPerWeek(p) >= LIGHT_PERIOD_HOURS
+export interface ScheduleOptions { minStart?: (p: Project) => number }
+
+/** 나란히 짝(둘 다 계획에 있을 때만) — examPace.examMates 와 같은 규칙(순환 import 를 피하려고 여기 둔다) */
+function alongsideMates(projects: Project[]): Map<string, Project> {
+  const byId = new Map(projects.map((p) => [p.id, p]))
+  const out = new Map<string, Project>()
+  for (const p of projects) {
+    const q = p.alongside ? byId.get(p.alongside) : undefined
+    if ((p.studyHours ?? 0) > 0 && q && (q.studyHours ?? 0) > 0 && q.id !== p.id) { out.set(p.id, q); out.set(q.id, p) }
+  }
+  return out
+}
+
 // 반환: 시작 주차(1부터)
-export function autoSchedule(projects: Project[], budgetHours: number): { week: number; project: Project }[] {
+export function autoSchedule(projects: Project[], budgetHours: number, opts: ScheduleOptions = {}): { week: number; project: Project }[] {
   const load: number[] = []
   const out: { week: number; project: Project }[] = []
   const owners = duringOwners(projects)
+  const mates = alongsideMates(projects)
+  const placedIds = new Set<string>()
   const tail = new Map<string, number>()      // 과정 id → 딸린 프로젝트의 주 수 합
   for (const p of projects) {
     const o = owners.get(p.id)
@@ -275,31 +296,48 @@ export function autoSchedule(projects: Project[], budgetHours: number): { week: 
   let gate = 0       // 마지막 '과정'이 끝나는 자리(0부터, 미포함) — 뒤의 프로젝트는 여기부터
   let lastEnd = 0    // 지금까지 놓은 프로젝트(딸린 것 빼고) 가운데 가장 늦게 끝나는 자리 — 과정은 여기부터
   for (const p of projects) {
+    if (placedIds.has(p.id)) continue            // 짝과 함께 이미 놓았다
     const w = projectWeeks(p)
     const per = !!p.period
+    const isGate = isGatePeriod(p)
     const h = per ? 0 : projectHoursPerWeek(p)
     const owner = owners.get(p.id)
     if (owner && cursor.has(owner.id)) {
       const s = cursor.get(owner.id)!
       for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
       out.push({ week: s + 1, project: p })
+      placedIds.add(p.id)
       cursor.set(owner.id, s + w)
       continue
     }
-    let s = Math.max(floor, gate, per ? lastEnd : 0)
+    // 나란히 짝 — 아직 안 놓인 짝이 있으면 둘을 한 덩어리로 놓는다
+    const mate = mates.get(p.id)
+    const pair = mate && !placedIds.has(mate.id) ? mate : null
+    const mw = pair ? projectWeeks(pair) : 0
+    const mh = pair ? projectHoursPerWeek(pair) : 0
+    const span = Math.max(w, mw)
+    const minS = Math.max(opts.minStart?.(p) ?? 0, pair ? (opts.minStart?.(pair) ?? 0) : 0)
+    let s = Math.max(floor, gate, isGate ? lastEnd : 0, minS)
     for (;; s++) {
       let ok = true
-      for (let k = 0; k < w && !per; k++) {
+      for (let k = 0; k < span && !per; k++) {
         const l = load[s + k] ?? 0
-        if (l > 0 && l + h > budgetHours) { ok = false; break }
+        const add = (k < w ? h : 0) + (k < mw ? mh : 0)
+        if (l > 0 && l + add > budgetHours) { ok = false; break }
       }
       if (ok) break
     }
     for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
     out.push({ week: s + 1, project: p })
+    placedIds.add(p.id)
+    if (pair) {
+      for (let k = 0; k < mw; k++) load[s + k] = (load[s + k] ?? 0) + mh
+      out.push({ week: s + 1, project: pair })
+      placedIds.add(pair.id)
+    }
     floor = s
-    lastEnd = Math.max(lastEnd, s + w)
-    if (per) gate = Math.max(gate, s + w)
+    if (!per || isGate) lastEnd = Math.max(lastEnd, s + span)
+    if (isGate) gate = Math.max(gate, s + w)
     // 딸린 프로젝트를 과정 끝에 맞춘다. 딸린 것이 과정보다 길면 과정 시작부터 놓는다(끝은 과정 뒤로 넘어간다)
     if (p.course) cursor.set(p.id, Math.max(s, s + w - (tail.get(p.id) ?? 0)))
   }

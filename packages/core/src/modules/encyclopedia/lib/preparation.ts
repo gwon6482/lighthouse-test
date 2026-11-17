@@ -67,7 +67,7 @@ export const checkLevelLabel = (c?: PrepChecked | null) => (c?.level && CHECK_LE
 export function sumWeeks<T extends { item: Pick<PrepItem, 'optional' | 'during'>; project: Pick<PrepProject, 'weeks' | 'course'> }>(
   rows: T[],
   include: (row: T) => boolean = () => true,
-): Required<PrepSum> {
+): Required<Pick<PrepSum, 'count' | 'weeks' | 'courseWeeks'>> {
   let count = 0
   let weeks = 0
   let courseWeeks = 0
@@ -86,3 +86,64 @@ export function sumWeeks<T extends { item: Pick<PrepItem, 'optional' | 'during'>
 /** 전공자에게 줄어드는 것이 있는 길인가(없으면 전공자 줄을 보여 주지 않는다) */
 export const hasMajorSkip = (path: PrepPath | null) =>
   !!path && path.totals.major.count < path.totals.nonMajor.count
+
+// ── 두 칸(2026-11-17, 정할 것 2·3 — workspace decisions/2026-11-17-duration-exam-plan.md) ──
+// 맨 위 기간을 '스스로 준비'(낼 수 있는 시간에 따라 길어지고 짧아지는 것)와 '과정'(다니는 기간 — 속도와 상관없음)으로 나눈다.
+// 과정 = '과정' 꼬리표 걸음 전부(학교·수련 course + 프로젝트 종류 '과정' period). 과정 안에서 하는 걸음(during)은 센다만 하고 더하지 않는다.
+// 서버 totals 의 selfWeeks·periodWeeks·duringCount·selfWeeksPart 와 같은 규칙이다(weeks = selfWeeks + periodWeeks — sumWeeks 와 같다).
+// 큰 시험(studyHours)이 있으면 그 시험을 '일·학업과 함께'(하루 3시간·주 6일)로 할 때의 스스로 준비 주 수(selfWeeksPart)도 준다.
+export const FULL_TIME_HOURS = 48     // 전업: 하루 8시간 · 주 6일 — 자료의 시험 주 수가 이 기준이다
+export const PART_TIME_HOURS = 18     // 일·학업과 함께: 하루 3시간 · 주 6일
+
+export interface PrepParts {
+  count: number
+  weeks: number
+  courseWeeks: number
+  selfWeeks: number
+  periodWeeks: number
+  duringCount: number
+  examHours: number       // 0 = 큰 시험 없음
+  selfWeeksPart: number   // 큰 시험을 하루 3시간으로 할 때(없으면 selfWeeks 와 같다)
+  selfCount: number       // 스스로 준비 걸음 수
+  periodCount: number     // 과정 걸음 수
+}
+
+export function sumParts<T extends { item: Pick<PrepItem, 'optional' | 'during'>; project: Pick<PrepProject, 'weeks' | 'course' | 'period' | 'studyHours'> }>(
+  rows: T[],
+  include: (row: T) => boolean = () => true,
+): PrepParts {
+  const out: PrepParts = { count: 0, weeks: 0, courseWeeks: 0, selfWeeks: 0, periodWeeks: 0, duringCount: 0, examHours: 0, selfWeeksPart: 0, selfCount: 0, periodCount: 0 }
+  let ownerIn = false
+  let examWeeks = 0
+  let partWeeks = 0
+  for (const row of rows) {
+    const { item, project } = row
+    if (project.course) ownerIn = !item.optional && include(row)
+    if (item.optional || !include(row)) continue
+    out.count += 1
+    if (project.course) { out.weeks += project.weeks; out.courseWeeks += project.weeks; out.periodWeeks += project.weeks; out.periodCount += 1 }
+    else if (item.during && ownerIn) out.duringCount += 1
+    else if (project.period) { out.weeks += project.weeks; out.periodWeeks += project.weeks; out.periodCount += 1 }
+    else {
+      out.weeks += project.weeks; out.selfWeeks += project.weeks; out.selfCount += 1
+      const h = project.studyHours ?? 0
+      if (h > 0) { examWeeks += project.weeks; out.examHours += h; partWeeks += Math.ceil(h / PART_TIME_HOURS) }
+    }
+  }
+  out.selfWeeksPart = out.selfWeeks - examWeeks + partWeeks
+  return out
+}
+
+/** 공부 총량을 읽기 쉽게 — 2496 → '약 2,500시간' */
+export function formatStudyHours(h: number): string {
+  const r = Math.round(h / 100) * 100
+  return `약 ${String(r).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}시간`
+}
+
+/** '약 12개월' + (으)로 — 받침이 없거나 ㄹ 받침이면 '로' */
+export function josaRo(s: string): string {
+  const c = s.charCodeAt(s.length - 1)
+  if (c < 0xac00 || c > 0xd7a3) return '로'
+  const jong = (c - 0xac00) % 28
+  return jong === 0 || jong === 8 ? '로' : '으로'
+}

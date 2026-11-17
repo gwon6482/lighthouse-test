@@ -8,6 +8,13 @@
     <CdStepIndicator step="pace" />
 
     <div class="cd-pace__body">
+      <!-- 큰 시험·과정이 든 계획(2026-11-17, 시안 화면 4) — 비슷한 사람들이 실제로 걸린 기간을 일정을 정하는 곳에서 함께 보여 준다 -->
+      <div v-if="examHead || periodWeeksTotal" class="cd-pace__facts">
+        <p v-if="examHead" class="cd-pace__stat">{{ examHead }}</p>
+        <p v-if="examHead" class="cd-pace__fact">날짜는 계획을 마치는 때예요. 합격하는 날이 아니에요.</p>
+        <p v-if="periodWeeksTotal" class="cd-pace__fact">과정 {{ formatWeeks(periodWeeksTotal) }}{{ josaEun(formatWeeks(periodWeeksTotal)) }} 속도와 상관없이 그대로예요.</p>
+      </div>
+
       <!-- ① 생활 모습 카드 — 숫자 대신 '언제 끝나는지'를 보고 고른다 -->
       <div class="cd-pace__cards" role="radiogroup" aria-label="진행 속도">
         <div
@@ -18,9 +25,9 @@
           class="cd-pace__card"
           :class="{ 'cd-pace__card--on': selectedKey === p.key }"
           :aria-checked="selectedKey === p.key"
-          @click="selectedKey = p.key"
-          @keydown.enter.prevent="selectedKey = p.key"
-          @keydown.space.prevent="selectedKey = p.key"
+          @click="pick(p.key)"
+          @keydown.enter.prevent="pick(p.key)"
+          @keydown.space.prevent="pick(p.key)"
         >
           <div class="cd-pace__card-row">
             <span class="cd-pace__emoji" aria-hidden="true"><AppIcon :name="p.icon" /></span>
@@ -41,6 +48,13 @@
             <span class="cd-pace__daily-value">{{ daily }}시간</span>
             <button type="button" class="cd-pace__daily-btn" :disabled="daily >= ALLIN_DAILY.max" aria-label="하루 1시간 늘리기" @click="daily++">+</button>
             <span class="cd-pace__daily-note">주 6일 기준</span>
+          </div>
+
+          <!-- 큰 시험 — 고른 카드에만. 고른 시간이 곧 시험 공부 시간이다. 먼 날짜는 막지 않고 사실 한 줄(근거 밖)을 붙인다 -->
+          <div v-if="selectedKey === p.key && p.exam" class="cd-pace__exam">
+            <p>{{ p.exam.examLine }}</p>
+            <p v-if="p.exam.beyondLine">{{ p.exam.beyondLine }}. 졸업·방학처럼 시간이 날 때 속도를 올리면 날짜가 당겨져요.</p>
+            <p v-if="p.exam.allLine">{{ p.exam.allLine }}.</p>
           </div>
         </div>
       </div>
@@ -91,14 +105,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import CdStepIndicator from '../components/CdStepIndicator.vue'
 import { useDesignSteps } from '../composables/useDesignSteps'
 import { useCareerDesign } from '../composables/useCareerDesign'
-import { toDateKey } from '../composables/usePlanTimeline'
-import { PACES, DEFAULT_PACE_HOURS, ALLIN_DAILY, allinWeeklyHours, paceOfHours, buildTimeline, scheduleEndWeek, monthLabelOfWeek, monthsLabel } from '../composables/usePlanPace'
+import { parseDateKey, projectWeeks, toDateKey, weekOfDate, type ScheduleOptions } from '../composables/usePlanTimeline'
+import { PACES, DEFAULT_PACE_HOURS, ALLIN_DAILY, allinWeeklyHours, paceFromSituation, paceOfHours, buildTimeline, pacedProjects, scheduleEndWeek, monthLabelOfWeek, monthsLabel } from '../composables/usePlanPace'
+import { examMinAge, examPaceLines } from '../lib/examPace'
+import { useCareerProfile } from '../composables/useCareerProfile'
+import { useAuthStore } from '@/shared/stores/auth'
+import { formatWeeks } from '@/modules/encyclopedia/lib/preparation'
 import { getToday } from '@/shared/utils/dev-date'
 import type { ProjectCategory } from '../types/career-design'
 import AppIcon from '@/shared/components/AppIcon.vue'
@@ -124,12 +142,53 @@ const orderOpen = ref(false)
 // 시작은 오늘 기준으로 보여 준다(목표 설정에서도 시작일은 오늘로 고정된다)
 const startKey = computed(() => draftPlan.startDate || toDateKey(getToday()))
 
-// 카드마다 그 속도로 배치했을 때의 완성 시기 — 순서를 바꾸면 함께 바뀐다
+// 고른 카드 — 사용자가 고르면 내 진로상황 기본값으로 덮지 않는다
+const touched = ref(false)
+function pick(key: string) { selectedKey.value = key; touched.value = true }
+
+// 기본 속도는 내 진로상황에서(2026-11-17) — 저장된 속도가 없을 때만
+const { profile: careerProfile, load: loadCareerProfile } = useCareerProfile()
+onMounted(async () => {
+  if (draftPlan.paceKey || draftPlan.weeklyHours) return
+  const prof = careerProfile.value ?? await loadCareerProfile().catch(() => null)
+  const key = paceFromSituation(prof?.school)
+  if (key && !touched.value) selectedKey.value = key
+})
+
+// 고등학생 응시 나이(2026-11-17) — 9급은 시험이 있는 해에 18세(교정·보호 20세) 이상. 시험 걸음이 그 해보다 먼저 끝나지 않게 시작을 미룬다.
+// 나이는 가입 때 받은 나이로 출생 연도를 어림한다
+const auth = useAuthStore()
+const schedOpts = computed<ScheduleOptions>(() => {
+  const age = auth.user?.age
+  const start = parseDateKey(startKey.value)
+  if (!age || !start) return {}
+  const birthYear = start.getFullYear() - age
+  return {
+    minStart: (p) => {
+      const min = examMinAge(p)
+      const year = birthYear + min
+      if (!min || year <= start.getFullYear()) return 0
+      const firstWeek = weekOfDate(startKey.value, new Date(year, 0, 1), draftPlan.reviewDay) ?? 0
+      return Math.max(0, firstWeek - projectWeeks(p))   // 시험 걸음의 끝 주가 그 해 첫 주 이후가 되게(0부터 센 시작 자리)
+    },
+  }
+})
+
+// 카드마다 그 속도로 배치했을 때의 완성 시기 — 순서를 바꾸면 함께 바뀐다. 큰 시험은 그 속도로 기간을 다시 잡는다(scheduleEndWeek 안에서)
 const options = computed(() => PACES.map((p) => {
   const hours = hoursOf(p.key)
-  const weeks = scheduleEndWeek(draftPlan.projects, hours)
-  return { ...p, hours, endLabel: weeks ? monthLabelOfWeek(startKey.value, weeks, draftPlan.reviewDay) : '-', monthsLabel: monthsLabel(weeks) }
+  const weeks = scheduleEndWeek(draftPlan.projects, hours, schedOpts.value)
+  const exam = examPaceLines(draftPlan.projects, hours)[0] ?? null
+  return { ...p, hours, endLabel: weeks ? monthLabelOfWeek(startKey.value, weeks, draftPlan.reviewDay) : '-', monthsLabel: monthsLabel(weeks), exam }
 }))
+
+// 큰 시험의 합격자 수치(첫 시험) · 속도와 상관없는 과정 기간
+const examHead = computed(() => draftPlan.projects.find((p) => p.examStat)?.examStat?.headline ?? '')
+const periodWeeksTotal = computed(() => draftPlan.projects
+  .filter((p) => (p.period || p.course) && !p.during)
+  .reduce((n, p) => n + projectWeeks(p), 0))
+// '과정 약 4년' + '은' / '과정 11주' + '는'
+const josaEun = (s: string) => { const c = s.charCodeAt(s.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 === 0 ? '는' : '은' }
 
 // ── 순서 드래그 ──
 // 끄는 줄은 손가락을 따라 translateY 로 움직이고, 가운데가 이웃 줄의 가운데를 넘는 순간 배열에서 자리를 바꾼다.
@@ -233,7 +292,10 @@ function apply() {
   draftPlan.paceKey = selectedKey.value
   draftPlan.dailyHours = selectedKey.value === 'allin' ? daily.value : undefined
   draftPlan.weeklyHours = hours
-  draftTimeline.value = buildTimeline(draftPlan.projects, hours)
+  // 큰 시험은 이 속도로 기간·요일·1회 시간을 다시 잡아 계획에 넣는다(타임라인 슬롯도 이 복사본을 든다)
+  const paced = pacedProjects(draftPlan.projects, hours)
+  draftPlan.projects.splice(0, draftPlan.projects.length, ...paced)
+  draftTimeline.value = buildTimeline(draftPlan.projects, hours, schedOpts.value)
   draftPlan.timelineManual = false
   router.push(nextPath('pace'))
 }
@@ -249,6 +311,15 @@ function apply() {
   &__body { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
 
   &__cards { display: flex; flex-direction: column; gap: 10px; }
+  // 큰 시험·과정 한 줄(2026-11-17)
+  &__facts { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 12px; background: #FFFBEA; }
+  &__stat { font-size: 14px; font-weight: 700; color: #3A3200; word-break: keep-all; }
+  &__fact { font-size: 12.5px; color: #7A6A3A; word-break: keep-all; }
+  &__exam {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 10px 12px; border-radius: 10px; background: #F7F7F2;
+    font-size: 13px; line-height: 1.5; color: #444; word-break: keep-all;
+  }
   &__card {
     width: 100%;
     display: flex;

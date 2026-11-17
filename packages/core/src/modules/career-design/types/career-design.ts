@@ -51,6 +51,20 @@ export interface Project {
   //   주간 할 일 없이 다니는 날 '완료' 한 번(집중모드 없음), 점검은 주간결산, 속도와 상관없이 기간 그대로. 없으면 '진도'(기본)
   period?: boolean
   stoppedAt?: string    // 과정을 그만둔 날('YYYY-MM-DD') — 주간결산 '그만뒀어요'
+  // 큰 시험(2026-11-17, 정할 것 2·3 — lib/examPace.ts) — 진로계획 라이브러리의 '첫 시험까지(빠른 경우)' 공부 총량(시간).
+  //   속도 고르기·주간결산 속도 바꾸기가 기간을 '분량 ÷ 주당 시간'으로 다시 잡는다. 0·없음 = 보통 프로젝트(사용자가 기간을 직접 고치면 끊는다)
+  studyHours?: number
+  alongside?: string    // 나란히 공부하는 대상 프로젝트 id(7·5급 PSAT ↔ 전문·2차) — 같은 때 시작해 주당 시간을 나눠 쓴다
+  examStat?: ExamStat   // 속도 고르기에 보여 줄 합격자 수치(설계 중에만 — 서버에 저장하지 않는다)
+}
+
+/** 속도 고르기에 보여 줄 합격자 수치 한 벌(2026-11-17) — 라이브러리 passStats 에서 만든다(lib/examPace.ts examStatOf) */
+export interface ExamStat {
+  headline: string                  // 요약 한 줄 — 앞에 시험 이름을 붙이지 않는다
+  beyondWeeks: number | null        // 시험 기간이 이보다 길면 beyondLine 을 붙인다(7급처럼 근거가 맞지 않는 걸음은 null)
+  beyondLine: string | null         // "합격한 사람 10명 중 7명은 2년 안에 붙었어요"
+  allWeeks: number | null           // 분포의 끝(4년) — 이보다 길면 allLine
+  allLine: string | null            // "합격한 사람 100명 중 97명은 4년 안에 붙었어요"
 }
 
 export interface Routine {
@@ -143,6 +157,8 @@ export interface HelperExample {
   method?: ProjectMethod          // 진행 방식. 없으면 사용자가 고른다
   methodDetail?: Partial<Record<MethodField, string>>
   period?: boolean                // 프로젝트 종류 '과정'(2026-11-16) — 커리큘럼은 lib/period.ts 의 periodCurriculum
+  studyHours?: number             // 큰 시험 분량(2026-11-17) — Project.studyHours 로 넘어간다
+  examStat?: ExamStat
 }
 
 export interface HelperJobExamples {
