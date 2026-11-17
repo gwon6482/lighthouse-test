@@ -323,15 +323,15 @@ describe('옛 열쇠 — 나누기 전에 저장한 \'이미 해 둔 것\'도 �
 })
 
 // ── 법정 연수(2026-11-17 자료 '법정 교육은 과정 걸음') — 자격을 해 뒀으면 짝인 연수도 뺀다 ──
-// 자료: 연수 걸음은 '<자격 id>-training'(청소년상담사 p.pc-youth-training) 또는 '-cert' 를 뗀 '<기본>-training'(cp.sports-instructor-training)
+// 자료: 연수 걸음은 '<자격 걸음 id>-training'(청소년상담사 p.pc-youth-training · 생활스포츠지도사 cp.sports-instructor-cert-training)
 describe('짝 걸음 — 연수', () => {
   const training = (id: string, label: string) => project(id, 2, { type: 'edu', subtype: 'required-course', category: 'qualification', mayHave: true, period: true, haveLabel: label })
   const sports = () => planOf(
-    [item('cp.sports-instructor-cert-written', 1), item('cp.sports-instructor-cert', 1.5), item('cp.sports-instructor-training', 1.7), item('cp.resume', 2)],
+    [item('cp.sports-instructor-cert-written', 1), item('cp.sports-instructor-cert', 1.5), item('cp.sports-instructor-cert-training', 1.7), item('cp.resume', 2)],
     {
       'cp.sports-instructor-cert-written': cert('cp.sports-instructor-cert-written', { subtype: 'national-license', haveLabel: '생활스포츠지도사 2급 필기 합격' }),
       'cp.sports-instructor-cert': cert('cp.sports-instructor-cert', { subtype: 'national-license', haveLabel: '생활스포츠지도사 2급' }),
-      'cp.sports-instructor-training': training('cp.sports-instructor-training', '생활스포츠지도사 2급 연수 수료'),
+      'cp.sports-instructor-cert-training': training('cp.sports-instructor-cert-training', '생활스포츠지도사 2급 연수 수료'),
     },
     '420402',
   )
@@ -345,16 +345,16 @@ describe('짝 걸음 — 연수', () => {
     '231201',
   )
 
-  it('꼬리 규칙: \'<id>-training\' → \'<id>\' 또는 \'<id>-cert\' · 실무 수습(-train)은 짝이 아니다', () => {
-    expect(pairedCertIds('p.pc-youth-training')).toEqual(['p.pc-youth', 'p.pc-youth-cert'])
-    expect(pairedCertIds('cp.sports-instructor-training')).toEqual(['cp.sports-instructor', 'cp.sports-instructor-cert'])
+  it('꼬리 규칙: \'<id>-training\' → \'<id>\' · 실무 수습(-train)은 짝이 아니다', () => {
+    expect(pairedCertIds('p.pc-youth-training')).toEqual(['p.pc-youth'])
+    expect(pairedCertIds('cp.sports-instructor-cert-training')).toEqual(['cp.sports-instructor-cert'])
     expect(pairedCertIds('p.cpla-train')).toEqual([])
     expect(pairedHaveLabel('공조냉동기계기능사', 'cp.x-training')).toBe('공조냉동기계기능사 연수 수료')
   })
 
-  it('자격을 해 뒀으면 필기와 연수까지 함께 빠진다(생활스포츠지도사 — 연수 id 가 \'-cert\' 를 뗀 꼴)', () => {
+  it('자격을 해 뒀으면 필기와 연수까지 함께 빠진다(생활스포츠지도사)', () => {
     expect(cutRefs(sports(), [{ ref: 'cp.sports-instructor-cert', name: '생활스포츠지도사 2급' }])).toEqual([
-      'cp.sports-instructor-cert-written 이미 해 뒀어요', 'cp.sports-instructor-cert 이미 해 뒀어요', 'cp.sports-instructor-training 이미 해 뒀어요',
+      'cp.sports-instructor-cert-written 이미 해 뒀어요', 'cp.sports-instructor-cert 이미 해 뒀어요', 'cp.sports-instructor-cert-training 이미 해 뒀어요',
     ])
   })
 

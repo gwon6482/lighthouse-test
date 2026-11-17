@@ -93,8 +93,8 @@ export function withoutHave(has: CareerProfile['has'], t: HaveTarget): CareerPro
 // 자료의 id 꼬리 규칙(plan-library README '필기·실기(1·2차) 차수'·'법정 교육은 과정 걸음'). 자격 이름은 자격 걸음의 예전 id 에 그대로 있다.
 //   · 필기·학과 '<id>-written', 1차 '<id>-first' → 뒤의 자격 걸음 '<id>'. 예전부터 나눈 전문자격 1·2차는 '<id>-first' → '<id>-second',
 //     'p.first' → 'p.second'(관세사·감정평가사 등)
-//   · 법정 연수 '<id>-training' → 앞의 자격 걸음 '<id>' 또는 '<id>-cert'(청소년상담사 자격연수 p.pc-youth-training → p.pc-youth,
-//     생활스포츠지도사 연수 cp.sports-instructor-training → cp.sports-instructor-cert). 연수를 마쳐야 자격이 나온다
+//   · 법정 연수 '<id>-training' → 앞의 자격 걸음 '<id>'(청소년상담사 자격연수 p.pc-youth-training → p.pc-youth,
+//     생활스포츠지도사 연수 cp.sports-instructor-cert-training → cp.sports-instructor-cert). 연수를 마쳐야 자격이 나온다
 // 짝은 같은 계획에 있고 '해 둘 수 있는 것'(canHave)일 때만 본다 — '-training' 이 붙은 다른 걸음(발성 훈련·공정 실습)은 짝이 없다.
 // 실무 수습('-train')은 짝이 아니다 — 시험에 붙어도 수습은 따로 한다.
 // 보건의료 국가시험 필기·실기(cp.license-written·cp.license-practical)는 꼬리 규칙 밖이다 — 직종마다 먼저 보는 시험이 달라 한쪽이 다른 쪽을 품지 않는다
@@ -106,7 +106,7 @@ export function pairedCertIds(id: string): string[] {
   m = id.match(/^(.+\.)first$/)
   if (m) return [`${m[1]}second`]
   m = id.match(/^(.+)-training$/)
-  if (m) return [m[1]!, `${m[1]}-cert`]
+  if (m) return [m[1]!]
   return []
 }
 export const pairedCertOf = (prep: Pick<JobPreparation, 'projects'>, p: PrepProject): PrepProject | undefined =>
