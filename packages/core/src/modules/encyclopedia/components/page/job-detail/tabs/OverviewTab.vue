@@ -184,7 +184,9 @@
       <h3 v-else class="overview-section__title">직업 현황</h3>
       <div class="overview-stats">
 
-        <!-- 직업 만족도 -->
+        <!-- 직업 만족도 — 고용24 재직자 만족도(백점 기준 점수)를 그대로 보여 준다. 고용24·추천 목록·결과지도 'n%'로 쓴다.
+             직업 간 순위가 아니다(537개가 49.8~83.3, 중앙 67.5에 몰려 있다). 예전 '상위 (100 − 값)%'는 틀렸다:
+             74.7은 '상위 25.3%'로 보였지만 실제로는 위에서 10% 자리, 60은 '상위 40%'로 보였지만 바닥 쪽이었다(2026-11-17) -->
         <div v-if="job.jobSatisfaction != null" class="overview-stats__card">
           <span class="overview-stats__label">직업 만족도</span>
           <div class="overview-satisfaction">
@@ -194,7 +196,7 @@
                 :style="{ width: job.jobSatisfaction + '%' }"
               />
             </div>
-            <span class="overview-satisfaction__value">상위 {{ (100 - job.jobSatisfaction).toFixed(1) }}%</span>
+            <span class="overview-satisfaction__value">{{ job.jobSatisfaction.toFixed(1) }}%</span>
           </div>
         </div>
 

@@ -49,7 +49,8 @@
             <div class="overview-satisfaction__bar-bg">
               <div class="overview-satisfaction__bar-fill" :style="{ width: job.jobSatisfaction + '%' }" />
             </div>
-            <span class="overview-satisfaction__value">상위 {{ (100 - job.jobSatisfaction).toFixed(1) }}%</span>
+            <!-- 재직자 만족도(백점 기준 점수) 그대로 — 직업 간 순위가 아니다. 진로백과 개요 탭과 같은 표시(2026-11-17, 예전 '상위 (100 − 값)%'는 틀렸다) -->
+            <span class="overview-satisfaction__value">{{ job.jobSatisfaction.toFixed(1) }}%</span>
           </div>
         </div>
 
