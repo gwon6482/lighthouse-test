@@ -8,7 +8,7 @@
     <div v-if="noSurvey" class="rec-no-survey">
       <div class="rec-no-survey__icon"><AppIcon name="ui-no-survey" /></div>
       <p class="rec-no-survey__title">검사 결과가 없어요</p>
-      <p class="rec-no-survey__desc">자기이해 검사를 완료하면<br>나만을 위한 진로를 추천해드려요</p>
+      <p class="rec-no-survey__desc">자기이해 검사를 마치면<br>결과와 가까운 직업을 보여 드려요</p>
       <button class="rec-no-survey__cta" @click="$router.push('/self-understanding')">
         자기이해 검사 시작하기
       </button>
@@ -16,18 +16,18 @@
 
     <template v-else>
 
-      <!-- 히어로 헤더 -->
+      <!-- 히어로 헤더 — 2026-11-17 오너 결정 13: 'AI 맞춤 추천'·'딱 맞는'을 쓰지 않는다.
+           추천은 정해 둔 규칙으로 검사 결과와의 거리를 재는 방식이라, 결과를 단정하지 않고 출발점으로 소개한다 -->
       <div class="rec-hero">
-        <p class="rec-hero__label"><AppIcon name="ui-sparkle" /> AI 맞춤 추천</p>
+        <p class="rec-hero__label"><AppIcon name="ui-sparkle" /> 자기이해 검사 결과</p>
         <h2 class="rec-hero__title">나의 추천 진로</h2>
-        <p class="rec-hero__sub">자기이해 검사 결과를 바탕으로<br>나에게 딱 맞는 직업을 추천했어요</p>
+        <p class="rec-hero__sub">검사 결과와 가까운 직업이에요<br>여기서부터 살펴보세요</p>
       </div>
 
       <!-- ── 섹션 1: 재능/흥미/가치관 추천직업 ── -->
       <section class="rec-section">
         <div class="rec-section__header">
           <h3 class="rec-section__title">재능 · 흥미 · 가치관 추천직업</h3>
-          <span class="rec-section__badge rec-section__badge--blue">T2 기반</span>
         </div>
         <p class="rec-section__desc">나의 재능·흥미·가치관을 종합적으로 분석한 추천이에요</p>
 
@@ -35,8 +35,8 @@
           <div v-for="n in 3" :key="n" class="rec-t2rec-skeleton" />
         </div>
 
-        <p v-else-if="t2Error" class="rec-empty">데이터를 불러오지 못했습니다.</p>
-        <p v-else-if="t2Jobs.length === 0" class="rec-empty">추천 직업을 찾을 수 없습니다.</p>
+        <p v-else-if="t2Error" class="rec-empty">추천 직업을 불러오지 못했어요.</p>
+        <p v-else-if="t2Jobs.length === 0" class="rec-empty">추천 직업을 찾지 못했어요.</p>
 
         <div v-else class="rec-t2rec-list">
           <div
@@ -82,7 +82,7 @@
           <div v-for="n in 5" :key="n" class="comp-skeleton" />
         </div>
         <p v-else-if="error" class="rec-empty">{{ error }}</p>
-        <p v-else-if="recommendedJobs.length === 0" class="rec-empty">추천 직업을 찾을 수 없습니다.</p>
+        <p v-else-if="recommendedJobs.length === 0" class="rec-empty">추천 직업을 찾지 못했어요.</p>
 
         <div v-else class="rec-list">
           <RecommendedJobCard

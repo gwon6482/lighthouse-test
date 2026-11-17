@@ -12,7 +12,7 @@
       <JobGateBadges v-if="jobCode" :job-code="jobCode" size="md" class="job-detail-header__gates" />
       <div v-if="isRecommended" class="job-detail-header__recommend-badge">
         <span class="job-detail-header__recommend-icon"><AppIcon name="ui-sparkle" /></span>
-        맞춤 추천 직업
+        나의 추천 진로에 있어요
       </div>
     </div>
 
