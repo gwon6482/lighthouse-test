@@ -9,10 +9,11 @@
 
     <div class="cd-pace__body">
       <!-- 큰 시험·과정이 든 계획(2026-11-17, 시안 화면 4) — 비슷한 사람들이 실제로 걸린 기간을 일정을 정하는 곳에서 함께 보여 준다 -->
-      <div v-if="examHead || periodWeeksTotal" class="cd-pace__facts">
+      <div v-if="hasExam || periodWeeksTotal" class="cd-pace__facts">
         <p v-if="examHead" class="cd-pace__stat">{{ examHead }}</p>
-        <p v-if="examHead" class="cd-pace__fact">날짜는 계획을 마치는 때예요. 합격하는 날이 아니에요.</p>
+        <p v-if="hasExam" class="cd-pace__fact">날짜는 계획을 마치는 때예요. 합격하는 날이 아니에요.</p>
         <p v-if="periodWeeksTotal" class="cd-pace__fact">과정 {{ formatWeeks(periodWeeksTotal) }}{{ josaEun(formatWeeks(periodWeeksTotal)) }} 속도와 상관없이 그대로예요.</p>
+        <p v-if="ageRuleOn" class="cd-pace__fact">공무원 공채는 시험을 보는 해에 18세가 되면 응시할 수 있어요(교정·보호직은 20세). 그 해 시험에 맞춰 시험 공부 날짜를 잡았어요.</p>
       </div>
 
       <!-- ① 생활 모습 카드 — 숫자 대신 '언제 끝나는지'를 보고 고른다 -->
@@ -52,9 +53,7 @@
 
           <!-- 큰 시험 — 고른 카드에만. 고른 시간이 곧 시험 공부 시간이다. 먼 날짜는 막지 않고 사실 한 줄(근거 밖)을 붙인다 -->
           <div v-if="selectedKey === p.key && p.exam" class="cd-pace__exam">
-            <p>{{ p.exam.examLine }}</p>
-            <p v-if="p.exam.beyondLine">{{ p.exam.beyondLine }}. 졸업·방학처럼 시간이 날 때 속도를 올리면 날짜가 당겨져요.</p>
-            <p v-if="p.exam.allLine">{{ p.exam.allLine }}.</p>
+            <p v-for="(line, li) in p.exam.lines" :key="li">{{ line }}</p>
           </div>
         </div>
       </div>
@@ -113,7 +112,7 @@ import { useDesignSteps } from '../composables/useDesignSteps'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { parseDateKey, projectWeeks, toDateKey, weekOfDate, type ScheduleOptions } from '../composables/usePlanTimeline'
 import { PACES, DEFAULT_PACE_HOURS, ALLIN_DAILY, allinWeeklyHours, paceFromSituation, paceOfHours, buildTimeline, pacedProjects, scheduleEndWeek, monthLabelOfWeek, monthsLabel } from '../composables/usePlanPace'
-import { examMinAge, examPaceLines } from '../lib/examPace'
+import { examMinAge, examPaceSummary, isExam } from '../lib/examPace'
 import { useCareerProfile } from '../composables/useCareerProfile'
 import { useAuthStore } from '@/shared/stores/auth'
 import { formatWeeks } from '@/modules/encyclopedia/lib/preparation'
@@ -146,18 +145,32 @@ const startKey = computed(() => draftPlan.startDate || toDateKey(getToday()))
 const touched = ref(false)
 function pick(key: string) { selectedKey.value = key; touched.value = true }
 
-// 기본 속도는 내 진로상황에서(2026-11-17) — 저장된 속도가 없을 때만
+// 큰 시험이 든 계획인가(검토 11-17 C2 — 수치가 없어도 '합격하는 날이 아니에요'를 단다)
+const hasExam = computed(() => draftPlan.projects.some(isExam))
+
+// 기본 속도는 내 진로상황에서(2026-11-17) — 큰 시험이 든 계획에만, 저장된 속도가 없을 때만(검토 C5). 내 진로상황을 모르면 '집중해서'
 const { profile: careerProfile, load: loadCareerProfile } = useCareerProfile()
 onMounted(async () => {
-  if (draftPlan.paceKey || draftPlan.weeklyHours) return
+  if (draftPlan.paceKey || draftPlan.weeklyHours || !hasExam.value) return
   const prof = careerProfile.value ?? await loadCareerProfile().catch(() => null)
-  const key = paceFromSituation(prof?.school)
-  if (key && !touched.value) selectedKey.value = key
+  const key = paceFromSituation(prof?.school) ?? 'focus'
+  if (!touched.value) selectedKey.value = key
 })
 
 // 고등학생 응시 나이(2026-11-17) — 9급은 시험이 있는 해에 18세(교정·보호 20세) 이상. 시험 걸음이 그 해보다 먼저 끝나지 않게 시작을 미룬다.
 // 나이는 가입 때 받은 나이로 출생 연도를 어림한다
 const auth = useAuthStore()
+// 응시할 수 있는 해(출생 연도 + 나이 기준) — 계획 시작 해보다 뒤면 그 해로 미룬다(0 = 미룰 것 없음)
+const eligibleYear = (p: Parameters<typeof examMinAge>[0]) => {
+  const age = auth.user?.age
+  const start = parseDateKey(startKey.value)
+  const min = examMinAge(p)
+  if (!age || !start || !min) return 0
+  const year = start.getFullYear() - age + min
+  return year > start.getFullYear() ? year : 0
+}
+// 나이 규칙이 실제로 걸리는 계획인가 — 사실 상자에 한 줄(검토 C6)
+const ageRuleOn = computed(() => draftPlan.projects.some((p) => eligibleYear(p) > 0))
 const schedOpts = computed<ScheduleOptions>(() => {
   const age = auth.user?.age
   const start = parseDateKey(startKey.value)
@@ -178,7 +191,7 @@ const schedOpts = computed<ScheduleOptions>(() => {
 const options = computed(() => PACES.map((p) => {
   const hours = hoursOf(p.key)
   const weeks = scheduleEndWeek(draftPlan.projects, hours, schedOpts.value)
-  const exam = examPaceLines(draftPlan.projects, hours)[0] ?? null
+  const exam = examPaceSummary(draftPlan.projects, hours)
   return { ...p, hours, endLabel: weeks ? monthLabelOfWeek(startKey.value, weeks, draftPlan.reviewDay) : '-', monthsLabel: monthsLabel(weeks), exam }
 }))
 

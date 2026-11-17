@@ -1,6 +1,6 @@
 // 진로백과 준비과정 탭의 계산(2026-11-15) — 화면과 무관한 순수 함수만 둔다.
 // 자료는 서버(진로계획 라이브러리)가 갈래별로 순서까지 풀어서 준다. 여기서는 고르고 글자로 바꾸기만 한다.
-import type { JobPreparation, PrepChecked, PrepItem, PrepPath, PrepProject, PrepSum } from '../types/encyclopedia'
+import type { JobPreparation, PrepChecked, PrepItem, PrepPath, PrepProject, PrepStatSource, PrepSum } from '../types/encyclopedia'
 
 export interface PrepStep {
   key: string            // 펼침 상태를 기억하는 열쇠 — 프로젝트 id + 순서. 갈래를 바꿔도 공통 항목은 같은 열쇠라 열린 채로 남는다
@@ -146,4 +146,30 @@ export function josaRo(s: string): string {
   if (c < 0xac00 || c > 0xd7a3) return '로'
   const jong = (c - 0xac00) % 28
   return jong === 0 || jong === 8 ? '로' : '으로'
+}
+
+/**
+ * 전업 기준 분량을 '약' 없이 — 주 × 12 ÷ 52 를 반올림한 개월(검토 11-17 C3).
+ *   52 → '1년' · 78 → '1년 6개월' · 39 → '9개월' · 26 → '6개월' · 65 → '1년 3개월'
+ */
+export function formatFullTime(weeks: number): string {
+  const m = Math.max(1, Math.round((weeks * 12) / 52))
+  const y = Math.floor(m / 12)
+  const r = m % 12
+  return y && r ? `${y}년 ${r}개월` : y ? `${y}년` : `${r}개월`
+}
+
+/**
+ * 합격자 수치의 출처 한 줄(검토 11-17 C7) — '출처 · 제목(게재처) · 매체 날짜 보도로 확인 · 확인 날짜 확인'.
+ * via 의 기사 제목은 그리지 않는다(시안이 쓰지 않기로 한 숫자 '하루 10시간'이 들어 있다) — 「 앞의 매체·날짜만 쓴다
+ */
+export function statSourceLine(src: PrepStatSource | null | undefined): string {
+  if (!src?.title) return ''
+  const parts = ['출처', src.title]
+  if (src.via) {
+    const outlet = src.via.split('「')[0]!.trim()
+    if (outlet) parts.push(`${outlet} 보도로 확인`)
+  } else if (src.level === 'abstract') parts.push('논문 초록으로 확인')
+  if (src.checkedAt) parts.push(`${src.checkedAt} 확인`)
+  return parts.join(' · ')
 }

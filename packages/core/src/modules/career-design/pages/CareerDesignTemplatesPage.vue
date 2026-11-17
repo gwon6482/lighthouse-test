@@ -276,7 +276,7 @@ function groupChanges(t: PlanTemplate): { kind: 'cut' | 'shorten'; label: string
 // 속도는 다음 화면에서 고르기 때문이다(시안 3판 '내가 정한 것')
 function durationLine(t: PlanTemplate): string {
   const self = t.examHours && t.selfWeeksPart !== t.selfWeeks
-    ? `${formatWeeks(t.selfWeeks)} ~ ${formatWeeks(t.selfWeeksPart).replace(/^약 /, '')}`
+    ? `${formatWeeks(t.selfWeeks)} ~ ${formatWeeks(t.selfWeeksPart).replace(/^약 /, '')}(시험 하루 8~3시간)`
     : formatWeeks(t.selfWeeks)
   return t.periodWeeks ? `스스로 준비 ${self} · 과정 ${formatWeeks(t.periodWeeks)}` : `스스로 준비 ${self}`
 }
@@ -315,12 +315,18 @@ function startFrom(t: PlanTemplate) {
   draftPlan.templateTrack = t.track
   draftPlan.startDate = toDateKey(getToday())
   // 종료일은 비워 둔다 — 맨 끝 목표 설정에서 타임라인 기준으로 추천한다(2026-10-20)
-  draftPlan.projects = t.projects.map((p) => ({
-    ...p,
-    id: `${p.id}-${Math.random().toString(36).slice(2, 7)}`,
-    days: [...p.days],
-    curriculum: p.curriculum?.map((w) => ({ ...w, items: [...w.items] })) ?? [],
-  }))
+  // 새 id 를 붙이면 나란히 짝(alongside = 짝의 id)도 새 id 로 다시 잇는다 — 안 그러면 7급 PSAT·전문이 따로 놓이고 따로 센다(11-17 끝-끝에서 발견)
+  const ids = new Map(t.projects.map((p) => [p.id, `${p.id}-${Math.random().toString(36).slice(2, 7)}`]))
+  draftPlan.projects = t.projects.map(({ alongside, ...p }) => {
+    const mate = alongside ? ids.get(alongside) : undefined
+    return {
+      ...p,
+      id: ids.get(p.id)!,
+      ...(mate ? { alongside: mate } : {}),
+      days: [...p.days],
+      curriculum: p.curriculum?.map((w) => ({ ...w, items: [...w.items] })) ?? [],
+    }
+  })
   router.push('/career-design/plan/projects')
 }
 </script>

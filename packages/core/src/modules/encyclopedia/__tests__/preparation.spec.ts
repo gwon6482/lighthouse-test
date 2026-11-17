@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkLevelLabel, formatMinutes, formatStudyHours, formatWeeks, hasMajorSkip, josaRo, pathOf, stepsOf, sumParts, sumWeeks } from '../lib/preparation'
+import { checkLevelLabel, formatFullTime, formatMinutes, formatStudyHours, formatWeeks, hasMajorSkip, josaRo, pathOf, statSourceLine, stepsOf, sumParts, sumWeeks } from '../lib/preparation'
 import type { JobPreparation, PrepProject } from '../types/encyclopedia'
 
 const project = (id: string, weeks: number): PrepProject => ({
@@ -133,3 +133,18 @@ describe('sumParts — 두 칸(2026-11-17, 서버 totals 와 같은 규칙)', ()
   })
 })
 
+describe('전업 기준 분량 · 출처 줄(검토 11-17 C3·C7)', () => {
+  it('전업 주 수 → round(주 × 12 / 52)개월, \'약\' 없이', () => {
+    expect([52, 78, 39, 26, 65].map(formatFullTime)).toEqual(['1년', '1년 6개월', '9개월', '6개월', '1년 3개월'])
+    expect(formatFullTime(117)).toBe('2년 3개월')
+  })
+  it('출처 줄 — 보도로 확인한 것은 매체·날짜만(기사 제목은 그리지 않는다), 논문 초록은 그렇게 적는다', () => {
+    expect(statSourceLine({
+      title: '저자, 「시험 준비 기간 연구」(학술지)', level: 'news',
+      via: '어느신문 2025-01-02 「합격자 \'하루 N시간\' 공부」', url: 'https://example.com', checkedAt: '2026-11-17', checkAgainAt: '2027-11-17',
+    })).toBe('출처 · 저자, 「시험 준비 기간 연구」(학술지) · 어느신문 2025-01-02 보도로 확인 · 2026-11-17 확인')
+    expect(statSourceLine({ title: '논문(2017)', level: 'abstract', via: null, url: null, checkedAt: '2026-11-17', checkAgainAt: null }))
+      .toBe('출처 · 논문(2017) · 논문 초록으로 확인 · 2026-11-17 확인')
+    expect(statSourceLine({ title: null, level: 'news', via: null, url: null, checkedAt: null, checkAgainAt: null })).toBe('')
+  })
+})

@@ -96,14 +96,14 @@
       <!-- 4. 템포 -->
       <section v-else-if="step === 4" class="wv-page">
         <h1 class="wv-title">이번 주 속도는 어땠나요?</h1>
-        <p class="wv-desc">지금 속도는 <strong>{{ currentPace.title }}</strong>(주 약 {{ currentPace.hours }}시간)예요.</p>
+        <p class="wv-desc">지금 속도는 <strong>{{ currentPace.title }}</strong>(주 약 {{ currentPace.hours }}시간){{ ieyo(currentPace.title) }}.</p>
         <div class="wv-feel">
           <button v-for="f in FEELS" :key="f.k" type="button" class="wv-feel__btn" :class="{ on: reviewDraft.feel === f.k }" @click="pickFeel(f.k)">{{ f.label }}</button>
         </div>
         <template v-if="reviewDraft.feel">
           <h2 class="wv-sub">다음 주부터 속도</h2>
           <ul class="wv-paces">
-            <li v-for="p in PACES" :key="p.key">
+            <li v-for="p in paceOptions" :key="p.key">
               <button type="button" class="wv-pace" :class="{ on: chosenKey === p.key }" @click="reviewDraft.paceKey = p.key">
                 <AppIcon :name="p.icon" class="wv-pace__icon" />
                 <span class="wv-pace__body"><strong>{{ p.title }}</strong><small>{{ p.life }}</small></span>
@@ -120,7 +120,7 @@
             </template>
             <template v-else>
               <strong>전체 계획이 다시 짜여요</strong>
-              <p v-if="chosenKey !== currentPace.key">아직 시작 안 한 프로젝트 {{ impact.remaining }}개를 {{ nextWeek }}주차부터 '{{ chosen.title }}' 속도로 다시 배치해요. 진행 중인 프로젝트<template v-if="periodNames">와 과정({{ periodNames }})</template>은 그대로예요.</p>
+              <p v-if="chosenKey !== currentPace.key">아직 시작 안 한 프로젝트 {{ impact.remaining }}개를 {{ nextWeek }}주차부터 '{{ chosen.title }}' 속도로 다시 배치해요. 진행 중인 프로젝트<template v-if="periodNames">와 과정({{ periodNames }})은</template><template v-else>는</template> 그대로예요.</p>
               <p v-else>3단계에서 바꾼 과정 일정에 맞춰 아직 시작 안 한 프로젝트를 {{ nextWeek }}주차부터 다시 배치해요. 속도는 그대로예요.</p>
               <p class="wv-impact__date">완료 예정 {{ ymd(baseline.endDate) }} → <b>{{ ymd(impact.endDate) }}</b> <em>{{ diffLabel }}</em></p>
               <p class="wv-impact__note">마지막 단계에서 [다음 주 시작하기]를 누르면 적용돼요.</p>
@@ -158,7 +158,6 @@ import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { useWeekReview, reviewDraft } from '../composables/useWeekReview'
 import PeriodReviewCard from '../components/PeriodReviewCard.vue'
-import { PACES } from '@/modules/career-design/composables/usePlanPace'
 import { weekDateRange } from '@/modules/career-design/composables/usePlanTimeline'
 import { parsePlanDate, daysBetween } from '../lib/planBoard'
 
@@ -170,7 +169,7 @@ const {
   range, weekNo, rangeLabel, totalWeeks,
   days, planned, done, percent, fullDays, workDays, minutes, photos, headline,
   weekGain, beforePercent,
-  currentPace, recommendedPace, endIfPace, nextWeek, nextDays, finishReview, currentEnd,
+  paceOptions, currentPace, recommendedPace, endIfPace, nextWeek, nextDays, finishReview, currentEnd,
   periodCards, periodChanges, periodPreview,
 } = useWeekReview()
 // 계획 주차 → 그 주 마지막 날 'M/D'(과정 카드의 끝 예정)
@@ -195,10 +194,13 @@ function pickFeel(k: 'tight' | 'fit' | 'loose') {
   reviewDraft.paceKey = '' // 느낌을 바꾸면 추천으로 다시
 }
 const chosenKey = computed(() => reviewDraft.paceKey || recommendedPace.value.key)
-const chosen = computed(() => PACES.find((p) => p.key === chosenKey.value)!)
+// 올인은 계획에 저장된 하루 시간 그대로(검토 11-17 L2 — paceOptions)
+const chosen = computed(() => paceOptions.value.find((p) => p.key === chosenKey.value)!)
 const impact = computed(() => endIfPace(chosen.value))
 // 속도도 그대로이고 과정 일정도 그대로면 계획이 바뀌지 않는다
 const samePlan = computed(() => chosenKey.value === currentPace.value.key && !periodChanges.value.length)
+// '올인(…)이에요' · '꾸준히(…)예요' — 괄호 앞 낱말의 받침으로 고른다
+const ieyo = (w: string) => { const c = w.charCodeAt(w.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0 ? '이에요' : '예요' }
 const ymd = (s?: string) => { const d = parsePlanDate(s); return d ? `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}` : '-' }
 // 비교 기준 = 지금 속도로 남은 프로젝트를 다시 놓았을 때(같은 계산끼리 비교해야 늦어짐/빨라짐이 맞다)
 const baseline = computed(() => ({ endDate: currentEnd.value }))

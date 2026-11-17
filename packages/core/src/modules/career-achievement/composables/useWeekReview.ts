@@ -232,10 +232,19 @@ export function useWeekReview() {
     })
     return Math.round(active.reduce((n, p) => n + ((p.days?.length ?? 0) * (withTime(p).duration ?? 0)) / 60, 0))
   })
+  // 속도 카드 — 올인은 계획에 저장된 주당 시간(하루 시간 × 6)을 쓴다(검토 11-17 L2).
+  // PACES 의 올인(주 24시간)을 그대로 쓰면 하루 8시간 올인 계획이 결산에서 '같은 올인'인데 주 24시간으로 다시 짜여 시험이 늘었다
+  const paceOptions = computed<Pace[]>(() => {
+    const pl = plan.value
+    const savedKey = pl?.paceKey || (pl?.paceHours ? paceOfHours(pl.paceHours)?.key : undefined)
+    const allinHours = savedKey === 'allin' && pl?.paceHours ? pl.paceHours : 0
+    return PACES.map((p) => (p.key === 'allin' && allinHours ? { ...p, hours: allinHours } : p))
+  })
+  const optionOf = (key?: string) => paceOptions.value.find((p) => p.key === key)
   // 지금 속도 — 계획에 저장된 속도(2026-10-30~)가 정본. 예전 계획은 결산 주의 주당 시간으로 짐작, 그것도 없으면 '꾸준히'
   const currentPace = computed<Pace>(() => {
     const pl = plan.value
-    const saved = paceByKey(pl?.paceKey) ?? (pl?.paceHours ? paceOfHours(pl.paceHours) : undefined)
+    const saved = optionOf(paceByKey(pl?.paceKey)?.key ?? (pl?.paceHours ? paceOfHours(pl.paceHours)?.key : undefined))
     if (saved) return saved
     const h = weeklyHours.value
     if (!h) return paceOfHours(DEFAULT_PACE_HOURS)!
@@ -282,9 +291,10 @@ export function useWeekReview() {
     return last ? (weekDateRange(pl.startDate, last, pl.reviewDay)?.end ?? '') : pl.endDate
   })
   const recommendedPace = computed<Pace>(() => {
-    const i = PACES.findIndex((p) => p.key === currentPace.value.key)
-    if (reviewDraft.feel === 'tight') return PACES[Math.max(0, i - 1)]!
-    if (reviewDraft.feel === 'loose') return PACES[Math.min(PACES.length - 1, i + 1)]!
+    const list = paceOptions.value
+    const i = list.findIndex((p) => p.key === currentPace.value.key)
+    if (reviewDraft.feel === 'tight') return list[Math.max(0, i - 1)]!
+    if (reviewDraft.feel === 'loose') return list[Math.min(list.length - 1, i + 1)]!
     return currentPace.value
   })
 
@@ -370,7 +380,7 @@ export function useWeekReview() {
     range, weekNo, rangeLabel, totalWeeks,
     days, planned, done, percent, fullDays, workDays, minutes, photos, headline,
     weekGain, beforePercent,
-    weeklyHours, currentPace, recommendedPace, endIfPace, nextWeek, currentEnd,
+    weeklyHours, paceOptions, currentPace, recommendedPace, endIfPace, nextWeek, currentEnd,
     nextDays,
     periodCards, periodChanges, periodPreview,
   }

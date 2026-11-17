@@ -6,7 +6,7 @@
 // 나란히(alongside) 짝(7·5급 PSAT ↔ 전문과목·2차)은 두 분량을 합쳐 기간을 정하고 주당 시간을 분량 비율로 나눠 쓴다
 // — 두 걸음이 고른 시간을 각각 다 쓰면 실제 공부 시간이 두 배가 된다(데이터 평가 11-17).
 // 속도 고르기·완료 화면·주간결산 속도 바꾸기가 이 계산 하나를 쓴다. 화면과 무관한 순수 함수만 둔다.
-import { FULL_TIME_HOURS, formatWeeks } from '@/modules/encyclopedia/lib/preparation'
+import { FULL_TIME_HOURS, formatFullTime, formatWeeks } from '@/modules/encyclopedia/lib/preparation'
 import type { PrepPassStat } from '@/modules/encyclopedia/types/encyclopedia'
 import type { DayOfWeek, ExamStat, Project, WeekCurriculum } from '../types/career-design'
 
@@ -63,9 +63,12 @@ export function expandPhases(phases: PhaseLike[], from = 1): WeekCurriculum[] {
   return out
 }
 
-/** 시험 프로젝트 하나를 주당 perWeek 시간 · weeks 주로 다시 잡는다(요일 6일, 1회 = perWeek ÷ 6 — 분 단위 내림이라 짝의 합이 예산을 넘지 않는다) */
+/** 1회 시간(분) = 주당 시간 ÷ 6 — 분 단위 내림(10분 이상)이라 짝의 합이 예산을 넘지 않는다 */
+export const examDurationAt = (perWeek: number): number => Math.max(10, Math.floor((perWeek * 60) / EXAM_DAYS.length))
+
+/** 시험 프로젝트 하나를 주당 perWeek 시간 · weeks 주로 다시 잡는다(요일 6일, 1회 = examDurationAt) */
 export function resizeExam(p: Project, perWeek: number, weeks: number): Project {
-  const duration = Math.max(10, Math.floor((perWeek * 60) / EXAM_DAYS.length))
+  const duration = examDurationAt(perWeek)
   const phases = curriculumPhases(p.curriculum ?? [])
   const curriculum = phases.length ? expandPhases(scalePhases(phases, weeks)) : p.curriculum
   return { ...p, days: [...EXAM_DAYS], duration, weeks, ...(curriculum ? { curriculum } : {}) }
@@ -108,14 +111,17 @@ export function applyExamPace(projects: Project[], hours: number, only: (p: Proj
 const sameShape = (a: Project, b: Project) =>
   (a.weeks || a.curriculum?.length || 0) === (b.weeks || b.curriculum?.length || 0) && a.duration === b.duration && (a.days ?? []).length === (b.days ?? []).length
 
-/** 합격자 수치 → 속도 고르기에 보여 줄 한 벌. noBeyond = 근거가 맞지 않는 걸음(7급 — 7·9급 합친 값, PSAT 도입 전) */
+/**
+ * 합격자 수치 → 속도 고르기에 보여 줄 한 벌.
+ * noBeyond = 근거가 맞지 않는 걸음(7급 — 7·9급 합친 값, PSAT 도입 전): 평균 요약(headlineMean)만, 근거 밖 줄 없음(오너 결정 8 '평균·출처만')
+ */
 export function examStatOf(stat: PrepPassStat | undefined | null, noBeyond = false): ExamStat | undefined {
   if (!stat?.headline) return undefined
   const dist = stat.dist ?? []
   const beyond = !noBeyond && stat.beyondWeeks != null ? dist.find((d) => d.weeks === stat.beyondWeeks) : undefined
   const last = !noBeyond && dist.length ? dist[dist.length - 1] : undefined
   return {
-    headline: stat.headline,
+    headline: noBeyond ? meanHeadline(stat) : stat.headline,
     beyondWeeks: beyond ? beyond.weeks : null,
     beyondLine: beyond ? `합격한 사람 10명 중 ${Math.floor(beyond.pct / 10)}명은 ${beyond.label}에 붙었어요` : null,
     allWeeks: last && last.weeks !== beyond?.weeks ? last.weeks : null,
@@ -123,44 +129,62 @@ export function examStatOf(stat: PrepPassStat | undefined | null, noBeyond = fal
   }
 }
 
-/** 이 속도에서 시험 하나(짝이면 짝 전체)의 공부 기간과 화면 줄 — 속도 고르기 카드 아래에 붙인다 */
-export interface ExamPaceLine { name: string; weeks: number; slow: boolean; examLine: string; beyondLine: string | null; allLine: string | null }
-export function examPaceLines(projects: Project[], hours: number): ExamPaceLine[] {
+/** 평균만 쓰는 요약 — 자료의 headlineMean, 없으면 평균으로 짓는다(자료가 들어오기 전 대비) */
+export const meanHeadline = (stat: PrepPassStat): string =>
+  stat.headlineMean || (stat.mean ? `합격한 사람은 평균 ${stat.mean.label} 만에 붙었어요` : stat.headline)
+
+/** 시험 덩어리(혼자 · 나란히 짝) — 덩어리마다 분량을 합쳐 기간을 센다 */
+export interface ExamUnit { projects: Project[]; hours: number; stat?: ExamStat }
+export function examUnits(projects: Project[]): ExamUnit[] {
   const mates = examMates(projects)
   const seen = new Set<string>()
-  const out: ExamPaceLine[] = []
+  const out: ExamUnit[] = []
   for (const p of projects) {
     if (!isExam(p) || seen.has(p.id)) continue
     const mate = mates.get(p.id)
     seen.add(p.id); if (mate) seen.add(mate.id)
-    const total = p.studyHours! + (mate?.studyHours ?? 0)
-    const weeks = examWeeksAt(total, hours)
-    const slow = hours < FULL_TIME_HOURS
-    const full = formatWeeks(total / FULL_TIME_HOURS)
-    // 전업보다 느리면 '첫 시험까지' 대신 '전업 ○ 분량을 마치는 때'(오너 11-17 결정 11)
-    const examLine = slow
-      ? `이 속도면 시험 공부만 ${formatWeeks(weeks)}${josaIeyo(formatWeeks(weeks))} — 전업 ${full} 분량을 마치는 때예요. 시험은 해마다 있어요.`
-      : `이 속도면 시험 공부는 ${formatWeeks(weeks)}${josaIeyo(formatWeeks(weeks))}.`
-    // 수치는 짝의 어느 쪽에 붙었든 하나만(7급은 examStatOf 에서 근거 밖 줄을 비웠다)
-    const stat = p.examStat ?? mate?.examStat
-    out.push({
-      name: mate ? `${p.name} · ${mate.name}` : p.name,
-      weeks, slow, examLine,
-      beyondLine: stat?.beyondLine && stat.beyondWeeks != null && weeks > stat.beyondWeeks ? stat.beyondLine : null,
-      allLine: stat?.allLine && stat.allWeeks != null && weeks > stat.allWeeks ? stat.allLine : null,
-    })
+    const group = mate ? [p, mate] : [p]
+    out.push({ projects: group, hours: group.reduce((n, g) => n + g.studyHours!, 0), stat: p.examStat ?? mate?.examStat })
   }
   return out
+}
+
+/**
+ * 이 속도에서 시험 공부 전체를 한 줄로(검토 11-17 C1·C3·C4) — 시험이 둘 이상이면 합쳐 쓰고, 나란히 짝은 한 덩어리로 센다.
+ *   느리면 "그중 시험 공부(2개)가 약 9년이에요. 전업(하루 8시간) 2년 3개월 분량을 이 속도로 마치는 데 걸려요. 시험은 해마다 있어요."
+ *   전업 이상이면 "그중 첫 시험까지 공부가 약 12개월이에요."
+ * 근거 밖 줄은 덩어리마다 그 수치의 기준을 넘을 때만(7급은 examStatOf 가 비웠다). 줄 순서: 시험 → 근거 밖 → 97% → 속도 올리기
+ */
+export interface ExamPaceSummary { count: number; weeks: number; slow: boolean; lines: string[] }
+export function examPaceSummary(projects: Project[], hours: number): ExamPaceSummary | null {
+  const units = examUnits(projects)
+  if (!units.length) return null
+  const weeks = units.reduce((n, u) => n + examWeeksAt(u.hours, hours), 0)
+  const fullWeeks = units.reduce((n, u) => n + u.hours / FULL_TIME_HOURS, 0)
+  const slow = hours < FULL_TIME_HOURS
+  const n = units.length > 1 ? `(${units.length}개)` : ''
+  const W = formatWeeks(weeks)
+  const lines = [slow
+    ? `그중 시험 공부${n}가 ${W}${josaIeyo(W)}. 전업(하루 8시간) ${formatFullTime(fullWeeks)} 분량을 이 속도로 마치는 데 걸려요. 시험은 해마다 있어요.`
+    : `그중 첫 시험까지 공부${n}가 ${W}${josaIeyo(W)}.`]
+  const over = (u: ExamUnit, lim: number | null | undefined) => lim != null && examWeeksAt(u.hours, hours) > lim
+  const beyond = units.find((u) => u.stat?.beyondLine && over(u, u.stat.beyondWeeks))?.stat?.beyondLine ?? null
+  const all = units.find((u) => u.stat?.allLine && over(u, u.stat.allWeeks))?.stat?.allLine ?? null
+  if (beyond) lines.push(`${beyond}.`)
+  if (all) lines.push(`${all}.`)
+  if (beyond) lines.push('시간이 더 날 때(방학·졸업 뒤 등) 주간결산에서 속도를 올리면 날짜가 당겨져요.')
+  return { count: units.length, weeks, slow, lines }
 }
 
 // '약 4년' + '이에요' / '8주' + '예요'
 const josaIeyo = (s: string) => { const c = s.charCodeAt(s.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 === 0 ? '예요' : '이에요' }
 
-// ── 고등학생 응시 나이(2026-11-17, 시안 3판 '내가 정한 것') ──
-// 9급 공채는 시험이 있는 해에 18세 이상(교정·보호직 20세)이어야 한다. 계획의 시험 걸음이 응시할 수 있는 해보다 먼저 끝나면 그 해로 미룬다.
-// 자료에 나이 칸이 아직 없어 이름으로 고른다(9급 필기·교정·보호). 나이는 가입 때 받은 나이(만 나이)로 출생 연도를 어림한다.
-export function examMinAge(p: Pick<Project, 'name' | 'studyHours'>): number {
+// ── 응시 나이(2026-11-17, 검토 C6) ──
+// 자료의 minAge(시험을 보는 해 기준 — 공무원 공채 18, 교정 20, 경위 공채 21)를 먼저 쓴다. 없으면 이름 규칙: 5·7·9급·PSAT 18, 교정·보호 20.
+// 계획의 시험 걸음이 응시할 수 있는 해보다 먼저 끝나면 그 해로 미룬다(속도 고르기). 나이는 가입 때 받은 나이로 출생 연도를 어림한다
+export function examMinAge(p: Pick<Project, 'name' | 'studyHours' | 'minAge'>): number {
   if (!isExam(p)) return 0
-  if (!/9급/.test(p.name)) return 0
-  return /교정|보호/.test(p.name) ? 20 : 18
+  if ((p.minAge ?? 0) > 0) return p.minAge!
+  if (/교정|보호/.test(p.name) && /[579]급/.test(p.name)) return 20
+  return /[579]급|PSAT|공직적격성/.test(p.name) ? 18 : 0
 }

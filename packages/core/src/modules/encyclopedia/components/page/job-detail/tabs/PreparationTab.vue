@@ -145,13 +145,15 @@
                 <!-- 큰 시험(2026-11-17, 시안 화면 3) — 분량은 '첫 시험까지(빠른 경우)'로 잡은 가정, 기간은 하루 공부 시간에 따라 두 줄 -->
                 <span v-if="s.project.studyHours" class="prep-exam">
                   <span class="prep-exam__amount">첫 시험까지(빠른 경우)로 잡은 분량 · {{ formatStudyHours(s.project.studyHours) }}</span>
+                  <!-- 분량이 무엇인지 바로 아래에(검토 11-17 C3b) — '약' 없이 -->
+                  <span class="prep-exam__note">전업(하루 8시간·주 6일) {{ fullTimeOf(s.project.studyHours) }}{{ josaRo(fullTimeOf(s.project.studyHours)) }} 잡은 양이에요(잰 값이 아니에요)</span>
                   <span v-if="s.item.alongside && alongsideName(s.item.alongside)" class="prep-exam__mate">{{ alongsideName(s.item.alongside) }}과 나란히 공부해요</span>
                   <span class="prep-exam__row"><span>전업 · 하루 8시간</span><strong>{{ formatWeeks(s.project.studyHours / FULL_TIME_HOURS) }}</strong></span>
                   <span class="prep-exam__row"><span>일·학업과 함께 · 하루 3시간</span><strong>{{ formatWeeks(s.project.studyHours / PART_TIME_HOURS) }}</strong></span>
-                  <span class="prep-exam__note">전업(하루 8시간·주 6일) {{ formatWeeks(s.project.studyHours / FULL_TIME_HOURS) }}{{ josaRo(formatWeeks(s.project.studyHours / FULL_TIME_HOURS)) }} 잡은 양이에요(잰 값이 아니에요)</span>
+                  <!-- 합격자 수치 — 7급(나란히 대상)은 평균 요약만(오너 결정 8 '평균·출처만'), 출처는 펼친 본문에 -->
                   <template v-if="statOf(s)">
-                    <span class="prep-exam__stat">{{ statOf(s)!.headline }}</span>
-                    <span v-if="statOf(s)!.detail" class="prep-exam__detail">{{ statOf(s)!.detail }}</span>
+                    <span class="prep-exam__stat">{{ isMateTarget(s) ? meanHeadline(statOf(s)!) : statOf(s)!.headline }}</span>
+                    <span v-if="statOf(s)!.detail && !isMateTarget(s)" class="prep-exam__detail">{{ statOf(s)!.detail }}</span>
                   </template>
                 </span>
                 <span class="prep-step__meta">
@@ -198,6 +200,8 @@
                 <span v-if="s.project.note">{{ s.project.note }}</span>
               </p>
               <PreparationNotes :checked="s.project.checked" :caution="s.project.caution" />
+              <!-- 합격자 수치의 출처(검토 11-17 C7) — 기사 제목은 그리지 않는다 -->
+              <p v-for="(line, li) in sourceLinesOf(s)" :key="`src${li}`" class="prep-exam__source">{{ line }}</p>
             </div>
           </li>
         </ol>
@@ -242,7 +246,8 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import PreparationNotes from './PreparationNotes.vue'
 import PeriodTag from '@/modules/career-design/components/PeriodTag.vue'
 import { fetchJobPreparation } from '../../../../encyclopedia.api'
-import { FULL_TIME_HOURS, PART_TIME_HOURS, formatMinutes, formatStudyHours, formatWeeks, hasMajorSkip, josaRo, pathOf, stepsOf, sumParts, type PrepStep } from '../../../../lib/preparation'
+import { FULL_TIME_HOURS, PART_TIME_HOURS, formatFullTime, formatMinutes, formatStudyHours, formatWeeks, hasMajorSkip, josaRo, pathOf, statSourceLine, stepsOf, sumParts, type PrepStep } from '../../../../lib/preparation'
+import { meanHeadline } from '@/modules/career-design/lib/examPace'
 import type { JobPreparation, PrepProject } from '../../../../types/encyclopedia'
 import type { ProjectCategory } from '@/modules/career-design/types/career-design'
 import { methodDef, methodIcon, type ProjectMethod } from '@/modules/career-design/composables/projectMethods'
@@ -304,6 +309,16 @@ const periodSub = computed(() => {
 // 큰 시험 — 합격자 수치(잰 걸음에만 온다)와 나란히 대상 이름
 const statOf = (s: PrepStep) => (s.item.passStat ? prep.value?.passStats?.[s.item.passStat] ?? null : null)
 const alongsideName = (ref: string) => prep.value?.projects[ref]?.name ?? ''
+// 다른 걸음이 이 걸음과 나란히 하는가(7급 전문과목 — PSAT 이 붙는 대상)
+const isMateTarget = (s: PrepStep) => steps.value.some((x) => x.item.alongside === s.item.ref)
+// 전업 기준 분량 — '약' 없이(1년 · 1년 6개월 · 9개월)
+const fullTimeOf = (h: number) => formatFullTime(h / FULL_TIME_HOURS)
+// 출처 줄 — 그 수치와 함께 적은 다른 조사(alsoSources). 7급은 평균만 쓰므로 그 조사의 출처만
+const sourceLinesOf = (s: PrepStep) => {
+  const st = statOf(s)
+  if (!st) return []
+  return [statSourceLine(st.source), ...(isMateTarget(s) ? [] : (st.alsoSources ?? []).map(statSourceLine))].filter(Boolean)
+}
 
 // 영역별 개수 — 이 직업이 무엇 중심인지(자격·경험·포트폴리오…) 한 줄로 보이게
 const CATEGORY_ORDER: ProjectCategory[] = ['qualification', 'knowledge', 'skill', 'portfolio', 'experience']

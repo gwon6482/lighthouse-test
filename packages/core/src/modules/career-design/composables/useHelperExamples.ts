@@ -73,6 +73,7 @@ export function projectToExample(prep: JobPreparation, item: PrepItem, project: 
     ...(project.period ? { period: true } : {}),
     // 큰 시험(2026-11-17) — 분량과 합격자 수치. 7급처럼 PSAT 과 나란히 하는 걸음(짝의 대상)은 근거 밖 줄을 두지 않는다(오너 결정 8)
     ...(project.studyHours ? { studyHours: project.studyHours } : {}),
+    ...(project.minAge ? { minAge: project.minAge } : {}),
     ...(item.passStat && prep.passStats?.[item.passStat]
       ? { examStat: examStatOf(prep.passStats[item.passStat], isAlongsideTarget(prep, item)) }
       : {}),
@@ -148,9 +149,11 @@ export function pickDays(count: number, recent: DayOfWeek[][] = []): DayOfWeek[]
 }
 
 /** recentDays = 계획에서 앞에 있는 프로젝트들의 요일(순서대로) — 넘기면 겹치지 않게 요일을 나눈다 */
+// 같은 예시가 한 길에 두 번 나오거나(예: 한 계획에 같은 ref 둘) 같은 순간에 여러 개를 만들면 Date.now() 만으로는 id 가 겹친다(검토 11-17 L4)
+let helperSeq = 0
 export function helperExampleToProject(ex: HelperExample, category: ProjectCategory, recentDays: DayOfWeek[][] = []): Project {
   return {
-    id: `helper-${ex.id}-${Date.now()}`,
+    id: `helper-${ex.id}-${Date.now()}-${++helperSeq}`,
     category,
     name: ex.name,
     goal: ex.goal,
@@ -176,6 +179,7 @@ export function helperExampleToProject(ex: HelperExample, category: ProjectCateg
     ...(ex.period ? { period: true } : {}),
     // 큰 시험 분량(2026-11-17) — 속도 고르기가 '분량 ÷ 주당 시간'으로 기간을 다시 잡는다(lib/examPace.ts)
     ...(ex.studyHours ? { studyHours: ex.studyHours } : {}),
+    ...(ex.minAge ? { minAge: ex.minAge } : {}),
     ...(ex.examStat ? { examStat: { ...ex.examStat } } : {}),
   }
 }

@@ -5,8 +5,8 @@
 // ⚠️ 주당 시간 값(5·8·12·16·24)은 데이터 근거 없이 정한 출발값이다(생활 모습 설명에 맞춘 대략치). 사용 데이터로 다듬을 것.
 import type { CareerSchool, Project, TimelineSlot } from '../types/career-design'
 import { formatWeeks } from '@/modules/encyclopedia/lib/preparation'
-import { autoSchedule, duringOwners, isGatePeriod, projectEndWeek, projectWeeks, projectHoursPerWeek, weekDateRange, type ScheduleOptions, type WeekStart } from './usePlanTimeline'
-import { applyExamPace, ceilWeeks, curriculumPhases, examMates, expandPhases, isExam, resizeExam, scalePhases } from '../lib/examPace'
+import { autoSchedule, countsInBudget, duringOwners, isGatePeriod, projectEndWeek, projectWeeks, projectHoursPerWeek, weekDateRange, type ScheduleOptions, type WeekStart } from './usePlanTimeline'
+import { EXAM_DAYS, applyExamPace, ceilWeeks, curriculumPhases, examDurationAt, examMates, expandPhases, isExam, resizeExam, scalePhases } from '../lib/examPace'
 
 export interface Pace {
   key: 'light' | 'steady' | 'focus' | 'full' | 'allin'
@@ -86,8 +86,8 @@ export const monthsLabel = (weeks: number) => (weeks > 12 ? formatWeeks(weeks) :
 // 과정 중에 하는 프로젝트(during, 2026-11-16)는 속도와 상관없이 과정에 묶여 있다 — 과정이 옮겨진 만큼 함께 옮기고, 과정이 그대로면 그대로 둔다
 // 2026-11-17(정할 것 2·3): 큰 시험은 새 속도로 남은 기간을 다시 센다
 //   · 아직 시작 안 한 시험 — 분량 ÷ 새 주당 시간(나란히 짝은 합쳐서, 시간은 나눠서)
-//   · 이미 시작한 시험 — 지난 주 비율만큼 공부했다고 보고 남은 분량만 새 속도로. 지난 주의 커리큘럼은 그대로 두고 뒤만 다시 편다
-//   · 가벼운 과정(주 15시간 미만)은 문이 아니다 · 나란히 짝은 같은 주에 함께 놓는다(autoSchedule 과 같은 규칙)
+//   · 이미 시작한 시험 — 남은 분량 = 남은 주 × 지금 주당 시간. 그것을 새 속도로 편다. 지난 주의 커리큘럼은 그대로 두고 뒤만 다시 편다
+//   · 가벼운 과정(주 15시간 미만)은 문이 아니다(시간은 예산에 센다 — LIGHT_PERIOD_COUNTS_HOURS) · 나란히 짝은 같은 주에 함께 놓는다(autoSchedule 과 같은 규칙)
 //   projects 로 바뀐 계획을 돌려준다(시험의 기간·요일·1회 시간·커리큘럼이 바뀐 것은 저장해야 한다 — changed)
 export function rescheduleFrom(
   projects: Project[], timeline: TimelineSlot[], fromWeek: number, hours: number, fallbackMin = 60,
@@ -116,7 +116,7 @@ export function rescheduleFrom(
   for (const p of kept) {
     const s = startOf.get(p.id)!
     const end = projectEndWeek(s, p)
-    const h = p.period ? 0 : projectHoursPerWeek(timed(p))
+    const h = countsInBudget(p) ? projectHoursPerWeek(timed(p)) : 0
     for (let w = Math.max(s, fromWeek); w <= end; w++) preload[w - fromWeek] = (preload[w - fromWeek] ?? 0) + h
     if (owners.has(p.id)) continue
     if (!p.period || isGatePeriod(p)) lastEnd = Math.max(lastEnd, end - fromWeek + 1)
@@ -131,7 +131,8 @@ export function rescheduleFrom(
     if (placedIds.has(p.id)) continue
     const per = !!p.period
     const isGate = isGatePeriod(p)
-    const w = projectWeeks(p); const h = per ? 0 : projectHoursPerWeek(timed(p))
+    const counts = countsInBudget(p)
+    const w = projectWeeks(p); const h = counts ? projectHoursPerWeek(timed(p)) : 0
     const mate = mates.get(p.id)
     const pair = mate && !started(mate) && !placedIds.has(mate.id) && toPlace.includes(mate) ? mate : null
     const mw = pair ? projectWeeks(pair) : 0
@@ -140,7 +141,7 @@ export function rescheduleFrom(
     let s = Math.max(floor, gate, isGate ? lastEnd : 0)
     for (;; s++) {
       let ok = true
-      for (let k = 0; k < span && !per; k++) {
+      for (let k = 0; k < span && counts; k++) {
         const l = load[s + k] ?? 0
         const add = (k < w ? h : 0) + (k < mw ? mh : 0)
         if (l > 0 && l + add > hours) { ok = false; break }
@@ -180,8 +181,9 @@ export function rescheduleFrom(
 
 /**
  * 이미 시작한 큰 시험의 남은 기간을 새 속도로(2026-11-17).
- * 지난 주 수 ÷ 지금 길이만큼 공부했다고 보고(속도가 같으면 길이가 그대로다) 남은 분량 ÷ 새 주당 시간으로 뒤를 다시 편다.
- * 짝은 함께 시작했으면 한 덩어리로 센다. 길이가 1주도 안 바뀌면 그대로 둔다(같은 속도로 미리보기할 때 흔들리지 않게)
+ * 남은 분량 = 남은 주 × 지금 주당 시간(짝은 합) — 속도를 한 번 바꾼 계획도 '지난 주 비율'로 세면 남은 분량이 부풀었다(검토 11-17 L1, 5시간 그대로인데 328→449주).
+ * 그 분량 ÷ 새 주당 시간으로 뒤를 다시 편다. 짝은 함께 시작했으면 한 덩어리로 센다.
+ * 새 속도의 1회 시간·요일이 지금과 같으면(같은 속도) 손대지 않는다
  */
 function resumeStartedExams(projects: Project[], startOf: Map<string, number>, fromWeek: number, hours: number): Project[] {
   const mates = examMates(projects)
@@ -196,9 +198,11 @@ function resumeStartedExams(projects: Project[], startOf: Map<string, number>, f
     const past = fromWeek - s                               // 지난(또는 이번) 주 수
     if (past >= len) continue                               // 이미 끝난 시험
     const total = group.reduce((n, g) => n + g.studyHours!, 0)
-    const remaining = total * (1 - past / len)
+    const sameAsNow = group.every((g) => g.duration === examDurationAt((hours * g.studyHours!) / total) && (g.days ?? []).length === EXAM_DAYS.length)
+    if (sameAsNow) continue
+    const perWeekNow = group.reduce((n, g) => n + projectHoursPerWeek(g), 0)
+    const remaining = (len - past) * perWeekNow
     const newLen = past + Math.max(1, ceilWeeks(remaining / Math.max(0.5, hours)))
-    if (newLen === len) continue
     for (const g of group) {
       const share = (hours * g.studyHours!) / total
       const cur = g.curriculum ?? []

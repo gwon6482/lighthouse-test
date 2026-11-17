@@ -264,6 +264,7 @@ export interface PrepProject {
   // 큰 시험(2026-11-17, 정할 것 2·3) — '첫 시험까지(빠른 경우)' 공부 총량(시간). 자료의 주 수는 전업(주 48시간) 기준이다.
   // 계획에서는 고른 속도(주당 시간)로 기간을 다시 잡는다(career-design/lib/examPace.ts). 옛 서버는 이 칸이 없다
   studyHours?: number
+  minAge?: number       // 응시할 수 있는 나이(공무원 공채 18·교정 20·경위 21 — 시험을 보는 해 기준). 없으면 앱의 이름 규칙
 }
 
 /** 길 위의 한 걸음 — ref 로 projects 에서 프로젝트를 찾는다 */
@@ -290,8 +291,12 @@ export interface PrepPassStat {
   dist: { weeks: number; label: string; pct: number }[] | null   // 누적 비율
   mean: { months: number; label: string } | null
   beyondWeeks: number | null                        // 근거 밖 안내 기준(누적 70%를 처음 넘는 구간)
-  source: { title: string | null; level: string | null; via: string | null; url: string | null; checkedAt: string | null; checkAgainAt: string | null }
+  source: PrepStatSource
+  headlineMean?: string | null                      // 평균만 쓰는 요약 — 7급처럼 분포가 맞지 않는 걸음(오너 결정 8 '평균·출처만')
+  alsoSources?: PrepStatSource[]                    // 함께 적은 다른 조사(2017 정부 조사 등)
 }
+/** via = 기사로만 읽었을 때의 매체·날짜·제목 — 화면에는 매체·날짜만 그린다(기사 제목에 시안이 쓰지 않기로 한 숫자가 있다) */
+export interface PrepStatSource { title: string | null; level: string | null; via: string | null; url: string | null; checkedAt: string | null; checkAgainAt: string | null }
 
 /** 선택 항목을 뺀 것. 주 수는 하나씩 차례로 할 때의 합이고, 과정 중에 하는 걸음은 겹쳐 세지 않는다. courseWeeks = 그 가운데 학교·수련 과정 */
 export interface PrepSum {

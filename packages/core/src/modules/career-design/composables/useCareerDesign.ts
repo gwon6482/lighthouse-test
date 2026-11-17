@@ -1668,6 +1668,8 @@ export function useCareerDesign() {
       draftPlan.reviewDay = plan.reviewDay ?? ''
       draftPlan.paceKey   = plan.paceKey || undefined
       draftPlan.weeklyHours = plan.paceHours ?? undefined
+      // 올인은 하루 시간을 저장된 주당 시간에서 되살린다(주 6일) — 없으면 수정 화면이 하루 4시간으로 돌아가 시험 기간이 바뀌었다(검토 11-17 L2와 같은 종류)
+      draftPlan.dailyHours = plan.paceKey === 'allin' && plan.paceHours ? Math.round(plan.paceHours / 6) : undefined
       draftPlan.projects  = plan.projects  ?? []
       draftPlan.routines  = plan.routines  ?? []
       draftTimeline.value = plan.timeline  ?? []

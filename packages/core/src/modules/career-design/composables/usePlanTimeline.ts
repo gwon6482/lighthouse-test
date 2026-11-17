@@ -266,6 +266,10 @@ export function duringOwners(projects: Project[]): Map<string, Project> {
 //   · opts.minStart(p) — 그 프로젝트가 이보다 먼저 시작하면 안 되는 자리(0부터). 고등학생 응시 나이(9급 18세)에 쓴다
 export const LIGHT_PERIOD_HOURS = 15
 export const isGatePeriod = (p: Pick<Project, 'period' | 'days' | 'duration'>) => !!p.period && projectHoursPerWeek(p) >= LIGHT_PERIOD_HOURS
+// 가벼운 과정의 주당 시간을 속도 예산에 세는가(검토 11-17 권장 — 오너 결정 대기). false 로 바꾸면 예전처럼 세지 않는다
+export const LIGHT_PERIOD_COUNTS_HOURS = true
+/** 이 프로젝트의 주당 시간을 예산에 세는가 — 무거운 과정(문)은 세지 않는다 */
+export const countsInBudget = (p: Pick<Project, 'period' | 'days' | 'duration'>) => !p.period || (!isGatePeriod(p) && LIGHT_PERIOD_COUNTS_HOURS)
 export interface ScheduleOptions { minStart?: (p: Project) => number }
 
 /** 나란히 짝(둘 다 계획에 있을 때만) — examPace.examMates 와 같은 규칙(순환 import 를 피하려고 여기 둔다) */
@@ -300,7 +304,8 @@ export function autoSchedule(projects: Project[], budgetHours: number, opts: Sch
     const w = projectWeeks(p)
     const per = !!p.period
     const isGate = isGatePeriod(p)
-    const h = per ? 0 : projectHoursPerWeek(p)
+    const counts = countsInBudget(p)
+    const h = counts ? projectHoursPerWeek(p) : 0
     const owner = owners.get(p.id)
     if (owner && cursor.has(owner.id)) {
       const s = cursor.get(owner.id)!
@@ -320,7 +325,7 @@ export function autoSchedule(projects: Project[], budgetHours: number, opts: Sch
     let s = Math.max(floor, gate, isGate ? lastEnd : 0, minS)
     for (;; s++) {
       let ok = true
-      for (let k = 0; k < span && !per; k++) {
+      for (let k = 0; k < span && counts; k++) {
         const l = load[s + k] ?? 0
         const add = (k < w ? h : 0) + (k < mw ? mh : 0)
         if (l > 0 && l + add > budgetHours) { ok = false; break }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { applyExamPace, curriculumPhases, examMinAge, examPaceLines, examStatOf, expandPhases, resizeExam, scalePhases } from '../lib/examPace'
-import { autoSchedule } from '../composables/usePlanTimeline'
+import { applyExamPace, curriculumPhases, examDurationAt, examMinAge, examPaceSummary, examStatOf, examUnits, expandPhases, meanHeadline, resizeExam, scalePhases } from '../lib/examPace'
+import { autoSchedule, projectWeeks } from '../composables/usePlanTimeline'
 import { rescheduleFrom } from '../composables/usePlanPace'
 import type { Project, TimelineSlot } from '../types/career-design'
 import type { PrepPassStat } from '@/modules/encyclopedia/types/encyclopedia'
@@ -71,25 +71,46 @@ describe('합격자 줄', () => {
     expect(st.allLine).toBe('합격한 사람 100명 중 97명은 4년 안에 붙었어요')
     expect([st.beyondWeeks, st.allWeeks]).toEqual([104, 208])
   })
-  it('7급(나란히 대상)·평균만 있는 수치는 근거 밖 줄이 없다', () => {
-    expect(examStatOf(civil79, true)).toMatchObject({ beyondLine: null, allLine: null })
-    expect(examStatOf({ ...civil79, dist: null, beyondWeeks: null })).toMatchObject({ beyondLine: null, allLine: null })
+  it('7급(나란히 대상)은 평균 요약(headlineMean)만 — 근거 밖 줄 없음(오너 결정 8)', () => {
+    const mean = '2016년 조사에서 7·9급 공채 합격자는 평균 1년 8개월 만에 붙었어요'
+    expect(examStatOf({ ...civil79, headlineMean: mean }, true)).toEqual({ headline: mean, beyondWeeks: null, beyondLine: null, allWeeks: null, allLine: null })
+    // 자료에 headlineMean 이 없으면 평균으로 짓는다
+    expect(meanHeadline(civil79)).toBe('합격한 사람은 평균 1년 8개월 만에 붙었어요')
+    expect(examStatOf({ ...civil79, dist: null, beyondWeeks: null })).toMatchObject({ headline: civil79.headline, beyondLine: null, allLine: null })
   })
-  it('카드 줄 — 느리면 "전업 ○ 분량을 마치는 때", 2년을 넘으면 근거 밖, 4년을 넘으면 97%', () => {
+  it('카드 줄 순서 — 시험 → 근거 밖(2년 넘음) → 97%(4년 넘음) → 속도 올리기(근거 밖일 때만)', () => {
     const e = { ...exam9(), examStat: examStatOf(civil79) }
-    const [slow] = examPaceLines([e], 8)       // 312주 = 6년
-    expect(slow!.examLine).toContain('전업 약 12개월 분량을 마치는 때')
-    expect(slow!.beyondLine).not.toBeNull()
-    expect(slow!.allLine).not.toBeNull()
-    const [mid] = examPaceLines([e], 16)       // 156주 = 3년 — 2년 넘음, 4년 안
-    expect([!!mid!.beyondLine, !!mid!.allLine]).toEqual([true, false])
-    const [full] = examPaceLines([e], 48)      // 52주 — 줄 없음
-    expect([full!.slow, full!.beyondLine, full!.allLine]).toEqual([false, null, null])
+    expect(examPaceSummary([e], 8)!.lines).toEqual([   // 312주 = 6년
+      '그중 시험 공부가 약 6년이에요. 전업(하루 8시간) 1년 분량을 이 속도로 마치는 데 걸려요. 시험은 해마다 있어요.',
+      '합격한 사람 10명 중 7명은 2년 안에 붙었어요.',
+      '합격한 사람 100명 중 97명은 4년 안에 붙었어요.',
+      '시간이 더 날 때(방학·졸업 뒤 등) 주간결산에서 속도를 올리면 날짜가 당겨져요.',
+    ])
+    expect(examPaceSummary([e], 16)!.lines.slice(1)).toEqual([   // 156주 = 3년 — 2년 넘음, 4년 안
+      '합격한 사람 10명 중 7명은 2년 안에 붙었어요.',
+      '시간이 더 날 때(방학·졸업 뒤 등) 주간결산에서 속도를 올리면 날짜가 당겨져요.',
+    ])
+    const full = examPaceSummary([e], 48)!                     // 52주 — 전업이면 '첫 시험까지', 줄 없음
+    expect([full.slow, full.lines]).toEqual([false, ['그중 첫 시험까지 공부가 약 12개월이에요.']])
   })
-  it('응시 나이 — 9급 18세, 교정 20세, 그 밖 0', () => {
+  it('시험이 둘이면 한 줄로 합치고, 나란히 짝은 한 덩어리로 센다(검토 C1)', () => {
+    const cpa = { ...exam9('cpa', 3120), name: '공인회계사 2차' }   // 9급 2,496 + 3,120 = 전업 117주 = 2년 3개월
+    const sum = examPaceSummary([exam9(), cpa], 12)!               // 208 + 260 = 468주 = 9년
+    expect(sum.count).toBe(2)
+    expect(sum.lines[0]).toBe('그중 시험 공부(2개)가 약 9년이에요. 전업(하루 8시간) 2년 3개월 분량을 이 속도로 마치는 데 걸려요. 시험은 해마다 있어요.')
+    const psat = { ...exam9('psat', 1248), name: 'PSAT', alongside: 'g7' }
+    const major = { ...exam9('g7', 2496), name: '7급 전문' }
+    expect(examUnits([psat, major]).map((u) => u.hours)).toEqual([3744])
+    expect(examPaceSummary([psat, major], 12)!.lines[0]).toBe('그중 시험 공부가 약 6년이에요. 전업(하루 8시간) 1년 6개월 분량을 이 속도로 마치는 데 걸려요. 시험은 해마다 있어요.')
+  })
+  it('응시 나이 — 자료의 minAge 먼저, 없으면 이름 규칙(9급·PSAT 18, 교정·보호 20, 그 밖 0)', () => {
+    expect(examMinAge({ name: '경위 공채 필기', studyHours: 2496, minAge: 21 })).toBe(21)
+    expect(examMinAge({ ...exam9(), minAge: 20 })).toBe(20)
     expect(examMinAge(exam9())).toBe(18)
+    expect(examMinAge({ name: 'PSAT', studyHours: 1248 })).toBe(18)
     expect(examMinAge({ name: '9급 필기(국어·영어·교정학개론·형사소송법개론)', studyHours: 2496 })).toBe(20)
     expect(examMinAge({ name: '공인회계사 1차', studyHours: 2496 })).toBe(0)
+    expect(examMinAge({ name: '9급 필기', studyHours: 0, minAge: 18 })).toBe(0)   // 사용자가 기간을 고쳐 끊은 것은 시험이 아니다
   })
 })
 
@@ -109,6 +130,12 @@ describe('배치', () => {
     expect(autoSchedule([light, next], 8).find((o) => o.project.id === 'next')!.week).toBe(1)
     expect(autoSchedule([heavy, next], 8).find((o) => o.project.id === 'next')!.week).toBe(11)
   })
+  it('가벼운 과정의 시간은 예산에 센다(검토 11-17 권장) — 주 3시간 과정 + 3시간 걸음은 주 5시간에 함께 못 한다', () => {
+    const light = P('volunteer', { period: true, days: ['토'], duration: 180, weeks: 10, curriculum: expandPhases([{ title: 'v', weeks: 10, items: [] }]) })
+    const next = P('next', { weeks: 2, curriculum: expandPhases([{ title: 'n', weeks: 2, items: [] }]) })   // 주 3일 × 60분
+    expect(autoSchedule([light, next], 5).find((o) => o.project.id === 'next')!.week).toBe(11)
+    expect(autoSchedule([light, next], 8).find((o) => o.project.id === 'next')!.week).toBe(1)
+  })
   it('minStart — 응시 나이로 미룬 자리보다 먼저 시작하지 않는다', () => {
     const e = applyExamPace([exam9()], 48)[0]!
     const out = autoSchedule([e], 48, { minStart: (p) => (p.studyHours ? 30 : 0) })
@@ -126,9 +153,9 @@ describe('주간결산 속도 바꾸기 — 남은 시험 기간을 다시 센�
     expect(ne.weeks).toBe(156)
     expect(r.changed.map((p) => p.id)).toEqual(['g9'])
   })
-  it('이미 시작한 시험은 지난 주 비율만큼 했다고 보고 남은 분량만 새 속도로 — 지난 주 커리큘럼은 그대로', () => {
+  it('이미 시작한 시험은 남은 주 × 지금 주당 시간만큼 남았다고 보고 새 속도로 — 지난 주 커리큘럼은 그대로', () => {
     const e = applyExamPace([exam9()], 8)[0]!     // 312주, 1주차 시작
-    const r = rescheduleFrom([e], slots([[1, e]]), 105, 16)   // 104주 지남 → 남은 2/3 = 1,664시간 ÷ 16 = 104주
+    const r = rescheduleFrom([e], slots([[1, e]]), 105, 16)   // 104주 지남 → 남은 208주 × 8시간 = 1,664시간 ÷ 16 = 104주
     const ne = r.projects[0]!
     expect(ne.weeks).toBe(104 + 104)
     expect(ne.curriculum!.slice(0, 104)).toEqual(e.curriculum!.slice(0, 104))
@@ -140,5 +167,26 @@ describe('주간결산 속도 바꾸기 — 남은 시험 기간을 다시 센�
     const r = rescheduleFrom([e], slots([[1, e]]), 50, 16)
     expect(r.changed).toEqual([])
     expect(r.projects[0]).toBe(e)
+  })
+  // 서버를 거친 모양 — weeks 는 저장되지 않고 커리큘럼 길이가 기간이다
+  const roundTrip = (p: Project): Project => { const { weeks, examStat, ...rest } = p; return { ...rest, weeks: 0 } as Project }
+  it('속도를 한 번 바꾼 시험도 같은 속도로 다시 세면 그대로다(검토 L1 — 5시간 그대로인데 328→449주로 늘던 것)', () => {
+    const e = roundTrip(applyExamPace([exam9()], 16)[0]!)          // 156주, 1주차 시작
+    const r1 = rescheduleFrom([e], slots([[1, e]]), 79, 5)          // 78주 지남 → 남은 78주 × 16 = 1,248시간 ÷ 5 = 250주
+    const e2 = roundTrip(r1.projects[0]!)
+    expect(projectWeeks(e2)).toBe(78 + 250)
+    expect(e2.duration).toBe(examDurationAt(5))
+    const r2 = rescheduleFrom([e2], slots([[1, e2]]), 99, 5)        // 20주 뒤 같은 5시간
+    expect(r2.changed).toEqual([])
+    expect(projectWeeks(r2.projects[0]!)).toBe(328)
+    // 다시 16시간으로 — 남은 230주 × 5 = 1,150시간 ÷ 16 = 72주. 공부한 시간 합이 분량과 맞는다(78×16 + 20×5 + 72×16 ≈ 2,496)
+    const r3 = rescheduleFrom([e2], slots([[1, e2]]), 99, 16)
+    expect(projectWeeks(r3.projects[0]!)).toBe(98 + 72)
+    expect(r3.projects[0]!.curriculum!.slice(0, 98)).toEqual(e2.curriculum!.slice(0, 98))
+  })
+  it('나란히 짝도 같은 속도면 그대로(1회 시간이 분 단위로 내려가도)', () => {
+    const [psat, major] = applyExamPace([{ ...exam9('psat', 1248), alongside: 'g7' }, exam9('g7', 2496)], 5).map(roundTrip)
+    const r = rescheduleFrom([psat!, major!], [{ week: 1, projects: [psat!, major!] }], 40, 5)
+    expect(r.changed).toEqual([])
   })
 })
