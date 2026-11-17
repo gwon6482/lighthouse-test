@@ -143,6 +143,40 @@ describe('배치', () => {
   })
 })
 
+describe('가벼운 과정 뒤의 무거운 과정 — 앞 과정이 끝나기 전에 놓이지 않는다(11-17 lead 재확인)', () => {
+  const placedAt = (out: { week: number; project: Project }[], id: string) => out.find((o) => o.project.id === id)!
+  const startOf = (out: { week: number; project: Project }[], id: string) => placedAt(out, id).week
+  const endOf = (out: { week: number; project: Project }[], id: string) => { const o = placedAt(out, id); return o.week + projectWeeks(o.project) - 1 }
+  const period = (id: string, days: Project['days'], duration: number, weeks: number) => P(id, { period: true, days, duration, weeks, curriculum: expandPhases([{ title: id, weeks, items: [] }]) })
+  const step = (id: string, weeks: number) => P(id, { weeks, curriculum: expandPhases([{ title: id, weeks, items: [] }]) })
+  const FIVE: Project['days'] = ['월', '화', '수', '목', '금']
+  it('사회복지사 꼴(과목 이수 주 6시간 73주 → 봉사 주 3시간 → 현장실습 주 40시간 → 1급·지원) — 실습·1급·지원은 과목 이수가 끝난 뒤', () => {
+    const plan = [period('sw2', ['월', '화', '수', '목'], 90, 73), period('vol', ['토'], 180, 12), period('prac', FIVE, 480, 4),
+      step('docs', 4), step('proposal', 4), step('sw1', 12), step('resume', 2), step('interview', 2)]
+    const out = autoSchedule(plan, 16)
+    expect(startOf(out, 'prac')).toBeGreaterThan(endOf(out, 'sw2'))
+    expect(startOf(out, 'prac')).toBeGreaterThan(endOf(out, 'vol'))
+    for (const id of ['sw1', 'resume', 'interview']) expect(startOf(out, id)).toBeGreaterThan(endOf(out, 'prac'))
+    // 가벼운 과정은 문이 아니다 — 바로 뒤의 봉사는 과목 이수와 나란히 간다
+    expect(startOf(out, 'vol')).toBeLessThan(endOf(out, 'sw2'))
+  })
+  it('보육교사 학점은행 꼴(과목 이수 73주 → 누리과정 → 보육실습 주 40시간 → 지원·면접) — 지원·면접이 과목 이수 중에 놓이지 않는다', () => {
+    const plan = [period('cc', ['월', '화', '수', '목'], 90, 73), step('nuri', 3), period('prac', FIVE, 480, 6),
+      step('ccplan', 3), step('safety', 2), step('resume', 2), step('interview', 1)]
+    for (const h of [12, 16, 24]) {
+      const out = autoSchedule(plan, h)
+      expect(startOf(out, 'prac')).toBeGreaterThan(endOf(out, 'cc'))
+      for (const id of ['resume', 'interview']) expect(startOf(out, id)).toBeGreaterThan(endOf(out, 'cc'))
+    }
+  })
+  it('주간결산 다시 배치도 같다 — 진행 중인 가벼운 과정이 끝난 다음 주에 실습', () => {
+    const plan = [period('cc', ['월', '화', '수', '목'], 90, 73), period('prac', FIVE, 480, 6), step('resume', 2)]
+    const r = rescheduleFrom(plan, [{ week: 1, projects: [plan[0]!] }, { week: 74, projects: [plan[1]!] }, { week: 80, projects: [plan[2]!] }], 10, 12)
+    const wk = (id: string) => r.timeline.find((s) => s.projects.some((p) => p.id === id))!.week
+    expect([wk('prac'), wk('resume')]).toEqual([74, 80])
+  })
+})
+
 describe('응시 나이 줄 — 나이 규칙 때문에 시험 시작이 실제로 밀렸을 때만(총괄 11-17)', () => {
   // 2026-11-17(화) 시작 · 앞 걸음 4주(주 3시간) 뒤에 9급 필기. 16세면 2028년에 18세 — 시험 걸음이 2028년 첫 주보다 먼저 끝나면 민다
   const pre = P('pre', { weeks: 4, curriculum: expandPhases([{ title: 'p', weeks: 4, items: [] }]) })

@@ -261,7 +261,9 @@ export function duringOwners(projects: Project[]): Map<string, Project> {
 //   과정은 앞에 놓인 것이 다 끝난 뒤 시작하고, 뒤의 프로젝트는 과정이 끝난 뒤 시작한다(과정 중에 하는 것만 예외).
 //   그전에는 과정의 큰 주당 시간이 예산을 넘겨 사실상 같은 꼴로 놓였다 — 과정이 없는 계획은 배치가 그대로다
 // 2026-11-17(정할 것 2·3, 시안 3판)
-//   · 주 15시간이 안 되는 가벼운 과정(봉사 주 3시간·2급 과목 이수 주 6시간 등)은 문이 아니다 — 시간도 세지 않고 다른 걸음과 나란히 놓는다
+//   · 주 15시간이 안 되는 가벼운 과정(봉사 주 3시간·2급 과목 이수 주 6시간 등)은 문이 아니다 — 다른 걸음과 나란히 놓는다.
+//     시간은 예산에 세고(LIGHT_PERIOD_COUNTS_HOURS), 뒤의 무거운 과정은 가벼운 과정이 끝나기를 기다린다(lastEnd — 11-17 lead 재확인:
+//     빼면 2급 과목 이수 중에 현장실습·1급·면접이 먼저 놓여 순서가 뒤집혔다)
 //   · 나란히 짝(7·5급 PSAT ↔ 전문·2차, lib/examPace.ts)은 같은 주에 함께 시작한다 — 두 걸음의 주당 시간 합이 들어가는 첫 주
 //   · opts.minStart(p) — 그 프로젝트가 이보다 먼저 시작하면 안 되는 자리(0부터). 고등학생 응시 나이(9급 18세)에 쓴다
 export const LIGHT_PERIOD_HOURS = 15
@@ -302,7 +304,6 @@ export function autoSchedule(projects: Project[], budgetHours: number, opts: Sch
   for (const p of projects) {
     if (placedIds.has(p.id)) continue            // 짝과 함께 이미 놓았다
     const w = projectWeeks(p)
-    const per = !!p.period
     const isGate = isGatePeriod(p)
     const counts = countsInBudget(p)
     const h = counts ? projectHoursPerWeek(p) : 0
@@ -341,7 +342,7 @@ export function autoSchedule(projects: Project[], budgetHours: number, opts: Sch
       placedIds.add(pair.id)
     }
     floor = s
-    if (!per || isGate) lastEnd = Math.max(lastEnd, s + span)
+    lastEnd = Math.max(lastEnd, s + span)          // 가벼운 과정도 — 뒤의 무거운 과정이 그 끝을 기다린다
     if (isGate) gate = Math.max(gate, s + w)
     // 딸린 프로젝트를 과정 끝에 맞춘다. 딸린 것이 과정보다 길면 과정 시작부터 놓는다(끝은 과정 뒤로 넘어간다)
     if (p.course) cursor.set(p.id, Math.max(s, s + w - (tail.get(p.id) ?? 0)))

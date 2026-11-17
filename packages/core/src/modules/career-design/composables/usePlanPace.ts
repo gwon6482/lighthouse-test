@@ -141,14 +141,14 @@ export function rescheduleFrom(
   // 진행 중인 프로젝트가 fromWeek 이후에 쓰는 시간 = 미리 깔린 부하(0 = fromWeek). '과정'(period)은 시간을 세지 않고, 무거운 과정만 문이 된다
   const preload: number[] = []
   let gate = 0       // 진행 중인 (무거운) 과정이 끝나는 자리(fromWeek 기준 0부터, 미포함) — 아직 시작 안 한 프로젝트는 그 뒤에
-  let lastEnd = 0    // 진행 중인 것(딸린 것·가벼운 과정 빼고) 가운데 가장 늦게 끝나는 자리 — 아직 시작 안 한 (무거운) 과정은 그 뒤에
+  let lastEnd = 0    // 진행 중인 것(딸린 것 빼고, 가벼운 과정 포함) 가운데 가장 늦게 끝나는 자리 — 아직 시작 안 한 (무거운) 과정은 그 뒤에
   for (const p of kept) {
     const s = startOf.get(p.id)!
     const end = projectEndWeek(s, p)
     const h = countsInBudget(p) ? projectHoursPerWeek(timed(p)) : 0
     for (let w = Math.max(s, fromWeek); w <= end; w++) preload[w - fromWeek] = (preload[w - fromWeek] ?? 0) + h
     if (owners.has(p.id)) continue
-    if (!p.period || isGatePeriod(p)) lastEnd = Math.max(lastEnd, end - fromWeek + 1)
+    lastEnd = Math.max(lastEnd, end - fromWeek + 1)   // 가벼운 과정도(autoSchedule 과 같은 규칙)
     if (isGatePeriod(p)) gate = Math.max(gate, end - fromWeek + 1)
   }
   // autoSchedule 와 같은 규칙(순서 유지·예산 안 넘는 가장 이른 주·무거운 과정은 문·나란히 짝은 함께) + 미리 깔린 부하
@@ -158,7 +158,6 @@ export function rescheduleFrom(
   const placedIds = new Set<string>()
   for (const p of toPlace) {
     if (placedIds.has(p.id)) continue
-    const per = !!p.period
     const isGate = isGatePeriod(p)
     const counts = countsInBudget(p)
     const w = projectWeeks(p); const h = counts ? projectHoursPerWeek(timed(p)) : 0
@@ -184,7 +183,7 @@ export function rescheduleFrom(
       placed.push({ week: fromWeek + s, project: pair }); placedIds.add(pair.id)
     }
     floor = s
-    if (!per || isGate) lastEnd = Math.max(lastEnd, s + span)
+    lastEnd = Math.max(lastEnd, s + span)          // 가벼운 과정도 — 뒤의 무거운 과정이 그 끝을 기다린다
     if (isGate) gate = Math.max(gate, s + w)
   }
   // 과정에 딸린 프로젝트: 과정이 옮겨진 만큼 함께 옮긴다. 자리가 없던 것은 과정 끝에 맞춘다
