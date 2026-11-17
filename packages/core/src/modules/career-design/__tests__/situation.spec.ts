@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   applySituation, asksRelated, haveCandidates, isHad, haveRefOf, situationSentence, toHaeyo, trimFront,
-  frontHaveLabel, haveTargetOf, isOwned, pairedBackIds, sameHave, withoutHave,
+  pairedHaveLabel, haveTargetOf, isOwned, pairedCertIds, sameHave, withoutHave,
 } from '../lib/situation'
 import { buildPlanTemplates, buildSituationTemplate } from '../composables/usePlanTemplates'
 import type { JobPreparation, PrepItem, PrepProject } from '@/modules/encyclopedia/types/encyclopedia'
@@ -200,15 +200,15 @@ const infoEng = () => planOf(
   { 'cp.info-eng-written': cert('cp.info-eng-written', { haveLabel: '정보처리기사 필기 합격' }), 'cp.info-eng': cert('cp.info-eng', { haveLabel: '정보처리기사' }) },
 )
 
-describe('짝 걸음 — 자격(뒤 걸음)을 해 뒀으면 필기·1차(앞 걸음)도 뺀다', () => {
+describe('짝 걸음 — 자격을 해 뒀으면 필기·1차·연수도 뺀다', () => {
   it('꼬리 규칙: -written → 예전 id, -first → 예전 id 또는 -second, p.first → p.second', () => {
-    expect(pairedBackIds('cp.info-eng-written')).toEqual(['cp.info-eng'])
-    expect(pairedBackIds('cp.security-manager-first')).toEqual(['cp.security-manager', 'cp.security-manager-second'])
-    expect(pairedBackIds('p.cpa-first')).toEqual(['p.cpa', 'p.cpa-second'])
-    expect(pairedBackIds('p.first')).toEqual(['p.second'])
-    for (const id of ['cp.info-eng', 'cp.license-practical', 'p.cpa-second', 'p.second']) expect(pairedBackIds(id)).toEqual([])
+    expect(pairedCertIds('cp.info-eng-written')).toEqual(['cp.info-eng'])
+    expect(pairedCertIds('cp.security-manager-first')).toEqual(['cp.security-manager', 'cp.security-manager-second'])
+    expect(pairedCertIds('p.cpa-first')).toEqual(['p.cpa', 'p.cpa-second'])
+    expect(pairedCertIds('p.first')).toEqual(['p.second'])
+    for (const id of ['cp.info-eng', 'cp.license-practical', 'p.cpa-second', 'p.second']) expect(pairedCertIds(id)).toEqual([])
     // 보건 필기는 꼬리 규칙상 'cp.license' 를 찾지만 그런 걸음이 없어 짝이 생기지 않는다(아래 보건 시험)
-    expect(pairedBackIds('cp.license-written')).toEqual(['cp.license'])
+    expect(pairedCertIds('cp.license-written')).toEqual(['cp.license'])
   })
 
   it('자격을 해 뒀으면 필기도 함께 빠진다(이름이 정해진 자격 — 번호로 비교)', () => {
@@ -237,10 +237,10 @@ describe('짝 걸음 — 자격(뒤 걸음)을 해 뒀으면 필기·1차(앞 �
   })
 
   it('앞 걸음 이름 — 끝의 \' — 설명\'은 뒤로, 괄호는 자격 이름이라 그대로, 1차는 \'1차 합격\'', () => {
-    expect(frontHaveLabel('정보보안기사', 'cp.engineer-cert-written')).toBe('정보보안기사 필기 합격')
-    expect(frontHaveLabel('가스기능사 — 가스 점검원 우대', 'cp.craftsman-cert-written')).toBe('가스기능사 필기 합격 — 가스 점검원 우대')
-    expect(frontHaveLabel('미용사(일반)', 'cp.craftsman-cert-written')).toBe('미용사(일반) 필기 합격')
-    expect(frontHaveLabel('경영지도사', 'p.co-cert-first')).toBe('경영지도사 1차 합격')
+    expect(pairedHaveLabel('정보보안기사', 'cp.engineer-cert-written')).toBe('정보보안기사 필기 합격')
+    expect(pairedHaveLabel('가스기능사 — 가스 점검원 우대', 'cp.craftsman-cert-written')).toBe('가스기능사 필기 합격 — 가스 점검원 우대')
+    expect(pairedHaveLabel('미용사(일반)', 'cp.craftsman-cert-written')).toBe('미용사(일반) 필기 합격')
+    expect(pairedHaveLabel('경영지도사', 'p.co-cert-first')).toBe('경영지도사 1차 합격')
   })
 
   it('예전부터 나눈 전문자격 1·2차도 같은 원리(직업 전용 열쇠 \'계획 코드:p.번호\')', () => {
@@ -319,5 +319,75 @@ describe('옛 열쇠 — 나누기 전에 저장한 \'이미 해 둔 것\'도 �
     expect(cutRefs(beauty, [{ ref: 'cp.craftsman-cert', name: '미용사(네일) 필기·실기' }])).toEqual(['cp.craftsman-cert-written 이미 해 뒀어요', 'cp.craftsman-cert 이미 해 뒀어요'])
     expect(cutRefs(beauty, [{ ref: 'cp.craftsman-cert', name: '미용사(일반) 필기·실기' }])).toEqual([])
     expect(haveTargetOf(beauty, beauty.paths[0]!.items[0]!, beauty.projects['cp.craftsman-cert-written']!)).toMatchObject({ label: '미용사(네일) 필기 합격', byNote: true })
+  })
+})
+
+// ── 법정 연수(2026-11-17 자료 '법정 교육은 과정 걸음') — 자격을 해 뒀으면 짝인 연수도 뺀다 ──
+// 자료: 연수 걸음은 '<자격 id>-training'(청소년상담사 p.pc-youth-training) 또는 '-cert' 를 뗀 '<기본>-training'(cp.sports-instructor-training)
+describe('짝 걸음 — 연수', () => {
+  const training = (id: string, label: string) => project(id, 2, { type: 'edu', subtype: 'required-course', category: 'qualification', mayHave: true, period: true, haveLabel: label })
+  const sports = () => planOf(
+    [item('cp.sports-instructor-cert-written', 1), item('cp.sports-instructor-cert', 1.5), item('cp.sports-instructor-training', 1.7), item('cp.resume', 2)],
+    {
+      'cp.sports-instructor-cert-written': cert('cp.sports-instructor-cert-written', { subtype: 'national-license', haveLabel: '생활스포츠지도사 2급 필기 합격' }),
+      'cp.sports-instructor-cert': cert('cp.sports-instructor-cert', { subtype: 'national-license', haveLabel: '생활스포츠지도사 2급' }),
+      'cp.sports-instructor-training': training('cp.sports-instructor-training', '생활스포츠지도사 2급 연수 수료'),
+    },
+    '420402',
+  )
+  const youth = () => planOf(
+    [item('p.pc-youth-written', 1), item('p.pc-youth', 1.5), item('p.pc-youth-training', 1.7), item('cp.resume', 2)],
+    {
+      'p.pc-youth-written': cert('p.pc-youth-written', { subtype: 'national-license', haveLabel: '청소년상담사 필기 합격' }),
+      'p.pc-youth': cert('p.pc-youth', { subtype: 'national-license', haveLabel: '청소년상담사' }),
+      'p.pc-youth-training': training('p.pc-youth-training', '청소년상담사 자격연수 수료'),
+    },
+    '231201',
+  )
+
+  it('꼬리 규칙: \'<id>-training\' → \'<id>\' 또는 \'<id>-cert\' · 실무 수습(-train)은 짝이 아니다', () => {
+    expect(pairedCertIds('p.pc-youth-training')).toEqual(['p.pc-youth', 'p.pc-youth-cert'])
+    expect(pairedCertIds('cp.sports-instructor-training')).toEqual(['cp.sports-instructor', 'cp.sports-instructor-cert'])
+    expect(pairedCertIds('p.cpla-train')).toEqual([])
+    expect(pairedHaveLabel('공조냉동기계기능사', 'cp.x-training')).toBe('공조냉동기계기능사 연수 수료')
+  })
+
+  it('자격을 해 뒀으면 필기와 연수까지 함께 빠진다(생활스포츠지도사 — 연수 id 가 \'-cert\' 를 뗀 꼴)', () => {
+    expect(cutRefs(sports(), [{ ref: 'cp.sports-instructor-cert', name: '생활스포츠지도사 2급' }])).toEqual([
+      'cp.sports-instructor-cert-written 이미 해 뒀어요', 'cp.sports-instructor-cert 이미 해 뒀어요', 'cp.sports-instructor-training 이미 해 뒀어요',
+    ])
+  })
+
+  it('직업 전용 자격도 같다(청소년상담사 — 열쇠는 \'계획 코드:p.번호\')', () => {
+    expect(cutRefs(youth(), [{ ref: '231201:p.pc-youth', name: '청소년상담사' }])).toEqual([
+      'p.pc-youth-written 이미 해 뒀어요', 'p.pc-youth 이미 해 뒀어요', 'p.pc-youth-training 이미 해 뒀어요',
+    ])
+  })
+
+  it('연수만 마쳤다고 고르면 연수만 빠진다 · 필기만 붙었으면 필기만', () => {
+    expect(cutRefs(youth(), [{ ref: '231201:p.pc-youth-training', name: '청소년상담사 자격연수 수료' }])).toEqual(['p.pc-youth-training 이미 해 뒀어요'])
+    expect(cutRefs(youth(), [{ ref: '231201:p.pc-youth-written', name: '청소년상담사 필기 합격' }])).toEqual(['p.pc-youth-written 이미 해 뒀어요'])
+  })
+
+  it('체크리스트 이름은 자료 이름 그대로 — 자격·필기·연수 세 줄', () => {
+    expect(haveCandidates(sports()).map((c) => c.label)).toEqual(['생활스포츠지도사 2급 필기 합격', '생활스포츠지도사 2급', '생활스포츠지도사 2급 연수 수료'])
+  })
+
+  it('연수의 \'다시 넣기\'는 짝인 자격도 함께 뺀다(연수를 안 마쳤으면 자격도 없다)', () => {
+    const has = [{ ref: 'cp.sports-instructor-cert', name: '생활스포츠지도사 2급' }]
+    const t = buildPlanTemplates(sports(), null, has)[0]!
+    expect(t.skipped.map((s) => s.label)).toEqual(['생활스포츠지도사 2급 필기 합격', '생활스포츠지도사 2급', '생활스포츠지도사 2급 연수 수료'])
+    const tr = t.skipped[2]!
+    expect(tr.pair).toMatchObject({ key: 'cp.sports-instructor-cert' })
+    expect(withoutHave(has, tr)).toEqual([])
+  })
+
+  it("'-training' 이 붙었어도 짝인 자격이 없으면 짝이 아니다(발성 훈련·공정 실습)", () => {
+    const prep = planOf(
+      [item('cp.voice-training', 1), item('p.semi-training', 2)],
+      { 'cp.voice-training': project('cp.voice-training', 4, { type: 'skill', subtype: 'field' }), 'p.semi-training': training('p.semi-training', '공정 실습 교육 수료') },
+    )
+    expect(isOwned(prep, [{ ref: 'cp.voice', name: 'x' }], prep.paths[0]!.items[0]!, prep.projects['cp.voice-training']!)).toBe(false)
+    expect(haveTargetOf(prep, prep.paths[0]!.items[1]!, prep.projects['p.semi-training']!).pair).toBeUndefined()
   })
 })

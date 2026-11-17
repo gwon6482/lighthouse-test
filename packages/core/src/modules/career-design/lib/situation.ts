@@ -9,7 +9,7 @@
 //   · 다른 학과                      바뀌는 것 없음(수능 걸음의 '편입·학사편입' 안내가 보인다)
 //   · 법조(항목 skipFor:'any')       학과와 상관없이 대학생이면 입시 빼기·학부 남은 학년만, 졸업이면 학부까지 빼기
 //   · 대학원생·졸업 + 관련           학부는 졸업으로 보고, 석사 과정은 대학원생이면 남은 1년·졸업이면 빼기(그 과정의 학업 걸음·학위 논문도)
-//   · 이미 해 둔 것                  고른 걸음 빼기(자격·면허·어학·근무 경험). 자격(뒤 걸음)을 해 뒀으면 짝인 필기·1차도 뺀다(2026-11-17)
+//   · 이미 해 둔 것                  고른 걸음 빼기(자격·면허·어학·근무 경험). 자격을 해 뒀으면 짝인 필기·1차·연수도 뺀다(2026-11-17)
 // 경력·성과는 계획에 반영하지 않는다.
 import type { JobPreparation, PrepItem, PrepPath, PrepPhase, PrepProject } from '@/modules/encyclopedia/types/encyclopedia'
 import { sumWeeks } from '@/modules/encyclopedia/lib/preparation'
@@ -36,7 +36,7 @@ export const haveRefOf = (prep: Pick<JobPreparation, 'plan'>, item: Pick<PrepIte
   ({ key: haveKey(prep, p), label: haveLabelOf(item, p) })
 
 type HaveEntry = CareerProfile['has'][number]
-/** 저장·비교할 대상. 앞 걸음(필기·1차)이면 짝인 뒤 걸음(자격)을 pair 로 싣는다 — '다시 넣기'로 뺄 때 함께 뺀다 */
+/** 저장·비교할 대상. 필기·1차·연수 걸음이면 짝인 자격 걸음을 pair 로 싣는다 — '다시 넣기'로 뺄 때 함께 뺀다 */
 export interface HaveTarget extends HaveRef { byNote: boolean; pair?: HaveTarget }
 
 // ── 열쇠가 바뀐 옛 저장값(2026-11-17 필기·실기 차수 나누기) ──
@@ -75,7 +75,7 @@ export function isHad(has: CareerProfile['has'], ref: HaveRef, byNote: boolean):
 
 /**
  * 대상을 '이미 해 둔 것'에서 뺀다(체크 풀기·다시 넣기). 옛 저장값이 다른 걸음도 함께 가리키면 그 걸음들은 새 열쇠로 풀어 남긴다.
- * 대상이 앞 걸음이면 짝인 뒤 걸음(자격)도 뺀다 — 필기에 안 붙었으면 자격도 없다
+ * 대상이 필기·1차·연수 걸음이면 짝인 자격도 뺀다 — 필기에 안 붙었거나 연수를 안 마쳤으면 자격도 없다
  */
 export function withoutHave(has: CareerProfile['has'], t: HaveTarget): CareerProfile['has'] {
   const out: HaveEntry[] = []
@@ -89,46 +89,52 @@ export function withoutHave(has: CareerProfile['has'], t: HaveTarget): CareerPro
   return t.pair ? withoutHave(out, t.pair) : out
 }
 
-// ── 짝 걸음(2026-11-17 필기·실기 차수) ──
-// 자료의 id 꼬리 규칙(plan-library README '필기·실기(1·2차) 차수'): 자격을 따는 뒤 걸음이 예전 id 그대로, 앞 걸음은 '<id>-written'(필기·학과)·'<id>-first'(1차).
-// 예전부터 나눠 둔 전문자격 1·2차는 '<id>-first' → '<id>-second', 'p.first' → 'p.second'(관세사·감정평가사 등)다.
-// 짝이 같은 계획에 있는 것만 본다. 보건의료 국가시험 필기·실기(cp.license-written·cp.license-practical)는 꼬리 규칙 밖이다 —
-// 직종마다 먼저 보는 시험이 달라 한쪽이 다른 쪽을 품지 않는다
-export function pairedBackIds(id: string): string[] {
+// ── 짝 걸음 — 자격을 해 뒀으면 함께 빠지는 걸음(2026-11-17) ──
+// 자료의 id 꼬리 규칙(plan-library README '필기·실기(1·2차) 차수'·'법정 교육은 과정 걸음'). 자격 이름은 자격 걸음의 예전 id 에 그대로 있다.
+//   · 필기·학과 '<id>-written', 1차 '<id>-first' → 뒤의 자격 걸음 '<id>'. 예전부터 나눈 전문자격 1·2차는 '<id>-first' → '<id>-second',
+//     'p.first' → 'p.second'(관세사·감정평가사 등)
+//   · 법정 연수 '<id>-training' → 앞의 자격 걸음 '<id>' 또는 '<id>-cert'(청소년상담사 자격연수 p.pc-youth-training → p.pc-youth,
+//     생활스포츠지도사 연수 cp.sports-instructor-training → cp.sports-instructor-cert). 연수를 마쳐야 자격이 나온다
+// 짝은 같은 계획에 있고 '해 둘 수 있는 것'(canHave)일 때만 본다 — '-training' 이 붙은 다른 걸음(발성 훈련·공정 실습)은 짝이 없다.
+// 실무 수습('-train')은 짝이 아니다 — 시험에 붙어도 수습은 따로 한다.
+// 보건의료 국가시험 필기·실기(cp.license-written·cp.license-practical)는 꼬리 규칙 밖이다 — 직종마다 먼저 보는 시험이 달라 한쪽이 다른 쪽을 품지 않는다
+export function pairedCertIds(id: string): string[] {
   let m = id.match(/^(.+)-written$/)
   if (m) return [m[1]!]
   m = id.match(/^(.+)-first$/)
   if (m) return [m[1]!, `${m[1]}-second`]
   m = id.match(/^(.+\.)first$/)
   if (m) return [`${m[1]}second`]
+  m = id.match(/^(.+)-training$/)
+  if (m) return [m[1]!, `${m[1]}-cert`]
   return []
 }
-export const pairedBackOf = (prep: Pick<JobPreparation, 'projects'>, p: PrepProject): PrepProject | undefined =>
-  pairedBackIds(p.id).map((id) => prep.projects[id]).find((b): b is PrepProject => !!b && canHave(b))
+export const pairedCertOf = (prep: Pick<JobPreparation, 'projects'>, p: PrepProject): PrepProject | undefined =>
+  pairedCertIds(p.id).map((id) => prep.projects[id]).find((b): b is PrepProject => !!b && canHave(b))
 
 /**
- * 앞 걸음 이름 — 뒤 걸음이 메모를 자격 이름으로 쓰는 보편 자격(기사·기능사)이면 그 자격 이름을 붙인다: '정보보안기사 필기 합격'.
- * 자료의 앞 걸음 이름은 '기사 필기 합격'처럼 자격 이름이 없어, 한 계획에 기사가 둘이면 체크 하나로 둘 다 빠졌다(2026-11-17 lead 점검).
+ * 짝 걸음 이름 — 자격 걸음이 메모를 자격 이름으로 쓰는 보편 자격(기사·기능사)이면 그 자격 이름을 붙인다: '정보보안기사 필기 합격'.
+ * 자료의 필기 걸음 이름은 '기사 필기 합격'처럼 자격 이름이 없어, 한 계획에 기사가 둘이면 체크 하나로 둘 다 빠졌다(2026-11-17 lead 점검).
  * 메모 끝의 ' — 설명'은 이름 뒤로 둔다('가스기능사 필기 합격 — 가스 점검원 우대'). 괄호는 자격 이름의 일부일 수 있어(미용사(일반)) 그대로 둔다
  */
-export function frontHaveLabel(note: string, id: string): string {
-  const word = /[.-]first$/.test(id) ? '1차 합격' : '필기 합격'
+export function pairedHaveLabel(note: string, id: string): string {
+  const word = /[.-]first$/.test(id) ? '1차 합격' : /-training$/.test(id) ? '연수 수료' : '필기 합격'
   const dash = note.indexOf(' — ')
   return dash > 0 ? `${note.slice(0, dash)} ${word}${note.slice(dash)}` : `${note} ${word}`
 }
 
-/** 저장·비교 대상 — 앞 걸음이면 짝인 뒤 걸음을 함께 싣는다. 짝 두 걸음은 메모가 같다(자료 약속) — 뒤 걸음 이름도 이 항목의 메모로 */
+/** 저장·비교 대상 — 필기·1차·연수 걸음이면 짝인 자격 걸음을 함께 싣는다. 짝 두 걸음은 메모가 같다(자료 약속) — 자격 이름도 이 항목의 메모로 */
 export function haveTargetOf(prep: Pick<JobPreparation, 'plan' | 'projects'>, item: Pick<PrepItem, 'note'>, p: PrepProject): HaveTarget {
-  const back = pairedBackOf(prep, p)
-  const pair: HaveTarget | undefined = back ? { ...haveRefOf(prep, item, back), byNote: !!back.haveByNote } : undefined
-  // 뒤 걸음이 메모로 이름을 정하면 앞 걸음도 그 이름으로 저장·비교한다(번호만으로는 어느 기사의 필기인지 모른다)
+  const cert = pairedCertOf(prep, p)
+  const pair: HaveTarget | undefined = cert ? { ...haveRefOf(prep, item, cert), byNote: !!cert.haveByNote } : undefined
+  // 자격 걸음이 메모로 이름을 정하면 짝 걸음도 그 이름으로 저장·비교한다(번호만으로는 어느 기사의 필기인지 모른다)
   const t: HaveTarget = pair?.byNote && !p.haveByNote && item.note
-    ? { key: haveKey(prep, p), label: frontHaveLabel(item.note, p.id), byNote: true }
+    ? { key: haveKey(prep, p), label: pairedHaveLabel(item.note, p.id), byNote: true }
     : { ...haveRefOf(prep, item, p), byNote: !!p.haveByNote }
   return pair ? { ...t, pair } : t
 }
 
-/** 이미 해 둔 걸음인가 — 저장돼 있거나(옛 열쇠 포함), 앞 걸음인데 짝인 뒤 걸음(자격)을 해 뒀으면(자격이 있으면 필기·1차도 붙은 것) */
+/** 이미 해 둔 걸음인가 — 저장돼 있거나(옛 열쇠 포함), 짝인 자격을 해 뒀으면(자격이 있으면 필기·1차에 붙었고 연수도 마친 것) */
 export function isOwned(prep: Pick<JobPreparation, 'plan' | 'projects'>, has: CareerProfile['has'], item: Pick<PrepItem, 'note'>, p: PrepProject): boolean {
   if (!canHave(p)) return false
   const t = haveTargetOf(prep, item, p)

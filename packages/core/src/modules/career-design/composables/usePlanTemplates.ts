@@ -20,7 +20,7 @@ export type StageKey = 'nonmajor' | 'major' | 'basic' | 'mine'
 
 export interface DroppedItem { name: string; category: ProjectCategory; reason: string }
 /** 이미 해 둔 것으로 뺄 수 있는 것 — 열쇠·이름으로 내 진로상황의 '이미 해 둔 것'에 저장한다 */
-// 이름·비교 규칙(필기·1차는 짝인 자격을 pair 로 싣는다)은 lib/situation.ts haveTargetOf
+// 이름·비교 규칙(필기·1차·연수는 짝인 자격을 pair 로 싣는다)은 lib/situation.ts haveTargetOf
 export type { HaveTarget }
 /** 이미 해 둬서 뺀 것 — 다시 넣을 수 있다 */
 export interface SkippedItem extends HaveTarget { name: string; category: ProjectCategory }
@@ -102,7 +102,7 @@ export function buildPlanTemplates(prep: JobPreparation, track: string | null | 
     : [{ key: 'basic', label: '기본', who: '전공과 상관없이 같은 길이에요', inStage: () => true }]
 
   const target = (r: Row): HaveTarget => haveTargetOf(prep, r.item, r.project)
-  const owned = (r: Row) => isOwned(prep, has, r.item, r.project)   // 자격을 해 뒀으면 짝인 필기·1차도(2026-11-17)
+  const owned = (r: Row) => isOwned(prep, has, r.item, r.project)   // 자격을 해 뒀으면 짝인 필기·1차·연수도(2026-11-17)
 
   return stages.map((st) => {
     // 이 단계가 하는 것 — 이미 해 둔 것은 뺀다(뺄 수 있는 것은 자격·면허·어학·근무 경험)
