@@ -4,6 +4,9 @@
 //   - 이 탭의 sessionStorage 에만 둔다. 탭을 닫으면 브라우저가 지우고, 서버로는 보내지 않는다.
 //   - ⚠️ 비밀번호(두 칸)는 넣지 않는다. 그래서 이메일 가입은 계정 단계(0)부터 다시 시작한다 — 나머지 칸은 채워 둔다.
 //     (따로 고르지 않아도 resumeStep 이 비밀번호가 빈 0단계에서 멈춘다)
+//   - ⚠️ 동의(약관·처리방침·만 14세 체크)도 넣지 않는다(총괄 검토 2026-11-17). 동의는 본인이 그 자리에서 직접 체크해야 한다 —
+//     미리 체크된 동의는 적법한 동의로 보기 어렵고, 이메일 가입은 계정에 묶을 수 없어 공용 기기에서 남의 체크가 보일 수 있다.
+//     그래서 소셜도 동의 단계(2) 뒤에서 이어가려 해도 resumeStep 이 동의가 빈 2단계에서 멈춘다.
 //   - 소셜 가입은 **같은 계정(uid)일 때만** 되살린다. 같은 탭에서 다른 계정으로 들어와도 앞사람 입력이 보이지 않게.
 //   - 가입을 마치거나 첫 단계 '뒤로'로 그만두면 지운다. 1시간이 지난 것은 쓰지 않는다.
 // 저장소는 인자로 받는다(테스트). 실제 연결은 SignupWizardPage 가 한다.
@@ -69,7 +72,7 @@ export function isStepComplete(step: number, f: SignupForm): boolean {
 
 /**
  * 되살린 입력으로 어느 단계에서 이어갈지 — 보관된 단계까지 가되, 그 앞에 못 채운 단계가 있으면 거기서 멈춘다.
- * 이메일 가입은 비밀번호를 보관하지 않으므로 늘 0단계가 된다.
+ * 이메일 가입은 비밀번호를 보관하지 않으므로 늘 0단계, 소셜은 동의를 보관하지 않으므로 동의 단계(2)를 넘지 않는다.
  */
 export function resumeStep(saved: number, first: number, f: SignupForm): number {
   const target = Number.isInteger(saved) ? Math.min(Math.max(saved, first), SIGNUP_STEPS - 1) : first
@@ -85,8 +88,8 @@ const CLOCK_SKEW_MS = 60 * 1000
 
 export type SignupMode = 'email' | 'social'
 
-/** 보관하는 칸 — 비밀번호 두 칸은 뺀다 */
-export type SignupDraftFields = Omit<SignupForm, 'password' | 'passwordConfirm'>
+/** 보관하는 칸 — 비밀번호 두 칸과 동의는 뺀다 */
+export type SignupDraftFields = Omit<SignupForm, 'password' | 'passwordConfirm' | 'agreed'>
 
 export interface SignupDraft {
   step: number
@@ -116,14 +119,13 @@ function pickMany(v: unknown): number[] {
   return valid.includes(Q2_NONE) && valid.length > 1 ? valid.filter((x) => x !== Q2_NONE) : valid
 }
 
-/** 보관할 칸만 골라 정리한다. 나이 칸을 비우면 v-model.number 가 '' 를 주므로 숫자가 아니면 null */
+/** 보관할 칸만 골라 정리한다(비밀번호·동의는 넣지도 꺼내지도 않는다). 나이 칸을 비우면 v-model.number 가 '' 를 주므로 숫자가 아니면 null */
 function toFields(f: SignupForm | SignupDraftFields | Record<string, unknown>): SignupDraftFields {
   const r = f as Record<string, unknown>
   return {
     email: typeof r.email === 'string' ? r.email : '',
     name: typeof r.name === 'string' ? r.name : '',
     age: typeof r.age === 'number' && Number.isFinite(r.age) ? r.age : null,
-    agreed: r.agreed === true,
     gender: r.gender === 'M' || r.gender === 'F' ? r.gender : '',
     q1: pickOne(r.q1, Q1_VALUES),
     q2: pickMany(r.q2),
@@ -193,7 +195,7 @@ export function loadSignupDraft(
 
 /**
  * 보관분을 지금 입력 위에 덮는다 — 보관분에 값이 있는 칸만. 소셜은 서버가 먼저 채운 이름·나이가 base 에 있다.
- * 비밀번호는 base 그대로(빈 칸).
+ * 비밀번호·동의는 base 그대로(빈 칸·체크 안 됨) — 다시 직접 넣는다.
  */
 export function mergeSignupDraft(base: SignupForm, draft: SignupDraftFields): SignupForm {
   return {
@@ -201,7 +203,6 @@ export function mergeSignupDraft(base: SignupForm, draft: SignupDraftFields): Si
     email: draft.email || base.email,
     name: draft.name.trim() ? draft.name : base.name,
     age: draft.age ?? base.age,
-    agreed: draft.agreed || base.agreed,
     gender: draft.gender || base.gender,
     q1: draft.q1 ?? base.q1,
     q2: draft.q2.length ? [...draft.q2] : [...base.q2],

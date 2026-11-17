@@ -142,7 +142,7 @@
 <script setup lang="ts">
 import { linkPendingGuestSurvey } from '@/shared/guest/guestSurvey'
 import { reactive, ref, computed, onMounted, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter, useRoute, onBeforeRouteUpdate } from 'vue-router'
 import { req } from '@/shared/api'
 import { useAuthStore } from '@/shared/stores/auth'
 import {
@@ -162,6 +162,16 @@ const authStore = useAuthStore()
 // 제출도 register 가 아니라 complete-profile 로 간다(register 는 409 가 난다).
 const isSocial = route.query.social === '1'
 
+// ⚠️ 모드는 이 화면이 만들어질 때 한 번 정해진다. 그런데 라우터는 주소의 ?social 만 바뀌면 이 화면을 새로 만들지 않고 다시 쓴다.
+//    로그인된 채 이메일 위저드에 닿아 '/' 로 보냈는데 진입 가드가 소셜 위저드(?social=1)로 보내면, 이메일 모드 그대로
+//    소셜 주소에 서게 된다(2026-11-17 시험 E14s). 모드가 바뀌는 이동이면 문서를 새로 연다 — 드문 길이라 새로 불러와도 된다
+onBeforeRouteUpdate((to) => {
+  if ((to.query.social === '1') !== isSocial) {
+    window.location.replace(to.fullPath)
+    return false
+  }
+})
+
 const TOTAL = SIGNUP_STEPS
 const FIRST_STEP = isSocial ? 1 : 0
 const step = ref(FIRST_STEP)
@@ -176,7 +186,8 @@ const form = reactive<SignupForm>(emptySignupForm())
 
 // ── 입력 임시 보관(2026-11-17) ─────────────────────────────
 // 브라우저 뒤로·앞으로·새로고침 때 처음부터 다시 시작하고 입력이 사라졌다(가입 흐름 시험 E3·E4).
-// 이 탭의 sessionStorage 에 비밀번호를 뺀 입력과 단계를 두고, 다시 들어오면 채운다. 규칙은 lib/signupWizard.ts
+// 이 탭의 sessionStorage 에 비밀번호·동의를 뺀 입력과 단계를 두고, 다시 들어오면 채운다. 규칙은 lib/signupWizard.ts
+// (동의는 본인이 그 자리에서 다시 체크한다 — 이어가는 단계가 그 뒤여도 동의 단계에서 멈춘다)
 const draftMode: SignupMode = isSocial ? 'social' : 'email'
 let draftUid: string | null = null
 let keepDraft = false // 되살리기를 마친 뒤부터 남긴다 — 되살리기 전의 빈 칸으로 보관분을 덮지 않게
@@ -190,7 +201,7 @@ function restoreDraft(uid: string | null) {
   const store = draftStorage()
   const draft = store ? loadSignupDraft(store, { mode: draftMode, uid }, Date.now()) : null
   if (draft) Object.assign(form, mergeSignupDraft(form, draft.fields))
-  // 이메일 가입은 비밀번호를 보관하지 않아 0단계에서 다시 시작한다(나머지 칸은 채워져 있다)
+  // 이메일 가입은 비밀번호를 보관하지 않아 0단계에서, 소셜은 동의를 보관하지 않아 늦어도 동의 단계에서 다시 시작한다(나머지 칸은 채워져 있다)
   step.value = resumeStep(draft?.step ?? FIRST_STEP, FIRST_STEP, form)
   keepDraft = true
 }
@@ -209,6 +220,14 @@ watch([form, step], () => {
 
 onMounted(async () => {
   if (!isSocial) {
+    // 로그인된 채 이메일 가입 위저드에 닿으면(주소 직접 입력·옛 기록) 계정을 하나 더 만들 수 있다 → '/' 로(2026-11-17).
+    // 진입 가드가 알맞은 자리로 보낸다(소셜 가입을 안 끝낸 계정이면 소셜 위저드로).
+    // 토큰이 무효면 fetchMe 가 로그아웃하므로 그대로 위저드. 연결 문제로 확인을 못 하면 로그인된 것으로 본다(자동로그인 규칙: 로그아웃은 401·404만)
+    if (authStore.token && !authStore.user) await authStore.fetchMe()
+    if (authStore.token) {
+      router.replace('/')
+      return
+    }
     restoreDraft(null)
     return
   }

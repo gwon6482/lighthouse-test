@@ -84,20 +84,47 @@ describe('saveSignupDraft · loadSignupDraft — 임시 보관', () => {
     const d = loadSignupDraft(s, { mode: 'email', uid: null }, NOW + 1000)
     expect(d).toEqual({
       step: 3,
-      fields: { email: 'a@example.com', name: '홍길동', age: 21, agreed: true, gender: 'F', q1: 2, q2: [3, 4], q3: 2 },
+      fields: { email: 'a@example.com', name: '홍길동', age: 21, gender: 'F', q1: 2, q2: [3, 4], q3: 2 },
     })
   })
 
-  it('이메일 가입 되살리기 → 0단계, 나머지 칸은 채워짐', () => {
+  it('이메일 가입 되살리기 → 0단계, 나머지 칸은 채워짐(동의는 빈 칸)', () => {
     const s = memStorage()
     saveSignupDraft(s, { mode: 'email', uid: null, step: 4, form: filled() }, NOW)
     const d = loadSignupDraft(s, { mode: 'email', uid: null }, NOW)!
     const form = mergeSignupDraft(emptySignupForm(), d.fields)
     expect(form.password).toBe('')
     expect(form.passwordConfirm).toBe('')
+    expect(form.agreed).toBe(false)
     expect(form.email).toBe('a@example.com')
     expect(form.q2).toEqual([3, 4])
     expect(resumeStep(d.step, 0, form)).toBe(0)
+  })
+
+  it('동의는 보관하지 않는다', () => {
+    const s = memStorage()
+    saveSignupDraft(s, { mode: 'email', uid: null, step: 3, form: filled({ agreed: true }) }, NOW)
+    saveSignupDraft(s, { mode: 'social', uid: 'u1', step: 3, form: filled({ agreed: true }) }, NOW)
+    expect(s.data[SIGNUP_DRAFT_KEY]).not.toMatch(/agreed/)
+  })
+
+  it('보관분에 동의가 들어 있어도(예전 모양·손댄 값) 되살리지 않는다', () => {
+    const fields = { email: '', name: '홍길동', age: 21, agreed: true, gender: 'F', q1: 2, q2: [3], q3: 2 }
+    const s = memStorage({ [SIGNUP_DRAFT_KEY]: JSON.stringify({ v: 1, mode: 'social', uid: 'u1', step: 5, at: NOW, fields }) })
+    const d = loadSignupDraft(s, { mode: 'social', uid: 'u1' }, NOW)!
+    expect(d.fields).not.toHaveProperty('agreed')
+    expect(mergeSignupDraft(emptySignupForm(), { ...d.fields, agreed: true } as never).agreed).toBe(false)
+  })
+
+  it('소셜이 동의 단계(2) 뒤에서 이어가려 해도 동의가 비어 있으면 동의 단계에서 멈춘다', () => {
+    const s = memStorage()
+    saveSignupDraft(s, { mode: 'social', uid: 'u1', step: 5, form: filled({ email: '', agreed: true }) }, NOW)
+    const d = loadSignupDraft(s, { mode: 'social', uid: 'u1' }, NOW)!
+    const form = mergeSignupDraft({ ...emptySignupForm(), name: '구글사용자' }, d.fields)
+    expect(form.agreed).toBe(false)
+    expect(resumeStep(d.step, 1, form)).toBe(2)
+    // 다시 직접 체크하면 그 뒤 단계는 채워져 있다
+    expect(resumeStep(d.step, 1, { ...form, agreed: true })).toBe(5)
   })
 
   it('소셜은 같은 계정일 때만 되살리고, 다른 계정의 것은 지운다', () => {
@@ -148,7 +175,7 @@ describe('saveSignupDraft · loadSignupDraft — 임시 보관', () => {
     const fields = { email: 3, name: null, age: 'abc', agreed: 'yes', gender: 'X', q1: 99, q2: [1, 99, 1, '2'], q3: 0 }
     const s = memStorage({ [SIGNUP_DRAFT_KEY]: JSON.stringify({ v: 1, mode: 'email', uid: null, step: 5, at: NOW, fields }) })
     expect(loadSignupDraft(s, { mode: 'email', uid: null }, NOW)!.fields).toEqual({
-      email: '', name: '', age: null, agreed: false, gender: '', q1: null, q2: [1], q3: null,
+      email: '', name: '', age: null, gender: '', q1: null, q2: [1], q3: null,
     })
   })
 
@@ -182,17 +209,17 @@ describe('saveSignupDraft · loadSignupDraft — 임시 보관', () => {
 describe('mergeSignupDraft — 서버가 채운 값 위에 보관분 덮기', () => {
   it('보관분에 값이 있는 칸만 덮는다(소셜: 서버 이름 위에 사용자가 고친 이름)', () => {
     const base = { ...emptySignupForm(), name: '구글사용자' }
-    const merged = mergeSignupDraft(base, { email: '', name: '서지', age: 22, agreed: true, gender: 'M', q1: 1, q2: [6], q3: 3 })
-    expect(merged).toMatchObject({ name: '서지', age: 22, agreed: true, gender: 'M', q1: 1, q2: [6], q3: 3, password: '', passwordConfirm: '' })
+    const merged = mergeSignupDraft(base, { email: '', name: '서지', age: 22, gender: 'M', q1: 1, q2: [6], q3: 3 })
+    expect(merged).toMatchObject({ name: '서지', age: 22, agreed: false, gender: 'M', q1: 1, q2: [6], q3: 3, password: '', passwordConfirm: '' })
   })
   it('보관분이 비어 있으면 서버 값을 둔다', () => {
     const base = { ...emptySignupForm(), name: '구글사용자', age: 30 }
-    const merged = mergeSignupDraft(base, { email: '', name: '  ', age: null, agreed: false, gender: '', q1: null, q2: [], q3: null })
+    const merged = mergeSignupDraft(base, { email: '', name: '  ', age: null, gender: '', q1: null, q2: [], q3: null })
     expect(merged.name).toBe('구글사용자')
     expect(merged.age).toBe(30)
   })
   it('q2 는 새 배열이다(보관분 배열을 그대로 물지 않는다)', () => {
-    const fields = { email: '', name: '', age: null, agreed: false, gender: '' as const, q1: null, q2: [1, 2], q3: null }
+    const fields = { email: '', name: '', age: null, gender: '' as const, q1: null, q2: [1, 2], q3: null }
     const merged = mergeSignupDraft(emptySignupForm(), fields)
     expect(merged.q2).toEqual([1, 2])
     expect(merged.q2).not.toBe(fields.q2)
