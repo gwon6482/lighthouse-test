@@ -59,6 +59,10 @@
             :description="'group' in job ? job.overview : undefined"
             @click="goToJobDetail(job.jobCode)"
           />
+          <!-- 처음 받는 동안 카드 자리를 미리 잡는다 — 받은 뒤에 아래 '분류로 찾기'가 밀려 내려가지 않게(2026-11-18 사용성 확인) -->
+          <template v-if="!browseJobs.length && isExploring">
+            <div v-for="i in 5" :key="`skel-${i}`" class="enc-home__skel" aria-hidden="true" />
+          </template>
         </div>
       </div>
 

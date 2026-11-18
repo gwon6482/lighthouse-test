@@ -1,6 +1,7 @@
 // 직업 진입 관문 데이터 — 🧪 시안용 정적 데이터(2026-10-27 사용자 검토 완료본)
 // 출처: lighthouse-api data/job-gates/jobGates.draft.json (고용24 '되는 길' 문장을 읽어 붙인 조건)
 // ⚠️ 평가 후 서버(job_info)로 옮기면 이 파일을 지우고 useJobGate 의 출처만 바꾼다
+// 2026-11-18 경력직(senior) 6개 추가 — 관리직 직무(011~014)에서 빠진 것(총장·교장·교감·연구관리자·여행·호텔·음식서비스관리자). API 초안에도 같이 넣었다
 import type { JobGate } from './gateBadges'
 
 export const GATE_CHECKED_AT = '2026-10-27'
@@ -2082,5 +2083,115 @@ export const JOB_GATES: Record<string, JobGate> = {
   "note": "정신건강임상심리사·임상심리사 자격(수련 + 시험)",
   "evidence": "",
   "source": "제도 지식(근거 문장 없음)"
+ },
+ "013101": {
+  "title": "연구관리자",
+  "badges": [
+   "senior"
+  ],
+  "conditions": {
+   "education": "none",
+   "training": "none",
+   "exam": "none",
+   "experience": false,
+   "other": [],
+   "entry": "senior"
+  },
+  "weight": "heavy",
+  "note": "각 분야 연구자로 오래 일하며 실적을 쌓은 뒤 맡는다",
+  "evidence": "연구관리자가 되기 위해서는 일반적으로 각 분야의 연구자로 근무해야 한다. 보통 박사 혹은 석사 이상의 학력이 필요하며 해당 분야에서 오랜 연구 경험과 실적 그리고 사람들과 자원 혹은 일정을 관리하는 능력이 필요하다",
+  "source": "고용24 직업정보(되는 길)"
+ },
+ "013202": {
+  "title": "초등학교 교장 및 교감",
+  "badges": [
+   "senior",
+   "license"
+  ],
+  "conditions": {
+   "education": "major",
+   "training": "none",
+   "exam": "license",
+   "experience": true,
+   "other": [],
+   "entry": "senior"
+  },
+  "weight": "heavy",
+  "note": "초등학교 정교사 1급 + 교육경력 3년 이상 + 재교육(자격연수), 교장은 교감 자격 + 3년",
+  "evidence": "초등학교의 교감이 되기 위해서는 초등학교 정교사(1급) 혹은 보건교사(1급) 자격증을 가지고 3년 이상의 교육경력과 일정한 재교육을 받거나 초등학교 정교사(2급) 자격증 또흔 보건교사(2급) 자격증을 가지고 6년 이상의 교육경력과 일정한 재교육을 받거나 특수학교의 교감 자격증을 가지고 있어야 한다",
+  "source": "고용24 직업정보(되는 길)"
+ },
+ "013203": {
+  "title": "중고등학교 교장 및 교감",
+  "badges": [
+   "senior",
+   "license"
+  ],
+  "conditions": {
+   "education": "major",
+   "training": "none",
+   "exam": "license",
+   "experience": true,
+   "other": [],
+   "entry": "senior"
+  },
+  "weight": "heavy",
+  "note": "중등학교 정교사 1급 + 교육경력 3년 이상 + 자격연수, 승진 평정을 거쳐 된다",
+  "evidence": "교장과 교감은 교사로 오래 근무한 뒤 승진해서 되는 자리다. 바로 지원할 수 있는 직업이 아니다",
+  "source": "고용24 직업정보(되는 길)"
+ },
+ "013204": {
+  "title": "대학교 총장 및 대학학장",
+  "badges": [
+   "senior"
+  ],
+  "conditions": {
+   "education": "none",
+   "training": "none",
+   "exam": "none",
+   "experience": false,
+   "other": [],
+   "entry": "senior"
+  },
+  "weight": "heavy",
+  "note": "교수로 오래 재직하며 행정 경험을 쌓은 뒤 선출·임명된다",
+  "evidence": "대개 해당 학교의 교수로 오랫동안 재직하면서 학식과 덕망, 그리고 행정경험을 쌓은 사람이 선출되는 경우가 많으며, 간혹 정부부처에서 다양한 행정경험을 쌓은 사람이 영입되기도 한다",
+  "source": "고용24 직업정보(되는 길)"
+ },
+ "014103": {
+  "title": "여행·호텔관리자",
+  "badges": [
+   "senior"
+  ],
+  "conditions": {
+   "education": "none",
+   "training": "none",
+   "exam": "none",
+   "experience": false,
+   "other": [],
+   "entry": "senior"
+  },
+  "weight": "heavy",
+  "note": "여행·호텔 실무를 하다가 관리자로 성장한다",
+  "evidence": "여행안내, 여행상품개발, 여행상품기획 등의 업무를 하다가 관리자로 성장하는 경우가 많다. 호텔관리자가 되기 위해서는 호텔에서 오랫동안 근무해 오면서 경력이 축적되어야 한다",
+  "source": "고용24 직업정보(되는 길)"
+ },
+ "014201": {
+  "title": "음식서비스관리자",
+  "badges": [
+   "senior"
+  ],
+  "conditions": {
+   "education": "none",
+   "training": "none",
+   "exam": "none",
+   "experience": false,
+   "other": [],
+   "entry": "senior"
+  },
+  "weight": "heavy",
+  "note": "웨이터·웨이트리스로 경력을 쌓아 지배인이 된다",
+  "evidence": "레스토랑지배인은 레스토랑에서 웨이터 및 웨이트리스로 근무경력을 쌓아 되는 경우가 많다",
+  "source": "고용24 직업정보(되는 길)"
  }
 }

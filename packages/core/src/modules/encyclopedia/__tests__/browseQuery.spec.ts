@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  MAX_CONDITIONS, canAddCondition, canUseAxis, conditionCount, emptyState, formatManwon, groupDepth, isGroupList,
-  nextAxisToAdd, paramsFromState, queryFromState, stateFromQuery, withAxis, withoutCondition,
+  MAX_CONDITIONS, canAddCondition, canUseAxis, conditionCount, emptyState, formatManwon, listQuery,
+  nextAxisToAdd, nextOrder, orderFromQuery, paramsFromState, stateFromQuery, withAxis, withoutCondition,
 } from '../lib/browseQuery'
 import { myBrowseStart } from '../lib/browseMyStart'
 import type { SurveyAnalysisResponse } from '@/modules/survey/types/survey'
@@ -13,48 +13,49 @@ describe('분류로 찾기 — 주소 ↔ 상태', () => {
     expect(s.env).toEqual(['sit', 'remote'])
     expect(s.talent).toEqual([])
     expect(paramsFromState(s)).toEqual({ interest: 'T22_TEC_2,T22_TEC_6', env: 'sit,remote' })
-    expect(queryFromState(s, { sort: 'interest' })).toEqual({ interest: 'T22_TEC_2,T22_TEC_6', env: 'sit,remote', sort: 'interest' })
+  })
+  it('목록 주소 — 탭 순서(order)와 정렬 기준(sort = 들어온 탭)을 함께 싣는다', () => {
+    const s = stateFromQuery({ salary: '5000', interest: 'T22_TEC_2' })
+    expect(listQuery(s, ['interest'])).toEqual({ interest: 'T22_TEC_2', salary: '5000', order: 'interest,salary', sort: 'interest' })
+    expect(listQuery(s, ['interest'], { mine: '1' }).mine).toBe('1')
+  })
+  it('탭 순서 — 빠진 탭은 지우고 새로 쓴 탭은 끝에', () => {
+    const s = stateFromQuery({ interest: 'T22_TEC_2', env: 'remote' })
+    expect(nextOrder(['salary', 'interest'], s, ['env'])).toEqual(['interest', 'env'])
+    expect(orderFromQuery({ order: 'env,bogus,interest,env' })).toEqual(['env', 'interest'])
   })
 })
 
-describe('조건 수 — 분류 하나가 조건 하나, 업무 환경은 보기 하나가 조건 하나', () => {
+describe('조건 수 — 탭 하나가 조건 하나(업무 환경도 탭 전체가 하나)', () => {
   it('3개까지', () => {
-    const s = withAxis(withAxis(emptyState(), 'interest', ['T22_TEC_2', 'T22_TEC_6']), 'env', ['remote'])
-    expect(conditionCount(s)).toBe(2)            // 관심 분야 둘은 '또는'이라 조건 하나
+    const s = withAxis(withAxis(emptyState(), 'interest', ['T22_TEC_2', 'T22_TEC_6']), 'env', ['sit', 'remote', 'no-hazard'])
+    expect(conditionCount(s)).toBe(2)            // 관심 분야 둘은 '또는', 업무 환경 셋도 한 탭이라 조건 하나
     expect(canAddCondition(s)).toBe(true)
     const full = withAxis(s, 'salary', ['5000'])
     expect(conditionCount(full)).toBe(MAX_CONDITIONS)
     expect(canAddCondition(full)).toBe(false)
-    expect(canUseAxis(full, 'talent')).toBe(false)   // 새 분류는 못 더한다
-    expect(canUseAxis(full, 'interest')).toBe(true)  // 이미 쓰는 분류는 고칠 수 있다
+    expect(canUseAxis(full, 'talent')).toBe(false)   // 새 탭은 못 더한다
+    expect(canUseAxis(full, 'env')).toBe(true)       // 이미 쓰는 탭은 고칠 수 있다
   })
-  it('조건 하나 빼기 — 서버 조건 id 로', () => {
+  it('조건 하나 빼기 — 서버 조건 id(탭 이름). 예전 꼴 env:<코드>도 받는다', () => {
     const s = stateFromQuery({ interest: 'T22_SOC_4', env: 'remote,no-hazard', salary: '6000' })
+    expect(withoutCondition(s, 'env').env).toEqual([])
     expect(withoutCondition(s, 'env:remote').env).toEqual(['no-hazard'])
     expect(withoutCondition(s, 'salary').salary).toEqual([])
-    expect(withoutCondition(s, 'interest').interest).toEqual([])
     expect(withoutCondition(s, 'nothing')).toEqual(s)
   })
-})
-
-describe('직무 — 다른 조건과 섞을 때는 대분류까지만', () => {
-  it('다른 조건이 없으면 직무까지, 있으면 대분류까지', () => {
-    expect(groupDepth(emptyState())).toBe('group')
-    expect(groupDepth(stateFromQuery({ group: '02' }))).toBe('group')     // 직무 칸 자기 자신은 세지 않는다
-    expect(groupDepth(stateFromQuery({ interest: 'T22_TEC_2' }))).toBe('top')
-  })
-  it('직무(3자리) 목록은 조건을 더하지 않는다', () => {
-    expect(isGroupList(stateFromQuery({ group: '024' }))).toBe(true)
-    expect(isGroupList(stateFromQuery({ group: '02' }))).toBe(false)
-  })
-  it('다음에 더할 분류 — 안 쓴 것 가운데 입구 순서, 직무는 맨 끝', () => {
-    expect(nextAxisToAdd(stateFromQuery({ interest: 'T22_TEC_2' }))).toBe('env')
-    expect(nextAxisToAdd(stateFromQuery({ group: '02' }))).toBe('interest')
+  it("'조건 더하기'는 아직 안 쓴 첫 탭(탭 순서 — 직무부터)", () => {
+    expect(nextAxisToAdd(stateFromQuery({ group: '024' }))).toBe('interest')
+    expect(nextAxisToAdd(stateFromQuery({ interest: 'T22_TEC_2' }))).toBe('group')
+    expect(nextAxisToAdd(stateFromQuery({ group: '02', interest: 'T22_TEC_2', env: 'sit' }))).toBe('talent')
   })
 })
 
-it('연봉 표기', () => {
+it('연봉 표기 — 1억이 넘으면 억으로', () => {
   expect(formatManwon(8100)).toBe('8,100만 원')
+  expect(formatManwon(11500)).toBe('1억 1,500만 원')
+  expect(formatManwon(10000)).toBe('1억 원')
+  expect(formatManwon(19000)).toBe('1억 9,000만 원')
 })
 
 type Analysis = SurveyAnalysisResponse['analysis']
@@ -65,27 +66,27 @@ const analysis = (over: Partial<Analysis>) => ({
 }) as unknown as Analysis
 
 describe("'내 검사 결과로 찾기'", () => {
-  it('관심 분야 = 고른 분야가 가장 많은 묶음의 분야들, 재능 = 점수 첫째', () => {
+  it('관심 분야 = 고른 분야가 가장 많은 묶음의 분야들, 재능 = 점수 첫째 — 홈 띠에는 채우는 이름 그대로', () => {
     const r = myBrowseStart(analysis({
       interest: {
         total: 3,
         by_category: {
-          TEC: { name: '기술·공학', items: [{ field_id: 'T22_TEC_2', name: '컴퓨터와 전자공학' }, { field_id: 'T22_TEC_6', name: '디자인' }] },
+          BUS: { name: '경영·사무', items: [{ field_id: 'T22_BUS_1', name: '경영과 행정' }, { field_id: 'T22_BUS_5', name: '영업과 마케팅' }] },
           SOC: { name: '사회·인문', items: [{ field_id: 'T22_SOC_4', name: '예술' }] },
         },
       } as unknown as Analysis['interest'],
-      talent: { top3: [], all: [{ code: 'M', name: '논리수학', score: 0.8 }, { code: 'L', name: '언어', score: 0.6 }] } as unknown as Analysis['talent'],
+      talent: { top3: [], all: [{ code: 'S', name: '공간 지능', score: 0.8 }, { code: 'L', name: '언어 지능', score: 0.6 }] } as unknown as Analysis['talent'],
     }))
-    expect(r?.state.interest).toEqual(['T22_TEC_2', 'T22_TEC_6'])
-    expect(r?.interestName).toBe('기술·공학')
-    expect(r?.state.talent).toEqual(['M'])
+    expect(r?.state.interest).toEqual(['T22_BUS_1', 'T22_BUS_5'])
+    expect(r?.state.talent).toEqual(['S'])
+    expect(r?.labels).toEqual(['경영과 행정', '영업과 마케팅', '공간 지능'])
   })
   it('재능 1위가 자기성찰이면 2위를 쓴다(분류로 찾기에서 뺐다)', () => {
     const r = myBrowseStart(analysis({
-      talent: { top3: [], all: [{ code: 'N', name: '자기성찰', score: 0.9 }, { code: 'I', name: '대인관계', score: 0.7 }] } as unknown as Analysis['talent'],
+      talent: { top3: [], all: [{ code: 'N', name: '자기성찰 지능', score: 0.9 }, { code: 'I', name: '대인관계 지능', score: 0.7 }] } as unknown as Analysis['talent'],
     }))
     expect(r?.state.talent).toEqual(['I'])
-    expect(r?.state.interest).toEqual([])
+    expect(r?.labels).toEqual(['대인관계 지능'])
   })
   it('채울 것이 없으면 null', () => {
     expect(myBrowseStart(analysis({}))).toBeNull()

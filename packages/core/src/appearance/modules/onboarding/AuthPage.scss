@@ -8,6 +8,22 @@
   padding: $space-xl;
   overflow-y: auto;
 
+  // 앱 안에서 넘어왔을 때(?next=)만 보이는 뒤로 가기(2026-11-18)
+  &__back {
+    position: absolute;
+    top: calc(8px + env(safe-area-inset-top, 0px));
+    left: 6px;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: none;
+    font-size: 20px;
+    color: #333;
+    cursor: pointer;
+  }
+
   &__inner {
     width: 100%;
     max-width: 360px;

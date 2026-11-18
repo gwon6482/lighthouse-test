@@ -1,5 +1,7 @@
 <template>
   <div class="auth">
+    <!-- 돌아갈 곳(?next=)이 있을 때만 — 진로백과 '분류로 찾기'의 '가입하고 연봉 보기'처럼 앱 안에서 넘어온 경우(2026-11-18) -->
+    <button v-if="nextPath" type="button" class="auth__back" aria-label="뒤로 가기" @click="safeBack(router, nextPath)"><AppIcon name="ui-back" /></button>
     <div class="auth__inner">
       <!-- 브랜드 헤더 -->
       <div class="auth__brand">
@@ -121,12 +123,18 @@
 import { linkPendingGuestSurvey, markLoginRedirect } from '@/shared/guest/guestSurvey'
 import { startOAuth as startOAuthShared } from '@/shared/auth/oauth'
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { req } from '@/shared/api'
+import AppIcon from '@/shared/components/AppIcon.vue'
+import { safeBack } from '@/shared/utils/navigation'
+import { dropAfterLogin, rememberAfterLogin, takeAfterLogin } from '@/shared/auth/afterLogin'
 
 const router = useRouter()
+const route = useRoute()
+// 로그인 뒤 돌아갈 곳(?next=, 앱 안 경로만). 소셜 로그인은 OAuthReturnPage 가 이 탭에 둔 값을 꺼낸다
+const nextPath = rememberAfterLogin(route.query.next)
 const authStore = useAuthStore()
 const achievementStore = useAchievementStore()
 
@@ -134,6 +142,7 @@ const mode = ref<'signup' | 'login'>('signup')   // 회원가입이 기본
 
 // ── 회원가입 ──
 function goEmailSignup() {
+  dropAfterLogin()   // 새로 가입하는 사람은 지금처럼 가입·온보딩 흐름을 탄다
   router.push('/onboarding/signup')
 }
 
@@ -208,7 +217,8 @@ async function handleLogin() {
     await linkPendingGuestSurvey()   // 비회원 검사가 있으면 계정에 연결(2026-11-09) — 기존 회원은 지금 단계로
     await achievementStore.loadActivePlan()
     // 활성 진로계획 유무에 따라 설계 전/후 메인으로 (설계 후 메인 = 진로달성)
-    router.replace(achievementStore.hasActivePlan ? '/career-achievement' : '/main/before')
+    // 넘어온 곳(?next=)이 있으면 그리로 돌아간다 — 없으면 예전처럼 설계 전/후 메인
+    router.replace(takeAfterLogin() ?? (achievementStore.hasActivePlan ? '/career-achievement' : '/main/before'))
   } catch (e: any) {
     error.value = e.response?.data?.error ?? '로그인 중 오류가 발생했어요.'
     // 401 = 이메일/비번이 안 맞는다. 소셜 전용 계정이면 **영원히 안 맞는다**(passwordHash 가 없다).

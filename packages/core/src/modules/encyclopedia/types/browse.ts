@@ -17,6 +17,10 @@ export interface BrowseOption {
   min?: number
   /** 업무 환경 '빼기' — 빠지는 줄 수 */
   removes?: number
+  /** 업무 환경 — 조건 칩·이유 줄에 쓰는 긴 이름(예: '고객·민원인을 자주 상대해요') */
+  label?: string
+  /** 가치관 — 짧은 설명(DB 글을 해요체 한 문장으로) */
+  desc?: string
   children?: BrowseOption[]
 }
 
@@ -88,8 +92,10 @@ export interface BrowseResult {
   next: Record<BrowseAxisKey, Record<string, number>>
   /** 결과가 5줄 미만이고 조건이 둘 이상일 때 — 조건 하나씩 뺀 줄 수 */
   relax?: (BrowseCondition & { count: number })[]
-  /** 하나만 빼고 맞는 줄 */
+  /** 하나만 빼고 맞는 줄 — 들어온 조건은 지키고 나중에 더한 조건이 빠진 직업부터(빠진 조건마다 이어서) */
   near?: BrowseRow[]
+  /** near 를 자르기 전 전체 수 */
+  nearTotal?: number
   offset: number
   limit: number
   data: BrowseRow[]
