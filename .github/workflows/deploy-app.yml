@@ -35,6 +35,8 @@ jobs:
           VITE_API: https://api.lighthouse.career
           # 비회원 진입 경로(/start · /job/:code · 결과지·진로백과 잠금) — 2026-11-12 사용자 결정으로 처리방침 시행(11-16) 전 운영 공개
           VITE_GUEST_ENTRY: '1'
+          # 진로백과 '분류로 찾기' — 2026-11-18 운영 공개(스테이징 사용성 확인 두 번 뒤, 오너 '내보내기도 한번에 되는대로 쭉해줘')
+          VITE_JOB_BROWSE: '1'
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
