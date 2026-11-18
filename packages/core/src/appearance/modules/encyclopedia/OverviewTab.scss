@@ -552,3 +552,173 @@
   &__refs { margin: 6px 0 0; color: #8A7A45; overflow-wrap: anywhere; }
 }
 
+
+/* 전문가 전망(2026-11-18) — 공식 판정 한 단어 + 연도 + 출처 + 링크, 라이트하우스 자체 조사, 공식 전망이 없을 때 */
+.overview-outlook {
+  &__none {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background-color: #f4f5f7;
+    font-size: 14px;
+    font-weight: 600;
+    color: #3c4043;
+    line-height: 1.6;
+  }
+
+  &__ours {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__ours-line {
+    margin: 0;
+    font-size: 14px;
+    color: #3c4043;
+    line-height: 1.7;
+    word-break: keep-all;
+  }
+
+  &__badge {
+    margin: 0;
+    font-size: 12px;
+    color: #9aa0a6;
+  }
+
+  &__facts {
+    margin: 0;
+    padding-left: 1.1em;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+    color: #80868b;
+
+    a { color: #4a7fc1; text-decoration: underline; text-underline-offset: 2px; }
+  }
+
+  &__official {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    &--small {
+      padding-top: 10px;
+      border-top: 1px dashed #e3e5e8;
+    }
+  }
+
+  &__official--small &__line { font-size: 13px; color: #5f6368; }
+
+  &__group {
+    margin: 0;
+    font-size: 13px;
+    color: #7a5a1e;
+    line-height: 1.6;
+    word-break: keep-all;
+  }
+
+  &__verdict {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__chip {
+    font-size: 13px;
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 999px;
+
+    &--up   { background-color: #e3f4ec; color: #1f7a4e; }
+    &--down { background-color: #fdebe7; color: #b5432f; }
+    &--flat { background-color: #eef0f3; color: #4a505c; }
+  }
+
+  &__when {
+    font-size: 12px;
+    color: #80868b;
+  }
+
+  &__line {
+    margin: 0;
+    font-size: 14px;
+    color: #3c4043;
+    line-height: 1.7;
+    word-break: keep-all;
+  }
+
+  &__source {
+    margin: 0;
+    font-size: 12px;
+    color: #9aa0a6;
+  }
+
+  &__link {
+    align-self: flex-start;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4a7fc1;
+    text-decoration: none;
+  }
+
+  &__hiring {
+    margin: 0;
+    font-size: 13px;
+    color: #5f6368;
+  }
+
+  &__related {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__related-label {
+    font-size: 12px;
+    color: #80868b;
+  }
+
+  &__related-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  &__related-chip {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background-color: #fff4cc;
+    color: #8a5e00;
+    text-decoration: none;
+  }
+}
+
+/* 일하는 사람들의 생각 — 재직자 의견 단서 */
+.overview-prospect__note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #9aa0a6;
+  line-height: 1.5;
+}
+
+/* 연봉 단서 */
+.overview-stats__note {
+  margin: 0;
+  font-size: 12px;
+  color: #9aa0a6;
+  line-height: 1.5;
+}
+
+/* 탭 맨 아래 출처 줄(공공누리 출처 표시) */
+.overview-source {
+  margin: 0;
+  font-size: 11.5px;
+  color: #9aa0a6;
+  line-height: 1.6;
+  word-break: keep-all;
+}
