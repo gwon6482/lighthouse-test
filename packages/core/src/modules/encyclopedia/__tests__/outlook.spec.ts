@@ -107,3 +107,12 @@ describe('판정 한 줄·연도·출처 — 우리 말로, 단정하지 않게'
     expect(verdictTone(null)).toBe('flat')
   })
 })
+
+describe('outlookLinkLabel', () => {
+  it('워크피디아 주소면 워크피디아, 그 밖은 한국고용정보원 누리집', async () => {
+    const { outlookLinkLabel } = await import('../lib/outlook')
+    expect(outlookLinkLabel('https://www.wagework.go.kr/pt/b/a/x.do?a=1')).toContain('워크피디아')
+    expect(outlookLinkLabel('https://www.keis.or.kr/keis/ko/proj/114/pblc/detail.do')).toContain('한국고용정보원')
+    expect(outlookLinkLabel('')).toBe('')
+  })
+})

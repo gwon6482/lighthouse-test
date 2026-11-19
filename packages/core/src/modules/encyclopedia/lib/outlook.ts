@@ -95,3 +95,11 @@ export function outlookView(outlook?: JobOutlook | null): OutlookView | null {
     related: status === 'none' || status === 'ours' ? (outlook.relatedJobs ?? []).filter((r) => r?.jobCode && r?.title) : [],
   }
 }
+
+/** 원문 링크 이름 — 워크피디아(wagework)면 '워크피디아', 아니면 펴낸 곳(한국고용정보원 누리집) */
+export function outlookLinkLabel(url?: string | null): string {
+  if (!url) return ''
+  return /(^|\.)wagework\.go\.kr\//.test(url.replace(/^https?:\/\//, ''))
+    ? '전체 글은 워크피디아에서 볼 수 있어요 ›'
+    : '전체 글은 한국고용정보원 누리집에서 볼 수 있어요 ›'
+}

@@ -267,7 +267,7 @@
           :href="job.outlook.official.source.url"
           target="_blank"
           rel="noopener"
-        >전체 글은 워크피디아에서 볼 수 있어요 ›</a>
+        >{{ outlookLinkLabel(job.outlook.official.source.url) }}</a>
       </div>
 
       <p v-if="view.hiringLine" class="overview-outlook__hiring">{{ view.hiringLine }}</p>
@@ -338,7 +338,7 @@ import type { Job, JobDetails, CategoryRankings, RankItem, OutlookSource } from 
 
 import { useCareerAttributes } from '@/shared/composables/useCareerAttributes'
 import JobGateGuide from '@/shared/components/JobGateGuide.vue'
-import { outlookView, verdictSentence, verdictWhen, verdictTone, sourceText, groupLine } from '../../../../lib/outlook'
+import { outlookView, verdictSentence, verdictWhen, verdictTone, sourceText, groupLine, outlookLinkLabel } from '../../../../lib/outlook'
 
 const props = defineProps<{ job: Job; locked?: boolean }>()
 
