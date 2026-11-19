@@ -89,7 +89,7 @@
       <button class="cac__btn cac__btn--ghost" @click="router.replace('/career-achievement')">돌아가기</button>
     </div>
 
-    <!-- 취소·뒤로 — 적은 메모·사진이 있을 때만 같은 화면 안에서 묻는다(2026-11-20 사용성 QA). 집중한 시간은 멈춘 집중으로 남는다 -->
+    <!-- 취소·뒤로 — 적은 메모·사진이 있을 때만 같은 화면 안에서 묻는다(2026-11-19 사용성 QA). 집중한 시간은 멈춘 집중으로 남는다 -->
     <ConfirmSheet
       v-model="leaveOpen" title="기록 작성을 그만둘까요?" :message="leaveMessage"
       confirm-label="그만두기" cancel-label="계속 쓰기" @confirm="leaveNow"
@@ -160,7 +160,7 @@ const categoryInfo = computed(() => {
   return cat ? CATEGORY_META[cat] : null
 })
 
-// 이미 완료한 일을 다시 집중했으면 앞 기록 시간에 더한다(2026-11-20 오너 결정). 메모·사진·난이도는 앞 기록에서 채운 그대로
+// 이미 완료한 일을 다시 집중했으면 앞 기록 시간에 더한다(2026-11-19 오너 결정). 메모·사진·난이도는 앞 기록에서 채운 그대로
 const combined = computed(() => {
   const existing = getEntry(dateKey.value, itemType.value, itemId.value)
   const done = itemType.value === 'project' ? isProjectDone(itemId.value, dateKey.value) : isRoutineDone(itemId.value, dateKey.value)

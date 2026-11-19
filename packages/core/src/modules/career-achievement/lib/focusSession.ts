@@ -8,7 +8,7 @@
 // - 기록은 시작한 날(date)로 들어간다. 다음 날까지 이어 할 수 있고 그다음 날 지운다(정할 것 5)
 // - 지우는 때: 집중 취소 · 저장 · 그 날짜에 완료됨(다른 기기 포함) · 계획에서 빠짐 · 다른 계획 · 그제 이전 · 로그아웃
 //   단, 이미 완료한 항목을 다시 집중한 것(afterDone)은 '완료됨'으로 지우지 않는다 — 시작할 때부터 완료라
-//   그 규칙이 곧바로 지워 '나중에 이어 하기'가 조용히 사라졌다(2026-11-20 사용성 QA)
+//   그 규칙이 곧바로 지워 '나중에 이어 하기'가 조용히 사라졌다(2026-11-19 사용성 QA)
 import type { ProjectCategory } from '@/modules/career-design/types/career-design'
 
 export const FOCUS_SESSIONS_KEY = 'lh_focus_sessions_v1'
@@ -96,7 +96,7 @@ export function elapsedText(sec: number): string {
   return min ? `${h}시간 ${min}분` : `${h}시간`
 }
 
-// 이미 완료한 일을 다시 집중해 저장 — 앞 기록 시간에 이번 시간을 더한다(2026-11-20 오너 결정).
+// 이미 완료한 일을 다시 집중해 저장 — 앞 기록 시간에 이번 시간을 더한다(2026-11-19 오너 결정).
 // 기록은 날짜·항목마다 한 건이라 합계를 elapsedSec 로 저장한다. 앞 기록이 없거나(처음 완료) 완료가 아니면 이번 시간만
 export function combinedElapsed(prevSec: number | null | undefined, alreadyDone: boolean, thisSec: number): { total: number; prev: number } {
   const prev = alreadyDone && prevSec && prevSec > 0 ? Math.floor(prevSec) : 0
