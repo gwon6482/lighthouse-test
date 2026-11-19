@@ -62,6 +62,23 @@ export function groupLine(outlook: JobOutlook | null | undefined, sharedCount?: 
   return `‘${name}’로 묶인 ${n}을 함께 다룬 전망이에요.`
 }
 
+/** 받침이 있으면 '이라는', 없으면 '라는'(한글이 아닌 글자로 끝나면 '이라는') */
+function raneun(word: string): string {
+  const c = word.charCodeAt(word.length - 1)
+  if (c >= 0xac00 && c <= 0xd7a3) return (c - 0xac00) % 28 === 0 ? '라는' : '이라는'
+  return '이라는'
+}
+
+/**
+ * 판정 주어 이름 안내(2026-11-19) — 공식 판정을 코드로 붙였는데 공식 전망이 다른 이름으로 다룬 직업(5개)만.
+ * '공식 전망은 ‘보험계리사’라는 이름으로 다뤘어요.' 묶음 판정(groupName)·이름이 같거나 빈 값이면 ''
+ */
+export function subjectLine(outlook: JobOutlook | null | undefined, jobTitle?: string): string {
+  const name = outlook?.official?.subjectName?.trim()
+  if (!name || isGroupVerdict(outlook) || name === jobTitle?.trim()) return ''
+  return `공식 전망은 ‘${name}’${raneun(name)} 이름으로 다뤘어요.`
+}
+
 export interface OutlookView {
   /** 맨 위 "이 직업만 다룬 공식 전망은 …" 줄 — 없으면 '' */
   noneLine: string

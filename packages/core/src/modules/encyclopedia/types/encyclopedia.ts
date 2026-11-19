@@ -132,6 +132,7 @@ export interface JobOutlook {
     written?: string | null       // '2022' — 2020~2023 글
     scope?: 'job' | 'group'
     groupName?: string | null     // 묶음 판정일 때 묶음 이름
+    subjectName?: string | null   // 이 직업만 다룬 판정인데 공식 전망이 다른 이름으로 다뤘을 때 그 이름(2026-11-19, scope job 만)
     source?: OutlookSource
     checkedAt?: string
   } | null

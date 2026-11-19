@@ -251,6 +251,7 @@
 
       <div v-if="view.showOfficial" :class="['overview-outlook__official', { 'overview-outlook__official--small': view.officialSmall }]" data-test="outlook-official">
         <p v-if="groupLineText" class="overview-outlook__group">{{ groupLineText }}</p>
+        <p v-if="subjectLineText" class="overview-outlook__group" data-test="outlook-subject">{{ subjectLineText }}</p>
         <div class="overview-outlook__verdict">
           <span :class="['overview-outlook__chip', `overview-outlook__chip--${tone}`]">{{ job.outlook?.official?.verdict }}</span>
           <span v-if="when" class="overview-outlook__when">{{ when }}</span>
@@ -363,7 +364,7 @@ import type { Job, JobDetails, CategoryRankings, RankItem, OutlookSource } from 
 
 import { useCareerAttributes } from '@/shared/composables/useCareerAttributes'
 import JobGateGuide from '@/shared/components/JobGateGuide.vue'
-import { outlookView, verdictSentence, verdictWhen, verdictTone, sourceText, groupLine, outlookLinkLabel } from '../../../../lib/outlook'
+import { outlookView, verdictSentence, verdictWhen, verdictTone, sourceText, groupLine, subjectLine, outlookLinkLabel } from '../../../../lib/outlook'
 import { waySourceView } from '../../../../lib/waySource'
 
 const props = defineProps<{ job: Job; locked?: boolean }>()
@@ -385,6 +386,8 @@ const tone = computed(() => verdictTone(props.job.outlook?.official?.verdict))
 const srcText = computed(() => sourceText(props.job.outlook?.official))
 // 묶음 판정 안내 — 같은 고용24 원본을 쓰는 직업 수(자기 포함)를 붙인다
 const groupLineText = computed(() => groupLine(props.job.outlook, (props.job.sharedWith?.length ?? 0) + 1))
+// 판정 주어 이름 — 공식 전망이 이 직업을 다른 이름으로 다뤘을 때(묶음 안내와 같은 자리·모양)
+const subjectLineText = computed(() => subjectLine(props.job.outlook, props.job.title))
 // 자체 조사 출처 — 같은 출처(주소·제목)는 한 번만 보인다. 공식 판정이 먼저, 자체 조사는 그 아래(2026-11-19)
 const oursSources = computed(() => {
   const seen = new Set<string>()

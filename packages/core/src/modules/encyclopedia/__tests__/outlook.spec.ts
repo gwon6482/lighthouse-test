@@ -1,6 +1,6 @@
 // 진로백과 '일자리 전망' 칸 그리기 규칙(2026-11-18) — status 별로 무엇을 그리는지
 import { describe, it, expect } from 'vitest'
-import { outlookView, verdictSentence, verdictWhen, verdictTone, sourceText, groupLine, isGroupVerdict } from '../lib/outlook'
+import { outlookView, verdictSentence, verdictWhen, verdictTone, sourceText, groupLine, subjectLine, isGroupVerdict } from '../lib/outlook'
 import type { JobOutlook } from '../types/encyclopedia'
 
 const SRC = { title: '2025~2035 정성적 일자리 전망', publisher: '한국고용정보원', year: 2026, url: 'https://www.wagework.go.kr/x' }
@@ -114,5 +114,18 @@ describe('outlookLinkLabel', () => {
     expect(outlookLinkLabel('https://www.wagework.go.kr/pt/b/a/x.do?a=1')).toContain('워크피디아')
     expect(outlookLinkLabel('https://www.keis.or.kr/keis/ko/proj/114/pblc/detail.do')).toContain('한국고용정보원')
     expect(outlookLinkLabel('')).toBe('')
+  })
+
+  it('subjectLine — 공식 전망이 다른 이름으로 다뤘을 때만, 받침에 따라 라는/이라는', () => {
+    const job = (subjectName?: string | null, scope: 'job' | 'group' = 'job') =>
+      ({ status: 'official', official: { verdict: '유지', scope, subjectName, groupName: scope === 'group' ? '묶음' : null } }) as JobOutlook
+    expect(subjectLine(job('보험계리사'), '보험계리인')).toBe('공식 전망은 ‘보험계리사’라는 이름으로 다뤘어요.')
+    expect(subjectLine(job('통계·데이터 관련 사무원'))).toBe('공식 전망은 ‘통계·데이터 관련 사무원’이라는 이름으로 다뤘어요.')
+    expect(subjectLine(job('광고 및 홍보 전문가'))).toBe('공식 전망은 ‘광고 및 홍보 전문가’라는 이름으로 다뤘어요.')
+    expect(subjectLine(job(undefined))).toBe('')
+    expect(subjectLine(job('  '))).toBe('')
+    expect(subjectLine(job('같은 이름'), '같은 이름')).toBe('')
+    expect(subjectLine(job('묶음 판정', 'group'))).toBe('')
+    expect(subjectLine(null)).toBe('')
   })
 })
