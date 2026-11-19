@@ -4,7 +4,7 @@
        고른 것은 주소(query)에 담는다 — 뒤로 가기·안드로이드 뒤로 버튼(R4)이 그대로 맞는다 -->
   <div class="bp">
     <header class="bhd">
-      <button type="button" class="bhd__back" aria-label="뒤로 가기" @click="back"><AppIcon name="ui-back" /></button>
+      <button type="button" class="bhd__back" aria-label="뒤로" @click="back"><AppIcon name="ui-back" /></button>
       <span class="bhd__title">{{ topItem ? topItem.name : '분류로 찾기' }}</span>
     </header>
 

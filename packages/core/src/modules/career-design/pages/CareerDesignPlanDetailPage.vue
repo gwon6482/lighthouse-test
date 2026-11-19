@@ -3,7 +3,7 @@
 
     <!-- 헤더 -->
     <header class="cd-detail__header">
-      <button class="cd-detail__back" @click="router.push('/mypage')">
+      <button type="button" class="cd-detail__back" aria-label="뒤로" @click="router.push('/mypage')">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
           <path d="M12.5 15L7.5 10L12.5 5" stroke="#1a1a1a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>

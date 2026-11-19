@@ -1,6 +1,6 @@
 <template>
   <div class="cd-yellow-header" :style="{ background: color ?? '#FFC700' }">
-    <button class="cd-yellow-header__back" :style="{ color: textColor }" @click="onBackClick"><AppIcon name="ui-back" /></button>
+    <button type="button" class="cd-yellow-header__back" aria-label="뒤로" :style="{ color: textColor }" @click="onBackClick"><AppIcon name="ui-back" /></button>
     <div class="cd-yellow-header__text">
       <h1 class="cd-yellow-header__title" :style="{ color: textColor }">{{ title }}</h1>
       <p v-if="subtitle" class="cd-yellow-header__subtitle" :style="{ color: subtitleColor }">{{ subtitle }}</p>

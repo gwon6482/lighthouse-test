@@ -2,7 +2,7 @@
   <div v-if="project" class="cd-proj-detail">
     <!-- 노란 헤더 -->
     <div class="cd-proj-detail__top">
-      <button class="cd-proj-detail__back" @click="safeBack(router, '/career-design/plan/projects')"><AppIcon name="ui-back" /></button>
+      <button type="button" class="cd-proj-detail__back" aria-label="뒤로" @click="safeBack(router, '/career-design/plan/projects')"><AppIcon name="ui-back" /></button>
       <div class="cd-proj-detail__top-info">
         <CdCategoryIcon :category="project.category" />
         <div>
