@@ -96,6 +96,20 @@ export function elapsedText(sec: number): string {
   return min ? `${h}시간 ${min}분` : `${h}시간`
 }
 
+// 이미 완료한 일을 다시 집중해 저장 — 앞 기록 시간에 이번 시간을 더한다(2026-11-20 오너 결정).
+// 기록은 날짜·항목마다 한 건이라 합계를 elapsedSec 로 저장한다. 앞 기록이 없거나(처음 완료) 완료가 아니면 이번 시간만
+export function combinedElapsed(prevSec: number | null | undefined, alreadyDone: boolean, thisSec: number): { total: number; prev: number } {
+  const prev = alreadyDone && prevSec && prevSec > 0 ? Math.floor(prevSec) : 0
+  const now = Math.max(0, Math.floor(thisSec))
+  return { total: prev + now, prev }
+}
+// 기록 작성 화면 '소요시간' — 더했으면 '42분(이번 12분)', 아니면 '23분 40초'(0이면 '기록 없음')
+export function recordTimeLabel(total: number, prev: number): string {
+  if (total <= 0) return '기록 없음'
+  const now = total - prev
+  return prev > 0 && now > 0 ? `${elapsedText(total)}(이번 ${elapsedText(now)})` : elapsedText(total)
+}
+
 // 이/가 — 마지막 글자 받침으로('23분 40초가' · '1시간이')
 export function subjectJosa(w: string): string {
   const c = w.trim().slice(-1).charCodeAt(0) - 0xac00

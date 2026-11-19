@@ -112,7 +112,8 @@ import { uploadPhoto } from '../achievement.api'
 import { CATEGORY_META } from '../lib/planBoard'
 import { features } from '@/shared/config/features'
 import { useFocusSessions } from '../composables/useFocusSessions'
-import { sessionKey, elapsedText } from '../lib/focusSession'
+import { sessionKey, combinedElapsed, recordTimeLabel } from '../lib/focusSession'
+import { useAchievementStore } from '@/shared/stores/achievement'
 import type { Project, Routine } from '@/modules/career-design/types/career-design'
 
 const route = useRoute()
@@ -159,7 +160,13 @@ const categoryInfo = computed(() => {
   return cat ? CATEGORY_META[cat] : null
 })
 
-const elapsedLabel = computed(() => (elapsedSec.value === 0 ? '기록 없음' : elapsedText(elapsedSec.value)))
+// 이미 완료한 일을 다시 집중했으면 앞 기록 시간에 더한다(2026-11-20 오너 결정). 메모·사진·난이도는 앞 기록에서 채운 그대로
+const combined = computed(() => {
+  const existing = getEntry(dateKey.value, itemType.value, itemId.value)
+  const done = itemType.value === 'project' ? isProjectDone(itemId.value, dateKey.value) : isRoutineDone(itemId.value, dateKey.value)
+  return combinedElapsed(existing?.elapsedSec, done, elapsedSec.value)
+})
+const elapsedLabel = computed(() => recordTimeLabel(combined.value.total, combined.value.prev))
 
 // ── form state ───────────────────────────────────
 const photo = ref('')
@@ -267,7 +274,7 @@ async function save() {
       itemName: item.value.name,
       itemCategory: itemType.value === 'project' ? (item.value as Project).category : undefined,
       duration: item.value.duration,
-      elapsedSec: elapsedSec.value,
+      elapsedSec: combined.value.total, // 다시 집중이면 앞 기록 + 이번
       doneAt: new Date().toISOString(),
       photoUrl,
       difficulty: difficulty.value,
@@ -334,6 +341,8 @@ onBeforeRouteLeave(() => {
 
 onMounted(async () => {
   try {
+    // 완료 표시·앞 기록을 서버 기준으로(이미 읽었으면 바로 끝난다) — 다시 집중한 시간을 앞 기록에 더하려고
+    await useAchievementStore().loadActivePlan().catch(() => {})
     if (!draftPlan.planId) {
       const plans = await fetchMyPlans()
       const target = plans.find((p: any) => p.status === 'active') ?? plans[0]

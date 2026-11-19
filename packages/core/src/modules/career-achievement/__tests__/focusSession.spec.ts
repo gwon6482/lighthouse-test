@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
   FOCUS_SESSIONS_KEY, sessionKey, keyOf, elapsedOf, pauseAt, resumeAt, settleForHome, shiftDayKey, isAlive,
-  pruneSessions, elapsedText, subjectJosa, pausedEyebrow, parseSessions, type FocusSession, type FocusSessionMap,
+  pruneSessions, elapsedText, subjectJosa, pausedEyebrow, parseSessions, combinedElapsed, recordTimeLabel, type FocusSession, type FocusSessionMap,
 } from '../lib/focusSession'
 
 const T0 = new Date(2026, 10, 18, 21, 0, 0).getTime() // 11/18 21:00
@@ -123,6 +123,23 @@ describe('focusSession — 글', () => {
   it('열쇠는 기록 열쇠와 같은 꼴(날짜:종류:항목)', () => {
     expect(sessionKey('2026-11-18', 'project', 'p1')).toBe('2026-11-18:project:p1')
     expect(keyOf(make())).toBe('2026-11-18:project:p1')
+  })
+})
+
+describe('focusSession — 완료한 일을 다시 집중해 저장(시간 더하기)', () => {
+  it('앞 기록이 완료면 더하고, 처음 완료·앞 시간 없음이면 이번 시간만', () => {
+    expect(combinedElapsed(30 * 60, true, 12 * 60)).toEqual({ total: 42 * 60, prev: 30 * 60 })
+    expect(combinedElapsed(null, false, 12 * 60)).toEqual({ total: 720, prev: 0 })       // 처음 완료
+    expect(combinedElapsed(30 * 60, false, 12 * 60)).toEqual({ total: 720, prev: 0 })    // 완료가 풀린 옛 기록은 더하지 않는다
+    expect(combinedElapsed(0, true, 12 * 60)).toEqual({ total: 720, prev: 0 })           // 앞 기록에 시간이 없었다
+    expect(combinedElapsed(1800.7, true, 65.9)).toEqual({ total: 1865, prev: 1800 })
+  })
+  it('기록 작성 화면 글 — 더했으면 이번 몫을 괄호로', () => {
+    expect(recordTimeLabel(42 * 60, 30 * 60)).toBe('42분(이번 12분)')
+    expect(recordTimeLabel(30 * 60 + 12 * 60 + 5, 30 * 60)).toBe('42분 5초(이번 12분 5초)')
+    expect(recordTimeLabel(23 * 60 + 40, 0)).toBe('23분 40초')
+    expect(recordTimeLabel(30 * 60, 30 * 60)).toBe('30분')   // 이번이 0이면 합계만
+    expect(recordTimeLabel(0, 0)).toBe('기록 없음')
   })
 })
 
