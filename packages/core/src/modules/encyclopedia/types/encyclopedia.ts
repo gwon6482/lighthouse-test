@@ -85,7 +85,8 @@ export interface JobWork24 {
   schoolDepartments: RatioItem[]          // 전공 계열 분포
   prospect: { text: string | null; distribution: ProspectBucket[] }
   jobStatus: string | null
-  relatedJobs: { jobCd: string | null; jobNm: string }[]
+  /** 관련 직업. jobCode = 우리 진로백과에서 열리는 직업(2026-11-19 API가 고용24 코드로 이어 붙인다 — 없으면 화면은 글로 둔다) */
+  relatedJobs: { jobCd: string | null; jobNm: string; jobCode?: string }[]
   salarySurveyYear: number | null
   collectedAt: string | null
 }

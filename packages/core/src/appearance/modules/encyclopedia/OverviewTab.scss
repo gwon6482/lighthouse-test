@@ -471,6 +471,23 @@
       background-color: #eaf2ff;
       color: #2b5fc4;
     }
+
+    // 관련 직업 중 진로백과에서 열리는 직업(2026-11-19) — '비슷한 직업의 전망' 칩과 같은 색으로 링크임을 보인다
+    &--link {
+      font-weight: 600;
+      background-color: #fff4cc;
+      color: #8a5e00;
+      text-decoration: none;
+
+      &:focus-visible { outline: 2px solid #8a5e00; outline-offset: 2px; }
+    }
+  }
+
+  // 관련 직업 칸(li) — 안의 칩(a·span)이 모양을 가진다
+  &__entry {
+    display: flex;
+
+    > .overview-chips__item { display: inline-block; }
   }
 }
 

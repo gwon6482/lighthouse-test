@@ -133,9 +133,9 @@
                 <button
                   type="button"
                   class="pf-chip pf-chip--within"
-                  :class="{ 'pf-chip--open': openCode === item.code }"
-                  :aria-expanded="openCode === item.code"
-                  @click="toggleDef(item.code)"
+                  :class="{ 'pf-chip--open': isOpen(cat, 'within', item.code) }"
+                  :aria-expanded="definitionOf(item.code) ? isOpen(cat, 'within', item.code) : undefined"
+                  @click="toggleDef(cat, 'within', item.code)"
                 >
                   {{ item.name }}
                   <span v-if="definitionOf(item.code)" class="pf-chip__more" aria-hidden="true">?</span>
@@ -143,7 +143,7 @@
               </li>
             </ul>
             <!-- 항목 설명. 칩을 누르면 펼쳐진다. 설명이 없으면 칩이 눌리지 않는다. -->
-            <p v-if="openDefFor(cat.within)" class="pf-def">{{ openDefFor(cat.within) }}</p>
+            <p v-if="openDefFor(cat, 'within')" class="pf-def">{{ openDefFor(cat, 'within') }}</p>
           </div>
 
           <!-- 직업 간 (토글 시 노출, 상위 3개) -->
@@ -163,16 +163,16 @@
                 <button
                   type="button"
                   class="pf-chip pf-chip--between"
-                  :class="{ 'pf-chip--open': openCode === item.code }"
-                  :aria-expanded="openCode === item.code"
-                  @click="toggleDef(item.code)"
+                  :class="{ 'pf-chip--open': isOpen(cat, 'between', item.code) }"
+                  :aria-expanded="definitionOf(item.code) ? isOpen(cat, 'between', item.code) : undefined"
+                  @click="toggleDef(cat, 'between', item.code)"
                 >
                   {{ item.name }}
                   <span v-if="definitionOf(item.code)" class="pf-chip__more" aria-hidden="true">?</span>
                 </button>
               </li>
             </ul>
-            <p v-if="openDefFor(cat.between)" class="pf-def">{{ openDefFor(cat.between) }}</p>
+            <p v-if="openDefFor(cat, 'between')" class="pf-def">{{ openDefFor(cat, 'between') }}</p>
           </div>
         </article>
       </div>
@@ -327,7 +327,17 @@
       <div v-if="locked" class="overview-section__header"><h3 class="overview-section__title">관련 직업 {{ job.work24.relatedJobs.length }}개</h3><span class="g-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span></div>
       <h3 v-else class="overview-section__title">관련 직업</h3>
       <ul :class="['overview-chips__list', { 'g-clip g-clip--sm': locked }]">
-        <li v-for="(r, ri) in job.work24.relatedJobs" :key="r.jobNm" :class="['overview-chips__item', { 'g-veil': locked && ri > 1 }]">{{ r.jobNm }}</li>
+        <!-- 우리 진로백과에 있는 직업(jobCode)은 그 직업 상세로 잇는다(2026-11-19). 모양은 '비슷한 직업의 전망' 칩과 같다.
+             없는 직업(묶음 이름·우리에게 없는 직업)과 비회원의 흐린 칸은 글로 둔다 -->
+        <li v-for="(r, ri) in job.work24.relatedJobs" :key="r.jobNm" :class="['overview-chips__entry', { 'g-veil': locked && ri > 1 }]">
+          <RouterLink
+            v-if="r.jobCode && !(locked && ri > 1)"
+            :to="`/career-encyclopedia/job/${r.jobCode}`"
+            class="overview-chips__item overview-chips__item--link"
+            data-test="related-job-link"
+          >{{ r.jobNm }}</RouterLink>
+          <span v-else class="overview-chips__item">{{ r.jobNm }}</span>
+        </li>
       </ul>
     </section>
 
@@ -461,27 +471,37 @@ function prospectToneOf(name: string): string {
 }
 
 // ── 항목 설명문 ───────────────────────────────────────────────────────────
-// 칩을 누르면 그 항목의 설명이 아래에 펼쳐진다. 한 번에 하나만 열린다.
+// 칩을 누르면 그 항목의 설명이 그 칩 아래에만 펼쳐진다. 한 번에 하나만 열린다.
 //
 // ⚠️ 설명문은 직업 상세 응답에 **없다**(code·name 만 온다). 직업과 무관한 마스터
 //    데이터(202건)라 `useCareerAttributes` 가 따로 한 번 받아 캐시한다.
 // ⚠️ 설명이 없는 항목은 **눌려도 아무 일이 없다** — 그래서 `?` 표시도 안 붙인다.
 //    로드 실패 시에도 화면은 그대로 동작해야 하므로 '설명 없음' 같은 문구를 띄우지 않는다.
+// ⚠️ 열림 상태는 **카드(분류·중요도/수준) + 블록(직업 내/직업 간) + 항목 코드**로 든다(2026-11-19 핫픽스).
+//    예전엔 항목 코드만 들어서, 같은 항목이 중요도·수준 카드와 직업 내·간 블록에 함께 있으면
+//    (업무수행능력·지식 등은 두 카드가 같은 항목을 쓴다) 하나를 눌러도 같은 설명이 모든 곳에서 열렸다.
+type DefBlock = 'within' | 'between'
 const { load: loadAttrs, definitionOf } = useCareerAttributes()
-const openCode = ref<string | null>(null)
+const openKey = ref<string | null>(null)
+const keyOf = (cat: FactorCard, block: DefBlock, code: string) => `${cat.catKey}|${cat.dimKey}|${block}|${code}`
 
 onMounted(loadAttrs)
 
-function toggleDef(code: string) {
-  if (!definitionOf(code)) return
-  openCode.value = openCode.value === code ? null : code
+function isOpen(cat: FactorCard, block: DefBlock, code: string): boolean {
+  return openKey.value === keyOf(cat, block, code)
 }
 
-// 이 블록(직업내/직업간) 안에 열린 항목이 있을 때만 설명을 그린다.
-// 같은 코드가 두 블록에 동시에 있을 수 있어서 블록별로 판정한다.
-function openDefFor(items: { code: string }[]): string | null {
-  if (!openCode.value) return null
-  return items.some(i => i.code === openCode.value) ? definitionOf(openCode.value) : null
+function toggleDef(cat: FactorCard, block: DefBlock, code: string) {
+  if (!definitionOf(code)) return
+  const k = keyOf(cat, block, code)
+  openKey.value = openKey.value === k ? null : k
+}
+
+// 이 카드의 이 블록에 열린 항목이 있을 때만 설명을 그린다
+function openDefFor(cat: FactorCard, block: DefBlock): string | null {
+  const items = block === 'within' ? cat.within : cat.between
+  const hit = items.find(i => isOpen(cat, block, i.code))
+  return hit ? definitionOf(hit.code) : null
 }
 
 function cardsFor(section: { keys: FactorKey[] }): FactorCard[] {

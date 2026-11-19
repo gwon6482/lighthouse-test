@@ -204,6 +204,12 @@ async function handleSetTarget() {
   }
 }
 
+// 직업 상세에서 다른 직업 상세로(관련 직업·비슷한 직업의 전망 칩) — 같은 화면을 다시 쓰므로 onMounted 가 다시 안 돈다.
+//   주소의 직업 코드가 바뀌면 그 직업을 새로 읽는다(뒤로 가기로 돌아올 때도). 2026-11-19 관련 직업 링크
+watch(() => route.params.jobCode, (code, prev) => {
+  if (typeof code === 'string' && code && code !== prev) loadJob(code)
+})
+
 onMounted(async () => {
   const jobCode = route.params.jobCode as string
   await loadJob(jobCode)
