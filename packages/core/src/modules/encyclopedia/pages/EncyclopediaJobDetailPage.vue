@@ -35,7 +35,7 @@
           :job="selectedJob"
           :locked="guestLocked"
         />
-        <!-- 비회원(2026-11-11): 다른 탭도 내용을 그리되 첫 항목만 또렷하게, 나머지는 흐리게(features.guestEntry 빌드만).
+        <!-- 비회원(2026-11-11): 다른 탭도 내용을 그리되 첫 항목만 또렷하게, 나머지는 흐리게.
              흐린 곳을 누르면 아래 안내 카드로 내린다. 개요는 탭 안에 같은 카드가 있다 -->
         <ReviewTab
           v-else-if="activeTab === 'review'"
@@ -103,7 +103,6 @@ import PreparationTab from '../components/page/job-detail/tabs/PreparationTab.vu
 import RecruitmentTab from '../components/page/job-detail/tabs/RecruitmentTab.vue'
 import JobGuestCta from '../components/page/job-detail/JobGuestCta.vue'
 import GuestFloatCard from '@/shared/components/GuestFloatCard.vue'
-import { features } from '@/shared/config/features'
 import { restoreScrollWhenReady, saveDetailReturn, takeDetailReturn } from '../lib/detailReturn'
 
 const route = useRoute()
@@ -124,7 +123,7 @@ const {
 } = useEncyclopedia()
 
 // 비회원 진로백과(2026-11-09): '이 일을 하는 사람들' 아래와 다른 탭을 잠근다. 목표 진로 버튼은 원래 로그인해야 보인다
-const guestLocked = computed(() => features.guestEntry && !authStore.isLoggedIn)
+const guestLocked = computed(() => !authStore.isLoggedIn)
 const guestCtaEl = ref<HTMLElement | null>(null)
 function scrollToGuestCta() {
   const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches

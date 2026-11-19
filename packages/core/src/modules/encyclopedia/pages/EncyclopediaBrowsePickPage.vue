@@ -176,7 +176,6 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { useAuthStore } from '@/shared/stores/auth'
-import { features } from '@/shared/config/features'
 import { safeBack } from '@/shared/utils/navigation'
 import { useBrowseAxes, useBrowseQuery } from '../composables/useJobBrowse'
 import {
@@ -197,7 +196,7 @@ const QUESTION: Record<BrowseAxisKey, string> = {
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
-const guest = features.guestEntry && !auth.isLoggedIn
+const guest = !auth.isLoggedIn
 const { axes, failed: axesFailed, load: loadAxes } = useBrowseAxes()
 const tentQ = useBrowseQuery()   // 지금 고른 것까지 — 버튼의 직업 수, 보기마다 '그 보기를 넣었을 때' 개수
 

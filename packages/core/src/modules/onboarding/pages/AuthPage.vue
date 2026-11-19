@@ -41,8 +41,7 @@
         </p>
 
         <!-- 가입 전에 둘러보기(2026-11-19 다듬기 2차 1·2) — 진로단계 0·1이 가입 전에 무엇인지 보게.
-             회원가입 화면에서만. 앱 안에서 가입하러 넘어와 돌아갈 곳(?next=)이 있으면 숨긴다. 비회원 경로가 꺼진 빌드도 숨긴다.
-             스위치 features.browsePolish2(스테이징만) -->
+             회원가입 화면에서만. 앱 안에서 가입하러 넘어와 돌아갈 곳(?next=)이 있으면 숨긴다 -->
         <nav v-if="showExplore" class="auth__explore" aria-labelledby="auth-explore-title">
           <p id="auth-explore-title" class="auth__explore-title">가입 전에 둘러봐도 돼요</p>
           <RouterLink to="/self-understanding" class="auth__explore-row">
@@ -145,7 +144,6 @@ import { req } from '@/shared/api'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { safeBack } from '@/shared/utils/navigation'
 import { dropAfterLogin, rememberAfterLogin, takeAfterLogin } from '@/shared/auth/afterLogin'
-import { features } from '@/shared/config/features'
 import { loadBrowseAxes } from '@/modules/encyclopedia/composables/useJobBrowse'
 
 const router = useRouter()
@@ -170,7 +168,7 @@ function comingSoon(provider: string) {
 
 // ── 가입 전에 둘러보기 ──
 // 비회원 검사(결과 1위만 공개, 나머지는 가입하면)와 진로백과 홈으로 가는 길. 직업 수는 서버 값(분류로 찾기 축 응답, 10분 캐시)
-const showExplore = computed(() => features.browsePolish2 && features.guestEntry && mode.value === 'signup' && !nextPath)
+const showExplore = computed(() => mode.value === 'signup' && !nextPath)
 const jobsCount = ref<number | null>(null)
 onMounted(() => {
   if (!showExplore.value) return

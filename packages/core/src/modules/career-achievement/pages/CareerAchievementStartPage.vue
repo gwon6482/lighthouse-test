@@ -121,7 +121,6 @@ import {
 } from '../lib/focusTimer'
 import { applyThemeColor, THEME_COLOR } from '@/shared/router/themeColor'
 import { safeBack } from '@/shared/utils/navigation'
-import { features } from '@/shared/config/features'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { useFocusSessions } from '../composables/useFocusSessions'
 import { useAchievement } from '../composables/useAchievement'
@@ -152,7 +151,7 @@ const item = computed<Project | Routine | null>(() => {
   return draftPlan.routines.find(r => r.id === itemId.value) ?? null
 })
 // 멈춘 집중(2026-11-19) — 프로젝트만. 계획을 못 불러와도(오프라인) 기기에 적어 둔 이름으로 그린다
-const keepable = features.focusPause && itemType.value === 'project'
+const keepable = itemType.value === 'project'
 const focusKey = computed(() => sessionKey(dateKey.value, itemType.value, itemId.value))
 const saved = ref<FocusSession | null>(null)
 const itemName = computed(() => item.value?.name ?? saved.value?.itemName ?? '')

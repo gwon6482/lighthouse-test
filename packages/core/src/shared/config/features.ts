@@ -5,20 +5,9 @@
 export const features = {
   community: false,
   career: false,
-  // 비회원 진입 경로(2026-11-09) — /start(비회원 검사) · /job/:jobCode(비회원 진로백과) · 결과지·진로백과 잠금.
-  // 빌드 환경변수로 켠다: 스테이징(deploy-test)·운영(deploy-app) 모두 VITE_GUEST_ENTRY=1 (운영은 2026-11-12~)
-  guestEntry: import.meta.env.VITE_GUEST_ENTRY === '1',
-  // 진로백과 '분류로 찾기'(2026-11-17 오너 결정 — 직무·관심 분야·업무 환경·재능·가치관·연봉으로 직업 좁히기).
-  // 스테이징(deploy-test)만 VITE_JOB_BROWSE=1. 운영(deploy-app)은 사용성 확인 뒤 오너 지시로 켠다
-  jobBrowse: import.meta.env.VITE_JOB_BROWSE === '1',
-  // 집중모드 '잠시 멈추고 홈으로 · 집중 취소하고 홈으로'(2026-11-19 오너 결정 — 멈춘 집중을 기기에 남겨 홈에서 이어 하기).
-  // 스테이징(deploy-test)·운영(deploy-app) 모두 VITE_FOCUS_PAUSE=1 (운영은 사용성 QA 통과 뒤 다음 태그부터).
-  // 꺼져 있으면 예전 동작('집중한 기록이 사라져요' 확인 창) 그대로 — 운영에 켜고 나면 다음 정리 때 옛 갈래를 지운다
-  focusPause: import.meta.env.VITE_FOCUS_PAUSE === '1',
-  // 분류로 찾기 다듬기 2차(2026-11-19 오너 '모두 권장대로') 중 분류로 찾기 밖의 두 가지 — 회원가입 화면 '가입 전에 둘러봐도 돼요' 두 줄,
-  // 진로백과 홈 아래 탭. 스테이징(deploy-test)만 VITE_BROWSE_POLISH2=1. 운영(deploy-app)은 사용성 확인 뒤 오너 지시로 켠다.
-  // 꺼져 있으면 예전 그대로. 분류로 찾기 안의 변경(칩·'안 맞아요' 줄·묶음 제목)은 서버 칸이 없어도 안전해 스위치 없이 나간다
-  browsePolish2: import.meta.env.VITE_BROWSE_POLISH2 === '1',
+  // 2026-11-19 오너 '지금까지의 스위치 기능들은 내부적으로 모두 점검 되었어. 그냥 바로 적용하자' — 운영에 켜져 있던
+  // guestEntry(비회원 진입)·jobBrowse(분류로 찾기)·focusPause(집중 멈춤·취소)·browsePolish2(가입 둘러보기·진로백과 홈 아래 탭)
+  // 네 스위치를 지우고 켜진 동작만 남겼다(VITE_GUEST_ENTRY 등 빌드 환경변수도 더는 읽지 않는다)
 } as const
 
 export type FeatureKey = keyof typeof features

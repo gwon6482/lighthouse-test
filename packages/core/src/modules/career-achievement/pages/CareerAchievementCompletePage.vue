@@ -110,7 +110,6 @@ import { useCurriculumCompletion } from '../composables/useCurriculumCompletion'
 import { useAchievementEntries, type AchievementEntry } from '../composables/useAchievementEntries'
 import { uploadPhoto } from '../achievement.api'
 import { CATEGORY_META } from '../lib/planBoard'
-import { features } from '@/shared/config/features'
 import { useFocusSessions } from '../composables/useFocusSessions'
 import { sessionKey, combinedElapsed, recordTimeLabel } from '../lib/focusSession'
 import { useAchievementStore } from '@/shared/stores/achievement'
@@ -133,7 +132,7 @@ const elapsedSec = computed(() => {
   const n = Number(route.query.elapsed)
   if (Number.isFinite(n) && n >= 0 && route.query.elapsed != null && route.query.elapsed !== '') return Math.floor(n)
   // 주소에 시간이 없으면(새로 고침 등) 기기에 적어 둔 멈춘 집중의 시간
-  const s = features.focusPause ? focusSessions.get(focusKey.value) : null
+  const s = focusSessions.get(focusKey.value)
   return s ? Math.floor(s.accSec) : 0
 })
 
@@ -320,7 +319,7 @@ const leaveMessage = computed(() => {
 })
 // 묻기로 했으면 true — 멈춘 집중이 있고(시간이 남는다는 말이 참일 때) 잃을 것이 있을 때만
 function askLeave(): boolean {
-  if (!features.focusPause || !focusSessions.get(focusKey.value)) return false
+  if (!focusSessions.get(focusKey.value)) return false
   if (!lost.value.note && !lost.value.photo) return false
   leaveOpen.value = true
   return true

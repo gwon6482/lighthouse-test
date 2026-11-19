@@ -66,8 +66,8 @@
         </div>
       </div>
 
-      <!-- 분류로 찾기(2026-11-17) — 둘러보기 아래, 나의 추천 진로 위. 기능 스위치가 켜진 빌드에만(스테이징 먼저) -->
-      <div v-if="features.jobBrowse" class="enc-home__section">
+      <!-- 분류로 찾기(2026-11-17) — 둘러보기 아래, 나의 추천 진로 위. -->
+      <div class="enc-home__section">
         <BrowseEntry />
       </div>
 
@@ -92,7 +92,6 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useAchievementStore } from '@/shared/stores/achievement'
-import { features } from '@/shared/config/features'
 import { useEncyclopedia } from '../composables/useEncyclopedia'
 import type { JobSummary, JobExploreItem } from '../types/encyclopedia'
 import MainTitle from '../components/page/home/MainTitle.vue'
@@ -104,11 +103,11 @@ import BrowseEntry from '../components/page/browse/BrowseEntry.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
-// 비회원(2026-11-09, features.guestEntry 빌드만): 아직 검사 전이라 단계는 '자기이해' 에, 추천 메뉴는 검사 시작(A 경로)으로
-const guest = features.guestEntry && !authStore.isLoggedIn
+// 비회원(2026-11-09): 아직 검사 전이라 단계는 '자기이해' 에, 추천 메뉴는 검사 시작(A 경로)으로
+const guest = !authStore.isLoggedIn
 // 아래 탭이 보일 때(BottomNav 와 같은 규칙) 마지막 메뉴가 가리지 않게 아래를 띄운다
 const achievementStore = useAchievementStore()
-const navShown = computed(() => features.browsePolish2 && authStore.isLoggedIn && achievementStore.hasActivePlan)
+const navShown = computed(() => authStore.isLoggedIn && achievementStore.hasActivePlan)
 const {
   searchQuery, searchResults, searchGroups, searchScope, scopeResults, searchFailed, isSearching,
   searchJob, openSearchGroup, closeSearchGroup, clearSearch,

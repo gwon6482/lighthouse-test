@@ -31,14 +31,13 @@ import { useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { AREA_COLOR } from '@/modules/survey/surveyIcons'
 import { useAuthStore } from '@/shared/stores/auth'
-import { features } from '@/shared/config/features'
 import { useBrowseAxes, useMyBrowseStart } from '../../../composables/useJobBrowse'
 import { listQuery } from '../../../lib/browseQuery'
 import type { BrowseAxisKey } from '../../../types/browse'
 
 const router = useRouter()
 const auth = useAuthStore()
-const guest = features.guestEntry && !auth.isLoggedIn
+const guest = !auth.isLoggedIn
 const { axes, load: loadAxes } = useBrowseAxes()
 const { mine, noSurvey, load: loadMine } = useMyBrowseStart()
 

@@ -100,7 +100,6 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
 import { useAuthStore } from '@/shared/stores/auth'
-import { features } from '@/shared/config/features'
 import { safeBack } from '@/shared/utils/navigation'
 import BrowseEntry from '../components/page/browse/BrowseEntry.vue'
 import BrowseJobCard from '../components/page/browse/BrowseJobCard.vue'
@@ -118,7 +117,7 @@ const MAX_RESTORE = 150   // 서버 limit·nearLimit 상한과 같다 — 돌아
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
-const guest = features.guestEntry && !auth.isLoggedIn
+const guest = !auth.isLoggedIn
 const { axes, load: loadAxes } = useBrowseAxes()
 const { result, loading, failed, run, more, moreNear, nearLoading } = useBrowseQuery()
 

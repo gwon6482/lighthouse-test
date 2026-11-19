@@ -799,7 +799,6 @@ const authStore = useAuthStore()
 const surveyId = props.surveyId
 
 // 비회원 결과지(2026-11-09) — 로그인하지 않았으면 이 기기의 열람 키로 받고, 성격 Top 3 까지만 보여 준다.
-// 들어오는 길은 비회원 경로(features.guestEntry)가 켜진 빌드뿐이다(꺼지면 라우터가 로그인으로 보낸다)
 const guestMode = !authStore.isLoggedIn
 const providers = ref<Record<Provider, boolean>>({ kakao: false, google: false })
 function goOAuth(p: Provider) {

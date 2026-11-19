@@ -19,7 +19,7 @@
       bodyLine2="내 성격과 재능, 흥미를 알아보는 것부터 시작해 볼게요."
     />
 
-    <!-- 비회원 안내(2026-11-09, features.guestEntry) — 결과지 잠금·삭제 규칙을 시작 전에 알린다(처리방침 제2·3조와 같은 내용) -->
+    <!-- 비회원 안내(2026-11-09) — 결과지 잠금·삭제 규칙을 시작 전에 알린다(처리방침 제2·3조와 같은 내용) -->
     <div v-if="guest" class="su-main__guest">
       <p class="su-main__guest-title">가입 없이 바로 시작할 수 있어요</p>
       <ul class="su-main__guest-list">
@@ -85,11 +85,10 @@ import { useRouter } from 'vue-router'
 import AppHeader from '@/shared/components/AppHeader.vue'
 import JourneyIntro from '@/shared/components/JourneyIntro.vue'
 import { useAuthStore } from '@/shared/stores/auth'
-import { features } from '@/shared/config/features'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const guest = features.guestEntry && !authStore.isLoggedIn
+const guest = !authStore.isLoggedIn
 
 // 영역 색(area)은 surveyIcons.AREA_COLOR 한 곳에서 — 파트 표지(SurveyPartIntro)와 같은 값
 // keywords — 설명을 다 읽지 않아도 한눈에 보이는 요약 배지
