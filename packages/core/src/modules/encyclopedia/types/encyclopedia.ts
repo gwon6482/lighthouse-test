@@ -111,6 +111,39 @@ export interface Job {
   dataSource?: 'work24' | 'work24-shared' | 'crawled'
   /** work24-shared 일 때 같은 원본을 쓰는 다른 직업들 */
   sharedWith?: string[]
+  /** 일자리 전망 자료(2026-11-18, API data/job-outlook). 없으면(옛 API·자료 없음) 전문가 칸을 그리지 않는다 */
+  outlook?: JobOutlook | null
+}
+
+/**
+ * 일자리 전망(2026-11-18) — 고용24 옛 전망 글(2016년 무렵)을 대신한다.
+ * official = 한국고용정보원 공식 판정 한 단어 + 연도 + 출처(글은 옮기지 않는다), ours = 라이트하우스 자체 조사(사실 + 출처).
+ * 정본: workspace decisions/2026-11-18-job-outlook.md '자료 약속'
+ */
+export type OutlookVerdict = '증가' | '다소 증가' | '유지' | '다소 감소' | '감소'
+export interface OutlookSource { title?: string; publisher?: string; year?: number | string; page?: string; url?: string }
+export interface JobOutlook {
+  title?: string
+  status: 'official' | 'group' | 'ours' | 'none'
+  official?: {
+    verdict: OutlookVerdict
+    period?: string | null        // '2025~2035'
+    written?: string | null       // '2022' — 2020~2023 글
+    scope?: 'job' | 'group'
+    groupName?: string | null     // 묶음 판정일 때 묶음 이름
+    source?: OutlookSource
+    checkedAt?: string
+  } | null
+  ours?: {
+    lines?: string[]
+    facts?: { text: string; source?: OutlookSource; checkedAt?: string }[]
+    reviewed?: boolean
+    writtenAt?: string
+  } | null
+  related?: string[]
+  /** API 가 related 코드에 이름을 붙여 준 것 */
+  relatedJobs?: { jobCode: string; title: string }[]
+  hiring?: '공채' | null
 }
 
 /** GET /api/job/:jobCode 응답 */

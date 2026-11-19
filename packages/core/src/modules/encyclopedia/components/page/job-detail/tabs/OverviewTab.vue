@@ -226,21 +226,78 @@
         </div>
 
       </div>
+      <!-- 연봉 단서(2026-11-18 결정 11) — 같은 재직자 조사(직업당 약 30명)의 자기 응답이고 경력자가 섞여 있다 -->
+      <p v-if="job.salary" class="overview-stats__note" data-test="salary-note">일하는 사람들이 답한 값이에요(경력자 포함). 직업끼리 견주는 참고로 봐 주세요.</p>
     </section>
 
-    <!-- 일자리 전망 -->
-    <section v-if="job.work24?.prospect?.text || job.work24?.prospect?.distribution?.length" :class="['overview-section', { 'g-locked': locked }]" @click="onLockedClick">
+    <!-- 전문가 전망(2026-11-18) — API outlook(data/job-outlook)으로만 그린다. 고용24 옛 전망 글(2016년 무렵)은 더 그리지 않는다.
+         공식 판정은 한 단어 + 연도 + 출처 + 링크(한국고용정보원 글은 옮기지 않는다), 자체 조사는 '라이트하우스가 정리한 내용' 표시.
+         결정: workspace decisions/2026-11-18-job-outlook.md(정한 것 1·3·7·8) · 규칙: lib/outlook.ts -->
+    <section v-if="view" :class="['overview-section', 'overview-outlook', { 'g-locked': locked }]" data-test="outlook" @click="onLockedClick">
       <div v-if="locked" class="overview-section__header">
-        <h3 class="overview-section__title">일자리 전망 <span v-if="prospectYear" class="overview-section__sub">{{ prospectYear }}년 조사</span></h3>
+        <h3 class="overview-section__title">전문가 전망</h3>
+        <span class="g-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span>
+      </div>
+      <h3 v-else class="overview-section__title">전문가 전망</h3>
+
+      <p v-if="view.noneLine" class="overview-outlook__none" data-test="outlook-none">{{ view.noneLine }}</p>
+
+      <div v-if="view.showOfficial" :class="['overview-outlook__official', { 'overview-outlook__official--small': view.officialSmall }]" data-test="outlook-official">
+        <p v-if="groupLineText" class="overview-outlook__group">{{ groupLineText }}</p>
+        <div class="overview-outlook__verdict">
+          <span :class="['overview-outlook__chip', `overview-outlook__chip--${tone}`]">{{ job.outlook?.official?.verdict }}</span>
+          <span v-if="when" class="overview-outlook__when">{{ when }}</span>
+        </div>
+        <p :class="['overview-outlook__line', { 'g-veil': locked }]">{{ sentence }}</p>
+        <p v-if="srcText" :class="['overview-outlook__source', { 'g-veil': locked }]">출처: {{ srcText }}</p>
+        <a
+          v-if="job.outlook?.official?.source?.url && !locked"
+          class="overview-outlook__link"
+          :href="job.outlook.official.source.url"
+          target="_blank"
+          rel="noopener"
+        >{{ outlookLinkLabel(job.outlook.official.source.url) }}</a>
+      </div>
+
+      <div v-if="view.showOurs" :class="['overview-outlook__ours', { 'g-veil': locked }]" data-test="outlook-ours">
+        <p v-for="(l, i) in job.outlook?.ours?.lines ?? []" :key="i" class="overview-outlook__ours-line">{{ l }}</p>
+        <p class="overview-outlook__badge">{{ view.oursBadge }}</p>
+        <ul v-if="job.outlook?.ours?.facts?.length" class="overview-outlook__facts">
+          <li v-for="(f, i) in oursSources" :key="i">
+            <a v-if="f.source?.url && !locked" :href="f.source.url" target="_blank" rel="noopener">{{ factSource(f) }}</a>
+            <span v-else>{{ factSource(f) }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <p v-if="view.hiringLine" class="overview-outlook__hiring">{{ view.hiringLine }}</p>
+      <div v-if="view.related.length" class="overview-outlook__related" data-test="outlook-related">
+        <span class="overview-outlook__related-label">비슷한 직업의 전망</span>
+        <div class="overview-outlook__related-chips">
+          <RouterLink
+            v-for="r in view.related"
+            :key="r.jobCode"
+            :to="`/career-encyclopedia/job/${r.jobCode}`"
+            class="overview-outlook__related-chip"
+          >{{ r.title }}</RouterLink>
+        </div>
+      </div>
+    </section>
+
+    <!-- 일하는 사람들의 생각(2026-11-18) — 고용24 막대는 전망 통계가 아니라 재직자 의견(직업당 평균 30명, '참고자료로만')이다.
+         '2025년 조사'는 이 막대에만 붙인다. 비회원은 다섯 칸을 함께 흐린다(예전처럼 한 칸만 또렷하면 의견이 판정 한 단어로 읽힌다) -->
+    <section v-if="job.work24?.prospect?.distribution?.length" :class="['overview-section', { 'g-locked': locked }]" data-test="opinion" @click="onLockedClick">
+      <div v-if="locked" class="overview-section__header">
+        <h3 class="overview-section__title">일하는 사람들의 생각 <span v-if="opinionSub" class="overview-section__sub">{{ opinionSub }}</span></h3>
         <span class="g-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span>
       </div>
       <h3 v-else class="overview-section__title">
-        일자리 전망
-        <span v-if="prospectYear" class="overview-section__sub">{{ prospectYear }}년 조사</span>
+        일하는 사람들의 생각
+        <span v-if="opinionSub" class="overview-section__sub">{{ opinionSub }}</span>
       </h3>
 
-      <div v-if="job.work24?.prospect?.distribution?.length" class="overview-prospect">
-        <div v-for="(b, bi) in job.work24.prospect.distribution" :key="b.name" :class="['overview-prospect__row', { 'g-veil': locked && bi !== prospectTopIdx }]">
+      <div class="overview-prospect">
+        <div v-for="b in job.work24.prospect.distribution" :key="b.name" :class="['overview-prospect__row', { 'g-veil': locked }]">
           <span class="overview-prospect__label">{{ b.name }}</span>
           <div class="overview-prospect__bar-bg">
             <div
@@ -252,10 +309,7 @@
           <span class="overview-prospect__value">{{ b.ratio }}%</span>
         </div>
       </div>
-
-      <p v-if="job.work24?.prospect?.text" :class="['overview-section__text', 'overview-section__text--pre', { 'g-veil g-clip g-clip--sm': locked }]">
-        {{ job.work24.prospect.text }}
-      </p>
+      <p class="overview-prospect__note">한 직업에 평균 30명이 답한 결과예요. 참고로만 봐 주세요.</p>
     </section>
 
     <!-- 관련 직업 -->
@@ -269,6 +323,10 @@
 
     <!-- 비회원 안내 카드 — 흐린 곳을 누르면 여기로 내려온다 -->
     <div v-if="locked" ref="ctaEl" class="overview-lock"><JobGuestCta /></div>
+
+    <!-- 출처(2026-11-18 결정 5) — 고용24 직업정보 Open API 이용 조건(공공누리 제4유형)의 첫 조건이 출처 표시다.
+         '제공·공식·제휴'라는 말은 쓰지 않는다(후원·특수관계로 오인 금지) -->
+    <p class="overview-source" data-test="source">직업 정보 출처: 한국고용정보원 고용24 직업정보(공공누리 제4유형) · 라이트하우스가 직접 쓴 부분은 따로 표시했어요.</p>
   </div>
 </template>
 
@@ -276,18 +334,37 @@
 import { computed, reactive, ref, onMounted } from 'vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import JobGuestCta from '../JobGuestCta.vue'
-import type { Job, JobDetails, CategoryRankings, RankItem } from '../../../../types/encyclopedia'
+import type { Job, JobDetails, CategoryRankings, RankItem, OutlookSource } from '../../../../types/encyclopedia'
 
 import { useCareerAttributes } from '@/shared/composables/useCareerAttributes'
 import JobGateGuide from '@/shared/components/JobGateGuide.vue'
+import { outlookView, verdictSentence, verdictWhen, verdictTone, sourceText, groupLine, outlookLinkLabel } from '../../../../lib/outlook'
 
 const props = defineProps<{ job: Job; locked?: boolean }>()
 
-// 비회원: 일자리 전망은 비율이 가장 큰 칸을 또렷하게 — 첫 칸이 '증가 0%' 처럼 빈 값일 때가 있다
-const prospectTopIdx = computed(() => {
-  const d = props.job.work24?.prospect?.distribution ?? []
-  return d.reduce((best, b, i) => (b.ratio > (d[best]?.ratio ?? -1) ? i : best), 0)
+// ── 전문가 전망(2026-11-18, lib/outlook.ts) ───────────────────────────────
+const view = computed(() => outlookView(props.job.outlook))
+const sentence = computed(() => verdictSentence(props.job.outlook))
+const when = computed(() => verdictWhen(props.job.outlook?.official))
+const tone = computed(() => verdictTone(props.job.outlook?.official?.verdict))
+const srcText = computed(() => sourceText(props.job.outlook?.official))
+// 묶음 판정 안내 — 같은 고용24 원본을 쓰는 직업 수(자기 포함)를 붙인다
+const groupLineText = computed(() => groupLine(props.job.outlook, (props.job.sharedWith?.length ?? 0) + 1))
+// 자체 조사 출처 — 같은 출처(주소·제목)는 한 번만 보인다. 공식 판정이 먼저, 자체 조사는 그 아래(2026-11-19)
+const oursSources = computed(() => {
+  const seen = new Set<string>()
+  return (props.job.outlook?.ours?.facts ?? []).filter((f) => {
+    const k = f.source?.url || f.source?.title || f.text
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
 })
+function factSource(f: { text: string; source?: OutlookSource }): string {
+  const s = f.source
+  if (!s) return f.text
+  return [s.publisher, s.title, s.year ? `(${s.year})` : ''].filter(Boolean).join(' ')
+}
 
 // 비회원: 흐린 곳을 누르면 맨 아래 안내 카드로 내린다(또렷한 칩·링크는 제 할 일을 하게 둔다)
 const ctaEl = ref<HTMLElement | null>(null)
@@ -346,12 +423,19 @@ const showSharedNotice = computed(() => {
   return props.job.dataSource === 'work24-shared' && !!nm && nm !== props.job.title
 })
 
-// 임금·전망 모두 같은 조사년도를 쓴다. 어느 쪽이든 있으면 표시한다.
+// 재직자 조사 연도(막대·임금이 같은 조사). '○○년 조사'는 '일하는 사람들의 생각' 막대에만 붙인다(2026-11-18 결정 2)
 const prospectYear = computed(() =>
   props.job.work24?.prospect?.distribution?.find(b => b.year)?.year
     ?? props.job.work24?.salarySurveyYear
     ?? null,
 )
+// 묶음 직업이면 막대가 묶음 전체의 응답이라고 밝힌다(예: '2025년 조사 · 전문의사 전체')
+const opinionSub = computed(() => {
+  const parts: string[] = []
+  if (prospectYear.value) parts.push(`${prospectYear.value}년 조사`)
+  if (showSharedNotice.value && props.job.work24?.jobNm) parts.push(`${props.job.work24.jobNm} 전체`)
+  return parts.join(' · ')
+})
 
 // 전망 막대 색. 증가 계열/감소 계열만 구분하고 나머지는 기본색.
 function prospectToneOf(name: string): string {
