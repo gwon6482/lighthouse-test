@@ -15,7 +15,7 @@
 
       <template v-else>
         <!-- 꼭 거쳐야 하는 것 · 함께 쓰는 계획 안내 · 법령 대조 -->
-        <div v-if="prep.shared || prep.plan.gate || prep.plan.checked || prep.plan.caution || prep.plan.reality || prep.plan.eligibility" class="prep-intro">
+        <div v-if="prep.shared || prep.plan.gate || prep.plan.checked || prep.plan.caution || prep.plan.reality || prep.plan.eligibility || degreeRoutes" class="prep-intro">
           <p v-if="prep.shared" class="prep-intro__shared">
             준비하는 길이 비슷한 <strong>{{ prep.plan.displayName }}</strong>의 계획을 함께 보여드려요.
           </p>
@@ -44,6 +44,33 @@
               <li v-for="(line, li) in prep.plan.eligibility.lines" :key="li"><span class="list-dot" />{{ line }}</li>
             </ul>
             <PreparationNotes :checked="prep.plan.eligibility.checked" />
+          </div>
+          <!-- 학위를 따는 다른 길(2026-11-19 오너 결정 C) — 학점은행·편입 같은 길로 이 면허·자격이 되는지. 모두에게 같게 보인다.
+               안 되는 길도 보여 헛걸음을 막는다. 돼요·안 돼요·조건 있어요는 글자로 적는다(색에만 뜻을 싣지 않는다). 걸음·기간과 상관없다 -->
+          <div v-if="degreeRoutes" class="prep-gate prep-gate--elig">
+            <span class="prep-gate__label">학위를 따는 다른 길</span>
+            <ul class="prep-elig">
+              <li v-for="(line, li) in degreeRoutes.lines" :key="li">
+                <span class="list-dot" />
+                <span class="prep-route">
+                  <span class="prep-route__head">
+                    <strong>{{ routeNames(line.routes) }}</strong>
+                    <span :class="['prep-tag', line.ok === 'yes' ? 'prep-tag--track' : 'prep-tag--plain']">{{ ROUTE_OK_LABEL[line.ok] }}</span>
+                  </span>
+                  {{ line.text }}
+                </span>
+              </li>
+              <li v-if="degreeRoutes.common"><span class="list-dot" />{{ degreeRoutes.common }}</li>
+            </ul>
+            <ul v-if="routeFacts.length" class="prep-route-facts" aria-label="기간과 비용">
+              <li v-for="r in routeFacts" :key="r.id">
+                <strong>{{ r.name }}</strong><template v-if="r.gives"> · {{ r.gives }}</template>
+                <span v-if="r.time" class="prep-route-facts__line">{{ r.time }}</span>
+                <span v-if="r.cost" class="prep-route-facts__line">{{ r.cost }}</span>
+              </li>
+            </ul>
+            <PreparationNotes :checked="degreeRoutes.checked" />
+            <p class="prep-route-foot">라이트하우스가 정리한 내용이에요 · 검토 전</p>
           </div>
           <PreparationNotes :checked="prep.plan.checked" :caution="prep.plan.caution" />
         </div>
@@ -248,7 +275,7 @@ import PeriodTag from '@/modules/career-design/components/PeriodTag.vue'
 import { fetchJobPreparation } from '../../../../encyclopedia.api'
 import { FULL_TIME_HOURS, PART_TIME_HOURS, formatFullTime, formatMinutes, formatStudyHours, formatWeeks, hasMajorSkip, josaRo, pathOf, statSourceLine, stepsOf, sumParts, type PrepStep } from '../../../../lib/preparation'
 import { meanHeadline } from '@/modules/career-design/lib/examPace'
-import type { JobPreparation, PrepProject } from '../../../../types/encyclopedia'
+import type { JobPreparation, PrepDegreeRoute, PrepProject, PrepRouteOk } from '../../../../types/encyclopedia'
 import type { ProjectCategory } from '@/modules/career-design/types/career-design'
 import { methodDef, methodIcon, type ProjectMethod } from '@/modules/career-design/composables/projectMethods'
 import { CATEGORY_META } from '@/modules/career-achievement/lib/planBoard'
@@ -307,6 +334,27 @@ const periodSub = computed(() => {
   return parts.value.duringCount ? `${head} · 다니면서 하는 것 ${parts.value.duringCount}개` : head
 })
 // 큰 시험 — 합격자 수치(잰 걸음에만 온다)와 나란히 대상 이름
+// 학위를 따는 다른 길(2026-11-19) — 옛 서버는 칸이 없다
+const ROUTE_OK_LABEL: Record<PrepRouteOk, string> = { yes: '돼요', no: '안 돼요', if: '조건 있어요' }
+const degreeRoutes = computed(() => prep.value?.plan.degreeRoutes ?? null)
+const routeOf = (id: string): PrepDegreeRoute | null => prep.value?.degreeRouteItems?.[id] ?? null
+const routeNames = (ids: string[]) => ids.map((id) => routeOf(id)?.name ?? id).join(' · ')
+// 기간과 비용 — 되는 길·조건 있는 길만(안 되는 길의 비용은 보여 줄 까닭이 없다). 한 길은 한 번만
+const routeFacts = computed(() => {
+  const seen = new Set<string>()
+  const out: PrepDegreeRoute[] = []
+  for (const line of degreeRoutes.value?.lines ?? []) {
+    if (line.ok === 'no') continue
+    for (const id of line.routes) {
+      const r = routeOf(id)
+      if (!r || seen.has(id) || !(r.time || r.cost)) continue
+      seen.add(id)
+      out.push(r)
+    }
+  }
+  return out
+})
+
 const statOf = (s: PrepStep) => (s.item.passStat ? prep.value?.passStats?.[s.item.passStat] ?? null : null)
 const alongsideName = (ref: string) => prep.value?.projects[ref]?.name ?? ''
 // 다른 걸음이 이 걸음과 나란히 하는가(7급 전문과목 — PSAT 이 붙는 대상)

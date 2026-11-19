@@ -3,7 +3,7 @@
        0개·적을 때 '하나 빼면'과 '하나만 빼고 맞아요'. 목록은 '나에게 맞는'이 아니라 '이것을 많이 쓰는' 직업이다 -->
   <div class="bl">
     <header class="bhd">
-      <button type="button" class="bhd__back" aria-label="뒤로 가기" @click="back"><AppIcon name="ui-back" /></button>
+      <button type="button" class="bhd__back" aria-label="뒤로" @click="back"><AppIcon name="ui-back" /></button>
       <span class="bhd__title">분류로 찾기</span>
       <button type="button" class="bhd__home" @click="goHome">진로백과 홈</button>
     </header>
