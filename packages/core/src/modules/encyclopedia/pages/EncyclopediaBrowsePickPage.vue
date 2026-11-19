@@ -13,12 +13,14 @@
         <button
           v-for="k in BROWSE_AXES" :key="k" type="button" role="tab" class="bp__tab"
           :class="{ 'bp__tab--on': k === axisKey }" :aria-selected="k === axisKey"
-          :disabled="k !== axisKey && !canUseAxis(tentative, k)" @click="switchAxis(k)"
+          :disabled="tabLocked(k)" :aria-describedby="tabLocked(k) ? 'bp-tabs-note' : undefined" @click="switchAxis(k)"
         >
           {{ AXIS_NAME[k] }}<AppIcon v-if="k === 'salary' && guest" name="ui-privacy" :size="11" class="bp__tab-lock" aria-label="가입 후" />
           <i v-if="k !== axisKey && tentative[k].length" class="bp__tab-dot" aria-hidden="true" />
         </button>
       </div>
+      <!-- 한도로 잠긴 탭이 있으면 까닭을 한 줄로(2026-11-18 사용성 QA — 탭이 회색으로 잠기는데 이유가 없었다) -->
+      <p v-if="tabsNote" id="bp-tabs-note" class="bp__tabs-note">조건은 {{ MAX_CONDITIONS }}개까지 고를 수 있어요. 이미 고른 탭 안에서는 더 고를 수 있어요</p>
 
       <h1 class="bp__q">{{ topCode ? '직무를 골라요' : QUESTION[axisKey] }}</h1>
       <p v-if="axesFailed" class="bp__fail">분류를 불러오지 못했어요. 잠시 후 다시 시도해 주세요</p>
@@ -258,6 +260,10 @@ function groupCount(g: BrowseOption): number | undefined {
 /** 이 탭을 새로 쓰면 조건이 하나 늘어난다 — 이미 3개면 고를 수 없다(탭에서 막지만 주소로 바로 들어온 경우까지) */
 const canPick = computed(() => state.value[axisKey.value].length > 0 || draft.value.length > 0 || conditionCount(base.value) < MAX_CONDITIONS)
 const limited = computed(() => !!axes.value && !canPick.value)
+/** 탭 잠금 — 이 탭이 아니고, 더하면 조건이 한도를 넘는 탭 */
+const tabLocked = (k: BrowseAxisKey) => k !== axisKey.value && !canUseAxis(tentative.value, k)
+/** 잠긴 탭 안내 — 이 탭 자체를 못 고를 때는 아래 한도 안내(limited)가 대신 말한다 */
+const tabsNote = computed(() => !topCode.value && !limited.value && BROWSE_AXES.some(tabLocked))
 const isZero = (k: BrowseAxisKey, code: string) => !!code && !draft.value.includes(code) && countOf(k, code) === 0
 const isOff = (k: BrowseAxisKey, code: string) => !canPick.value || isZero(k, code)
 const dimClass = (k: BrowseAxisKey, code: string, onlyLimit = false) => ({

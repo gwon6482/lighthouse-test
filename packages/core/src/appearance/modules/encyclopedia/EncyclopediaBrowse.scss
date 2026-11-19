@@ -135,6 +135,8 @@
     &:disabled { opacity: 0.4; cursor: not-allowed; }
   }
   &__tab-lock { opacity: 0.8; }
+  // 탭 한도 안내 — 탭 바로 아래 작은 회색 글(본문 간격 12px 을 줄여 탭에 붙인다)
+  &__tabs-note { margin: -6px 2px 0; font-size: 12px; line-height: 1.5; color: #888; }
   &__tab-dot { position: absolute; top: 3px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: #FFC700; }
   &__q { margin: 4px 2px 0; font-size: 19px; font-weight: 800; color: #222; letter-spacing: -0.01em; }
   &__fail, &__loading { margin: 0; padding: 20px 4px; font-size: 13px; color: #888; }
