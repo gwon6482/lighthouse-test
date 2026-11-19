@@ -567,6 +567,16 @@
 
   &__lead { margin: 0; strong { font-weight: 700; color: #5A4500; } }
   &__refs { margin: 6px 0 0; color: #8A7A45; overflow-wrap: anywhere; }
+  &__caution { margin: 6px 0 0; }
+  // 검토 표시(2026-11-19) — 상자 맨 아래, 한 줄
+  &__review {
+    margin: 8px 0 0;
+    padding-top: 7px;
+    border-top: 1px solid #F3E3A1;
+    font-weight: 600;
+    &--draft { color: #8A7A45; }
+    &--reviewed { color: #3D6B2A; }
+  }
 }
 
 

@@ -80,7 +80,7 @@ export interface JobWork24 {
    * 다른 구성원 화면에 남의 글이 나왔다 — 그런 직업은 서버가 직접 쓴 글로 바꿔 주고 이 표시를 붙인다.
    * basis: law = 법령·국가자격 원문을 읽고 쓴 부분이 있다(sources) / general = 일반적인 경로(공식 자료와 대조하지 않음)
    */
-  waySource?: { by: 'lighthouse'; basis: 'law' | 'general'; sources: string[]; caution: string | null; updatedAt: string; reviewed: boolean }
+  waySource?: WaySource
   education: RatioItem[]                  // 학력 분포
   schoolDepartments: RatioItem[]          // 전공 계열 분포
   prospect: { text: string | null; distribution: ProspectBucket[] }
@@ -500,3 +500,17 @@ export interface JobGroupRecruitmentResponse extends JobRecruitmentResponse {
 // ────────────────────────────────────────────────────────────────────────────
 
 export type JobDetailTab = 'overview' | 'review' | 'preparation' | 'recruitment'
+
+/**
+ * '되는 길' 직접 쓴 글의 출처 표시(API waySource). reviewed·reviewedAt 은 2026-11-19부터 직업마다다
+ * (그 전 API 는 reviewed 가 전체 하나, reviewedAt 칸이 없다). 오너가 최종 검토한 직업만 reviewed: true.
+ */
+export interface WaySource {
+  by: 'lighthouse'
+  basis: 'law' | 'general'
+  sources: string[]
+  caution: string | null
+  updatedAt: string
+  reviewed: boolean
+  reviewedAt?: string | null
+}

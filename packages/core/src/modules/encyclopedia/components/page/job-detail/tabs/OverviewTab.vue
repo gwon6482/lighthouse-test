@@ -37,15 +37,20 @@
     <section v-if="job.work24?.way" class="overview-section">
       <h3 class="overview-section__title">되는 길</h3>
       <p class="overview-section__text overview-section__text--pre">{{ job.work24.way }}</p>
-      <!-- 라이트하우스가 직접 쓴 글 표시(2026-11-14) — 고용24 자료가 아니라는 것과 근거 수준을 알린다 -->
-      <div v-if="job.work24.waySource" class="overview-way-source">
+      <!-- 라이트하우스가 직접 쓴 글 표시(2026-11-14) — 고용24 자료가 아니라는 것과 근거 수준을 알린다.
+           2026-11-19 진로상담 1차 검토: 근거 문구를 '일부'로 낮추고, caution 과 검토 표시(직업마다)를 상자 맨 아래에(lib/waySource) -->
+      <div v-if="waySource" class="overview-way-source">
         <p class="overview-way-source__lead">
           <strong>라이트하우스가 정리한 내용이에요.</strong>
-          {{ job.work24.waySource.basis === 'law' ? '법령과 자격 기준을 확인해 썼어요.' : '일반적인 경로를 정리했어요.' }}
+          {{ waySource.basisLine }}
           시험·채용 조건은 공고로 다시 확인해 주세요.
         </p>
-        <p v-if="job.work24.waySource.sources.length" class="overview-way-source__refs">
-          확인한 자료: {{ job.work24.waySource.sources.join(' · ') }}
+        <p v-if="waySource.caution" class="overview-way-source__caution">{{ waySource.caution }}</p>
+        <p v-if="waySource.sources.length" class="overview-way-source__refs">
+          확인한 자료: {{ waySource.sources.join(' · ') }}
+        </p>
+        <p v-if="waySource.review" :class="['overview-way-source__review', `overview-way-source__review--${waySource.review.kind}`]">
+          {{ waySource.review.text }}
         </p>
       </div>
     </section>
@@ -359,8 +364,12 @@ import type { Job, JobDetails, CategoryRankings, RankItem, OutlookSource } from 
 import { useCareerAttributes } from '@/shared/composables/useCareerAttributes'
 import JobGateGuide from '@/shared/components/JobGateGuide.vue'
 import { outlookView, verdictSentence, verdictWhen, verdictTone, sourceText, groupLine, outlookLinkLabel } from '../../../../lib/outlook'
+import { waySourceView } from '../../../../lib/waySource'
 
 const props = defineProps<{ job: Job; locked?: boolean }>()
+
+// '되는 길' 직접 쓴 글의 출처·검토 표시(lib/waySource)
+const waySource = computed(() => (props.job.work24?.waySource ? waySourceView(props.job.work24.waySource) : null))
 
 // 비회원 자리표시 — 흐림 아래 실제 값을 두지 않는다(목록 카드 BrowseJobCard 와 같은 방식, 2026-11-19)
 const VEIL_NUM = '0,000'
