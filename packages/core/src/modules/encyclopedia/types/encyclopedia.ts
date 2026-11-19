@@ -290,6 +290,7 @@ export interface PrepProject {
   caution?: string
   checked?: PrepChecked
   course?: boolean                        // 대학·대학원·수련처럼 기간이 정해진 과정(2026-11-16)
+  replacesCollege?: boolean               // 대학 학위를 대신하는 과정(학점은행으로 전문학사 받기, 2026-11-19) — 대학생·졸업자면 내 진로상황이 뺀다(옛 서버는 없다)
   period?: boolean                        // 프로젝트 종류 '과정' — 정해진 곳에 다니는 기간(2026-11-16, 없으면 진도)
   mayHave?: boolean                       // 이미 가지고 있을 수 있는 것 — 운전면허·어학 성적 등(2026-11-16)
   haveLabel?: string                      // 내 진로상황 '이미 해 둔 것' 목록의 이름(토익 점수·운전면허)

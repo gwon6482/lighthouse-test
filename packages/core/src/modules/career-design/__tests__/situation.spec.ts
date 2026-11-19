@@ -165,6 +165,57 @@ describe('내 진로상황 — 법조·전공 과목·대학원', () => {
   })
 })
 
+// 학점은행으로 전문학사 받기(replacesCollege, 2026-11-19) — 사회복지사 공통 첫 걸음과 같은 모양
+const creditBank = (): JobPreparation => {
+  const projects: Record<string, PrepProject> = {
+    'cp.credit-bank-associate': project('cp.credit-bank-associate', 104, { type: 'edu', subtype: 'major', category: 'knowledge', course: true, replacesCollege: true, name: '학점은행으로 전문학사 받기(80학점)', phases: [{ weeks: 52, title: '첫해', items: ['가'] }, { weeks: 52, title: '둘째 해', items: ['나'] }] }),
+    'cp.sw2': project('cp.sw2', 73, { type: 'cert', subtype: 'national-license', category: 'qualification' }),
+    'cp.volunteer': project('cp.volunteer', 12, { type: 'activity', subtype: 'volunteer', category: 'experience' }),
+  }
+  const skipAny = '대학에 다니고 있거나 졸업했다 — 학위 요건은 대학 학위로 채운다'
+  return {
+    jobCode: '231101', title: '사회복지사', displayName: '사회복지사', shared: false,
+    plan: { jobCode: '231101', title: '사회복지사', displayName: '사회복지사', family: 'welfare', familyName: null, status: 'draft', updatedAt: null, summary: '', gate: null, caution: null, checked: null, relatedMajor: '사회복지학과' },
+    tracks: [], defaultTrack: null,
+    paths: [{
+      track: null,
+      items: [
+        item('cp.credit-bank-associate', 0.5, { major: false, skipFor: 'any', skip: skipAny }),
+        item('cp.sw2', 1, { major: false, skip: '사회복지학과 교육과정에 포함돼 있다', during: true }),
+        item('cp.volunteer', 2),
+      ],
+      totals: { nonMajor: { count: 0, weeks: 0 }, major: { count: 0, weeks: 0 }, optional: 0 },
+    }],
+    projects,
+  }
+}
+const runCredit = (p: CareerProfile) => { const prep = creditBank(); return applySituation(prep, prep.paths[0]!, p) }
+
+describe('내 진로상황 — 대학 학위를 대신하는 과정(학점은행 전문학사)', () => {
+  it('고졸이면 그대로 — 과목 이수는 과정 안에 겹쳐 센다', () => {
+    const r = runCredit(profile({ school: 'hs_grad' }))
+    expect(r.changes).toEqual([])
+    expect(r.weeks).toBe(104 + 12)
+    expect(r.rows.find((x) => x.item.ref === 'cp.sw2')!.during).toBe(true)
+  })
+  it('다른 학과 대학생 — 남은 학년으로 줄이지 않고 빼고, 과목 이수는 따로 센다', () => {
+    const r = runCredit(profile({ school: 'college', year: 2 }))
+    expect(r.changes).toEqual([{ kind: 'cut', ref: 'cp.credit-bank-associate', name: '학점은행으로 전문학사 받기(80학점)', reason: '대학에 다니고 있어요' }])
+    expect(r.rows.map((x) => x.item.ref)).toEqual(['cp.sw2', 'cp.volunteer'])
+    expect(r.rows[0]!.during).toBe(false)
+    expect(r.weeks).toBe(73 + 12)
+  })
+  it('다른 학과 졸업 — 과정을 빼고 과목 이수는 남긴다(학교에서 마친 걸음으로 보지 않는다)', () => {
+    const r = runCredit(profile({ school: 'college_grad' }))
+    expect(r.changes.map((c) => c.reason)).toEqual(['대학을 졸업했어요'])
+    expect(r.weeks).toBe(73 + 12)
+  })
+  it('관련 학과(사회복지학과) 대학생 — 과정과 전공 과목 걸음을 함께 뺀다', () => {
+    const r = runCredit(profile({ school: 'college', year: 2, relatedJobs: [{ jobCode: '231101', name: '사회복지사' }] }))
+    expect(r.rows.map((x) => x.item.ref)).toEqual(['cp.volunteer'])
+  })
+})
+
 describe('도움 함수', () => {
   it('학교 과정을 앞에서부터 줄인다', () => {
     expect(trimFront([{ weeks: 52, title: 'a', items: [] }, { weeks: 104, title: 'b', items: [] }, { weeks: 52, title: 'c', items: [] }], 104).map((p) => [p.title, p.weeks])).toEqual([['b', 52], ['c', 52]])

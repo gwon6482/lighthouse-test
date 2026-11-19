@@ -8,6 +8,8 @@
 //                                    — 시험·자격·지원 준비와 실무 연습은 남긴다(이미 붙었으면 '이미 해 둔 것'으로 뺀다)
 //   · 다른 학과                      바뀌는 것 없음(수능 걸음의 '편입·학사편입' 안내가 보인다)
 //   · 법조(항목 skipFor:'any')       학과와 상관없이 대학생이면 입시 빼기·학부 남은 학년만, 졸업이면 학부까지 빼기
+//   · 대학 학위를 대신하는 과정      (프로젝트 replacesCollege — 학점은행으로 전문학사 받기, 2026-11-19) 대학생·졸업자면 학년과 상관없이 빼고,
+//                                    그 안에 겹쳐 있던 걸음(자격 과목 이수)은 따로 센다 — 학위는 다니는 대학이 채운다
 //   · 대학원생·졸업 + 관련           학부는 졸업으로 보고, 석사 과정은 대학원생이면 남은 1년·졸업이면 빼기(그 과정의 학업 걸음·학위 논문도)
 //   · 이미 해 둔 것                  고른 걸음 빼기(자격·면허·어학·근무 경험). 자격을 해 뒀으면 짝인 필기·1차·연수도 뺀다(2026-11-17)
 // 경력·성과는 계획에 반영하지 않는다.
@@ -249,6 +251,12 @@ export function applySituation(prep: JobPreparation, path: PrepPath, profile: Ca
     }
     // 2) 학부 과정(전공자 생략 과정)
     if (p.course && !item.major && schoolSkip) {
+      // 대학 학위를 대신하는 과정 — 대학생이어도 '남은 학년'으로 줄이지 않고 뺀다. 과정 안에서 하던 걸음은 학교가 대신하지 않으므로
+      // 졸업으로 빠진 과정(rule 5)으로 보지 않는다(cutCourse 를 두지 않는다 → 겹쳤던 걸음이 따로 세진다)
+      if (p.replacesCollege) {
+        cut(item, p, inCollege ? (forAny ? '대학에 다니고 있어요' : `${major}에 다니고 있어요`) : (forAny ? '대학을 졸업했어요' : `${josa(major, '을', '를')} 졸업했어요`))
+        continue
+      }
       if (collegeDone) { cut(item, p, '졸업했어요'); cutCourse = 'degree'; continue }
       const totalYears = Math.max(1, Math.round(p.weeks / 52))
       const remain = Math.max(1, totalYears - year + 1)
