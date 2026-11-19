@@ -97,11 +97,11 @@ import {
   MAX_CONDITIONS, canAddCondition, conditionCount, isEmptyState, listQuery, nextAxisToAdd, orderFromQuery,
   groupNear, paramsFromState, stateFromQuery, withoutCondition,
 } from '../lib/browseQuery'
+import { clearPosition, positionKey, readPosition, savePosition, type BrowsePosition } from '../lib/browsePosition'
 import type { BrowseAxisKey, BrowseRow } from '../types/browse'
 
 const PAGE = 30
-const MAX_RESTORE = 150   // 서버 limit 상한과 같다 — 상세에서 돌아오면 펼쳤던 만큼 한 번에 다시 받는다
-const SCROLL_KEY = 'lh_browse_scroll'
+const MAX_RESTORE = 150   // 서버 limit·nearLimit 상한과 같다 — 돌아오면 펼쳤던 만큼 한 번에 다시 받는다
 
 const route = useRoute()
 const router = useRouter()
@@ -123,32 +123,43 @@ const opts = (limit: number) => ({
   limit,
   ...(order.value.length ? { sort: order.value[0]!, order: order.value.join(',') } : {}),
 })
-// 조건·순서가 바뀔 때만 다시 받는다(펼친 수 n 은 주소에만 남긴다)
-watch(() => JSON.stringify([paramsFromState(state.value), order.value]), () => {
+// 조건·순서가 바뀔 때만 다시 받는다. 펼친 수는 주소(n)와 '보던 자리'(상세·로그인에서 돌아올 때) 중 큰 쪽만큼 한 번에 받는다
+const listKey = computed(() => positionKey(state.value, order.value))
+watch(listKey, async () => {
   if (empty.value) return
-  const n = Math.min(Number(route.query.n) || 0, MAX_RESTORE)
-  run(state.value, opts(Math.max(PAGE, n)))
+  const pos = readPosition(listKey.value)
+  // 다른 목록을 열었으면 남은 자리는 버린다 — 조건을 더했다 다시 뺐을 때 옛 자리로 뛰지 않게
+  if (!pos) clearPosition()
+  const n = Math.min(Math.max(Number(route.query.n) || 0, pos?.n ?? 0), MAX_RESTORE)
+  const r = await run(state.value, opts(Math.max(PAGE, n)))
+  if (!r) return
+  if (pos) await restorePosition(pos)
 }, { immediate: true })
-async function loadMore() {
-  await more(state.value, opts(PAGE))
-  const shown = result.value?.data.length ?? 0
-  if (shown > PAGE) router.replace({ query: { ...route.query, n: String(shown) } })
+// 펼친 수는 주소에 쓰지 않는다 — router.replace 가 라우터 scrollBehavior(top 0)를 불러 '더 보기'를 누르면 맨 위로 튀었다(2026-11-19 발견).
+// 돌아올 때 펼친 수는 '보던 자리'가 지킨다. 예전 주소의 n 은 그대로 읽는다
+function loadMore() {
+  more(state.value, opts(PAGE))
 }
 
-// ── 상세에서 돌아오면 보던 자리로 ──
+// ── 보던 자리 — 상세, 조건 고치기(→ 가입·로그인)로 떠날 때 남기고, 같은 조건 목록으로 돌아오면 되살린다 ──
+const KEEP_FOR = ['/career-encyclopedia/job/', '/career-encyclopedia/browse/', '/onboarding/auth']
 onBeforeRouteLeave((to) => {
-  if (!to.path.startsWith('/career-encyclopedia/job/')) return
-  try { sessionStorage.setItem(SCROLL_KEY, JSON.stringify({ path: route.fullPath, y: window.scrollY })) } catch { /* 없음 */ }
+  if (!result.value || !KEEP_FOR.some((p) => to.path.startsWith(p))) return
+  const near: Record<string, number> = {}
+  for (const g of nearGroups.value) near[g.id] = g.rows.length
+  savePosition({ key: listKey.value, n: result.value.data.length, near, y: window.scrollY })
 })
-watch(() => result.value, async (r) => {
-  if (!r) return
-  let saved: { path: string; y: number } | null = null
-  try { saved = JSON.parse(sessionStorage.getItem(SCROLL_KEY) || 'null') } catch { /* 없음 */ }
-  if (!saved || saved.path !== route.fullPath) return
+/** '하나만 빼고 맞아요' 묶음마다 펼쳤던 만큼 더 받은 뒤 스크롤을 되돌린다. 한 번 쓰면 지운다 */
+async function restorePosition(pos: BrowsePosition) {
+  for (const [id, want] of Object.entries(pos.near)) {
+    const g = nearGroups.value.find((x) => x.id === id)
+    if (!g?.canMore || g.rows.length >= Math.min(want, g.total)) continue
+    await moreNear(state.value, id, opts(PAGE), Math.min(want - g.rows.length, MAX_RESTORE))
+  }
+  clearPosition()
   await nextTick()
-  window.scrollTo(0, saved.y)
-  try { sessionStorage.removeItem(SCROLL_KEY) } catch { /* 없음 */ }
-})
+  window.scrollTo(0, pos.y)
+}
 
 // ── 조건 바꾸기 — 이 자리를 바꾼다(replace). 뒤로 가기가 지나온 목록을 하나씩 되짚지 않게 ──
 function remove(id: string) {
