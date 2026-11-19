@@ -242,17 +242,6 @@
 
       <p v-if="view.noneLine" class="overview-outlook__none" data-test="outlook-none">{{ view.noneLine }}</p>
 
-      <div v-if="view.showOurs" :class="['overview-outlook__ours', { 'g-veil': locked }]" data-test="outlook-ours">
-        <p v-for="(l, i) in job.outlook?.ours?.lines ?? []" :key="i" class="overview-outlook__ours-line">{{ l }}</p>
-        <p class="overview-outlook__badge">{{ view.oursBadge }}</p>
-        <ul v-if="job.outlook?.ours?.facts?.length" class="overview-outlook__facts">
-          <li v-for="(f, i) in job.outlook.ours.facts" :key="i">
-            <a v-if="f.source?.url && !locked" :href="f.source.url" target="_blank" rel="noopener">{{ factSource(f) }}</a>
-            <span v-else>{{ factSource(f) }}</span>
-          </li>
-        </ul>
-      </div>
-
       <div v-if="view.showOfficial" :class="['overview-outlook__official', { 'overview-outlook__official--small': view.officialSmall }]" data-test="outlook-official">
         <p v-if="groupLineText" class="overview-outlook__group">{{ groupLineText }}</p>
         <div class="overview-outlook__verdict">
@@ -268,6 +257,17 @@
           target="_blank"
           rel="noopener"
         >{{ outlookLinkLabel(job.outlook.official.source.url) }}</a>
+      </div>
+
+      <div v-if="view.showOurs" :class="['overview-outlook__ours', { 'g-veil': locked }]" data-test="outlook-ours">
+        <p v-for="(l, i) in job.outlook?.ours?.lines ?? []" :key="i" class="overview-outlook__ours-line">{{ l }}</p>
+        <p class="overview-outlook__badge">{{ view.oursBadge }}</p>
+        <ul v-if="job.outlook?.ours?.facts?.length" class="overview-outlook__facts">
+          <li v-for="(f, i) in oursSources" :key="i">
+            <a v-if="f.source?.url && !locked" :href="f.source.url" target="_blank" rel="noopener">{{ factSource(f) }}</a>
+            <span v-else>{{ factSource(f) }}</span>
+          </li>
+        </ul>
       </div>
 
       <p v-if="view.hiringLine" class="overview-outlook__hiring">{{ view.hiringLine }}</p>
@@ -350,6 +350,16 @@ const tone = computed(() => verdictTone(props.job.outlook?.official?.verdict))
 const srcText = computed(() => sourceText(props.job.outlook?.official))
 // 묶음 판정 안내 — 같은 고용24 원본을 쓰는 직업 수(자기 포함)를 붙인다
 const groupLineText = computed(() => groupLine(props.job.outlook, (props.job.sharedWith?.length ?? 0) + 1))
+// 자체 조사 출처 — 같은 출처(주소·제목)는 한 번만 보인다. 공식 판정이 먼저, 자체 조사는 그 아래(2026-11-19)
+const oursSources = computed(() => {
+  const seen = new Set<string>()
+  return (props.job.outlook?.ours?.facts ?? []).filter((f) => {
+    const k = f.source?.url || f.source?.title || f.text
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
+})
 function factSource(f: { text: string; source?: OutlookSource }): string {
   const s = f.source
   if (!s) return f.text

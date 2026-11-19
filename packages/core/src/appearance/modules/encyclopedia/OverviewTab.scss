@@ -572,6 +572,12 @@
     gap: 6px;
   }
 
+  // 공식 판정 아래에 오는 자체 조사 — 점선으로 나눈다(2026-11-19)
+  &__official + &__ours {
+    padding-top: 12px;
+    border-top: 1px dashed #e3e5e8;
+  }
+
   &__ours-line {
     margin: 0;
     font-size: 14px;
