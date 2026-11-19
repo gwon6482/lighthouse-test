@@ -386,12 +386,35 @@ export interface JobPreparation {
     eligibility?: { lines: string[]; checked: PrepChecked | null } | null
     // 먼저 알아 둘 것 — career: 경력을 쌓은 뒤에 가는 직업(via = 먼저 거치는 직업) / early: 대부분 일찍 시작하는 길(2026-11-16)
     reality?: { kind: 'career' | 'early'; text: string; via: { jobCode: string; name: string }[] } | null
+    // 학위를 따는 다른 길(2026-11-19) — 정보 상자 하나. 걸음·기간과 상관없다(옛 서버는 없다)
+    degreeRoutes?: PrepDegreeRoutes | null
   }
   tracks: PrepTrack[]   // 이 직업이 보여 줄 갈래만 온다(같은 계획에 묶인 다른 직업의 길은 빠진다). 하나뿐이면 고르는 단추를 그리지 않는다
   defaultTrack: string | null
   paths: PrepPath[]
   projects: Record<string, PrepProject>
   passStats?: Record<string, PrepPassStat>   // 보여 주는 길에 쓰인 합격자 수치만(2026-11-17 — 옛 서버는 없다)
+  degreeRouteItems?: Record<string, PrepDegreeRoute>   // 학위를 따는 다른 길 상자에 쓰인 길만(2026-11-19 — 옛 서버는 없다)
+}
+
+/** 학위를 따는 다른 길 — 그 길로 이 면허·자격이 되는가(2026-11-19). yes 돼요 · no 안 돼요 · if 조건 있어요 */
+export type PrepRouteOk = 'yes' | 'no' | 'if'
+
+export interface PrepDegreeRoutes {
+  for: string | null                     // 어느 걸음의 다른 길인가(그 계획의 걸음 ref)
+  lines: { routes: string[]; ok: PrepRouteOk; text: string }[]
+  common: string | null                  // 면허 요건이 없는 계획의 공통 한 줄(대학원 입학 자격)
+  checked: PrepChecked | null
+}
+
+/** 길 하나의 공통 사실 — 비용은 공식 원문 숫자만(없으면 '학교마다 달라요') */
+export interface PrepDegreeRoute {
+  id: string
+  name: string
+  gives: string | null
+  time: string | null
+  cost: string | null
+  checked: PrepChecked | null
 }
 
 /** 계획이 없는 직업은 data: null */
