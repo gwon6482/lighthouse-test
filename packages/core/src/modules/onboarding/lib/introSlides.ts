@@ -62,3 +62,15 @@ export function introButton(index: number, total = INTRO_SLIDES.length): { label
   const finish = index >= total - 1
   return { label: finish ? '확인했어요' : '다음', finish }
 }
+
+/**
+ * 작은 폰에서 그림을 비율 그대로 줄이는 배율(2026-11-20 — 320×568 에서 쪽이 화면보다 길어 제목이 아래로 밀렸다).
+ * slideH = 쪽 높이(보이는 곳), contentH = 그림을 원래 크기로 둘 때 쪽 내용 높이, artH = 그림 상자의 원래 높이.
+ * 넘치는 만큼 그림만 줄인다. 너무 작아지지 않게 min 아래로는 줄이지 않는다(그때는 쪽 안에서 밀린다).
+ */
+export function introArtScale(slideH: number, contentH: number, artH: number, min = 0.5): number {
+  if (!(artH > 0) || !(slideH > 0)) return 1
+  const over = contentH - slideH
+  if (over <= 0) return 1
+  return Math.max(min, Math.min(1, (artH - over) / artH))
+}

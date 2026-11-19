@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { INTRO_SLIDES, INTRO_NEXT_PATH, introButton } from '../lib/introSlides'
+import { INTRO_SLIDES, INTRO_NEXT_PATH, introArtScale, introButton } from '../lib/introSlides'
 
 // 가입 뒤 소개 4쪽(2026-11-20 시안 2판)
 describe('소개 쪽', () => {
@@ -25,5 +25,17 @@ describe('소개 쪽', () => {
     expect([0, 1, 2].map((i) => introButton(i))).toEqual(Array(3).fill({ label: '다음', finish: false }))
     expect(introButton(3)).toEqual({ label: '확인했어요', finish: true })
     expect(INTRO_NEXT_PATH).toBe('/onboarding/welcome')
+  })
+})
+
+describe('작은 폰 그림 배율', () => {
+  it('넘치지 않으면 1, 넘치면 넘친 만큼 그림만 줄인다', () => {
+    expect(introArtScale(700, 650, 400)).toBe(1)
+    expect(introArtScale(500, 600, 400)).toBe(0.75)
+  })
+  it('최소 배율 아래로는 줄이지 않고, 값이 이상하면 1', () => {
+    expect(introArtScale(300, 700, 400)).toBe(0.5)
+    expect(introArtScale(0, 700, 400)).toBe(1)
+    expect(introArtScale(500, 600, 0)).toBe(1)
   })
 })
