@@ -36,7 +36,7 @@
       <!-- 결과가 없을 때 -->
       <div v-if="result && result.total === 0" class="bl-empty">
         <b>{{ condWord }} 조건을 다 갖춘 직업은<br />{{ jobsTotal }}개 중에 없어요</b>
-        <span v-if="result.relax?.length">조건 하나를 빼면 더 볼 수 있어요</span>
+        <span v-if="relaxMore.length">조건 하나를 빼면 더 볼 수 있어요</span>
       </div>
 
       <div v-if="result" class="bl__list">
@@ -47,13 +47,11 @@
       </button>
 
       <!-- 결과가 적을 때 — 조건 하나씩 빼기(나중에 더한 것부터) · 하나만 빼고 맞는 직업(빠진 조건마다) -->
-      <section v-if="result?.relax?.length" class="bl-relax">
+      <!-- 숫자는 '더 볼 수 있는' 수 = 아래 '○○만 안 맞아요' 묶음 수와 같은 기준(지금 결과는 빼고). 더 볼 게 없는 조건은 숨긴다(2026-11-19 다듬기 3차) -->
+      <section v-if="result && relaxMore.length" class="bl-relax">
         <p v-if="result.total > 0" class="bl-relax__lead">조건 하나를 빼면 더 볼 수 있어요</p>
-        <button
-          v-for="r in result.relax" :key="r.id" type="button" class="bl-drop"
-          :class="{ 'bl-drop--zero': r.count === 0 }" :disabled="r.count === 0" @click="remove(r.id)"
-        >
-          <span class="bl-drop__label">'{{ r.label }}' 빼기</span> <span class="bl-drop__n">{{ r.count > 0 ? `${r.count}개 ›` : '그래도 0개' }}</span>
+        <button v-for="r in relaxMore" :key="r.id" type="button" class="bl-drop" @click="remove(r.id)">
+          <span class="bl-drop__label">'{{ r.label }}' 빼기</span> <span class="bl-drop__n">{{ r.more }}개 더 ›</span>
         </button>
       </section>
       <section v-if="nearGroups.length" class="bl-near">
@@ -109,7 +107,7 @@ import BrowseJobCard from '../components/page/browse/BrowseJobCard.vue'
 import { useBrowseAxes, useBrowseQuery } from '../composables/useJobBrowse'
 import {
   MAX_CONDITIONS, axisName, canAddCondition, chipAriaLabel, chipPieces, conditionCount, isEmptyState, listQuery, nextAxisToAdd,
-  orderFromQuery, groupNear, paramsFromState, stateFromQuery, withoutCondition, type NearGroup,
+  orderFromQuery, groupNear, paramsFromState, relaxWithMore, stateFromQuery, withoutCondition, type NearGroup,
 } from '../lib/browseQuery'
 import { clearPosition, positionKey, readPosition, savePosition, type BrowsePosition } from '../lib/browsePosition'
 import type { BrowseAxisKey, BrowseRow } from '../types/browse'
@@ -191,6 +189,7 @@ function addCondition() {
 // ── 하나만 빼고 맞아요 — 빠진 조건마다 묶는다(서버가 나중에 더한 조건부터, 묶음마다 몇 줄씩 이어 보낸다) ──
 // 묶음 수는 자르기 전 전체 수(nearGroups.total). 옛 서버(nearGroups 없음)면 받은 줄 수를 쓰고 더 보기를 두지 않는다
 const nearGroups = computed(() => groupNear(result.value?.near, result.value?.nearGroups))
+const relaxMore = computed(() => relaxWithMore(result.value))
 const nearTitleCount = computed(() => {
   const shown = result.value?.near?.length ?? 0
   const total = result.value?.nearTotal ?? shown

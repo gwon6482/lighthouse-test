@@ -2,7 +2,7 @@
 // 고른 조건은 주소에 담는다 — 뒤로 가기(안드로이드 뒤로 버튼 R4 포함)·공유가 되고, 계정에는 저장하지 않는다.
 // 사용성 확인 조정(같은 날 밤): 탭 하나 = 조건 하나(업무 환경도 탭 전체가 조건 하나), 직무도 다른 조건과 직무 단위로 섞는다.
 import type { LocationQuery, LocationQueryRaw } from 'vue-router'
-import type { BrowseAxisKey, BrowseResult, BrowseRow } from '../types/browse'
+import type { BrowseAxisKey, BrowseCondition, BrowseResult, BrowseRow } from '../types/browse'
 
 /** 탭 순서(진로상담 권장 — 쓸모가 넓은 것부터, 연봉은 맨 끝). '조건 더하기'도 이 순서로 안 쓴 첫 탭을 연다 */
 export const BROWSE_AXES: BrowseAxisKey[] = ['group', 'interest', 'env', 'talent', 'value', 'salary']
@@ -124,6 +124,20 @@ export function groupNear(near: BrowseRow[] | undefined, meta: BrowseResult['nea
   }
   for (const g of groups) g.total = Math.max(totals.get(g.id) ?? 0, g.rows.length)
   return groups
+}
+
+/**
+ * '조건 하나를 빼면 더 볼 수 있어요' — 조건마다 '더 볼 수 있는' 수(2026-11-19 다듬기 3차, 사용성 QA).
+ * 서버 relax.count 는 그 조건을 뺀 목록 전체(지금 결과 포함)라 아래 '○○만 안 맞아요 N개'(지금 결과 제외)와 어긋났다.
+ * 같은 기준으로 그 조건의 '하나만 빼고 맞아요' 묶음 수(nearGroups.total)를 쓴다. 옛 서버(nearGroups 없음)면 count − total.
+ * 더 볼 게 없으면(0 이하) 뺀다 — 지금 결과와 같은 수가 '더 볼 수 있어요' 아래 뜨지 않게
+ */
+export function relaxWithMore(r: BrowseResult | null | undefined): (BrowseCondition & { count: number; more: number })[] {
+  if (!r?.relax?.length) return []
+  const near = new Map((r.nearGroups ?? []).map((g) => [g.id, g.total]))
+  return r.relax
+    .map((x) => ({ ...x, more: r.nearGroups ? (near.get(x.id) ?? 0) : Math.max(0, x.count - r.total) }))
+    .filter((x) => x.more > 0)
 }
 
 /** 8100 → '8,100만 원', 11500 → '1억 1,500만 원', 10000 → '1억 원' */

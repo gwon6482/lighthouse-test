@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   MAX_CONDITIONS, axisName, canAddCondition, canUseAxis, chipAriaLabel, chipPieces, conditionCount, emptyState, formatManwon,
-  groupNear, listQuery, missLine, nextAxisToAdd, nextOrder, orderFromQuery, paramsFromState, stateFromQuery, withAxis, withoutCondition,
+  groupNear, listQuery, missLine, nextAxisToAdd, nextOrder, relaxWithMore, orderFromQuery, paramsFromState, stateFromQuery, withAxis, withoutCondition,
 } from '../lib/browseQuery'
 import { myBrowseStart } from '../lib/browseMyStart'
 import type { SurveyAnalysisResponse } from '@/modules/survey/types/survey'
@@ -139,5 +139,26 @@ describe('분류로 찾기 다듬기 2차(2026-11-19) — 칩 탭 이름 · 또�
   it('묶음에 탭(axis)을 싣는다 — 제목·다음 묶음 바로가기가 쓴다', () => {
     const r = (code: string, axis: 'env' | 'group'): BrowseRow => ({ jobCode: code, title: code, group: null, salary: { median: null }, reasons: [], missing: { id: axis, axis, codes: [], label: axis } })
     expect(groupNear([r('a', 'env'), r('b', 'group')], undefined).map((g) => g.axis)).toEqual(['env', 'group'])
+  })
+})
+
+describe("분류로 찾기 다듬기 3차(2026-11-19) — '조건 하나를 빼면' 숫자", () => {
+  const c = (id: string) => ({ id, axis: id as BrowseCondition['axis'], codes: [], label: id })
+  const base = { success: true, applied: { conditions: [], dropped: [], sort: null }, next: {} as never, offset: 0, limit: 30, data: [] }
+  it('아래 묶음 수(지금 결과 제외)와 같은 기준 · 더 볼 게 없으면 숨김', () => {
+    // QA 예: 결과 2개, 업무 환경 빼면 6(2 + 4), 직무 빼면 14(2 + 12), 다양성 빼면 2(더 없음)
+    const r = { ...base, total: 2, relax: [{ ...c('env'), count: 6 }, { ...c('group'), count: 14 }, { ...c('value'), count: 2 }],
+      nearGroups: [{ ...c('env'), total: 4, shown: 4 }, { ...c('group'), total: 12, shown: 10 }, { ...c('value'), total: 0, shown: 0 }] }
+    expect(relaxWithMore(r).map((x) => [x.id, x.more])).toEqual([['env', 4], ['group', 12]])
+  })
+  it('옛 서버(nearGroups 없음)면 count − total', () => {
+    const r = { ...base, total: 2, relax: [{ ...c('env'), count: 6 }, { ...c('value'), count: 2 }] }
+    expect(relaxWithMore(r).map((x) => [x.id, x.more])).toEqual([['env', 4]])
+  })
+  it('결과 0개면 그 수 그대로 · 없으면 빈 목록', () => {
+    const r = { ...base, total: 0, relax: [{ ...c('env'), count: 3 }, { ...c('group'), count: 0 }],
+      nearGroups: [{ ...c('env'), total: 3, shown: 3 }, { ...c('group'), total: 0, shown: 0 }] }
+    expect(relaxWithMore(r).map((x) => [x.id, x.more])).toEqual([['env', 3]])
+    expect(relaxWithMore(null)).toEqual([])
   })
 })

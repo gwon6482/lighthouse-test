@@ -91,7 +91,7 @@
 <script setup lang="ts">
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { useEncyclopedia } from '../composables/useEncyclopedia'
 import { useAuthStore } from '@/shared/stores/auth'
 import { fetchTargetCareer, updateTargetCareer, type TargetCareer } from '../encyclopedia.api'
@@ -104,6 +104,7 @@ import RecruitmentTab from '../components/page/job-detail/tabs/RecruitmentTab.vu
 import JobGuestCta from '../components/page/job-detail/JobGuestCta.vue'
 import GuestFloatCard from '@/shared/components/GuestFloatCard.vue'
 import { features } from '@/shared/config/features'
+import { restoreScrollWhenReady, saveDetailReturn, takeDetailReturn } from '../lib/detailReturn'
 
 const route = useRoute()
 const router = useRouter()
@@ -206,13 +207,34 @@ async function handleSetTarget() {
 
 // 직업 상세에서 다른 직업 상세로(관련 직업·비슷한 직업의 전망 칩) — 같은 화면을 다시 쓰므로 onMounted 가 다시 안 돈다.
 //   주소의 직업 코드가 바뀌면 그 직업을 새로 읽는다(뒤로 가기로 돌아올 때도). 2026-11-19 관련 직업 링크
-watch(() => route.params.jobCode, (code, prev) => {
-  if (typeof code === 'string' && code && code !== prev) loadJob(code)
+watch(() => route.params.jobCode, async (code, prev) => {
+  if (typeof code === 'string' && code && code !== prev) {
+    await loadJob(code)
+    restoreReturn()
+  }
 })
+
+// ── 읽던 자리 — 다른 직업·화면에 갔다가 뒤로 오면 탭과 스크롤을 되살린다(2026-11-19 다듬기 3차, lib/detailReturn) ──
+let stopRestore: (() => void) | null = null
+function rememberReturn(fromPath: string) {
+  saveDetailReturn(fromPath, activeTab.value, window.scrollY)
+}
+onBeforeRouteUpdate((to, from) => { if (to.params.jobCode !== from.params.jobCode) rememberReturn(from.fullPath) })
+onBeforeRouteLeave((_to, from) => rememberReturn(from.fullPath))
+async function restoreReturn() {
+  stopRestore?.()
+  const back = takeDetailReturn(route.fullPath, window.history.state)
+  if (!back || !selectedJob.value) return
+  if (back.tab !== activeTab.value) setActiveTab(back.tab)
+  await nextTick()
+  stopRestore = restoreScrollWhenReady(back.y)
+}
+onBeforeUnmount(() => stopRestore?.())
 
 onMounted(async () => {
   const jobCode = route.params.jobCode as string
   await loadJob(jobCode)
+  restoreReturn()
 
   if (authStore.isLoggedIn) {
     loadBookmarks()
