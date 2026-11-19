@@ -4,6 +4,7 @@ import { req } from '@/shared/api'
 import { useAchievement } from '@/modules/career-achievement/composables/useAchievement'
 import { useAchievementEntries } from '@/modules/career-achievement/composables/useAchievementEntries'
 import { useCurriculumCompletion } from '@/modules/career-achievement/composables/useCurriculumCompletion'
+import { useFocusSessions } from '@/modules/career-achievement/composables/useFocusSessions'
 import type { Project, Routine, DayOfWeek, TimelineSlot } from '@/modules/career-design/types/career-design'
 import { projectedEndDate } from '@/modules/career-design/composables/usePlanTimeline'
 
@@ -107,6 +108,7 @@ export const useAchievementStore = defineStore('achievement', () => {
     useAchievement().clearCache()
     useAchievementEntries().clearCache()
     useCurriculumCompletion().clearCache()
+    useFocusSessions().clear() // 멈춘 집중(2026-11-19) — 로그아웃·진행 중인 계획이 없어졌을 때
   }
 
   return {

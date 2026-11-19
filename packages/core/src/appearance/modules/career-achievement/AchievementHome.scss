@@ -175,6 +175,19 @@ $ah-overlap: 40px;
   }
 }
 
+// 멈춘 집중(어제 것·오늘 목록에 없는 것) — '오늘 할 일' 위에 따로 한 장(2026-11-19). 이게 경계에 걸치고 오늘 할 일은 그 아래
+.ah-held {
+  position: relative;
+  margin: (-$ah-overlap) $space-lg 0;
+  padding: 8px;
+  border-radius: 18px;
+  background: $color-surface;
+  box-shadow: 0 6px 20px rgba(120, 90, 0, 0.1);
+  .ah-task--next { margin-bottom: 0; }
+  + .ah-today { margin-top: $space-md; }
+}
+.ah-hero--flat + .ah-held { margin-top: $space-lg; } // 걸칠 자리가 없는 노란 영역(계획 시작 전·완료 후)
+
 .ah-list { list-style: none; margin: 0; padding: 0; display: grid; gap: $space-sm; }
 .ah-task {
   display: flex;
@@ -276,12 +289,12 @@ $ah-overlap: 40px;
 // ── 움직임 — 들어올 때 아래에서 살짝 떠오른다(순서대로). 움직임 줄이기 설정이면 끈다 ──
 @keyframes ah-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes ah-pop { 0% { transform: scale(1); } 40% { transform: scale(1.1); } 100% { transform: scale(1); } }
-.ah-stats, .ah-greet, .ah-today, .ah-sec { animation: ah-rise 0.5s $ease-standard both; }
-.ah-today { animation-delay: 0.1s; }
+.ah-stats, .ah-greet, .ah-held, .ah-today, .ah-sec { animation: ah-rise 0.5s $ease-standard both; }
+.ah-held, .ah-today { animation-delay: 0.1s; }
 .ah-greet { animation-delay: 0.05s; }
 .ah-sec { animation-delay: 0.2s; }
 .ah-sec + .ah-sec { animation-delay: 0.28s; }
 @media (prefers-reduced-motion: reduce) {
-  .ah-stats, .ah-greet, .ah-today, .ah-sec, .ah-ring--done { animation: none; }
+  .ah-stats, .ah-greet, .ah-held, .ah-today, .ah-sec, .ah-ring--done { animation: none; }
   .ah-ring__fill { transition: none; }
 }

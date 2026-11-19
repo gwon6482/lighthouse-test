@@ -149,6 +149,14 @@ $fm-col: 520px;
     margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
     button { height: 52px; border-radius: 14px; background: $fm-soft; font-size: 15px; font-weight: $tw-title; }
     button.p { background: $color-primary; color: $fm-ink; }
+    button.danger { background: $red-500; color: #FFFFFF; } // 집중 취소 확인 — '취소하고 홈으로'
+  }
+  // 멈춤 시트 아래 작은 글자 둘 — '나중에 이어 하기' | '집중 취소'(빨강) (2026-11-19 정할 것 1)
+  &__quiet {
+    margin-top: 8px; display: grid; grid-template-columns: 1fr 1px 1fr; align-items: center;
+    button { height: 42px; font-size: 14px; font-weight: $tw-strong; color: rgba($fm-ink, .6); white-space: nowrap; }
+    button.danger { color: $red-500; }
+    i { height: 16px; background: rgba($fm-ink, .15); }
   }
 }
 @keyframes fm-drift { to { transform: translateX(-50%); } }

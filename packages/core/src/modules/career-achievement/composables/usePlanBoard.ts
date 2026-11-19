@@ -18,6 +18,9 @@ import {
   planPhase, planDayNumber, dDayLabel, overallProgress, streakCount, reviewBadge,
   todayMessage, journeyHeadline, categoryColor, roadmapStops,
 } from '../lib/planBoard'
+import { features } from '@/shared/config/features'
+import { useFocusSessions } from './useFocusSessions'
+import { sessionKey, isAlive, type FocusSession } from '../lib/focusSession'
 
 export interface PreviewLine { name: string; color: string }
 export interface DayPreview { key: string; dow: string; md: string; weekend: boolean; lines: PreviewLine[]; more: number; rest: boolean }
@@ -34,6 +37,7 @@ export function usePlanBoard() {
   const ach = useAchievement()
   const { isItemDone, weekItemsDoneCount } = useCurriculumCompletion()
   const { ensureWeekSchedule, fetchSchedules } = useWeeklySchedule()
+  const focus = useFocusSessions()
 
   const loading = ref(true)
   const schedules = ref<WeeklySchedule[]>([])
@@ -89,6 +93,25 @@ export function usePlanBoard() {
   function startProject(p: Project) {
     if (p.period) { ach.toggleProject(p.id); return }   // 과정은 집중모드 없이 '완료' 한 번(2026-11-16)
     router.push({ path: `/career-achievement/start/project/${p.id}`, query: { date: todayKey.value } })
+  }
+  // ── 멈춘 집중(2026-11-19) — 그 기기에만. 오늘 목록의 그 프로젝트 줄은 '잠시 멈춤 · 이어 하기'로 ──
+  function pausedFor(projectId: string): FocusSession | null {
+    if (!features.focusPause) return null
+    return focus.get(sessionKey(todayKey.value, 'project', projectId))
+  }
+  // 오늘 목록에 없는 멈춘 집중(어제 것, 일정을 다른 날로 옮긴 것) — '오늘 할 일' 위에 따로 한 장
+  const heldSessions = computed<FocusSession[]>(() => {
+    const pl = plan.value
+    if (!features.focusPause || !pl) return []
+    const todayIds = new Set(todayProjects.value.map((p) => p.id))
+    return Object.values(focus.sessions.value)
+      .filter((s) => (!s.planId || s.planId === pl.planId) && !!projectOf(s.itemId) && isAlive(s, todayKey.value)
+        && !ach.isProjectDone(s.itemId, s.date)
+        && !(s.date === todayKey.value && todayIds.has(s.itemId)))
+      .sort((a, b) => a.date.localeCompare(b.date) || a.updatedAt - b.updatedAt)
+  })
+  function resumeFocus(s: FocusSession) {
+    router.push({ path: `/career-achievement/start/project/${s.itemId}`, query: { date: s.date } })
   }
   const toggleRoutine = (id: string) => ach.toggleRoutine(id)
   // 과정(2026-11-16) — 다니는 날 '완료' 한 번(루틴처럼). 하루 완료 기록은 프로젝트와 같은 자리에 남는다
@@ -200,6 +223,19 @@ export function usePlanBoard() {
     try {
       await store.loadActivePlan()
       const pl = store.plan
+      if (features.focusPause) {
+        // 앱이 꺼졌다 켜짐 — 흐르던 집중은 지금까지 세고 멈춤으로(정할 것 6)
+        focus.settleAll(Date.now())
+        // ⚠️ 정리(지우기)는 계획을 제대로 불러온 경우에만. 연결이 안 되면 계획이 null 이라 여기서 지우면 오프라인에서 사라진다
+        if (pl?.planId) {
+          focus.prune({
+            planId: pl.planId,
+            projectIds: new Set(pl.projects.map((p) => p.id)),
+            isDone: (date, id) => ach.isProjectDone(id, date),
+            todayKey: todayKey.value,
+          })
+        }
+      }
       if (pl?.planId && pl.startDate) {
         const range = computeWeekRangeContaining(today.value, pl.startDate, (pl.reviewDay || '월') as DayOfWeek)
         if (range) await ensureWeekSchedule(pl.planId, pl, pl.timeline, range.weekStart, range.weekEnd).catch(() => null)
@@ -216,6 +252,7 @@ export function usePlanBoard() {
     userName, headline, message, todayTotal, todayDone,
     previews,
     todayProjects, todayRoutines, todayFocus, startProject, toggleRoutine, toggleProject, periodToday,
+    pausedFor, heldSessions, resumeFocus,
     isProjectDone: ach.isProjectDone, isRoutineDone: ach.isRoutineDone,
     weekGoals, weekNumber, review,
     totalWeeks, roadmap, weekSpanLabel,
