@@ -128,7 +128,7 @@
     <section class="mp-sec mp-account">
       <h2 class="mp-sec__title">계정</h2>
       <ul class="mp-links">
-        <li><button type="button" class="mp-link" @click="logout">로그아웃</button></li>
+        <li><button type="button" class="mp-link" aria-haspopup="dialog" @click="showLogout = true">로그아웃</button></li>
         <li><a class="mp-link" href="https://www.lighthouse.career/terms" target="_blank" rel="noopener">이용약관</a></li>
         <li><a class="mp-link" href="https://www.lighthouse.career/privacy" target="_blank" rel="noopener">개인정보처리방침</a></li>
       </ul>
@@ -140,6 +140,7 @@
     <p class="mp-copy">© 라이트하우스 · 서비스 콘텐츠의 무단 복제·수집을 금합니다.</p>
 
     <AccountDeleteSheet v-model="showDelete" @deleted="onDeleted" />
+    <ConfirmSheet v-model="showLogout" title="로그아웃할까요?" confirm-label="로그아웃" @confirm="logout" />
   </div>
 </template>
 
@@ -151,6 +152,7 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { req } from '@/shared/api'
 import AccountDeleteSheet from '../components/AccountDeleteSheet.vue'
+import ConfirmSheet from '@/shared/components/ConfirmSheet.vue'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 import { AREA_ICON } from '@/modules/survey/surveyIcons'
 import { useAchievementEntries } from '@/modules/career-achievement/composables/useAchievementEntries'
@@ -205,8 +207,9 @@ const formatDate = (iso: string) => {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
 }
 
+// 로그아웃 확인은 앱의 확인 시트로(2026-11-19 — 브라우저 기본 confirm 창이 앱과 따로 놀았다)
+const showLogout = ref(false)
 function logout() {
-  if (!confirm('로그아웃할까요?')) return
   authStore.logout()
   achievementStore.reset()
   // replace — 뒤로가기로 로그인된 화면에 돌아오지 않게
