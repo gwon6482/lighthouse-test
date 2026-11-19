@@ -39,6 +39,8 @@ jobs:
           VITE_JOB_BROWSE: '1'
           # 집중모드 '잠시 멈추고 홈으로 · 집중 취소'(2026-11-19 오너 결정) — 스테이징 사용성 QA 통과·QA 두 건 고친 뒤 운영 공개
           VITE_FOCUS_PAUSE: '1'
+          # 분류로 찾기 다듬기 2차 — 가입 화면 '가입 전에 둘러봐도 돼요' 두 줄 · 진로백과 홈 아래 탭(2026-11-19 스테이징 사용성 QA 뒤 오너 '바로 켜자')
+          VITE_BROWSE_POLISH2: '1'
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
