@@ -12,7 +12,7 @@ export const features = {
   // 스테이징(deploy-test)만 VITE_JOB_BROWSE=1. 운영(deploy-app)은 사용성 확인 뒤 오너 지시로 켠다
   jobBrowse: import.meta.env.VITE_JOB_BROWSE === '1',
   // 집중모드 '잠시 멈추고 홈으로 · 집중 취소하고 홈으로'(2026-11-19 오너 결정 — 멈춘 집중을 기기에 남겨 홈에서 이어 하기).
-  // 스테이징(deploy-test)만 VITE_FOCUS_PAUSE=1. 운영(deploy-app)은 사용성 확인 뒤 오너 지시로 켠다.
+  // 스테이징(deploy-test)·운영(deploy-app) 모두 VITE_FOCUS_PAUSE=1 (운영은 사용성 QA 통과 뒤 다음 태그부터).
   // 꺼져 있으면 예전 동작('집중한 기록이 사라져요' 확인 창) 그대로 — 운영에 켜고 나면 다음 정리 때 옛 갈래를 지운다
   focusPause: import.meta.env.VITE_FOCUS_PAUSE === '1',
 } as const
