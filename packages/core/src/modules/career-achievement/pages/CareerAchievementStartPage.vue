@@ -5,7 +5,7 @@
   <div class="fm">
     <div v-if="loading" class="fm-loading">불러오는 중...</div>
 
-    <div v-else-if="!item" class="fm-empty">
+    <div v-else-if="!itemName" class="fm-empty">
       <p>항목을 찾을 수 없어요.</p>
       <button type="button" @click="router.replace('/career-achievement')">돌아가기</button>
     </div>
@@ -19,7 +19,7 @@
       </header>
       <div class="fm-setup__item">
         <span class="fm-setup__chip" :style="chipStyle">{{ chipLabel }}</span>
-        <h2>{{ item.name }}</h2>
+        <h2>{{ itemName }}</h2>
         <p v-if="projectGoal">{{ projectGoal }}</p>
       </div>
 
@@ -57,7 +57,7 @@
       <div v-for="layer in ['light', 'dark']" :key="layer" class="fm-run__layer" :class="`fm-run__layer--${layer}`"
         :style="layer === 'dark' ? { clipPath: `inset(${100 - fill}% 0 0 0)` } : undefined">
         <div class="fm-run__meta"><span>{{ paused ? '잠시 멈춤' : '집중 중' }}</span></div>
-        <div class="fm-run__name">{{ item.name }}</div>
+        <div class="fm-run__name">{{ itemName }}</div>
         <!-- 분이 주인공, 초는 오른쪽 위에 작게(V3, 2026-11-04) — '남은 시간' 라벨 대신 아래 한 줄 -->
         <div class="fm-run__big fm-num" :class="{ long: digits.min.length > 2 }"><span class="m">{{ digits.min }}</span><span class="s">{{ digits.sec }}</span></div>
         <div class="fm-run__cap">{{ digits.over ? '목표를 넘겼어요 · 계속 집중 중' : `남았어요 · 끝날 예정 ${hm(endAt)}` }}</div>
@@ -65,12 +65,29 @@
       </div>
       <p class="fm-run__hint">화면을 누르면 잠시 멈춰요</p>
       <div class="fm-run__sheet" @click.stop>
-        <h4>잠시 멈췄어요</h4>
-        <p>지금까지 {{ clockLabel(elapsed) }} 집중했어요</p>
-        <div class="fm-run__row">
-          <button type="button" @click="finish">다 했어요</button>
-          <button type="button" class="p" @click="resume">이어서 집중</button>
-        </div>
+        <!-- 집중 취소는 같은 시트에서 한 번 더 묻는다(2026-11-19 정할 것 2 — 브라우저 확인 창 쓰지 않음) -->
+        <template v-if="sheetStep === 'confirm'">
+          <h4>집중을 취소할까요?</h4>
+          <p>집중한 {{ cancelLoss }} 사라져요</p>
+          <div class="fm-run__row">
+            <button type="button" @click="sheetStep = 'menu'">그대로 두기</button>
+            <button type="button" class="danger" @click="confirmCancel">취소하고 홈으로</button>
+          </div>
+        </template>
+        <template v-else>
+          <h4>잠시 멈췄어요</h4>
+          <p>지금까지 {{ clockLabel(elapsed) }} 집중했어요</p>
+          <div class="fm-run__row">
+            <button type="button" @click="finish">다 했어요</button>
+            <button type="button" class="p" @click="resume">이어서 집중</button>
+          </div>
+          <!-- 2026-11-19 정할 것 1 — 원래 두 버튼은 그대로, 아래에 작은 글자 둘 -->
+          <div v-if="keepable" class="fm-run__quiet">
+            <button type="button" @click="later">나중에 이어 하기</button>
+            <i aria-hidden="true" />
+            <button type="button" class="danger" @click="askCancel">집중 취소</button>
+          </div>
+        </template>
       </div>
     </section>
 
@@ -103,10 +120,18 @@ import {
   clampGoal, focusGap, focusDigits, clockLabel,
 } from '../lib/focusTimer'
 import { applyThemeColor, THEME_COLOR } from '@/shared/router/themeColor'
+import { safeBack } from '@/shared/utils/navigation'
+import { features } from '@/shared/config/features'
+import { useAchievementStore } from '@/shared/stores/achievement'
+import { useFocusSessions } from '../composables/useFocusSessions'
+import { sessionKey, elapsedOf, elapsedText, subjectJosa, type FocusSession } from '../lib/focusSession'
 
 const route = useRoute()
 const router = useRouter()
 const { draftPlan, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
+const achStore = useAchievementStore()
+const focusSessions = useFocusSessions()
+const HOME = '/career-achievement'
 
 const itemType = computed<'project' | 'routine'>(() => (route.params.type === 'routine' ? 'routine' : 'project'))
 const itemId = computed(() => String(route.params.id ?? ''))
@@ -124,8 +149,13 @@ const item = computed<Project | Routine | null>(() => {
   if (itemType.value === 'project') return draftPlan.projects.find(p => p.id === itemId.value) ?? null
   return draftPlan.routines.find(r => r.id === itemId.value) ?? null
 })
+// 멈춘 집중(2026-11-19) — 프로젝트만. 계획을 못 불러와도(오프라인) 기기에 적어 둔 이름으로 그린다
+const keepable = features.focusPause && itemType.value === 'project'
+const focusKey = computed(() => sessionKey(dateKey.value, itemType.value, itemId.value))
+const saved = ref<FocusSession | null>(null)
+const itemName = computed(() => item.value?.name ?? saved.value?.itemName ?? '')
 const category = computed(() => {
-  const c = itemType.value === 'project' ? (item.value as Project | null)?.category : undefined
+  const c = itemType.value === 'project' ? ((item.value as Project | null)?.category ?? saved.value?.itemCategory) : undefined
   return c ? CATEGORY_META[c] : null
 })
 const chipLabel = computed(() => category.value?.label ?? '루틴')
@@ -194,14 +224,18 @@ function resume() {
   now.value = segStart
   paused.value = false
   phase.value = 'run'
+  sheetStep.value = 'menu'
   startTicker()
   void lockScreen()
+  persist()
 }
 function pause() {
   if (paused.value) return
   accSec.value = elapsed.value
   paused.value = true
+  sheetStep.value = 'menu'
   void unlockScreen()
+  persist()
 }
 function finish() {
   if (!paused.value) accSec.value = elapsed.value
@@ -209,6 +243,71 @@ function finish() {
   phase.value = 'done'
   stopTicker()
   void unlockScreen()
+  persist() // 마침 화면에서 뒤로 가도 멈춘 집중으로 남는다
+}
+
+// ── 멈춘 집중을 기기에 적어 두기(2026-11-19 정할 것 6 — 집중하는 동안 늘. 꺼진 동안도 벽시계로 센다) ──
+const sheetStep = ref<'menu' | 'confirm'>('menu')
+function persist() {
+  if (!keepable || !itemName.value) return
+  const running = phase.value === 'run' && !paused.value
+  const s: FocusSession = {
+    v: 1,
+    // 홈이 정리할 때 맞춰 보는 계획 — 홈과 같은 '진행 중인 계획'(achievement store) 기준
+    planId: achStore.plan?.planId ?? saved.value?.planId ?? draftPlan.planId ?? '',
+    date: dateKey.value,
+    itemType: 'project',
+    itemId: itemId.value,
+    itemName: itemName.value,
+    itemCategory: (item.value as Project | null)?.category ?? saved.value?.itemCategory,
+    goalMin: goalMin.value,
+    accSec: accSec.value,
+    state: running ? 'running' : 'paused',
+    segStart: running ? segStart : null,
+    reached: reachedNotified,
+    keepAwake: keepAwake.value,
+    notify: notify.value,
+    updatedAt: Date.now(),
+  }
+  focusSessions.put(focusKey.value, s)
+  saved.value = s
+}
+// 홈에서 '이어 하기'·새로 고침으로 다시 열 때 — 멈춤이면 시트가 열린 채, 흐르던 것(새로 고침)은 그대로 흐른다
+function restore(s: FocusSession) {
+  saved.value = s
+  goalMin.value = s.goalMin
+  keepAwake.value = s.keepAwake
+  notify.value = s.notify
+  accSec.value = s.accSec
+  const t = Date.now()
+  // 꺼진 동안 목표를 넘겼으면 다시 열 때 진동하지 않는다
+  reachedNotified = s.reached || elapsedOf(s, t) >= s.goalMin * 60
+  now.value = t
+  phase.value = 'run'
+  sheetStep.value = 'menu'
+  if (s.state === 'running' && s.segStart != null) {
+    segStart = s.segStart
+    paused.value = false
+    startTicker()
+    void lockScreen()
+  } else {
+    paused.value = true
+  }
+}
+const cancelLoss = computed(() => { const t = elapsedText(elapsed.value); return t + subjectJosa(t) })
+// 나중에 이어 하기 — 멈춘 채 홈으로
+function later() {
+  persist()
+  bypassLeaveGuard = true
+  safeBack(router, HOME)
+}
+function askCancel() { sheetStep.value = 'confirm' }
+// 취소하고 홈으로 — 기기에 남긴 시간만 지운다(저장 전이라 서버에 간 것이 없다)
+function confirmCancel() {
+  focusSessions.remove(focusKey.value)
+  saved.value = null
+  bypassLeaveGuard = true
+  safeBack(router, HOME)
 }
 function toRecord() {
   bypassLeaveGuard = true
@@ -224,6 +323,7 @@ watch(() => digits.value.over, (over) => {
   if (!over || reachedNotified || phase.value !== 'run') return
   reachedNotified = true
   if (notify.value) navigator.vibrate?.([200, 100, 200])
+  persist()
 })
 
 // ── 화면 켜짐 유지(Wake Lock) — 지원 안 하는 브라우저는 조용히 넘어간다 ──
@@ -253,12 +353,21 @@ watch([phase, fill], () => {
 // ── 나가기 ──
 let bypassLeaveGuard = false
 const hasProgress = () => started.value && elapsed.value >= 1
+// 설정 화면 X — 뒤로 갈 곳이 없으면 홈으로(R1. 바로 연 화면에서 앱을 벗어나지 않게)
 function exit() {
   bypassLeaveGuard = true
-  router.back()
+  safeBack(router, HOME)
 }
-onBeforeRouteLeave((_to, _from, next) => {
-  if (!bypassLeaveGuard && hasProgress()) {
+onBeforeRouteLeave((to, _from, next) => {
+  if (!bypassLeaveGuard && keepable) {
+    // 2026-11-19 정할 것 3 — 집중 중 뒤로 가기(브라우저·안드로이드 R4) = 멈추고 시트를 연다. 멈춘 상태면 멈춘 채 홈으로.
+    // 확인 창은 없다. 로그인이 풀려 /onboarding 으로 가는 이동은 막지 않고 적어만 둔다
+    if (phase.value === 'run' && !paused.value && !to.path.startsWith('/onboarding')) {
+      pause()
+      return next(false)
+    }
+    if (started.value) persist()
+  } else if (!bypassLeaveGuard && hasProgress()) {
     if (!confirm('집중한 기록이 사라져요. 정말 나가시겠어요?')) return next(false)
   }
   stopTicker()
@@ -269,14 +378,24 @@ onBeforeRouteLeave((_to, _from, next) => {
 onMounted(async () => {
   document.addEventListener('visibilitychange', onVisible)
   try {
-    if (!draftPlan.planId) {
-      const plans = await fetchMyPlans()
-      const target = plans.find((p: any) => p.status === 'active') ?? plans[0]
-      if (target?.planId) await loadPlanFromApi(target.planId)
-    }
+    await Promise.all([
+      (async () => {
+        if (!draftPlan.planId) {
+          const plans = await fetchMyPlans()
+          const target = plans.find((p: any) => p.status === 'active') ?? plans[0]
+          if (target?.planId) await loadPlanFromApi(target.planId)
+        }
+      })(),
+      // 멈춘 집중의 계획 번호를 홈과 같은 기준으로 적으려고(이미 읽었으면 바로 끝난다)
+      keepable ? achStore.loadActivePlan() : null,
+    ])
+  } catch {
+    // 연결이 안 되면 계획 없이 — 기기에 적어 둔 멈춘 집중은 그대로 연다
   } finally {
+    const s = keepable ? focusSessions.get(focusKey.value) : null
+    if (s) restore(s)
+    else goalMin.value = clampGoal(item.value?.duration)
     loading.value = false
-    goalMin.value = clampGoal(item.value?.duration)
   }
 })
 

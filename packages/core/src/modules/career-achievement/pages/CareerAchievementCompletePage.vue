@@ -1,7 +1,7 @@
 <template>
   <div class="cac">
     <header class="cac__header">
-      <button class="cac__back" @click="goBack"><AppIcon name="ui-back" /></button>
+      <button type="button" class="cac__back" aria-label="뒤로" @click="goBack"><AppIcon name="ui-back" /></button>
       <span class="cac__header-title">기록 작성</span>
       <span class="cac__header-spacer" />
     </header>
@@ -102,7 +102,11 @@ import { useAchievement } from '../composables/useAchievement'
 import { useCurriculumCompletion } from '../composables/useCurriculumCompletion'
 import { useAchievementEntries, type AchievementEntry } from '../composables/useAchievementEntries'
 import { uploadPhoto } from '../achievement.api'
-import type { Project, Routine, ProjectCategory } from '@/modules/career-design/types/career-design'
+import { CATEGORY_META } from '../lib/planBoard'
+import { features } from '@/shared/config/features'
+import { useFocusSessions } from '../composables/useFocusSessions'
+import { sessionKey, elapsedText } from '../lib/focusSession'
+import type { Project, Routine } from '@/modules/career-design/types/career-design'
 
 const route = useRoute()
 const router = useRouter()
@@ -110,13 +114,19 @@ const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDes
 const { isProjectDone, isRoutineDone, toggleProject, toggleRoutine } = useAchievement()
 const { isItemDone, toggleItem } = useCurriculumCompletion()
 const { saveEntry, getEntry } = useAchievementEntries()
+const focusSessions = useFocusSessions()
 
 const itemType = computed<'project' | 'routine'>(() => (route.params.type === 'routine' ? 'routine' : 'project'))
 const itemId = computed(() => String(route.params.id ?? ''))
 const dateKey = computed(() => String(route.query.date ?? toTodayKey()))
+// 멈춘 집중(2026-11-19) — 저장하면 지우고, 취소·뒤로는 지우지 않아 홈에 '잠시 멈춤'으로 남는다(정할 것 7)
+const focusKey = computed(() => sessionKey(dateKey.value, itemType.value, itemId.value))
 const elapsedSec = computed(() => {
   const n = Number(route.query.elapsed)
-  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0
+  if (Number.isFinite(n) && n >= 0 && route.query.elapsed != null && route.query.elapsed !== '') return Math.floor(n)
+  // 주소에 시간이 없으면(새로 고침 등) 기기에 적어 둔 멈춘 집중의 시간
+  const s = features.focusPause ? focusSessions.get(focusKey.value) : null
+  return s ? Math.floor(s.accSec) : 0
 })
 
 function toTodayKey(): string {
@@ -135,31 +145,14 @@ const item = computed<Project | Routine | null>(() => {
   return draftPlan.routines.find(r => r.id === itemId.value) ?? null
 })
 
-const categories: Record<ProjectCategory, { label: string; color: string }> = {
-  qualification: { label: '자격요건',   color: '#1DB95A' },
-  knowledge:     { label: '분야지식',   color: '#F47820' },
-  skill:         { label: '직무기술',   color: '#A855F7' },
-  portfolio:     { label: '포트폴리오', color: '#4480F5' },
-  experience:    { label: '실무경험', color: '#F0507E' },
-}
-
+// 분류 색·라벨은 planBoard 의 CATEGORY_META(정본) — 이 화면에 있던 복제 표는 2026-11-19 지움
 const categoryInfo = computed(() => {
   if (itemType.value !== 'project') return null
   const cat = (item.value as Project | null)?.category
-  return cat ? categories[cat] : null
+  return cat ? CATEGORY_META[cat] : null
 })
 
-const elapsedLabel = computed(() => {
-  const s = elapsedSec.value
-  if (s === 0) return '기록 없음'
-  if (s < 60) return `${s}초`
-  const m = Math.floor(s / 60)
-  const sec = s % 60
-  if (m < 60) return sec ? `${m}분 ${sec}초` : `${m}분`
-  const h = Math.floor(m / 60)
-  const min = m % 60
-  return min ? `${h}시간 ${min}분` : `${h}시간`
-})
+const elapsedLabel = computed(() => (elapsedSec.value === 0 ? '기록 없음' : elapsedText(elapsedSec.value)))
 
 // ── form state ───────────────────────────────────
 const photo = ref('')
@@ -275,6 +268,7 @@ async function save() {
       planId: draftPlan.planId ?? undefined,
     }
     saveEntry(entry)
+    focusSessions.remove(focusKey.value) // 저장했으니 멈춘 집중은 끝
 
     // 완료 상태 토글 — 아직 미완료면 완료로
     const alreadyDone = itemType.value === 'project'

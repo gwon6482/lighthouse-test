@@ -1,7 +1,7 @@
 <template>
   <div class="auth">
     <!-- 돌아갈 곳(?next=)이 있을 때만 — 진로백과 '분류로 찾기'의 '가입하고 연봉 보기'처럼 앱 안에서 넘어온 경우(2026-11-18) -->
-    <button v-if="nextPath" type="button" class="auth__back" aria-label="뒤로 가기" @click="safeBack(router, nextPath)"><AppIcon name="ui-back" /></button>
+    <button v-if="nextPath" type="button" class="auth__back" aria-label="뒤로" @click="safeBack(router, nextPath)"><AppIcon name="ui-back" /></button>
     <div class="auth__inner">
       <!-- 브랜드 헤더 -->
       <div class="auth__brand">

@@ -34,6 +34,12 @@ export function useHardwareBack() {
         return
       }
 
+      // 집중 화면을 바로 연 경우(뒤로 갈 곳 없음) — 앱을 끄지 않고 진로달성 홈으로. 화면의 가드가 집중 중이면 멈추게 한다(2026-11-19)
+      if (!canGoBack && path.startsWith('/career-achievement/start/')) {
+        router.replace('/career-achievement')
+        return
+      }
+
       // 루트/홈: 한 번 더 눌러야 종료
       if (exitArmed) {
         CapacitorApp.exitApp()

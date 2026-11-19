@@ -223,7 +223,7 @@
               <!-- 직접 입력 -->
               <template v-else-if="popupMode === 'manual'">
                 <div class="cd-popup__header">
-                  <button class="cd-popup__back" @click="popupMode = 'choose'"><AppIcon name="ui-back" /></button>
+                  <button type="button" class="cd-popup__back" aria-label="뒤로" @click="popupMode = 'choose'"><AppIcon name="ui-back" /></button>
                   <p class="cd-popup__title">직접 입력하기</p>
                   <button class="cd-popup__close" @click="closePopup"><AppIcon name="ui-close" /></button>
                 </div>
