@@ -44,6 +44,19 @@
     animation: fade-up 0.5s ease 0.9s both;
   }
 
+  &__first {
+    margin-top: 18px;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: $radius-pill;
+    background: $color-primary-tint;
+    font-size: $fs-xs;
+    font-weight: $fw-semibold;
+    color: #6B5300;
+    animation: fade-up 0.5s ease 1s both;
+  }
+
   &__footer {
     @include safe-area-footer;
     animation: fade-up 0.5s ease 1.1s both;
@@ -63,5 +76,6 @@
 
   .welcome__title,
   .welcome__desc,
+  .welcome__first,
   .welcome__footer { animation: none; }
 }

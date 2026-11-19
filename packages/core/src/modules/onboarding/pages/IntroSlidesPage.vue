@@ -1,81 +1,66 @@
+<!-- 가입 뒤 소개 4쪽(2026-11-20 시안 2판) — 쪽 내용은 lib/introSlides.ts, 가운데 그림은 components/IntroArt.vue.
+     틀(그림 상자 → 제목 → 설명 → 점 → 노란 버튼, 옆으로 밀어 넘기기)은 예전 그대로. 건너뛰기 없음 -->
 <template>
   <div class="intro">
-    <!-- 슬라이드 뷰포트 -->
     <div
       class="intro__viewport"
       @touchstart.passive="onTouchStart"
       @touchend.passive="onTouchEnd"
     >
       <div class="intro__track" :style="{ transform: `translateX(-${index * 100}%)` }">
-        <section v-for="(s, i) in slides" :key="i" class="intro__slide">
-          <div class="intro__art" :style="{ background: s.bg }">
-            <span class="intro__emoji" :style="{ color: s.color }"><AppIcon :name="s.icon" /></span>
+        <section
+          v-for="(s, i) in INTRO_SLIDES"
+          :key="s.art"
+          class="intro__slide"
+          :aria-hidden="i === index ? undefined : 'true'"
+          :inert="i !== index || undefined"
+          :data-test="`intro-slide-${i + 1}`"
+        >
+          <p class="intro__step">{{ s.step }}</p>
+          <p class="intro__worry">{{ s.worry }}</p>
+          <div :class="['intro__art', `intro__art--${s.tone}`]">
+            <!-- 쪽에 들어올 때 그림이 0.3초 떠오른다(동작 줄이기면 없음) -->
+            <div :class="['intro__shot', { 'intro__shot--lift': i === index }]" role="img" :aria-label="s.artLabel">
+              <IntroArt :kind="s.art" />
+            </div>
+            <span class="intro__ex">예시 화면이에요</span>
           </div>
-          <h2 class="intro__title" v-html="s.title" />
-          <p class="intro__body" v-html="s.body" />
+          <h2 class="intro__title">{{ s.title }}</h2>
+          <p class="intro__body">{{ s.body }}</p>
         </section>
       </div>
     </div>
 
-    <!-- 하단 영역: 점 + 버튼 -->
     <div class="intro__footer">
       <div class="intro__dots" aria-hidden="true">
         <span
-          v-for="(s, i) in slides"
-          :key="i"
+          v-for="(s, i) in INTRO_SLIDES"
+          :key="s.art"
           class="intro__dot"
           :class="{ 'intro__dot--active': i === index }"
         />
       </div>
 
-      <button class="intro__cta" @click="next">
-        {{ isLast ? '확인했어요' : '다음' }}
-      </button>
+      <button class="intro__cta" data-test="intro-cta" @click="next">{{ button.label }}</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import IntroArt from '../components/IntroArt.vue'
+import { INTRO_SLIDES, INTRO_NEXT_PATH, introButton } from '../lib/introSlides'
 
 const router = useRouter()
 
-const slides = [
-  {
-    icon: 'onboard-compass',
-    bg: 'linear-gradient(135deg, #FFF6D6 0%, #FFE99A 100%)',
-    color: '#D99A00', // 아이콘 색 = 배경과 같은 계열의 진한 색
-    title: '나를 먼저<br/>이해하는 것부터',
-    body: '성격·재능·흥미·가치관·업무환경<br/>5가지 검사로 진짜 나를 알아봐요.',
-  },
-  {
-    icon: 'onboard-encyclopedia',
-    bg: 'linear-gradient(135deg, #E6F0FF 0%, #C9DDFF 100%)',
-    color: '#3B6FD8', // 아이콘 색 = 배경과 같은 계열의 진한 색
-    title: '537개 직업 중<br/>나에게 맞는 진로',
-    body: '검사 결과를 바탕으로<br/>꼭 맞는 직업을 추천해드려요.',
-  },
-  {
-    icon: 'onboard-launch',
-    bg: 'linear-gradient(135deg, #EFE6FF 0%, #DCC9FF 100%)',
-    color: '#7B4FD6', // 아이콘 색 = 배경과 같은 계열의 진한 색
-    title: '계획을 세우고<br/>매일 실천까지',
-    body: '진로 목표를 설계하고<br/>하루하루 달성해 나가요.',
-  },
-]
-
 const index = ref(0)
-const isLast = computed(() => index.value === slides.length - 1)
+const button = computed(() => introButton(index.value))
+const isLast = computed(() => button.value.finish)
 
 function next() {
-  if (isLast.value) finish()
+  if (isLast.value) router.replace(INTRO_NEXT_PATH)
   else index.value++
-}
-
-function finish() {
-  router.replace('/onboarding/welcome')
 }
 
 // ── 스와이프 ──

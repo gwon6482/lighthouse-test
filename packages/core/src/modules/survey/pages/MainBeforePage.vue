@@ -111,7 +111,7 @@ const steps = computed<Step[]>(() => {
       key: 'survey',
       no: 1,
       title: '자기이해 검사',
-      desc: '5가지 검사로 나의 성격·재능·흥미·가치관을 파악해요.',
+      desc: '3개 파트, 약 20분 검사로 나의 성격·재능·흥미·가치관을 파악해요.',
       route: '/self-understanding',
       done: surveyDone.value,
       result: surveyType.value,

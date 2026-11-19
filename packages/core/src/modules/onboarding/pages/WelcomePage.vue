@@ -12,10 +12,13 @@
       <h1 class="welcome__title">
         <strong>{{ name }}</strong>님,<br/>환영합니다! <AppIcon name="ui-celebrate" />
       </h1>
+      <!-- 설명·띠(2026-11-20 시안 2판 권장) — 소개 1쪽(자기 이해)과 이어지게. 제목은 그대로(오너).
+           다음 화면(진로 여정 시작)과 겹치지 않게 '여정·세 단계'는 쓰지 않고, 그 화면에 없는 시간(약 20분)을 알린다 -->
       <p class="welcome__desc">
-        가입이 완료됐어요.<br/>
-        이제 나에게 꼭 맞는 진로를 찾아볼까요?
+        가입을 마쳤어요.<br/>
+        첫걸음은 나를 아는 것부터예요.
       </p>
+      <span class="welcome__first">먼저 자기이해 검사부터 · 약 20분</span>
     </div>
 
     <footer class="welcome__footer">

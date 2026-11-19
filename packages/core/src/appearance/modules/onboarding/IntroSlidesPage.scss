@@ -1,12 +1,13 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
+// 가입 뒤 소개 4쪽(2026-11-20 시안 2판). 쪽이 화면보다 길면(작은 폰) 쪽 안에서 위아래로 밀린다
 .intro {
   @include fullscreen-page($z-overlay-high);
 
-  // 슬라이드
   &__viewport {
     flex: 1;
+    min-height: 0;
     overflow: hidden;
   }
 
@@ -19,43 +20,80 @@
   &__slide {
     flex: 0 0 100%;
     height: 100%;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 28px;
-    padding: 0 32px;
+    align-items: stretch;
+    padding: calc(22px + env(safe-area-inset-top)) 22px 12px;
     box-sizing: border-box;
     text-align: center;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  &__step {
+    margin: 0;
+    font-size: $fs-2xs;
+    font-weight: $fw-semibold;
+    color: $color-text-secondary;
+    letter-spacing: 0.03em;
+  }
+
+  &__worry {
+    margin: 6px 0 0;
+    font-size: $fs-sm;
+    color: $gray-600;
+    line-height: 1.45;
+    white-space: pre-line;
   }
 
   &__art {
-    width: 200px;
-    height: 200px;
-    border-radius: $radius-xl;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: $shadow-card;
+    margin: 14px auto 0;
+    width: 100%;
+    max-width: 380px;
+    box-sizing: border-box;
+    border-radius: 26px;
+    padding: 16px 14px 10px;
+    display: grid;
+    gap: 6px;
+    justify-items: center;
+
+    &--y { background: linear-gradient(135deg, #FFF6D6 0%, #FFE99A 100%); }
+    &--b { background: linear-gradient(135deg, #E6F0FF 0%, #C9DDFF 100%); }
+    &--p { background: linear-gradient(135deg, #EFE6FF 0%, #DCC9FF 100%); }
+    &--g { background: linear-gradient(135deg, #E4F6EC 0%, #C6EBD6 100%); }
   }
 
-  &__emoji {
-    font-size: 88px;
-    line-height: 1;
-    color: $color-primary; // 자체 아이콘은 글자색을 따른다 — 지정 안 하면 검고 무겁다. 슬라이드별 색은 slides[].color(2026-10-28)
+  &__shot {
+    width: 100%;
+
+    &--lift { animation: intro-lift 0.3s ease-out both; }
+  }
+
+  &__ex {
+    font-size: 11px;
+    color: #8A8A8A;
   }
 
   &__title {
     @include heading;
+    margin-top: 18px;
+    font-size: 23px;
+    white-space: pre-line;
   }
 
   &__body {
     @include text-secondary;
+    margin-top: 8px;
+    font-size: $fs-sm;
+    line-height: 1.55;
+    color: #777777;
+    padding: 0 4px;
   }
 
   // 하단
   &__footer {
-    padding: 0 24px calc(28px + env(safe-area-inset-bottom));
+    padding: 12px 24px calc(28px + env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -84,4 +122,109 @@
     @include btn-primary;
     max-width: 420px;
   }
+}
+
+@keyframes intro-lift {
+  from { transform: translateY(10px); opacity: 0.6; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro__shot--lift { animation: none; }
+  .intro__track { transition: none; }
+}
+
+// ── 그림(IntroArt) — 실제 화면을 닮게 단순하게. 그림 속 색은 각 화면의 실제 색 ──
+.iart {
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  background: $color-surface;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 10px;
+  color: $color-text;
+  line-height: 1.4;
+
+  &__eyebrow { font-size: 10.5px; font-weight: $fw-bold; letter-spacing: 0.14em; color: #A07800; }
+  &__title { font-size: 16px; font-weight: $fw-bold; letter-spacing: -0.02em; }
+  &__stack { display: grid; gap: 4px; }
+
+  &__grp { border: 1px solid $color-border; border-radius: 12px; padding: 11px; display: grid; gap: 8px; }
+  &__head { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: $fw-bold; }
+  &__rank { width: 22px; height: 22px; border-radius: 50%; background: $color-primary; display: grid; place-items: center; font-size: 12px; flex: none; }
+  &__bars {
+    display: grid; grid-template-columns: auto 1fr 22px; gap: 5px 8px; align-items: center; font-size: 11px; color: $gray-600;
+    i { height: 6px; border-radius: 3px; background: #EFEFEF; position: relative; overflow: hidden; }
+    i b { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
+    em { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; }
+  }
+  &__why {
+    margin: 0; font-size: 12px; line-height: 1.5;
+    b { color: #2563EB; }
+    small { color: $color-text-secondary; font-size: 12px; }
+  }
+  &__jobs {
+    display: grid; gap: 4px; font-size: 12px;
+    span { display: flex; justify-content: space-between; padding: 6px 8px; border-radius: 8px; background: #F7F7F7; }
+  }
+
+  &__badges { display: flex; gap: 5px; }
+  &__badge {
+    font-size: 10.5px; font-weight: $fw-semibold; padding: 2px 7px; border-radius: $radius-pill;
+    &--deg { color: #4F46E5; background: #EEF0FE; }
+    &--sel { color: #0F8A7E; background: #E2F6F3; }
+  }
+  &__gate {
+    display: grid; gap: 5px; padding: 10px; border-radius: 10px; background: #FFFDF6; border: 1px solid #ECE8DC;
+    > b { font-size: 12.5px; }
+    &--must { background: #EEF3FF; border-color: #DCE6FF; }
+    &--must small { font-size: 11px; font-weight: $fw-semibold; color: #3365E3; }
+    &--must .iart__txt { color: #24365F; }
+  }
+  &__gchips {
+    display: flex; gap: 5px; flex-wrap: wrap;
+    span { font-size: 10.5px; font-weight: $fw-semibold; padding: 2px 8px; border-radius: $radius-pill; background: $color-surface; border: 1px solid #E2DED2; }
+  }
+  &__row {
+    display: grid; gap: 4px; padding: 10px; border-radius: 10px; background: #F7F8FA;
+    small { font-size: 11px; color: $color-text-secondary; }
+  }
+  &__sal {
+    display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; color: #777777;
+    b { font-size: 18px; color: #2B5BA8; font-weight: $fw-bold; }
+  }
+  &__sal-mid { text-align: center; }
+  &__sal-end { text-align: right; }
+  &__line { height: 4px; border-radius: 2px; background: linear-gradient(90deg, #C9DAF3, #4A78C2); }
+  &__chip { justify-self: start; font-size: 11px; font-weight: $fw-bold; padding: 2px 9px; border-radius: $radius-pill; background: #EEF1F5; color: #475569; }
+  &__txt { font-size: 12.5px; line-height: 1.45; &--strong { font-weight: $fw-semibold; } }
+  &__src { font-size: 10.5px; color: $color-text-tertiary; }
+
+  &__steps {
+    display: grid; gap: 5px;
+    > span { display: flex; align-items: center; gap: 7px; font-size: 12px; padding: 6px 8px; border-radius: 8px; background: #F7F7F7; }
+    em { margin-left: auto; font-style: normal; font-size: 10.5px; font-weight: $fw-semibold; padding: 1px 6px; border-radius: 5px; flex: none; }
+  }
+  &__no {
+    width: 17px; height: 17px; border-radius: 50%; background: $color-text; color: $color-surface; font-size: 10px; font-weight: $fw-semibold;
+    font-style: normal; display: grid; place-items: center; flex: none;
+  }
+
+  &__todayhead { display: flex; justify-content: space-between; align-items: baseline; > span:last-child { font-size: 12px; color: $color-text-secondary; } }
+  &__today { display: grid; gap: 7px; }
+  &__task {
+    display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 10px; background: #FAFAFA; border: 1px solid #EFEFEF; font-size: 12.5px; font-weight: $fw-medium;
+    i { width: 26px; height: 26px; border-radius: 8px; flex: none; }
+    span { flex: 1; min-width: 0; }
+    b { font-size: 11px; font-weight: $fw-semibold; padding: 4px 9px; border-radius: $radius-pill; background: $color-text; color: $color-surface; flex: none; }
+  }
+  &__week {
+    display: grid; gap: 6px; padding: 10px; border-radius: 12px; background: #FFFCEB; border: 1px solid #FBEBB5; font-size: 12px;
+    > div { display: flex; justify-content: space-between; gap: 8px; }
+  }
+  &__dday { color: #A07800; font-weight: $fw-semibold; flex: none; }
+  &__wbar { display: grid !important; grid-template-columns: repeat(3, 1fr); gap: 3px; i { height: 5px; border-radius: 3px; background: #E7E7E7; } }
 }
