@@ -2,7 +2,7 @@
   <!-- 결과지 직무 카드의 '채용 공고'(2026-11-09). 직무 = 고용24 채용 직종 중분류 — 공고 목록은 진로백과 채용 탭과 같은 컴포넌트 -->
   <div class="job-detail-page">
     <header class="job-detail-header">
-      <button class="job-detail-header__back" @click="safeBack(router, '/career-encyclopedia')"><AppIcon name="ui-back" /></button>
+      <button type="button" class="job-detail-header__back" aria-label="뒤로" @click="safeBack(router, '/career-encyclopedia')"><AppIcon name="ui-back" /></button>
       <div class="job-detail-header__info">
         <div class="job-detail-header__classifications">
           <span class="job-detail-header__primary">직무 채용 공고</span>

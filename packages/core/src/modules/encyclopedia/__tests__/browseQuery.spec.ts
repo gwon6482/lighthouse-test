@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
-  MAX_CONDITIONS, canAddCondition, canUseAxis, conditionCount, emptyState, formatManwon, listQuery,
+  MAX_CONDITIONS, canAddCondition, canUseAxis, conditionCount, emptyState, formatManwon, groupNear, listQuery,
   nextAxisToAdd, nextOrder, orderFromQuery, paramsFromState, stateFromQuery, withAxis, withoutCondition,
 } from '../lib/browseQuery'
 import { myBrowseStart } from '../lib/browseMyStart'
 import type { SurveyAnalysisResponse } from '@/modules/survey/types/survey'
+import type { BrowseCondition, BrowseRow } from '../types/browse'
 
 describe('분류로 찾기 — 주소 ↔ 상태', () => {
   it('쉼표·배열·중복을 정리하고 같은 꼴로 되돌린다', () => {
@@ -91,5 +92,24 @@ describe("'내 검사 결과로 찾기'", () => {
   it('채울 것이 없으면 null', () => {
     expect(myBrowseStart(analysis({}))).toBeNull()
     expect(myBrowseStart(null)).toBeNull()
+  })
+})
+
+describe("분류로 찾기 — '하나만 빼고 맞아요' 묶기(2026-11-19)", () => {
+  const cond = (id: string, label: string): BrowseCondition => ({ id, axis: id as BrowseCondition['axis'], codes: [], label })
+  const row = (code: string, m: BrowseCondition): BrowseRow => ({ jobCode: code, title: code, group: null, salary: { median: null }, reasons: [], missing: m })
+  const sp = cond('talent', '공간 지능')
+  const biz = cond('interest', '경영 및 행정 · 영업과 마케팅')
+  const near = [row('a', sp), row('b', sp), row('c', biz)]
+  it('묶음 수는 자르기 전 전체 수 · 묶음마다 더 볼 수 있다', () => {
+    const g = groupNear(near, [{ ...sp, total: 91, shown: 2 }, { ...biz, total: 67, shown: 1 }])
+    expect(g.map((x) => [x.id, x.rows.length, x.total, x.canMore])).toEqual([['talent', 2, 91, true], ['interest', 1, 67, true]])
+  })
+  it('옛 서버(nearGroups 없음)면 받은 줄 수 · 더 보기 없음', () => {
+    const g = groupNear(near, undefined)
+    expect(g.map((x) => [x.id, x.total, x.canMore])).toEqual([['talent', 2, false], ['interest', 1, false]])
+  })
+  it('없으면 빈 목록', () => {
+    expect(groupNear(undefined, undefined)).toEqual([])
   })
 })

@@ -87,7 +87,33 @@ export function useBrowseQuery() {
     }
   }
 
-  return { result, loading, failed, run, more }
+  /**
+   * '하나만 빼고 맞아요' 한 묶음 더 보기 — 그 묶음의 다음 조각을 받아 near 안 그 묶음 끝에 잇는다(묶음끼리는 이어 붙어 온다).
+   * 옛 서버(nearPage 없음)면 아무것도 하지 않는다
+   */
+  const nearLoading = ref<string | null>(null)
+  async function moreNear(state: BrowseState, id: string, opts: Record<string, string | number> = {}, limit = 30) {
+    const cur = result.value
+    if (!cur?.near || nearLoading.value) return
+    const shown = cur.near.filter((r) => r.missing?.id === id)
+    nearLoading.value = id
+    try {
+      const { data } = await fetchBrowseJobs({ ...paramsFromState(state), ...opts, limit: 1, nearMore: id, nearOffset: shown.length, nearLimit: limit })
+      const page = data.nearPage
+      if (result.value !== cur || !page?.data.length) return
+      const seen = new Set(cur.near.map((r) => `${r.missing?.id}:${r.jobCode}`))
+      const add = page.data.filter((r) => !seen.has(`${id}:${r.jobCode}`))
+      const lastAt = cur.near.map((r) => r.missing?.id).lastIndexOf(id)
+      const near = [...cur.near.slice(0, lastAt + 1), ...add, ...cur.near.slice(lastAt + 1)]
+      result.value = { ...cur, near }
+    } catch {
+      /* 더 보기 버튼이 그대로 남는다 — 다시 누르면 된다 */
+    } finally {
+      nearLoading.value = null
+    }
+  }
+
+  return { result, loading, failed, run, more, moreNear, nearLoading }
 }
 
 // ── '내 검사 결과로 찾기'(오너 결정 10) — 검사한 회원에게만. 못 받으면 조용히 입구 칸만 안 보인다 ──

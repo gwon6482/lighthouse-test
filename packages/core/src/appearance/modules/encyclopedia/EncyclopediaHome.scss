@@ -23,6 +23,11 @@
 
   &__intro {
     margin: 0 20px 20px;
+
+    // 끝 글자 '요.'만 다음 줄로 떨어지지 않게 낱말 단위로 줄을 바꾼다(2026-11-19 사용성 QA). 이 화면만 — 공용 JourneyIntro 는 그대로
+    .journey-intro__body {
+      word-break: keep-all;
+    }
   }
 
   &__search-wrap {

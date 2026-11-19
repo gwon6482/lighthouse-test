@@ -72,7 +72,7 @@
                   <input type="checkbox" class="bp__input" :checked="allPicked(g)" :disabled="!canPick" @change="toggleAll(g)" />
                   <i class="bp-ck__box" aria-hidden="true" />
                   <span class="bp-ck__name">{{ g.name }} 전체</span>
-                  <span class="bp-ck__n">{{ hasOthers ? '' : g.count }}</span>
+                  <span class="bp-ck__n">{{ groupCount(g) ?? '' }}</span>
                 </label>
                 <label v-for="f in g.children ?? []" :key="f.code" class="bp-ck" :class="{ 'bp-ck--on': draft.includes(f.code), ...dimClass('interest', f.code) }">
                   <input type="checkbox" class="bp__input" :checked="draft.includes(f.code)" :disabled="isOff('interest', f.code)" @change="toggle(f.code)" />
@@ -198,8 +198,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const guest = features.guestEntry && !auth.isLoggedIn
 const { axes, failed: axesFailed, load: loadAxes } = useBrowseAxes()
-const baseQ = useBrowseQuery()   // 이 탭을 뺀 나머지 조건 — 보기마다 개수(같은 탭 안의 다른 선택과 상관없이)
-const tentQ = useBrowseQuery()   // 지금 고른 것까지 — 버튼의 직업 수, 업무 환경 보기 개수(그 보기를 넣었을 때)
+const tentQ = useBrowseQuery()   // 지금 고른 것까지 — 버튼의 직업 수, 보기마다 '그 보기를 넣었을 때' 개수
 
 const axisKey = computed<BrowseAxisKey>(() => {
   const a = String(route.params.axis ?? '')
@@ -228,7 +227,7 @@ function openTop(code: string) {
   router.push({ path: route.path, query: { ...route.query, [axisKey.value]: draft.value.join(',') || undefined, top: code, pd: String(pd.value + 1) } })
 }
 
-// ── 개수 ── 다른 조건이 없으면 고르기 화면 개수(축 응답), 있으면 서버가 센 '넣었을 때' 개수
+// ── 개수 ── 아무것도 안 골랐으면 고르기 화면 개수(축 응답), 하나라도 골랐으면 서버가 센 '지금 목록에 그 보기를 넣었을 때' 개수
 function axesCount(k: BrowseAxisKey, code: string): number | undefined {
   const a = axisOf(k)
   if (!a) return undefined
@@ -240,11 +239,19 @@ function axesCount(k: BrowseAxisKey, code: string): number | undefined {
   }
   return undefined
 }
+/**
+ * 모든 탭이 같은 잣대다(2026-11-19 사용성 QA — '이타'를 고른 뒤 '안정' 옆에 혼자 고른 수 88이 보였는데 누르면 157이었다).
+ * 지금 고른 것(이 탭의 체크 포함)에 그 보기를 넣었을 때 남는 수 — 여럿 고르는 탭은 '또는'으로 넓혀서, 하나만 고르는 칸은 바꿔서,
+ * 업무 환경 '빼기'는 빼서 센다(서버 next). 이미 고른 보기는 지금 수와 같다
+ */
 function countOf(k: BrowseAxisKey, code: string): number | undefined {
-  // 업무 환경은 탭 안에서 서로 얽히므로(자세·빼기는 함께, 좋아요는 또는) 지금 고른 것까지 넣고 센다 — '빼기'도 그 보기를 넣으면 남는 수
-  if (k === 'env') return tentQ.result.value?.next.env?.[code] ?? (hasOthers.value || draft.value.length ? undefined : axesCount(k, code))
-  if (!hasOthers.value) return axesCount(k, code)
-  return baseQ.result.value?.next[k]?.[code]
+  if (isEmptyState(tentative.value)) return axesCount(k, code)
+  return tentQ.result.value?.next[k]?.[code]
+}
+/** 관심 분야 묶음 '전체' — 서버가 묶음 코드도 센다(옛 서버면 비운다) */
+function groupCount(g: BrowseOption): number | undefined {
+  if (isEmptyState(tentative.value)) return g.count
+  return tentQ.result.value?.next.interest?.[g.code]
 }
 
 // ── 고를 수 있나 ── 0개라서 흐린 것과 조건 한도 때문에 흐린 것을 나눠 보인다
@@ -346,9 +353,6 @@ watch(() => [axisKey.value, topCode.value], async () => {
 }, { immediate: true })
 
 // ── 불러오기 ──
-watch(() => JSON.stringify([axisKey.value, paramsFromState(base.value)]), () => {
-  if (hasOthers.value) baseQ.run(base.value, { limit: 1 })
-}, { immediate: true })
 let timer: ReturnType<typeof setTimeout> | null = null
 watch(() => JSON.stringify(paramsFromState(tentative.value)), () => {
   if (timer) clearTimeout(timer)

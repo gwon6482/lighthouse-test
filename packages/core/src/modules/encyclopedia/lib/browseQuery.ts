@@ -2,7 +2,7 @@
 // 고른 조건은 주소에 담는다 — 뒤로 가기(안드로이드 뒤로 버튼 R4 포함)·공유가 되고, 계정에는 저장하지 않는다.
 // 사용성 확인 조정(같은 날 밤): 탭 하나 = 조건 하나(업무 환경도 탭 전체가 조건 하나), 직무도 다른 조건과 직무 단위로 섞는다.
 import type { LocationQuery, LocationQueryRaw } from 'vue-router'
-import type { BrowseAxisKey } from '../types/browse'
+import type { BrowseAxisKey, BrowseResult, BrowseRow } from '../types/browse'
 
 /** 탭 순서(진로상담 권장 — 쓸모가 넓은 것부터, 연봉은 맨 끝). '조건 더하기'도 이 순서로 안 쓴 첫 탭을 연다 */
 export const BROWSE_AXES: BrowseAxisKey[] = ['group', 'interest', 'env', 'talent', 'value', 'salary']
@@ -76,6 +76,27 @@ export function withAxis(s: BrowseState, axis: BrowseAxisKey, codes: string[]): 
 /** 다음에 더할 탭 — 아직 안 쓴 첫 탭(탭 순서) */
 export function nextAxisToAdd(s: BrowseState): BrowseAxisKey | null {
   return BROWSE_AXES.find((k) => s[k].length === 0) ?? null
+}
+
+export interface NearGroup { id: string; label: string; rows: BrowseRow[]; total: number; canMore: boolean }
+/**
+ * '하나만 빼고 맞아요' — 빠진 조건마다 묶는다(서버가 묶음마다 몇 줄씩 이어 보낸다).
+ * total = 자르기 전 전체 수(서버 nearGroups). 옛 서버(nearGroups 없음)면 받은 줄 수를 쓰고 더 보기를 두지 않는다
+ */
+export function groupNear(near: BrowseRow[] | undefined, meta: BrowseResult['nearGroups']): NearGroup[] {
+  const totals = new Map((meta ?? []).map((g) => [g.id, g.total]))
+  const groups: NearGroup[] = []
+  for (const row of near ?? []) {
+    const id = row.missing?.id ?? ''
+    let g = groups[groups.length - 1]
+    if (!g || g.id !== id) {
+      g = { id, label: row.missing?.label ?? '', rows: [], total: 0, canMore: totals.has(id) }
+      groups.push(g)
+    }
+    g.rows.push(row)
+  }
+  for (const g of groups) g.total = Math.max(totals.get(g.id) ?? 0, g.rows.length)
+  return groups
 }
 
 /** 8100 → '8,100만 원', 11500 → '1억 1,500만 원', 10000 → '1억 원' */

@@ -1,6 +1,6 @@
 <template>
   <header class="job-detail-header">
-    <button class="job-detail-header__back" @click="safeBack(router, '/career-encyclopedia')"><AppIcon name="ui-back" /></button>
+    <button type="button" class="job-detail-header__back" aria-label="뒤로" @click="safeBack(router, '/career-encyclopedia')"><AppIcon name="ui-back" /></button>
 
     <div class="job-detail-header__info">
       <div class="job-detail-header__classifications">

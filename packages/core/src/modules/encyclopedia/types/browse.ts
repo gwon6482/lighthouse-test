@@ -96,6 +96,10 @@ export interface BrowseResult {
   near?: BrowseRow[]
   /** near 를 자르기 전 전체 수 */
   nearTotal?: number
+  /** 빠진 조건(묶음)마다 자르기 전 수(total)와 near 에 든 수(shown) — 2026-11-19 서버부터 */
+  nearGroups?: (BrowseCondition & { total: number; shown: number })[]
+  /** nearMore 로 한 묶음을 더 받았을 때 그 조각 */
+  nearPage?: BrowseCondition & { total: number; offset: number; limit: number; data: BrowseRow[] }
   offset: number
   limit: number
   data: BrowseRow[]

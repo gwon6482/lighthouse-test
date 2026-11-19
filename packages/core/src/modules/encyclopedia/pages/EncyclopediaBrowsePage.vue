@@ -23,7 +23,7 @@
       <div v-if="result" class="bl__chips">
         <span v-for="c in result.applied.conditions" :key="c.id" class="bl-chip">
           <button type="button" class="bl-chip__label" @click="editCondition(c.axis)">{{ c.label }}</button>
-          <button type="button" class="bl-chip__x" :aria-label="`${c.label} 빼기`" @click="remove(c.id)">×</button>
+          <button type="button" class="bl-chip__x" :aria-label="`${c.label} 지우기`" @click="remove(c.id)">×</button>
         </span>
         <button v-if="canAdd" type="button" class="bl-add" @click="addCondition">+ 조건 더하기</button>
         <span v-else class="bl-add bl-add--full">조건 {{ MAX_CONDITIONS }}개를 다 골랐어요</span>
@@ -55,13 +55,19 @@
       <section v-if="nearGroups.length" class="bl-near">
         <h2 class="bl-near__title">
           하나만 빼고 맞아요
-          <span>{{ (result?.nearTotal ?? 0) > (result?.near?.length ?? 0) ? `${result?.nearTotal}개 중 ${result?.near?.length}개` : `${result?.near?.length}개` }}</span>
+          <span>{{ nearTitleCount }}</span>
         </h2>
         <div v-for="g in nearGroups" :key="g.id" class="bl-near__group">
-          <p class="bl-near__miss">'{{ g.label }}'만 안 맞아요 <span>{{ g.rows.length }}개</span></p>
+          <p class="bl-near__miss">'{{ g.label }}'만 안 맞아요 <span>{{ g.total }}개</span></p>
           <div class="bl__list">
             <BrowseJobCard v-for="row in g.rows" :key="`n-${row.jobCode}`" :row="row" :guest="guest" @open="openRow(row)" />
           </div>
+          <button
+            v-if="g.canMore && g.rows.length < g.total" type="button" class="bl__more"
+            :disabled="nearLoading === g.id" @click="loadMoreNear(g.id)"
+          >
+            더 보기 <span>(남은 {{ g.total - g.rows.length }}개)</span>
+          </button>
         </div>
         <RouterLink to="/career-encyclopedia" class="bl-near__explore">진로 둘러보기 <AppIcon name="ui-chevron-right" /></RouterLink>
       </section>
@@ -89,7 +95,7 @@ import BrowseJobCard from '../components/page/browse/BrowseJobCard.vue'
 import { useBrowseAxes, useBrowseQuery } from '../composables/useJobBrowse'
 import {
   MAX_CONDITIONS, canAddCondition, conditionCount, isEmptyState, listQuery, nextAxisToAdd, orderFromQuery,
-  paramsFromState, stateFromQuery, withoutCondition,
+  groupNear, paramsFromState, stateFromQuery, withoutCondition,
 } from '../lib/browseQuery'
 import type { BrowseAxisKey, BrowseRow } from '../types/browse'
 
@@ -102,7 +108,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const guest = features.guestEntry && !auth.isLoggedIn
 const { axes, load: loadAxes } = useBrowseAxes()
-const { result, loading, failed, run, more } = useBrowseQuery()
+const { result, loading, failed, run, more, moreNear, nearLoading } = useBrowseQuery()
 
 const state = computed(() => stateFromQuery(route.query))
 const order = computed(() => orderFromQuery(route.query))
@@ -157,20 +163,19 @@ function addCondition() {
   if (axis) editCondition(axis)
 }
 
-// ── 하나만 빼고 맞아요 — 빠진 조건마다 묶는다(서버가 나중에 더한 조건부터 보낸다) ──
-const nearGroups = computed(() => {
-  const groups: { id: string; label: string; rows: BrowseRow[] }[] = []
-  for (const row of result.value?.near ?? []) {
-    const id = row.missing?.id ?? ''
-    let g = groups[groups.length - 1]
-    if (!g || g.id !== id) {
-      g = { id, label: row.missing?.label ?? '', rows: [] }
-      groups.push(g)
-    }
-    g.rows.push(row)
-  }
-  return groups
+// ── 하나만 빼고 맞아요 — 빠진 조건마다 묶는다(서버가 나중에 더한 조건부터, 묶음마다 몇 줄씩 이어 보낸다) ──
+// 묶음 수는 자르기 전 전체 수(nearGroups.total). 옛 서버(nearGroups 없음)면 받은 줄 수를 쓰고 더 보기를 두지 않는다
+const nearGroups = computed(() => groupNear(result.value?.near, result.value?.nearGroups))
+const nearTitleCount = computed(() => {
+  const shown = result.value?.near?.length ?? 0
+  const total = result.value?.nearTotal ?? shown
+  // 묶음마다 더 볼 수 있으면 전체 수만, 옛 서버처럼 잘렸는데 더 볼 수 없으면 '전체 중 몇'
+  if (result.value?.nearGroups || total <= shown) return `${total}개`
+  return `${total}개 중 ${shown}개`
 })
+function loadMoreNear(id: string) {
+  moreNear(state.value, id, opts(PAGE))
+}
 
 // ── 묶음 직업 ──
 const pickerOpen = ref(false)
