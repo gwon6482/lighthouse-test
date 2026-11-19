@@ -26,6 +26,8 @@
       <p v-if="axesFailed" class="bp__fail">분류를 불러오지 못했어요. 잠시 후 다시 시도해 주세요</p>
       <p v-else-if="!axes" class="bp__loading">불러오는 중…</p>
       <p v-else-if="limited" class="bp__limit">조건은 {{ MAX_CONDITIONS }}개까지 고를 수 있어요. 다른 조건을 빼면 고를 수 있어요</p>
+      <!-- 흐린(0개) 보기가 있을 때만 — 왜 못 고르는지(2026-11-20 다듬기 3차 5) -->
+      <p v-else-if="zeroNote" class="bp__limit">{{ zeroNote }}</p>
 
       <template v-if="axes">
         <!-- 직무: 대분류 → 직무. 직무 단위로 다른 조건과 섞어도 된다(남는 수를 미리 보여 주고 0개 보기는 흐리므로) -->
@@ -180,7 +182,7 @@ import { safeBack } from '@/shared/utils/navigation'
 import { useBrowseAxes, useBrowseQuery } from '../composables/useJobBrowse'
 import {
   AXIS_NAME, BROWSE_AXES, MAX_CONDITIONS, canUseAxis, conditionCount, isEmptyState, listQuery, nextOrder, orderFromQuery,
-  paramsFromState, stateFromQuery, withAxis, type BrowseState,
+  paramsFromState, stateFromQuery, withAxis, zeroNoteText, type BrowseState,
 } from '../lib/browseQuery'
 import type { BrowseAxisKey, BrowseOption } from '../types/browse'
 
@@ -264,6 +266,21 @@ const tabLocked = (k: BrowseAxisKey) => k !== axisKey.value && !canUseAxis(tenta
 const tabsNote = computed(() => !topCode.value && !limited.value && BROWSE_AXES.some(tabLocked))
 const isZero = (k: BrowseAxisKey, code: string) => !!code && !draft.value.includes(code) && countOf(k, code) === 0
 const isOff = (k: BrowseAxisKey, code: string) => !canPick.value || isZero(k, code)
+/** 지금 화면에 보이는 보기 코드 — 흐린 보기가 하나라도 있는지 보려고 */
+const visibleCodes = computed<string[]>(() => {
+  const a = axisOf(axisKey.value)
+  if (!a) return []
+  if (a.sections) return a.sections.flatMap((s) => s.items.map((i) => i.code))
+  if (axisKey.value === 'group') return topCode.value ? (topItem.value?.children ?? []).map((g) => g.code).concat(topCode.value) : (a.items ?? []).map((t) => t.code)
+  // 관심 분야 — 펼친 묶음의 세부만 흐려진다(묶음 머리는 흐리지 않는다)
+  if (axisKey.value === 'interest') return (a.items ?? []).filter((g) => isOpen(g.code)).flatMap((g) => (g.children ?? []).map((c) => c.code))
+  return (a.items ?? []).flatMap((it) => (it.redirect ? [] : [it.code]))
+})
+const zeroNote = computed(() => {
+  if (!axes.value || !canPick.value || !visibleCodes.value.some((c) => isZero(axisKey.value, c))) return ''
+  const others = BROWSE_AXES.filter((k) => k !== axisKey.value && tentative.value[k].length).map((k) => AXIS_NAME[k])
+  return zeroNoteText(others, axisKey.value === 'env' && draft.value.length > 0)
+})
 const dimClass = (k: BrowseAxisKey, code: string, onlyLimit = false) => ({
   'bp-dim--limit': !canPick.value,
   'bp-dim--zero': canPick.value && !onlyLimit && isZero(k, code),

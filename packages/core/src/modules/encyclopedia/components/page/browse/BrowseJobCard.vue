@@ -27,11 +27,12 @@
       </ul>
       <p v-if="row.salary.median" class="bjc__sal">
         연봉 중간값
-        <!-- 비회원에게는 숫자를 그리지 않는다(화면 읽기 프로그램에도 안 읽히게 자리표시만) -->
-        <b v-if="guest" class="bjc__veil" aria-hidden="true">0,000만 원</b>
-        <b v-else>{{ formatManwon(row.salary.median) }}</b>
-        · 경력자 포함
-        <span v-if="guest" class="g-pill bjc__lock"><AppIcon name="ui-privacy" :size="11" />가입 후</span>
+        <!-- 비회원 — 숫자 모양을 그리지 않는다(2026-11-20 다듬기 3차 4: 흐린 '0,000만 원'이 진짜 숫자처럼 보였다) -->
+        <template v-if="guest">
+          <b class="bjc__guest">가입하면 보여요</b>
+          <span class="g-pill bjc__lock"><AppIcon name="ui-privacy" :size="11" />가입 후</span>
+        </template>
+        <template v-else><b>{{ formatManwon(row.salary.median) }}</b> · 경력자 포함</template>
       </p>
     </div>
     <div class="rjc__arrow">

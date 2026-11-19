@@ -33,6 +33,27 @@ export function missLine(m: BrowseRow['missing']): MissLine {
   return { kind: 'miss', text: m.parts.join(' · ') }
 }
 
+/**
+ * 목록 개수 줄(2026-11-20 다듬기 3차 1 — 탭끼리는 '모두' 맞아야 한다는 것을 안내 글 없이 숫자 줄로).
+ * 조건이 둘 이상이면 '세 조건을 모두 갖춘 직업 N개', 하나 이하면 '직업 N개'
+ */
+export function countLine(total: number, conditions: number): string {
+  if (conditions < 2) return `직업 ${total}개`
+  const word = ({ 2: '두', 3: '세', 4: '네' } as Record<number, string>)[conditions] ?? String(conditions)
+  return `${word} 조건을 모두 갖춘 직업 ${total}개`
+}
+
+/**
+ * 고르기 화면 — 흐린(0개) 보기가 있을 때만 목록 위 한 줄(2026-11-20 다듬기 3차 5).
+ * others = 지금 고른 다른 조건의 탭 이름. 업무 환경은 칸끼리 '그리고'라 같은 탭 안 다른 칸도 까닭이 된다(sameTabOther)
+ */
+export function zeroNoteText(others: string[], sameTabOther = false): string {
+  const names = [...others, ...(sameTabOther ? ['업무 환경의 다른 칸'] : [])]
+  return names.length
+    ? `흐린 보기는 지금 고른 다른 조건(${names.join('·')})과 함께 맞는 직업이 없어요`
+    : '흐린 보기는 지금 고른 조건과 함께 맞는 직업이 없어요'
+}
+
 /** 조건은 3개까지(오너 결정 2) — 탭 수로 센다 */
 export const MAX_CONDITIONS = 3
 

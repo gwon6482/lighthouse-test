@@ -15,7 +15,7 @@
     <div v-else class="bl__body">
       <p v-if="fromMine" class="bl__mine">내 검사 결과로 채웠어요 · 지울 수 있어요</p>
       <p class="bl__count">
-        <template v-if="result">직업 {{ result.total }}개</template>
+        <template v-if="result">{{ countLine(result.total, result.applied.conditions.length) }}</template>
         <template v-else-if="failed">목록을 불러오지 못했어요</template>
         <template v-else>찾는 중…</template>
       </p>
@@ -50,26 +50,30 @@
       <!-- 숫자는 '더 볼 수 있는' 수 = 아래 '○○만 안 맞아요' 묶음 수와 같은 기준(지금 결과는 빼고). 더 볼 게 없는 조건은 숨긴다(2026-11-19 다듬기 3차) -->
       <section v-if="result && relaxMore.length" class="bl-relax">
         <p v-if="result.total > 0" class="bl-relax__lead">조건 하나를 빼면 더 볼 수 있어요</p>
-        <button v-for="r in relaxMore" :key="r.id" type="button" class="bl-drop" @click="remove(r.id)">
-          <span class="bl-drop__label">'{{ r.label }}' 빼기</span> <span class="bl-drop__n">{{ r.more }}개 더 ›</span>
-        </button>
+        <!-- 탭 이름으로 짧게(무엇이 든 조건인지는 위 칩에 탭 이름과 함께 있다 — 2026-11-20 다듬기 3차 2) -->
+        <div class="bl-relax__row">
+          <button v-for="r in relaxMore" :key="r.id" type="button" class="bl-drop" :aria-label="`${relaxName(r)} ${r.more}개 더 보기`" @click="remove(r.id)">
+            <span class="bl-drop__label">{{ relaxName(r) }}</span> <span class="bl-drop__n">{{ r.more }}개 더 ›</span>
+          </button>
+        </div>
       </section>
       <section v-if="nearGroups.length" class="bl-near">
         <h2 class="bl-near__title">
           하나만 빼고 맞아요
           <span>{{ nearTitleCount }}</span>
         </h2>
-        <!-- 묶음 제목은 스크롤해도 위에 붙고(그 묶음 안에서), 탭 이름으로 짧게. 칸 이름은 카드의 '안 맞아요' 줄에 맡긴다(2026-11-19 다듬기 2차 10) -->
-        <div v-for="(g, gi) in nearGroups" :id="`near-${g.id}`" :key="g.id" class="bl-near__group">
+        <!-- 묶음 이름표 줄(묶음이 둘 이상일 때) — 스크롤해도 붙고, 지금 보는 묶음이 켜지고, 아무 묶음으로나 간다(2026-11-20 다듬기 3차 3).
+             묶음 제목은 목록 안에 두고 붙지 않는다. 칸 이름은 카드의 '안 맞아요' 줄에 맡긴다 -->
+        <nav v-if="nearGroups.length > 1" class="bl-near__nav" aria-label="안 맞는 조건별 묶음">
+          <button
+            v-for="g in nearGroups" :key="g.id" type="button" class="bl-near__pill"
+            :class="{ 'bl-near__pill--on': g.id === nearActive }" :aria-current="g.id === nearActive ? 'true' : undefined"
+            :aria-label="`${nearGroupTitle(g)} ${g.total}개로 가기`" @click="jumpNear(g.id)"
+          >{{ nearJumpLabel(g) }} {{ g.total }}</button>
+        </nav>
+        <div v-for="g in nearGroups" :id="`near-${g.id}`" :key="g.id" class="bl-near__group">
           <div class="bl-near__miss">
             <p :id="`near-${g.id}-title`" class="bl-near__miss-title" tabindex="-1">{{ nearGroupTitle(g) }} <span>{{ g.total }}개</span></p>
-            <button
-              v-if="nearGroups[gi + 1]" type="button" class="bl-near__jump"
-              :aria-label="`${nearGroupTitle(nearGroups[gi + 1]!)} ${nearGroups[gi + 1]!.total}개로 내려가기`"
-              @click="jumpNear(nearGroups[gi + 1]!.id)"
-            >
-              {{ nearJumpLabel(nearGroups[gi + 1]!) }} {{ nearGroups[gi + 1]!.total }}개 <AppIcon name="ui-chevron-down" :size="12" />
-            </button>
           </div>
           <div class="bl__list">
             <BrowseJobCard v-for="row in g.rows" :key="`n-${row.jobCode}`" :row="row" :guest="guest" @open="openRow(row)" />
@@ -95,7 +99,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
@@ -106,7 +110,7 @@ import BrowseJobCard from '../components/page/browse/BrowseJobCard.vue'
 import { useBrowseAxes, useBrowseQuery } from '../composables/useJobBrowse'
 import {
   MAX_CONDITIONS, axisName, canAddCondition, chipAriaLabel, chipPieces, conditionCount, isEmptyState, listQuery, nextAxisToAdd,
-  orderFromQuery, groupNear, paramsFromState, relaxWithMore, stateFromQuery, withoutCondition, type NearGroup,
+  countLine, orderFromQuery, groupNear, paramsFromState, relaxWithMore, stateFromQuery, withoutCondition, type NearGroup,
 } from '../lib/browseQuery'
 import { clearPosition, positionKey, readPosition, savePosition, type BrowsePosition } from '../lib/browsePosition'
 import type { BrowseAxisKey, BrowseRow } from '../types/browse'
@@ -208,12 +212,35 @@ const nearGroupShort = (g: NearGroup) => {
   return cardsTell && axisName(g.axis) ? `${axisName(g.axis)}만` : `'${g.label}'만`
 }
 const nearGroupTitle = (g: NearGroup) => `${nearGroupShort(g)} 안 맞아요`
-/** 다음 묶음 바로가기는 늘 짧게(탭 이름) */
+/** 이름표는 늘 짧게(탭 이름) */
 const nearJumpLabel = (g: NearGroup) => (axisName(g.axis) ? `${axisName(g.axis)}만` : nearGroupShort(g))
+/** '조건 하나를 빼면' 바로가기 — 탭 이름으로 짧게. 탭을 모르면 예전처럼 조건 글 */
+const relaxName = (r: { axis: string; label: string }) => (axisName(r.axis) ? `${axisName(r.axis)} 빼기` : `'${r.label}' 빼기`)
+
+// ── 지금 보는 묶음 — 이름표 줄 아래(머리 52px + 이름표 줄)를 지난 마지막 묶음 ──
+const nearActive = ref('')
+let nearRaf = 0
+function updateNearActive() {
+  nearRaf = 0
+  const gs = nearGroups.value
+  if (gs.length < 2) { nearActive.value = gs[0]?.id ?? ''; return }
+  const line = 52 + (document.querySelector('.bl-near__nav')?.getBoundingClientRect().height ?? 44) + 12
+  let cur = gs[0]!.id
+  for (const g of gs) {
+    const el = document.getElementById(`near-${g.id}`)
+    if (el && el.getBoundingClientRect().top <= line) cur = g.id
+  }
+  nearActive.value = cur
+}
+const onNearScroll = () => { if (!nearRaf) nearRaf = requestAnimationFrame(updateNearActive) }
+onMounted(() => window.addEventListener('scroll', onNearScroll, { passive: true }))
+onBeforeUnmount(() => { window.removeEventListener('scroll', onNearScroll); if (nearRaf) cancelAnimationFrame(nearRaf) })
+watch(nearGroups, () => nextTick(updateNearActive))
 /** 다음 묶음으로 내려가기 — 제목에 초점을 옮겨 화면 읽기도 따라가게 */
 function jumpNear(id: string) {
   const el = document.getElementById(`near-${id}`)
   if (!el) return
+  nearActive.value = id
   el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   document.getElementById(`near-${id}-title`)?.focus({ preventScroll: true })
 }

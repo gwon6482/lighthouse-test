@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   MAX_CONDITIONS, axisName, canAddCondition, canUseAxis, chipAriaLabel, chipPieces, conditionCount, emptyState, formatManwon,
-  groupNear, listQuery, missLine, nextAxisToAdd, nextOrder, relaxWithMore, orderFromQuery, paramsFromState, stateFromQuery, withAxis, withoutCondition,
+  countLine, groupNear, listQuery, missLine, nextAxisToAdd, nextOrder, relaxWithMore, zeroNoteText, orderFromQuery, paramsFromState, stateFromQuery, withAxis, withoutCondition,
 } from '../lib/browseQuery'
 import { myBrowseStart } from '../lib/browseMyStart'
 import type { SurveyAnalysisResponse } from '@/modules/survey/types/survey'
@@ -160,5 +160,19 @@ describe("분류로 찾기 다듬기 3차(2026-11-19) — '조건 하나를 빼�
       nearGroups: [{ ...c('env'), total: 3, shown: 3 }, { ...c('group'), total: 0, shown: 0 }] }
     expect(relaxWithMore(r).map((x) => [x.id, x.more])).toEqual([['env', 3]])
     expect(relaxWithMore(null)).toEqual([])
+  })
+})
+
+describe('분류로 찾기 다듬기 3차(2026-11-20 오너 권장대로) — 개수 줄 · 흐린 보기 안내', () => {
+  it("조건이 둘 이상이면 '…조건을 모두 갖춘 직업 N개'", () => {
+    expect(countLine(34, 0)).toBe('직업 34개')
+    expect(countLine(34, 1)).toBe('직업 34개')
+    expect(countLine(7, 2)).toBe('두 조건을 모두 갖춘 직업 7개')
+    expect(countLine(1, 3)).toBe('세 조건을 모두 갖춘 직업 1개')
+  })
+  it('흐린 보기 안내 — 다른 조건의 탭 이름, 업무 환경은 같은 탭 다른 칸도', () => {
+    expect(zeroNoteText(['직무', '업무 환경'])).toBe('흐린 보기는 지금 고른 다른 조건(직무·업무 환경)과 함께 맞는 직업이 없어요')
+    expect(zeroNoteText(['직무'], true)).toBe('흐린 보기는 지금 고른 다른 조건(직무·업무 환경의 다른 칸)과 함께 맞는 직업이 없어요')
+    expect(zeroNoteText([])).toBe('흐린 보기는 지금 고른 조건과 함께 맞는 직업이 없어요')
   })
 })

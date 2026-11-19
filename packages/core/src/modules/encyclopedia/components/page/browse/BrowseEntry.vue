@@ -54,7 +54,7 @@ const tiles = computed(() => {
   return [
     { key: 'group' as const, name: '직무', icon: 'service-job-experience', color: JOB, hint: jobsHint, locked: false },
     { key: 'interest' as const, name: '관심 분야', icon: 'result-interest', color: AREA_COLOR.likes, hint: '국어·생물·디자인…', locked: false },
-    { key: 'env' as const, name: '업무 환경', icon: 'area-environment', color: AREA_COLOR.environment, hint: '앉아서·바깥·재택…', locked: false },
+    { key: 'env' as const, name: '업무 환경', icon: 'area-environment', color: AREA_COLOR.environment, hint: '앉아서·실외·재택…', locked: false },
     { key: 'talent' as const, name: '재능', icon: 'result-talent', color: AREA_COLOR.likes, hint: axes.value ? `${names('talent', 2)}…` : '언어·논리수학…', locked: false },
     { key: 'value' as const, name: '가치관', icon: 'result-values', color: AREA_COLOR.likes, hint: '안정·자율·성취…', locked: false },
     // 비회원은 연봉 분류가 잠겨 있다(직업 상세의 연봉 잠금과 같게) — 칸에 자물쇠를 보인다

@@ -25,7 +25,8 @@ export interface BrowseOption {
 }
 
 export interface BrowseEnvSection {
-  key: 'posture' | 'customer' | 'prefer' | 'exclude'
+  /** place(근무 장소)는 2026-11-20 서버부터 */
+  key: 'posture' | 'customer' | 'place' | 'prefer' | 'exclude'
   name: string
   select: 'single' | 'multi'
   exclude?: boolean
