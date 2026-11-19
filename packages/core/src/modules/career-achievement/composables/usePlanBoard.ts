@@ -105,9 +105,13 @@ export function usePlanBoard() {
     if (!features.focusPause || !pl) return []
     const todayIds = new Set(todayProjects.value.map((p) => p.id))
     return Object.values(focus.sessions.value)
-      .filter((s) => (!s.planId || s.planId === pl.planId) && !!projectOf(s.itemId) && isAlive(s, todayKey.value)
-        && !ach.isProjectDone(s.itemId, s.date)
-        && !(s.date === todayKey.value && todayIds.has(s.itemId)))
+      .filter((s) => {
+        if ((s.planId && s.planId !== pl.planId) || !projectOf(s.itemId) || !isAlive(s, todayKey.value)) return false
+        const done = ach.isProjectDone(s.itemId, s.date)
+        if (done && !s.afterDone) return false // 다른 기기에서 완료 — 정리에서 지운다
+        // 오늘 목록의 아직 안 한 줄은 그 자리에 '잠시 멈춤'으로 나온다. 완료한 줄(다시 집중)은 여기 한 장으로(2026-11-20 QA)
+        return !(s.date === todayKey.value && todayIds.has(s.itemId) && !done)
+      })
       .sort((a, b) => a.date.localeCompare(b.date) || a.updatedAt - b.updatedAt)
   })
   function resumeFocus(s: FocusSession) {

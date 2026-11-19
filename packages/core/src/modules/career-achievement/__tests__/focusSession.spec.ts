@@ -68,6 +68,7 @@ describe('focusSession — 날짜', () => {
     expect(pausedEyebrow('2026-11-19', '2026-11-19')).toBe('잠시 멈춤')
     expect(pausedEyebrow('2026-11-18', '2026-11-19')).toBe('어제 멈춤 · 11/18 (수)')
     expect(pausedEyebrow('2026-11-20', '2026-11-19')).toBe('잠시 멈춤 · 11/20 (금)')
+    expect(pausedEyebrow('2026-11-19', '2026-11-19', true)).toBe('잠시 멈춤 · 완료한 일')
   })
 })
 
@@ -87,6 +88,14 @@ describe('focusSession — 정리', () => {
     const m = { ...map(keep1, keep2, removed, doneElsewhere, old), x: otherPlan }
     const out = pruneSessions(m, ctx({ isDone: (date, id) => date === '2026-11-19' && id === 'p2' }))
     expect(Object.values(out)).toEqual([keep1, keep2])
+  })
+
+  it('이미 완료한 일을 다시 집중한 것(afterDone)은 완료로 지우지 않는다 — 나머지 규칙(날짜·계획·빠짐)은 그대로', () => {
+    const again = make({ date: '2026-11-19', itemId: 'p1', afterDone: true })
+    const old = make({ date: '2026-11-17', itemId: 'p2', afterDone: true })
+    const gone = make({ date: '2026-11-19', itemId: 'gone', afterDone: true })
+    const out = pruneSessions(map(again, old, gone), ctx({ isDone: () => true }))
+    expect(Object.values(out)).toEqual([again])
   })
 
   it('계획 번호를 못 적은 것(빈 값)은 계획 번호로 지우지 않는다', () => {
@@ -130,6 +139,8 @@ describe('focusSession — 기기 저장본 읽기', () => {
       f: null,
     })
     expect(parseSessions(raw)).toEqual({ [keyOf(ok)]: ok })
+    const again = { ...ok, afterDone: true }
+    expect(parseSessions(JSON.stringify({ x: again }))[keyOf(again)]!.afterDone).toBe(true)
     expect(parseSessions('not json')).toEqual({})
     expect(parseSessions('[1]')).toEqual({})
     expect(parseSessions(null)).toEqual({})

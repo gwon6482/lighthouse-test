@@ -7,6 +7,8 @@
 // - 시간은 벽시계 기준: 흐르는 중이면 accSec + (지금 - segStart). 앱이 꺼진 동안도 센다(정할 것 6)
 // - 기록은 시작한 날(date)로 들어간다. 다음 날까지 이어 할 수 있고 그다음 날 지운다(정할 것 5)
 // - 지우는 때: 집중 취소 · 저장 · 그 날짜에 완료됨(다른 기기 포함) · 계획에서 빠짐 · 다른 계획 · 그제 이전 · 로그아웃
+//   단, 이미 완료한 항목을 다시 집중한 것(afterDone)은 '완료됨'으로 지우지 않는다 — 시작할 때부터 완료라
+//   그 규칙이 곧바로 지워 '나중에 이어 하기'가 조용히 사라졌다(2026-11-20 사용성 QA)
 import type { ProjectCategory } from '@/modules/career-design/types/career-design'
 
 export const FOCUS_SESSIONS_KEY = 'lh_focus_sessions_v1'
@@ -24,6 +26,7 @@ export interface FocusSession {
   state: 'running' | 'paused'
   segStart: number | null   // running 일 때 지금 구간 시작(epoch ms)
   reached: boolean          // 목표 진동을 이미 울렸나(이어 해도 다시 울리지 않게)
+  afterDone?: boolean       // 시작할 때 그 날짜에 이미 완료였나(완료한 일을 한 번 더 집중) — 홈에서는 따로 한 장으로
   keepAwake: boolean
   notify: boolean
   updatedAt: number
@@ -74,7 +77,7 @@ export function pruneSessions(map: FocusSessionMap, ctx: PruneContext): FocusSes
   for (const [k, s] of Object.entries(map)) {
     if (s.planId && s.planId !== ctx.planId) continue
     if (!ctx.projectIds.has(s.itemId)) continue
-    if (ctx.isDone(s.date, s.itemId)) continue
+    if (!s.afterDone && ctx.isDone(s.date, s.itemId)) continue
     if (!isAlive(s, ctx.todayKey)) continue
     out[k] = s
   }
@@ -102,8 +105,8 @@ export function subjectJosa(w: string): string {
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토']
 // 홈의 멈춘 집중 위 작은 글자 — '잠시 멈춤' · '어제 멈춤 · 11/18 (수)' · (오늘 목록에 없는 다른 날) '잠시 멈춤 · 11/20 (금)'
-export function pausedEyebrow(date: string, todayKey: string): string {
-  if (date === todayKey) return '잠시 멈춤'
+export function pausedEyebrow(date: string, todayKey: string, afterDone = false): string {
+  if (date === todayKey) return afterDone ? '잠시 멈춤 · 완료한 일' : '잠시 멈춤'
   const [y, m, d] = date.split('-').map(Number)
   const day = `${m}/${d} (${DOW[new Date(y!, m! - 1, d!).getDay()]})`
   return date === shiftDayKey(todayKey, -1) ? `어제 멈춤 · ${day}` : `잠시 멈춤 · ${day}`

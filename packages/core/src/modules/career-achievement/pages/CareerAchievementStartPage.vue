@@ -124,6 +124,7 @@ import { safeBack } from '@/shared/utils/navigation'
 import { features } from '@/shared/config/features'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { useFocusSessions } from '../composables/useFocusSessions'
+import { useAchievement } from '../composables/useAchievement'
 import { sessionKey, elapsedOf, elapsedText, subjectJosa, type FocusSession } from '../lib/focusSession'
 
 const route = useRoute()
@@ -131,6 +132,7 @@ const router = useRouter()
 const { draftPlan, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
 const achStore = useAchievementStore()
 const focusSessions = useFocusSessions()
+const ach = useAchievement()
 const HOME = '/career-achievement'
 
 const itemType = computed<'project' | 'routine'>(() => (route.params.type === 'routine' ? 'routine' : 'project'))
@@ -265,6 +267,8 @@ function persist() {
     state: running ? 'running' : 'paused',
     segStart: running ? segStart : null,
     reached: reachedNotified,
+    // 시작할 때 이미 완료였나 — 한 번 정하면 그대로(이어 하는 동안 바뀌지 않게)
+    afterDone: saved.value ? !!saved.value.afterDone : ach.isProjectDone(itemId.value, dateKey.value),
     keepAwake: keepAwake.value,
     notify: notify.value,
     updatedAt: Date.now(),

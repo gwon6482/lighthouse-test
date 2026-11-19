@@ -88,13 +88,20 @@
       <p>항목을 찾을 수 없어요.</p>
       <button class="cac__btn cac__btn--ghost" @click="router.replace('/career-achievement')">돌아가기</button>
     </div>
+
+    <!-- 취소·뒤로 — 적은 메모·사진이 있을 때만 같은 화면 안에서 묻는다(2026-11-20 사용성 QA). 집중한 시간은 멈춘 집중으로 남는다 -->
+    <ConfirmSheet
+      v-model="leaveOpen" title="기록 작성을 그만둘까요?" :message="leaveMessage"
+      confirm-label="그만두기" cancel-label="계속 쓰기" @confirm="leaveNow"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted, useTemplateRef } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
+import ConfirmSheet from '@/shared/components/ConfirmSheet.vue'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 import { projectWeekIndexOn } from '@/modules/career-design/composables/usePlanTimeline'
 import { weekEntriesOf } from '@/modules/career-design/composables/useProjectCurriculum'
@@ -283,15 +290,47 @@ async function save() {
       }
     }
 
+    leaving = true
     router.replace('/career-achievement')
   } finally {
     saving.value = false
   }
 }
 
-function goBack() {
+// ── 나가기 — 멈춘 집중이 있으면 시간은 남고 이 화면에 적은 것(메모·사진)만 사라진다(정할 것 7) ──
+// 처음 연 값(이미 쓴 기록을 고치는 경우의 저장된 메모·사진)과 같으면 잃는 것이 없어 묻지 않는다
+const initialNote = ref('')
+const initialPhoto = ref('')
+const leaveOpen = ref(false)
+let leaving = false
+const lost = computed(() => ({
+  note: !!note.value.trim() && note.value.trim() !== initialNote.value.trim(),
+  photo: !!photo.value && photo.value !== initialPhoto.value,
+}))
+const leaveMessage = computed(() => {
+  const what = lost.value.note && lost.value.photo ? '적은 메모와 사진은' : lost.value.note ? '적은 메모는' : '고른 사진은'
+  return `${what} 사라져요. 집중한 시간은 남아요.`
+})
+// 묻기로 했으면 true — 멈춘 집중이 있고(시간이 남는다는 말이 참일 때) 잃을 것이 있을 때만
+function askLeave(): boolean {
+  if (!features.focusPause || !focusSessions.get(focusKey.value)) return false
+  if (!lost.value.note && !lost.value.photo) return false
+  leaveOpen.value = true
+  return true
+}
+function leaveNow() {
+  leaving = true
   router.replace('/career-achievement')
 }
+function goBack() {
+  if (askLeave()) return
+  leaveNow()
+}
+// 브라우저·안드로이드 뒤로(R4)도 같은 확인을 거친다
+onBeforeRouteLeave(() => {
+  if (leaving || saving.value) return true
+  return !askLeave()
+})
 
 onMounted(async () => {
   try {
@@ -307,6 +346,8 @@ onMounted(async () => {
       difficulty.value = existing.difficulty
       note.value = existing.note
     }
+    initialNote.value = note.value
+    initialPhoto.value = photo.value
   } finally {
     loading.value = false
   }

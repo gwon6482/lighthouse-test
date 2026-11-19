@@ -269,7 +269,7 @@ const held = computed(() => heldSessions.value.map((s) => {
   const c = categoryColor(p?.category ?? s.itemCategory)
   return {
     key: s.date + s.itemId, session: s, name: p?.name ?? s.itemName, sub: pausedSub(s),
-    eyebrow: pausedEyebrow(s.date, todayKey.value),
+    eyebrow: pausedEyebrow(s.date, todayKey.value, !!s.afterDone),
     icon: (p && methodIcon(p.method)) || 'ui-target', chipStyle: { color: c, background: tint(c) },
   }
 }))
