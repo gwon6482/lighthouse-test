@@ -180,12 +180,11 @@ import { features } from '@/shared/config/features'
 import { safeBack } from '@/shared/utils/navigation'
 import { useBrowseAxes, useBrowseQuery } from '../composables/useJobBrowse'
 import {
-  BROWSE_AXES, MAX_CONDITIONS, canUseAxis, conditionCount, isEmptyState, listQuery, nextOrder, orderFromQuery,
+  AXIS_NAME, BROWSE_AXES, MAX_CONDITIONS, canUseAxis, conditionCount, isEmptyState, listQuery, nextOrder, orderFromQuery,
   paramsFromState, stateFromQuery, withAxis, type BrowseState,
 } from '../lib/browseQuery'
 import type { BrowseAxisKey, BrowseOption } from '../types/browse'
 
-const AXIS_NAME: Record<BrowseAxisKey, string> = { group: '직무', interest: '관심 분야', env: '업무 환경', talent: '재능', value: '가치관', salary: '연봉' }
 const QUESTION: Record<BrowseAxisKey, string> = {
   group: '어떤 일을 하고 싶어요?',
   interest: '어떤 분야에 관심이 있어요?',

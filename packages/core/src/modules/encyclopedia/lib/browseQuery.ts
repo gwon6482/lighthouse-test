@@ -6,6 +6,33 @@ import type { BrowseAxisKey, BrowseResult, BrowseRow } from '../types/browse'
 
 /** 탭 순서(진로상담 권장 — 쓸모가 넓은 것부터, 연봉은 맨 끝). '조건 더하기'도 이 순서로 안 쓴 첫 탭을 연다 */
 export const BROWSE_AXES: BrowseAxisKey[] = ['group', 'interest', 'env', 'talent', 'value', 'salary']
+/** 탭 이름 — 고르기 화면의 탭, 조건 칩 앞 옅은 이름, '○○만 안 맞아요' 묶음 제목이 같은 이름을 쓴다(2026-11-19 다듬기 2차 10·11) */
+export const AXIS_NAME: Record<BrowseAxisKey, string> = { group: '직무', interest: '관심 분야', env: '업무 환경', talent: '재능', value: '가치관', salary: '연봉' }
+export const axisName = (axis: string): string => AXIS_NAME[axis as BrowseAxisKey] ?? ''
+/** 조건 칩 버튼의 읽는 이름 — '재능: 언어 지능 고치기' */
+export const chipAriaLabel = (c: { axis: string; label: string }, verb: '고치기' | '지우기'): string =>
+  `${axisName(c.axis) ? `${axisName(c.axis)}: ` : ''}${c.label} ${verb}`
+
+/**
+ * 조건 칩 글을 조각으로 — 서버가 만든 글('A 또는 B · 빼기 C')에서 '또는'·'· 빼기'만 옅게 그린다(글은 서버 그대로, 2026-11-19 다듬기 2차 12).
+ * 옛 서버 글('A · 빼기: C')은 나눌 곳이 없어 한 조각 그대로다
+ */
+export function chipPieces(label: string): { text: string; faint: boolean }[] {
+  return label.split(/( 또는 | · 빼기 )/).filter(Boolean).map((text) => ({ text, faint: text === ' 또는 ' || text === ' · 빼기 ' }))
+}
+
+/**
+ * '하나만 빼고 맞아요' 카드의 한 줄(2026-11-19 다듬기 2차 9) — 서버 missing.parts(칸 더하기)가 있을 때만.
+ * 옛 서버(parts 없음)면 null — 카드는 지금처럼 이유 줄만 보인다. 판정 기준값은 서버에만 있고, 여기는 이름만 받는다
+ */
+export type MissLine = { kind: 'miss'; text: string } | { kind: 'noData'; axis: string } | null
+export function missLine(m: BrowseRow['missing']): MissLine {
+  if (!m) return null
+  if (m.noData) return { kind: 'noData', axis: axisName(m.axis) }
+  if (!m.parts?.length) return null
+  return { kind: 'miss', text: m.parts.join(' · ') }
+}
+
 /** 조건은 3개까지(오너 결정 2) — 탭 수로 센다 */
 export const MAX_CONDITIONS = 3
 
@@ -78,7 +105,7 @@ export function nextAxisToAdd(s: BrowseState): BrowseAxisKey | null {
   return BROWSE_AXES.find((k) => s[k].length === 0) ?? null
 }
 
-export interface NearGroup { id: string; label: string; rows: BrowseRow[]; total: number; canMore: boolean }
+export interface NearGroup { id: string; axis: string; label: string; rows: BrowseRow[]; total: number; canMore: boolean }
 /**
  * '하나만 빼고 맞아요' — 빠진 조건마다 묶는다(서버가 묶음마다 몇 줄씩 이어 보낸다).
  * total = 자르기 전 전체 수(서버 nearGroups). 옛 서버(nearGroups 없음)면 받은 줄 수를 쓰고 더 보기를 두지 않는다
@@ -90,7 +117,7 @@ export function groupNear(near: BrowseRow[] | undefined, meta: BrowseResult['nea
     const id = row.missing?.id ?? ''
     let g = groups[groups.length - 1]
     if (!g || g.id !== id) {
-      g = { id, label: row.missing?.label ?? '', rows: [], total: 0, canMore: totals.has(id) }
+      g = { id, axis: row.missing?.axis ?? id, label: row.missing?.label ?? '', rows: [], total: 0, canMore: totals.has(id) }
       groups.push(g)
     }
     g.rows.push(row)

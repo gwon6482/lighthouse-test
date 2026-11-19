@@ -1,5 +1,5 @@
 <template>
-  <div class="enc-home">
+  <div class="enc-home" :class="{ 'enc-home--nav': navShown }">
     <!-- 헤더 -->
     <MainTitle />
 
@@ -91,6 +91,7 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
+import { useAchievementStore } from '@/shared/stores/achievement'
 import { features } from '@/shared/config/features'
 import { useEncyclopedia } from '../composables/useEncyclopedia'
 import type { JobSummary, JobExploreItem } from '../types/encyclopedia'
@@ -105,6 +106,9 @@ const router = useRouter()
 const authStore = useAuthStore()
 // 비회원(2026-11-09, features.guestEntry 빌드만): 아직 검사 전이라 단계는 '자기이해' 에, 추천 메뉴는 검사 시작(A 경로)으로
 const guest = features.guestEntry && !authStore.isLoggedIn
+// 아래 탭이 보일 때(BottomNav 와 같은 규칙) 마지막 메뉴가 가리지 않게 아래를 띄운다
+const achievementStore = useAchievementStore()
+const navShown = computed(() => features.browsePolish2 && authStore.isLoggedIn && achievementStore.hasActivePlan)
 const {
   searchQuery, searchResults, searchGroups, searchScope, scopeResults, searchFailed, isSearching,
   searchJob, openSearchGroup, closeSearchGroup, clearSearch,

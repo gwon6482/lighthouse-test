@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  MAX_CONDITIONS, canAddCondition, canUseAxis, conditionCount, emptyState, formatManwon, groupNear, listQuery,
-  nextAxisToAdd, nextOrder, orderFromQuery, paramsFromState, stateFromQuery, withAxis, withoutCondition,
+  MAX_CONDITIONS, axisName, canAddCondition, canUseAxis, chipAriaLabel, chipPieces, conditionCount, emptyState, formatManwon,
+  groupNear, listQuery, missLine, nextAxisToAdd, nextOrder, orderFromQuery, paramsFromState, stateFromQuery, withAxis, withoutCondition,
 } from '../lib/browseQuery'
 import { myBrowseStart } from '../lib/browseMyStart'
 import type { SurveyAnalysisResponse } from '@/modules/survey/types/survey'
@@ -111,5 +111,33 @@ describe("분류로 찾기 — '하나만 빼고 맞아요' 묶기(2026-11-19)",
   })
   it('없으면 빈 목록', () => {
     expect(groupNear(undefined, undefined)).toEqual([])
+  })
+})
+
+describe('분류로 찾기 다듬기 2차(2026-11-19) — 칩 탭 이름 · 또는 · 안 맞아요 한 줄', () => {
+  it('탭 이름은 고르기 화면의 탭 이름 그대로 · 칩 버튼 읽는 이름', () => {
+    expect(['group', 'interest', 'env', 'talent', 'value', 'salary'].map(axisName)).toEqual(['직무', '관심 분야', '업무 환경', '재능', '가치관', '연봉'])
+    expect(axisName('bogus')).toBe('')
+    expect(chipAriaLabel({ axis: 'talent', label: '언어 지능' }, '고치기')).toBe('재능: 언어 지능 고치기')
+    expect(chipAriaLabel({ axis: 'bogus', label: '언어 지능' }, '지우기')).toBe('언어 지능 지우기')
+  })
+  it("칩 글 조각 — '또는'·'· 빼기'만 옅게, 글은 서버 그대로", () => {
+    const label = '할 일을 스스로 정할 수 있어요 또는 재택근무가 되는 편이에요 · 빼기 주말·공휴일 근무가 잦은 일'
+    const p = chipPieces(label)
+    expect(p.map((x) => x.text).join('')).toBe(label)
+    expect(p.filter((x) => x.faint).map((x) => x.text)).toEqual([' 또는 ', ' · 빼기 '])
+    // 옛 서버 글은 한 조각
+    expect(chipPieces('재택근무가 되는 편이에요 · 빼기: 주말·공휴일 근무가 잦은 일')).toEqual([{ text: '재택근무가 되는 편이에요 · 빼기: 주말·공휴일 근무가 잦은 일', faint: false }])
+  })
+  it("'안 맞아요' 한 줄 — 서버 parts 가 있을 때만(옛 서버면 그리지 않는다) · 자료 없음", () => {
+    const base = { id: 'env', axis: 'env' as const, codes: ['sit', 'autonomy'], label: '주로 앉아서 일해요 · 할 일을 스스로 정할 수 있어요' }
+    expect(missLine(undefined)).toBeNull()
+    expect(missLine(base)).toBeNull()
+    expect(missLine({ ...base, parts: ['주로 앉아서 일해요', '할 일을 스스로 정할 수 있어요'] })).toEqual({ kind: 'miss', text: '주로 앉아서 일해요 · 할 일을 스스로 정할 수 있어요' })
+    expect(missLine({ ...base, parts: [], noData: true })).toEqual({ kind: 'noData', axis: '업무 환경' })
+  })
+  it('묶음에 탭(axis)을 싣는다 — 제목·다음 묶음 바로가기가 쓴다', () => {
+    const r = (code: string, axis: 'env' | 'group'): BrowseRow => ({ jobCode: code, title: code, group: null, salary: { median: null }, reasons: [], missing: { id: axis, axis, codes: [], label: axis } })
+    expect(groupNear([r('a', 'env'), r('b', 'group')], undefined).map((g) => g.axis)).toEqual(['env', 'group'])
   })
 })

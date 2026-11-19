@@ -21,9 +21,13 @@
       </p>
 
       <div v-if="result" class="bl__chips">
+        <!-- 칩 앞에 탭 이름을 옅게(2026-11-19 다듬기 2차 11). 같은 탭 여럿은 '또는' — 글은 서버가 만들고 '또는'·'· 빼기'만 옅게 -->
         <span v-for="c in result.applied.conditions" :key="c.id" class="bl-chip">
-          <button type="button" class="bl-chip__label" @click="editCondition(c.axis)">{{ c.label }}</button>
-          <button type="button" class="bl-chip__x" :aria-label="`${c.label} 지우기`" @click="remove(c.id)">×</button>
+          <button type="button" class="bl-chip__label" :aria-label="chipAriaLabel(c, '고치기')" @click="editCondition(c.axis)">
+            <span v-if="axisName(c.axis)" class="bl-chip__ax">{{ axisName(c.axis) }}</span>
+            <template v-for="(p, i) in chipPieces(c.label)" :key="i"><span v-if="p.faint" class="bl-chip__or">{{ p.text }}</span><template v-else>{{ p.text }}</template></template>
+          </button>
+          <button type="button" class="bl-chip__x" :aria-label="chipAriaLabel(c, '지우기')" @click="remove(c.id)">×</button>
         </span>
         <button v-if="canAdd" type="button" class="bl-add" @click="addCondition">+ 조건 더하기</button>
         <span v-else class="bl-add bl-add--full">조건 {{ MAX_CONDITIONS }}개를 다 골랐어요</span>
@@ -57,8 +61,18 @@
           하나만 빼고 맞아요
           <span>{{ nearTitleCount }}</span>
         </h2>
-        <div v-for="g in nearGroups" :key="g.id" class="bl-near__group">
-          <p class="bl-near__miss">'{{ g.label }}'만 안 맞아요 <span>{{ g.total }}개</span></p>
+        <!-- 묶음 제목은 스크롤해도 위에 붙고(그 묶음 안에서), 탭 이름으로 짧게. 칸 이름은 카드의 '안 맞아요' 줄에 맡긴다(2026-11-19 다듬기 2차 10) -->
+        <div v-for="(g, gi) in nearGroups" :id="`near-${g.id}`" :key="g.id" class="bl-near__group">
+          <div class="bl-near__miss">
+            <p :id="`near-${g.id}-title`" class="bl-near__miss-title" tabindex="-1">{{ nearGroupTitle(g) }} <span>{{ g.total }}개</span></p>
+            <button
+              v-if="nearGroups[gi + 1]" type="button" class="bl-near__jump"
+              :aria-label="`${nearGroupTitle(nearGroups[gi + 1]!)} ${nearGroups[gi + 1]!.total}개로 내려가기`"
+              @click="jumpNear(nearGroups[gi + 1]!.id)"
+            >
+              {{ nearJumpLabel(nearGroups[gi + 1]!) }} {{ nearGroups[gi + 1]!.total }}개 <AppIcon name="ui-chevron-down" :size="12" />
+            </button>
+          </div>
           <div class="bl__list">
             <BrowseJobCard v-for="row in g.rows" :key="`n-${row.jobCode}`" :row="row" :guest="guest" @open="openRow(row)" />
           </div>
@@ -94,8 +108,8 @@ import BrowseEntry from '../components/page/browse/BrowseEntry.vue'
 import BrowseJobCard from '../components/page/browse/BrowseJobCard.vue'
 import { useBrowseAxes, useBrowseQuery } from '../composables/useJobBrowse'
 import {
-  MAX_CONDITIONS, canAddCondition, conditionCount, isEmptyState, listQuery, nextAxisToAdd, orderFromQuery,
-  groupNear, paramsFromState, stateFromQuery, withoutCondition,
+  MAX_CONDITIONS, axisName, canAddCondition, chipAriaLabel, chipPieces, conditionCount, isEmptyState, listQuery, nextAxisToAdd,
+  orderFromQuery, groupNear, paramsFromState, stateFromQuery, withoutCondition, type NearGroup,
 } from '../lib/browseQuery'
 import { clearPosition, positionKey, readPosition, savePosition, type BrowsePosition } from '../lib/browsePosition'
 import type { BrowseAxisKey, BrowseRow } from '../types/browse'
@@ -186,6 +200,24 @@ const nearTitleCount = computed(() => {
 })
 function loadMoreNear(id: string) {
   moreNear(state.value, id, opts(PAGE))
+}
+/**
+ * '업무 환경만 안 맞아요' — 칸 이름은 카드의 '안 맞아요' 줄에 맡긴다. 옛 서버(카드에 missing.parts 가 없다)면
+ * 카드에 그 줄이 없으므로 예전처럼 조건 글을 제목에 쓴다('…'만 안 맞아요)
+ */
+const nearGroupShort = (g: NearGroup) => {
+  const cardsTell = g.rows.some((r) => r.missing?.parts !== undefined || r.missing?.noData !== undefined)
+  return cardsTell && axisName(g.axis) ? `${axisName(g.axis)}만` : `'${g.label}'만`
+}
+const nearGroupTitle = (g: NearGroup) => `${nearGroupShort(g)} 안 맞아요`
+/** 다음 묶음 바로가기는 늘 짧게(탭 이름) */
+const nearJumpLabel = (g: NearGroup) => (axisName(g.axis) ? `${axisName(g.axis)}만` : nearGroupShort(g))
+/** 다음 묶음으로 내려가기 — 제목에 초점을 옮겨 화면 읽기도 따라가게 */
+function jumpNear(id: string) {
+  const el = document.getElementById(`near-${id}`)
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  document.getElementById(`near-${id}-title`)?.focus({ preventScroll: true })
 }
 
 // ── 묶음 직업 ──

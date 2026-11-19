@@ -47,6 +47,8 @@ interface NavItem {
   routeName: string
   center?: boolean
   comingSoon?: boolean
+  /** 이 탭에서 들어가는 화면도 켜 둔다(진로정보 → 진로백과 홈, 2026-11-19) */
+  activeFor?: string[]
 }
 
 const route = useRoute()
@@ -57,7 +59,7 @@ const achievementStore = useAchievementStore()
 // 2026-10-29 기획회의: 5탭 = 진로정보 · 로드맵 · 홈 · 로그 · 마이.
 // 커리어·커뮤니티 항목/아이콘 코드는 보존하고 피처 플래그로만 노출을 제어한다(2026-07-31 베타부터 꺼져 있음).
 const navItems: NavItem[] = [
-  { key: 'info',      label: '진로정보', icon: 'compass',   routeName: 'Career Info' },
+  { key: 'info',      label: '진로정보', icon: 'compass',   routeName: 'Career Info', activeFor: ['Career Encyclopedia'] },
   { key: 'career',    label: '커리어',   icon: 'briefcase', routeName: 'Career Hub',                          comingSoon: true },
   { key: 'roadmap',   label: '로드맵',   icon: 'map',       routeName: 'Career Achievement Roadmap' }, // 2026-10-28 전엔 Weekly Schedule(일정 조정)
   { key: 'home',      label: '홈',       icon: 'home',      routeName: 'Career Achievement',                  center: true },
@@ -83,7 +85,7 @@ const visible = computed(() =>
 const pendingBadge = computed(() => achievementStore.todayPendingCount)
 
 function isActive(item: NavItem): boolean {
-  return route.name === item.routeName
+  return route.name === item.routeName || (item.activeFor ?? []).includes(String(route.name))
 }
 
 function handleClick(item: NavItem) {

@@ -183,4 +183,46 @@
       font-weight: $fw-semibold;
     }
   }
+
+  // 가입 전에 둘러보기(2026-11-19) — 회원가입 화면 맨 아래 두 줄
+  &__explore {
+    margin-top: 28px;
+    display: grid;
+    gap: 8px;
+  }
+
+  &__explore-title {
+    margin: 0 0 2px;
+    text-align: center;
+    font-size: $fs-xs;
+    color: $color-text-secondary;
+  }
+
+  &__explore-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px 11px 14px;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    background: $color-surface-alt;
+    color: #BBBBBB;
+    text-decoration: none;
+
+    &:focus-visible {
+      outline: 2px solid $color-text;
+      outline-offset: 2px;
+    }
+  }
+
+  &__explore-text {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    gap: 1px;
+    text-align: left;
+
+    b { font-size: 14.5px; font-weight: $fw-bold; color: $color-text; }
+    span { font-size: 12px; color: $color-text-secondary; }
+  }
 }

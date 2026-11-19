@@ -15,6 +15,10 @@ export const features = {
   // 스테이징(deploy-test)·운영(deploy-app) 모두 VITE_FOCUS_PAUSE=1 (운영은 사용성 QA 통과 뒤 다음 태그부터).
   // 꺼져 있으면 예전 동작('집중한 기록이 사라져요' 확인 창) 그대로 — 운영에 켜고 나면 다음 정리 때 옛 갈래를 지운다
   focusPause: import.meta.env.VITE_FOCUS_PAUSE === '1',
+  // 분류로 찾기 다듬기 2차(2026-11-19 오너 '모두 권장대로') 중 분류로 찾기 밖의 두 가지 — 회원가입 화면 '가입 전에 둘러봐도 돼요' 두 줄,
+  // 진로백과 홈 아래 탭. 스테이징(deploy-test)만 VITE_BROWSE_POLISH2=1. 운영(deploy-app)은 사용성 확인 뒤 오너 지시로 켠다.
+  // 꺼져 있으면 예전 그대로. 분류로 찾기 안의 변경(칩·'안 맞아요' 줄·묶음 제목)은 서버 칸이 없어도 안전해 스위치 없이 나간다
+  browsePolish2: import.meta.env.VITE_BROWSE_POLISH2 === '1',
 } as const
 
 export type FeatureKey = keyof typeof features

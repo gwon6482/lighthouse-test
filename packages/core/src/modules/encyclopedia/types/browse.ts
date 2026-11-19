@@ -81,7 +81,17 @@ export interface BrowseRow {
   salary: { median: number | null }
   reasons: BrowseReason[]
   /** near 에서만 — 이 조건 하나만 다르다 */
-  missing?: BrowseCondition
+  missing?: BrowseMissing
+}
+
+/**
+ * '하나만 빼고 맞아요'의 빠진 조건 — 2026-11-19 서버부터 카드마다 parts·noData 를 더한다(칸 더하기, 옛 서버엔 없다).
+ * parts = 그 직업에서 안 맞는 칸 이름(업무 환경은 고른 칸 중 안 맞는 칸, 다른 탭은 조건 글 하나)
+ * noData = 그 탭의 직업 자료가 없어 맞는지 알 수 없다(parts 는 빈 배열)
+ */
+export interface BrowseMissing extends BrowseCondition {
+  parts?: string[]
+  noData?: boolean
 }
 
 export interface BrowseResult {

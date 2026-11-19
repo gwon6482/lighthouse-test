@@ -329,13 +329,16 @@
 }
 .bl-chip {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   max-width: 100%;
-  border-radius: 999px;
+  border-radius: 16px;
   background: #222;
   color: #fff;
-  &__label { min-width: 0; padding: 5px 4px 5px 11px; border: none; background: none; font: inherit; font-size: 12px; font-weight: 700; color: inherit; text-align: left; cursor: pointer; }
-  &__x { flex: none; padding: 5px 10px 5px 4px; border: none; background: none; font: inherit; font-size: 14px; line-height: 1; color: #BBB; cursor: pointer; }
+  &__label { min-width: 0; padding: 5px 4px 5px 11px; border: none; background: none; font: inherit; font-size: 12px; font-weight: 700; line-height: 1.45; color: inherit; text-align: left; cursor: pointer; }
+  &__x { flex: none; padding: 5px 10px 5px 4px; border: none; background: none; font: inherit; font-size: 14px; line-height: 1.2; color: #BBB; cursor: pointer; }
+  // 탭 이름(옅게, 세로줄로 나눔)과 '또는'·'· 빼기'(옅게) — 2026-11-19 다듬기 2차 11·12
+  &__ax { display: inline-block; margin-right: 5px; padding-right: 6px; border-right: 1px solid rgba(255, 255, 255, 0.28); font-weight: 600; color: #B9B9B9; }
+  &__or { font-weight: 500; color: #B9B9B9; }
 }
 .bl-add {
   padding: 5px 11px;
@@ -387,8 +390,39 @@
   display: grid;
   gap: 10px;
   &__title { margin: 10px 2px 0; font-size: 15px; font-weight: 800; color: #222; span { font-size: 12px; font-weight: 500; color: #999; margin-left: 4px; } }
-  &__group { display: grid; gap: 6px; }
-  &__miss { margin: 4px 2px 0; font-size: 12.5px; font-weight: 700; color: #6B6B6B; span { font-weight: 500; color: #AAA; } }
+  &__group { display: grid; gap: 6px; scroll-margin-top: 56px; }
+  // 묶음 제목 — 그 묶음 안에서 스크롤해도 머리(.bhd, 52px) 아래에 붙는다(2026-11-19 다듬기 2차 10)
+  &__miss {
+    position: sticky;
+    top: 52px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 4px -4px 0;
+    padding: 9px 12px;
+    border-radius: 10px;
+    border-bottom: 1px solid #E6E6E1;
+    background: rgba(245, 245, 245, 0.97);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  }
+  &__miss-title { margin: 0; font-size: 13px; font-weight: 800; color: #222; outline: none; span { margin-left: 4px; font-weight: 500; color: #999; } }
+  &__jump {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 0;
+    border: none;
+    background: none;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    color: #8A6A00;
+    white-space: nowrap;
+    cursor: pointer;
+  }
   &__explore { justify-self: center; display: inline-flex; align-items: center; gap: 2px; padding: 6px 4px; font-size: 13px; color: #777; }
 }
 
@@ -409,6 +443,21 @@
     font-size: 12px;
     line-height: 1.5;
     color: #2F5D50;
+  }
+  // '하나만 빼고 맞아요' 카드의 안 맞는 칸 — 경고(빨강)가 아니라 옅은 갈색(2026-11-19 다듬기 2차 9)
+  &__miss {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 4px 0 0;
+    padding: 6px 9px;
+    border-radius: 9px;
+    background: #FBF0E4;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #8A4B12;
+    svg { flex: none; width: 14px; height: 14px; margin-top: 2px; }
+    b { margin-right: 2px; font-weight: 700; }
   }
   &__sal { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 4px 0 0; font-size: 12px; color: #666; b { font-weight: 700; color: #222; } }
   // 비회원 — 숫자가 아니라 자리표시를 흐리게(화면 읽기에는 aria-hidden)
