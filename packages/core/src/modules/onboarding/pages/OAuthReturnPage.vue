@@ -16,6 +16,7 @@
 
 <script setup lang="ts">
 import { linkPendingGuestSurvey } from '@/shared/guest/guestSurvey'
+import { dropAfterLogin, takeAfterLogin } from '@/shared/auth/afterLogin'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
@@ -110,6 +111,7 @@ onMounted(async () => {
   //    제공자가 주는 건 이메일·이름뿐이고 나머지는 비어 있다.
   //    가입을 아직 안 마친 계정이면 위저드로 보낸다. 이후 경로는 이메일 가입과 동일하다.
   if (!authStore.user?.onboarding?.answeredAt) {
+    dropAfterLogin()   // 새로 가입하는 사람은 가입·온보딩 흐름을 탄다 — 돌아갈 곳은 지운다
     router.replace({ path: '/onboarding/signup', query: { social: '1' } })
     return
   }
@@ -119,7 +121,8 @@ onMounted(async () => {
 
   // 이메일 로그인(AuthPage.handleLogin)과 같은 분기를 쓴다.
   await achievementStore.loadActivePlan()
-  router.replace(achievementStore.hasActivePlan ? '/career-achievement' : '/main/before')
+  // 로그인 화면이 기억해 둔 돌아갈 곳(?next=)이 있으면 그리로 — 없으면 예전처럼
+  router.replace(takeAfterLogin() ?? (achievementStore.hasActivePlan ? '/career-achievement' : '/main/before'))
 })
 </script>
 

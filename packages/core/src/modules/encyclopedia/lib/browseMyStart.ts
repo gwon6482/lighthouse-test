@@ -7,8 +7,8 @@ type Analysis = SurveyAnalysisResponse['analysis']
 
 export interface MyBrowseStart {
   state: BrowseState
-  /** 칩에 보일 이름 — 관심 분야 묶음 이름, 재능 이름 */
-  interestName: string | null
+  /** 홈 띠에 그대로 보일 이름 — 실제로 채우는 관심 분야들과 재능(사용성 확인: 채우는 것을 그대로 보여 준다) */
+  labels: string[]
   talentCode: string | null
 }
 
@@ -22,19 +22,25 @@ const SKIP_TALENT = new Set(['N'])
 export function myBrowseStart(a: Analysis | null | undefined): MyBrowseStart | null {
   if (!a) return null
   const state = emptyState()
-  let interestName: string | null = null
+  const labels: string[] = []
   const cats = Object.values(a.interest?.by_category ?? {})
   if (cats.length) {
     const top = cats.reduce((x, y) => (x.items.length >= y.items.length ? x : y))
-    const ids = top.items.map((it) => it.field_id).filter(Boolean)
-    if (ids.length) { state.interest = ids; interestName = top.name }
+    const items = top.items.filter((it) => it.field_id)
+    if (items.length) {
+      state.interest = items.map((it) => it.field_id)
+      labels.push(...items.map((it) => it.name))
+    }
   }
   const talents = [...(a.talent?.all ?? a.talent?.top3 ?? [])]
     .filter((t) => t.score != null)
     .sort((x, y) => (y.score ?? 0) - (x.score ?? 0))
   const t = talents.find((x) => !SKIP_TALENT.has(x.code))
   const talentCode = t?.code ?? null
-  if (talentCode) state.talent = [talentCode]
+  if (t && talentCode) {
+    state.talent = [talentCode]
+    labels.push(t.name || talentCode)
+  }
   if (!state.interest.length && !state.talent.length) return null
-  return { state, interestName, talentCode }
+  return { state, labels, talentCode }
 }

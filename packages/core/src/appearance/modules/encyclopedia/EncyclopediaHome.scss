@@ -88,6 +88,14 @@
     &--busy { opacity: 0.5; }
   }
 
+  // 둘러보기 카드 자리(받는 동안) — 카드 한 장(제목 + 하는 일 두 줄 + 꼬리표)과 같은 높이
+  &__skel {
+    height: 104px;
+    border: 1px solid #EEEEED;
+    border-radius: 16px;
+    background: linear-gradient(90deg, #fff 0%, #F7F7F5 50%, #fff 100%);
+  }
+
   &__menu-btn {
     display: flex;
     align-items: center;

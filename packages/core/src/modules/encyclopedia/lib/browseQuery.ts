@@ -1,11 +1,12 @@
 // 진로백과 '분류로 찾기'(2026-11-17) — 고른 조건 ↔ 주소(query) 와 조건 수. 판정 규칙은 서버에만 있다(이 레포는 공개).
 // 고른 조건은 주소에 담는다 — 뒤로 가기(안드로이드 뒤로 버튼 R4 포함)·공유가 되고, 계정에는 저장하지 않는다.
+// 사용성 확인 조정(같은 날 밤): 탭 하나 = 조건 하나(업무 환경도 탭 전체가 조건 하나), 직무도 다른 조건과 직무 단위로 섞는다.
 import type { LocationQuery, LocationQueryRaw } from 'vue-router'
 import type { BrowseAxisKey } from '../types/browse'
 
-/** 입구·탭 순서(진로상담 권장 — 쓸모가 넓은 것부터, 연봉은 맨 끝) */
+/** 탭 순서(진로상담 권장 — 쓸모가 넓은 것부터, 연봉은 맨 끝). '조건 더하기'도 이 순서로 안 쓴 첫 탭을 연다 */
 export const BROWSE_AXES: BrowseAxisKey[] = ['group', 'interest', 'env', 'talent', 'value', 'salary']
-/** 조건은 3개까지(오너 결정 2) — 넷째부터는 대부분 0~2개만 남는다 */
+/** 조건은 3개까지(오너 결정 2) — 탭 수로 센다 */
 export const MAX_CONDITIONS = 3
 
 export type BrowseState = Record<BrowseAxisKey, string[]>
@@ -23,28 +24,42 @@ export function stateFromQuery(q: LocationQuery): BrowseState {
   return s
 }
 
-/** 주소·API 둘 다 같은 꼴 — 축마다 쉼표로 이은 코드 */
+/** 탭을 고른 순서 — '하나만 빼고 맞아요'는 들어온 탭(첫째)을 지키고 나중에 더한 탭이 빠진 직업부터 보여 준다 */
+export function orderFromQuery(q: LocationQuery): BrowseAxisKey[] {
+  return [...new Set(split(q.order))].filter((k): k is BrowseAxisKey => (BROWSE_AXES as string[]).includes(k))
+}
+/** 상태에 맞춰 순서를 고친다 — 빠진 탭은 지우고, 새로 쓴 탭은 끝에 붙인다(먼저 고른 것을 앞에) */
+export function nextOrder(prev: BrowseAxisKey[], s: BrowseState, justUsed: BrowseAxisKey[] = []): BrowseAxisKey[] {
+  const out = prev.filter((k) => s[k].length > 0)
+  for (const k of [...justUsed, ...BROWSE_AXES]) if (s[k].length && !out.includes(k)) out.push(k)
+  return out
+}
+
+/** API 꼴 — 축마다 쉼표로 이은 코드 */
 export function paramsFromState(s: BrowseState): Record<string, string> {
   const out: Record<string, string> = {}
   for (const k of BROWSE_AXES) if (s[k].length) out[k] = s[k].join(',')
   return out
 }
-export const queryFromState = (s: BrowseState, extra: Record<string, string> = {}): LocationQueryRaw => ({ ...paramsFromState(s), ...extra })
+/** 목록 주소 — 조건 + 탭 순서(order) + 정렬 기준(sort = 들어온 탭) */
+export function listQuery(s: BrowseState, order: BrowseAxisKey[], extra: Record<string, string> = {}): LocationQueryRaw {
+  const o = nextOrder(order, s)
+  return { ...paramsFromState(s), ...(o.length ? { order: o.join(','), sort: o[0]! } : {}), ...extra }
+}
 
-/** 조건 수 — 분류 하나가 조건 하나(한 분류 안에서 여럿 고르면 '또는'), 업무 환경만 보기 하나가 조건 하나 */
+/** 조건 수 = 쓴 탭 수(한 탭 안에서 여럿 고르는 것은 '또는'이라 조건 하나) */
 export function conditionCount(s: BrowseState): number {
-  return BROWSE_AXES.reduce((n, k) => n + (k === 'env' ? s.env.length : s[k].length ? 1 : 0), 0)
+  return BROWSE_AXES.reduce((n, k) => n + (s[k].length ? 1 : 0), 0)
 }
 export const isEmptyState = (s: BrowseState) => conditionCount(s) === 0
 export const canAddCondition = (s: BrowseState) => conditionCount(s) < MAX_CONDITIONS
 
-/** 이 분류를 지금 상태에 더(바꿔) 넣을 수 있나 — 이미 쓰는 분류면 고치기라 늘 된다 */
+/** 이 탭을 지금 상태에 더(바꿔) 넣을 수 있나 — 이미 쓰는 탭이면 고치기라 늘 된다 */
 export function canUseAxis(s: BrowseState, axis: BrowseAxisKey): boolean {
-  if (axis === 'env') return true   // 업무 환경은 보기 하나하나가 조건이라 고르기 화면에서 막는다
   return s[axis].length > 0 || canAddCondition(s)
 }
 
-/** 조건 하나 빼기 — id 는 서버 applied.conditions[].id(group·interest·talent·value·salary·env:<코드>) */
+/** 조건 하나 빼기 — id 는 서버 applied.conditions[].id(탭 이름). 예전 꼴 'env:<코드>'도 받는다 */
 export function withoutCondition(s: BrowseState, id: string): BrowseState {
   const n = cloneState(s)
   if (id.startsWith('env:')) n.env = n.env.filter((c) => c !== id.slice(4))
@@ -58,23 +73,15 @@ export function withAxis(s: BrowseState, axis: BrowseAxisKey, codes: string[]): 
   return n
 }
 
-/**
- * 직무를 어디까지 고를 수 있나 — 다른 조건과 섞을 때는 대분류(2자리)까지만(오너 결정).
- * 직무 하나에 직업이 평균 4.8개라 조건을 하나만 더해도 바로 0~1개가 된다
- */
-export function groupDepth(s: BrowseState): 'top' | 'group' {
-  const others = conditionCount(withAxis(s, 'group', []))
-  return others > 0 ? 'top' : 'group'
-}
-
-/** 직무(3자리) 목록 — 이미 작아서 조건을 더하지 않는다 */
-export const isGroupList = (s: BrowseState) => s.group.some((c) => c.length === 3)
-
-/** 다음에 더할 분류 — 아직 안 쓴 것 가운데 입구 순서(직무는 섞을 때 대분류만이라 맨 끝) */
+/** 다음에 더할 탭 — 아직 안 쓴 첫 탭(탭 순서) */
 export function nextAxisToAdd(s: BrowseState): BrowseAxisKey | null {
-  const order: BrowseAxisKey[] = ['interest', 'env', 'talent', 'value', 'salary', 'group']
-  return order.find((k) => (k === 'env' ? true : s[k].length === 0)) ?? null
+  return BROWSE_AXES.find((k) => s[k].length === 0) ?? null
 }
 
-/** 8100 → '8,100만 원' */
-export const formatManwon = (n: number) => `${n.toLocaleString('ko-KR')}만 원`
+/** 8100 → '8,100만 원', 11500 → '1억 1,500만 원', 10000 → '1억 원' */
+export function formatManwon(n: number): string {
+  const eok = Math.floor(n / 10000)
+  const rest = n % 10000
+  if (!eok) return `${rest.toLocaleString('ko-KR')}만 원`
+  return rest ? `${eok}억 ${rest.toLocaleString('ko-KR')}만 원` : `${eok}억 원`
+}

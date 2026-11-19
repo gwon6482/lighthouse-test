@@ -1,10 +1,11 @@
 <template>
-  <!-- 분류로 찾기 — 직업 목록(2026-11-17 시안 2판). 조건 칩, 조건 더하기(3개까지), 0개·적을 때 '하나 빼면'과 '하나만 빼고 맞아요'.
-       목록은 '나에게 맞는'이 아니라 '이것을 많이 쓰는' 직업이다 — 점수·순위·'추천'을 쓰지 않는다 -->
+  <!-- 분류로 찾기 — 직업 목록(2026-11-17 시안 2판 · 같은 날 밤 사용성 확인 조정). 조건 칩, 조건 더하기(탭 3개까지),
+       0개·적을 때 '하나 빼면'과 '하나만 빼고 맞아요'. 목록은 '나에게 맞는'이 아니라 '이것을 많이 쓰는' 직업이다 -->
   <div class="bl">
     <header class="bhd">
-      <button type="button" class="bhd__back" aria-label="뒤로" @click="back"><AppIcon name="ui-back" /></button>
+      <button type="button" class="bhd__back" aria-label="뒤로 가기" @click="back"><AppIcon name="ui-back" /></button>
       <span class="bhd__title">분류로 찾기</span>
+      <button type="button" class="bhd__home" @click="goHome">진로백과 홈</button>
     </header>
 
     <div v-if="empty" class="bl__body">
@@ -12,6 +13,7 @@
     </div>
 
     <div v-else class="bl__body">
+      <p v-if="fromMine" class="bl__mine">내 검사 결과로 채웠어요 · 지울 수 있어요</p>
       <p class="bl__count">
         <template v-if="result">직업 {{ result.total }}개</template>
         <template v-else-if="failed">목록을 불러오지 못했어요</template>
@@ -23,10 +25,8 @@
           <button type="button" class="bl-chip__label" @click="editCondition(c.axis)">{{ c.label }}</button>
           <button type="button" class="bl-chip__x" :aria-label="`${c.label} 빼기`" @click="remove(c.id)">×</button>
         </span>
-        <template v-if="!groupList">
-          <button v-if="canAdd" type="button" class="bl-add" @click="addCondition">+ 조건 더하기</button>
-          <span v-else class="bl-add bl-add--full">조건 {{ MAX_CONDITIONS }}개를 다 골랐어요</span>
-        </template>
+        <button v-if="canAdd" type="button" class="bl-add" @click="addCondition">+ 조건 더하기</button>
+        <span v-else class="bl-add bl-add--full">조건 {{ MAX_CONDITIONS }}개를 다 골랐어요</span>
       </div>
 
       <!-- 결과가 없을 때 -->
@@ -38,24 +38,32 @@
       <div v-if="result" class="bl__list">
         <BrowseJobCard v-for="row in result.data" :key="row.jobCode" :row="row" :guest="guest" @open="openRow(row)" />
       </div>
-      <button v-if="result && result.data.length < result.total" type="button" class="bl__more" :disabled="loading" @click="loadMore">더 보기</button>
+      <button v-if="result && result.data.length < result.total" type="button" class="bl__more" :disabled="loading" @click="loadMore">
+        더 보기 <span>(남은 {{ result.total - result.data.length }}개)</span>
+      </button>
 
-      <!-- 결과가 적을 때 — 조건 하나씩 빼기 · 하나만 빼고 맞는 직업 -->
+      <!-- 결과가 적을 때 — 조건 하나씩 빼기(나중에 더한 것부터) · 하나만 빼고 맞는 직업(빠진 조건마다) -->
       <section v-if="result?.relax?.length" class="bl-relax">
         <p v-if="result.total > 0" class="bl-relax__lead">조건 하나를 빼면 더 볼 수 있어요</p>
         <button
           v-for="r in result.relax" :key="r.id" type="button" class="bl-drop"
           :class="{ 'bl-drop--zero': r.count === 0 }" :disabled="r.count === 0" @click="remove(r.id)"
         >
-          '{{ r.label }}' 빼기 <span>{{ r.count > 0 ? `${r.count}개 ›` : '그래도 0개' }}</span>
+          <span class="bl-drop__label">'{{ r.label }}' 빼기</span> <span class="bl-drop__n">{{ r.count > 0 ? `${r.count}개 ›` : '그래도 0개' }}</span>
         </button>
       </section>
-      <section v-if="result?.near?.length" class="bl-near">
-        <h2 class="bl-near__title">하나만 빼고 맞아요 <span>{{ result.near.length }}개</span></h2>
-        <div class="bl__list">
-          <BrowseJobCard v-for="row in result.near" :key="`n-${row.jobCode}`" :row="row" :guest="guest" @open="openRow(row)" />
+      <section v-if="nearGroups.length" class="bl-near">
+        <h2 class="bl-near__title">
+          하나만 빼고 맞아요
+          <span>{{ (result?.nearTotal ?? 0) > (result?.near?.length ?? 0) ? `${result?.nearTotal}개 중 ${result?.near?.length}개` : `${result?.near?.length}개` }}</span>
+        </h2>
+        <div v-for="g in nearGroups" :key="g.id" class="bl-near__group">
+          <p class="bl-near__miss">'{{ g.label }}'만 안 맞아요 <span>{{ g.rows.length }}개</span></p>
+          <div class="bl__list">
+            <BrowseJobCard v-for="row in g.rows" :key="`n-${row.jobCode}`" :row="row" :guest="guest" @open="openRow(row)" />
+          </div>
         </div>
-        <RouterLink to="/career-encyclopedia" class="bl-near__explore">진로 둘러보기</RouterLink>
+        <RouterLink to="/career-encyclopedia" class="bl-near__explore">진로 둘러보기 <AppIcon name="ui-chevron-right" /></RouterLink>
       </section>
 
       <p v-if="result" class="bl__src">
@@ -69,8 +77,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
 import { useAuthStore } from '@/shared/stores/auth'
@@ -80,12 +88,15 @@ import BrowseEntry from '../components/page/browse/BrowseEntry.vue'
 import BrowseJobCard from '../components/page/browse/BrowseJobCard.vue'
 import { useBrowseAxes, useBrowseQuery } from '../composables/useJobBrowse'
 import {
-  MAX_CONDITIONS, canAddCondition, conditionCount, isEmptyState, isGroupList, nextAxisToAdd,
-  paramsFromState, queryFromState, stateFromQuery, withoutCondition,
+  MAX_CONDITIONS, canAddCondition, conditionCount, isEmptyState, listQuery, nextAxisToAdd, orderFromQuery,
+  paramsFromState, stateFromQuery, withoutCondition,
 } from '../lib/browseQuery'
 import type { BrowseAxisKey, BrowseRow } from '../types/browse'
 
 const PAGE = 30
+const MAX_RESTORE = 150   // 서버 limit 상한과 같다 — 상세에서 돌아오면 펼쳤던 만큼 한 번에 다시 받는다
+const SCROLL_KEY = 'lh_browse_scroll'
+
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -94,33 +105,72 @@ const { axes, load: loadAxes } = useBrowseAxes()
 const { result, loading, failed, run, more } = useBrowseQuery()
 
 const state = computed(() => stateFromQuery(route.query))
-const sortQ = computed(() => (typeof route.query.sort === 'string' ? route.query.sort : ''))
+const order = computed(() => orderFromQuery(route.query))
 const empty = computed(() => isEmptyState(state.value))
-const groupList = computed(() => isGroupList(state.value))
 const canAdd = computed(() => canAddCondition(state.value))
+const fromMine = computed(() => route.query.mine === '1')
 const jobsTotal = computed(() => axes.value?.jobs ?? 537)
 const year = computed(() => axes.value?.source.surveyYear ?? null)
-const condWord = computed(() => ({ 2: '두', 3: '세', 4: '네' } as Record<number, string>)[conditionCount(state.value)] ?? '모든')
+const condWord = computed(() => ({ 2: '두', 3: '세' } as Record<number, string>)[conditionCount(state.value)] ?? '모든')
 
-const opts = () => ({ limit: PAGE, ...(sortQ.value ? { sort: sortQ.value } : {}) })
-watch(() => JSON.stringify([paramsFromState(state.value), sortQ.value]), () => {
-  if (!empty.value) run(state.value, opts())
+const opts = (limit: number) => ({
+  limit,
+  ...(order.value.length ? { sort: order.value[0]!, order: order.value.join(',') } : {}),
+})
+// 조건·순서가 바뀔 때만 다시 받는다(펼친 수 n 은 주소에만 남긴다)
+watch(() => JSON.stringify([paramsFromState(state.value), order.value]), () => {
+  if (empty.value) return
+  const n = Math.min(Number(route.query.n) || 0, MAX_RESTORE)
+  run(state.value, opts(Math.max(PAGE, n)))
 }, { immediate: true })
-function loadMore() {
-  more(state.value, opts())
+async function loadMore() {
+  await more(state.value, opts(PAGE))
+  const shown = result.value?.data.length ?? 0
+  if (shown > PAGE) router.replace({ query: { ...route.query, n: String(shown) } })
 }
 
-const keepSort = (): Record<string, string> => (sortQ.value ? { sort: sortQ.value } : {})
+// ── 상세에서 돌아오면 보던 자리로 ──
+onBeforeRouteLeave((to) => {
+  if (!to.path.startsWith('/career-encyclopedia/job/')) return
+  try { sessionStorage.setItem(SCROLL_KEY, JSON.stringify({ path: route.fullPath, y: window.scrollY })) } catch { /* 없음 */ }
+})
+watch(() => result.value, async (r) => {
+  if (!r) return
+  let saved: { path: string; y: number } | null = null
+  try { saved = JSON.parse(sessionStorage.getItem(SCROLL_KEY) || 'null') } catch { /* 없음 */ }
+  if (!saved || saved.path !== route.fullPath) return
+  await nextTick()
+  window.scrollTo(0, saved.y)
+  try { sessionStorage.removeItem(SCROLL_KEY) } catch { /* 없음 */ }
+})
+
+// ── 조건 바꾸기 — 이 자리를 바꾼다(replace). 뒤로 가기가 지나온 목록을 하나씩 되짚지 않게 ──
 function remove(id: string) {
-  router.replace({ path: route.path, query: queryFromState(withoutCondition(state.value, id), keepSort()) })
+  const next = withoutCondition(state.value, id)
+  router.replace({ path: route.path, query: listQuery(next, order.value) })
 }
 function editCondition(axis: BrowseAxisKey) {
-  router.push({ path: `/career-encyclopedia/browse/${axis}`, query: { ...route.query, from: 'list' } })
+  router.push({ path: `/career-encyclopedia/browse/${axis}`, query: { ...listQuery(state.value, order.value), from: 'list', pd: '1' } })
 }
 function addCondition() {
   const axis = nextAxisToAdd(state.value)
   if (axis) editCondition(axis)
 }
+
+// ── 하나만 빼고 맞아요 — 빠진 조건마다 묶는다(서버가 나중에 더한 조건부터 보낸다) ──
+const nearGroups = computed(() => {
+  const groups: { id: string; label: string; rows: BrowseRow[] }[] = []
+  for (const row of result.value?.near ?? []) {
+    const id = row.missing?.id ?? ''
+    let g = groups[groups.length - 1]
+    if (!g || g.id !== id) {
+      g = { id, label: row.missing?.label ?? '', rows: [] }
+      groups.push(g)
+    }
+    g.rows.push(row)
+  }
+  return groups
+})
 
 // ── 묶음 직업 ──
 const pickerOpen = ref(false)
@@ -140,6 +190,11 @@ function goJob(jobCode: string) {
 }
 function back() {
   safeBack(router, '/career-encyclopedia')
+}
+/** 진로백과 홈 — 홈에서 왔으면 되돌아가고(쌓지 않게), 아니면 연다 */
+function goHome() {
+  if (window.history.state?.back === '/career-encyclopedia') router.back()
+  else router.push('/career-encyclopedia')
 }
 onMounted(loadAxes)
 </script>
