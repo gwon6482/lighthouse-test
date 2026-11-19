@@ -201,7 +201,9 @@
         </div>
 
         <!-- 임금 정보 -->
-        <div v-if="job.salary" :class="['overview-stats__card', { 'g-veil': locked }]">
+        <!-- 비회원에게는 숫자를 그리지 않는다 — 흐림은 눈에만 가려서 화면 읽기 프로그램이 실제 값을 읽었다(2026-11-18 사용성 QA).
+             목록 카드(BrowseJobCard)처럼 자리표시만 그리고 화면 읽기에서도 뺀다 -->
+        <div v-if="job.salary" :class="['overview-stats__card', { 'g-veil': locked }]" :aria-hidden="locked ? 'true' : undefined" data-test="salary-card">
           <span class="overview-stats__label">연봉 (만원)</span>
           <div class="overview-salary">
             <div class="overview-salary__track">
@@ -209,17 +211,17 @@
               <div class="overview-salary__point overview-salary__point--lower">
                 <div class="overview-salary__dot" />
                 <span class="overview-salary__tip">하위 25%</span>
-                <span class="overview-salary__amount">{{ job.salary.lower.toLocaleString() }}</span>
+                <span class="overview-salary__amount">{{ locked ? VEIL_NUM : job.salary.lower.toLocaleString() }}</span>
               </div>
               <div class="overview-salary__point overview-salary__point--median">
                 <div class="overview-salary__dot overview-salary__dot--median" />
                 <span class="overview-salary__tip">중위</span>
-                <span class="overview-salary__amount overview-salary__amount--median">{{ job.salary.median.toLocaleString() }}</span>
+                <span class="overview-salary__amount overview-salary__amount--median">{{ locked ? VEIL_NUM : job.salary.median.toLocaleString() }}</span>
               </div>
               <div class="overview-salary__point overview-salary__point--upper">
                 <div class="overview-salary__dot" />
                 <span class="overview-salary__tip">상위 25%</span>
-                <span class="overview-salary__amount">{{ job.salary.upper.toLocaleString() }}</span>
+                <span class="overview-salary__amount">{{ locked ? VEIL_NUM : job.salary.upper.toLocaleString() }}</span>
               </div>
             </div>
           </div>
@@ -248,8 +250,11 @@
           <span :class="['overview-outlook__chip', `overview-outlook__chip--${tone}`]">{{ job.outlook?.official?.verdict }}</span>
           <span v-if="when" class="overview-outlook__when">{{ when }}</span>
         </div>
-        <p :class="['overview-outlook__line', { 'g-veil': locked }]">{{ sentence }}</p>
-        <p v-if="srcText" :class="['overview-outlook__source', { 'g-veil': locked }]">출처: {{ srcText }}</p>
+        <!-- 비회원 — 흐린 글은 자리표시로(화면 읽기에서도 뺀다). 판정 한 단어는 또렷하게 둔다 -->
+        <p v-if="locked" class="overview-outlook__line g-veil" aria-hidden="true">{{ VEIL_LINE }}</p>
+        <p v-else class="overview-outlook__line">{{ sentence }}</p>
+        <p v-if="srcText && locked" class="overview-outlook__source g-veil" aria-hidden="true">출처: {{ VEIL_SRC }}</p>
+        <p v-else-if="srcText" class="overview-outlook__source">출처: {{ srcText }}</p>
         <a
           v-if="job.outlook?.official?.source?.url && !locked"
           class="overview-outlook__link"
@@ -259,12 +264,16 @@
         >{{ outlookLinkLabel(job.outlook.official.source.url) }}</a>
       </div>
 
-      <div v-if="view.showOurs" :class="['overview-outlook__ours', { 'g-veil': locked }]" data-test="outlook-ours">
+      <div v-if="view.showOurs && locked" class="overview-outlook__ours g-veil" aria-hidden="true" data-test="outlook-ours">
+        <p v-for="i in Math.min(job.outlook?.ours?.lines?.length ?? 1, 2)" :key="i" class="overview-outlook__ours-line">{{ VEIL_LINE }}</p>
+        <p class="overview-outlook__badge">{{ view.oursBadge }}</p>
+      </div>
+      <div v-else-if="view.showOurs" class="overview-outlook__ours" data-test="outlook-ours">
         <p v-for="(l, i) in job.outlook?.ours?.lines ?? []" :key="i" class="overview-outlook__ours-line">{{ l }}</p>
         <p class="overview-outlook__badge">{{ view.oursBadge }}</p>
         <ul v-if="job.outlook?.ours?.facts?.length" class="overview-outlook__facts">
           <li v-for="(f, i) in oursSources" :key="i">
-            <a v-if="f.source?.url && !locked" :href="f.source.url" target="_blank" rel="noopener">{{ factSource(f) }}</a>
+            <a v-if="f.source?.url" :href="f.source.url" target="_blank" rel="noopener">{{ factSource(f) }}</a>
             <span v-else>{{ factSource(f) }}</span>
           </li>
         </ul>
@@ -296,17 +305,18 @@
         <span v-if="opinionSub" class="overview-section__sub">{{ opinionSub }}</span>
       </h3>
 
-      <div class="overview-prospect">
-        <div v-for="b in job.work24.prospect.distribution" :key="b.name" :class="['overview-prospect__row', { 'g-veil': locked }]">
+      <!-- 비회원 — 비율은 그리지 않는다(막대 길이도 자리표시). 칸 이름(증가·유지…)은 자료가 아니라 그대로 -->
+      <div class="overview-prospect" :aria-hidden="locked ? 'true' : undefined">
+        <div v-for="(b, bi) in job.work24.prospect.distribution" :key="b.name" :class="['overview-prospect__row', { 'g-veil': locked }]">
           <span class="overview-prospect__label">{{ b.name }}</span>
           <div class="overview-prospect__bar-bg">
             <div
               class="overview-prospect__bar-fill"
               :class="prospectToneOf(b.name)"
-              :style="{ width: b.ratio + '%' }"
+              :style="{ width: (locked ? VEIL_BARS[bi % VEIL_BARS.length] : b.ratio) + '%' }"
             />
           </div>
-          <span class="overview-prospect__value">{{ b.ratio }}%</span>
+          <span class="overview-prospect__value">{{ locked ? '00' : b.ratio }}%</span>
         </div>
       </div>
       <p class="overview-prospect__note">한 직업에 평균 30명이 답한 결과예요. 참고로만 봐 주세요.</p>
@@ -341,6 +351,12 @@ import JobGateGuide from '@/shared/components/JobGateGuide.vue'
 import { outlookView, verdictSentence, verdictWhen, verdictTone, sourceText, groupLine, outlookLinkLabel } from '../../../../lib/outlook'
 
 const props = defineProps<{ job: Job; locked?: boolean }>()
+
+// 비회원 자리표시 — 흐림 아래 실제 값을 두지 않는다(목록 카드 BrowseJobCard 와 같은 방식, 2026-11-19)
+const VEIL_NUM = '0,000'
+const VEIL_LINE = '가입하면 이 직업의 전망을 볼 수 있어요'
+const VEIL_SRC = '한국고용정보원'
+const VEIL_BARS = [20, 40, 25, 10, 5]
 
 // ── 전문가 전망(2026-11-18, lib/outlook.ts) ───────────────────────────────
 const view = computed(() => outlookView(props.job.outlook))
