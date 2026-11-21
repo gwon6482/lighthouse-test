@@ -40,6 +40,11 @@
 
     <!-- 메인 메뉴 (검색어 없을 때) -->
     <template v-else>
+      <!-- 분류로 찾기(2026-11-17) — 검색 바로 아래, 진로 둘러보기 위(2026-11-21 오너: 둘러보기 위로 올림). -->
+      <div class="enc-home__section">
+        <BrowseEntry />
+      </div>
+
       <!-- 진로 둘러보기 — 서로 다른 직무에서 직업 5개를 무작위로(2026-11-14 사용자 결정, 바뀔 수 있음).
            API 를 못 받으면 고정 목록(FALLBACK_JOBS)으로 대신한다 -->
       <div class="enc-home__section">
@@ -59,16 +64,11 @@
             :description="'group' in job ? job.overview : undefined"
             @click="goToJobDetail(job.jobCode)"
           />
-          <!-- 처음 받는 동안 카드 자리를 미리 잡는다 — 받은 뒤에 아래 '분류로 찾기'가 밀려 내려가지 않게(2026-11-18 사용성 확인) -->
+          <!-- 처음 받는 동안 카드 자리를 미리 잡는다 — 받은 뒤에 아래 '나의 추천 진로'가 밀려 내려가지 않게(2026-11-18 사용성 확인) -->
           <template v-if="!browseJobs.length && isExploring">
             <div v-for="i in 5" :key="`skel-${i}`" class="enc-home__skel" aria-hidden="true" />
           </template>
         </div>
-      </div>
-
-      <!-- 분류로 찾기(2026-11-17) — 둘러보기 아래, 나의 추천 진로 위. -->
-      <div class="enc-home__section">
-        <BrowseEntry />
       </div>
 
       <!-- 나의 추천 진로 -->
