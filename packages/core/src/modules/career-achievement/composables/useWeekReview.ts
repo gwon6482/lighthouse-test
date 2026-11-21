@@ -14,7 +14,9 @@ import { useAchievementStore } from '@/shared/stores/achievement'
 import { fetchWeeklyReview, putWeeklyReview, type WeeklyReviewDto } from '../achievement.api'
 import { reviewState } from './useReviewState'
 import { categoryColor } from '../lib/planBoard'
-import type { DayOfWeek, Project, TimelineSlot } from '@/modules/career-design/types/career-design'
+import type { DayOfWeek, Project, Routine, TimelineSlot } from '@/modules/career-design/types/career-design'
+import { budgetHours, measureOf, measureTrend, shortened, stripLoad, twoWeeksLow, withRoutineLoad, type WeekCount } from '@/modules/career-design/lib/routine'
+import { ROUTINE_COLOR } from './usePlanBoard'
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -36,6 +38,22 @@ export function periodDraftOf(p: Project): PeriodDraft {
   if (!periodDrafts[p.id]) periodDrafts[p.id] = { checked: [], changed: false, kind: '', endDelta: 0, pauseWeeks: 2, days: [...p.days] }
   return periodDrafts[p.id]!
 }
+// 루틴(2026-11-21 루틴 리뉴얼 정할 것 6) — 2주 연속 절반 미만이면 맞춰 보기. 고른 것은 결산을 마칠 때 적용
+export type RoutineAdjust = '' | 'shorter' | 'days' | 'pause' | 'stop'
+export interface RoutineDraft { kind: RoutineAdjust; days: DayOfWeek[] }
+export const routineDrafts = reactive<Record<string, RoutineDraft>>({})
+export function routineDraftOf(r: Routine): RoutineDraft {
+  if (!routineDrafts[r.id]) routineDrafts[r.id] = { kind: '', days: [...(r.days ?? [])] }
+  return routineDrafts[r.id]!
+}
+export interface RoutineCard {
+  routine: Routine
+  cur: WeekCount
+  low: boolean                                  // 2주 연속 절반 미만
+  trend: ReturnType<typeof measureTrend> | null // 주 1회 기록 추이(기준 넘기·실력 올리기)
+  shorter: number                               // '시간 줄이기'로 바뀔 1회 시간
+}
+
 export interface PeriodCard {
   project: Project
   idx: number                 // 결산하는 주가 그 과정의 몇 주째인지(1부터)
@@ -214,6 +232,32 @@ export function useWeekReview() {
     return slots.sort((a, b) => a.week - b.week)
   })
 
+  // ── 3. 루틴 카드(2026-11-21) — 결산하는 주에 나온 루틴마다: 'N번 중 M번' · 기록 추이 · (2주 연속 절반 미만이면) 맞춰 보기 ──
+  const routineCards = computed<RoutineCard[]>(() => {
+    const pl = plan.value; const wk = weekNo.value
+    if (!pl || !wk) return []
+    const out: RoutineCard[] = []
+    for (const r of pl.routines) {
+      const cur = board.routineWeekCount(r.id, wk)
+      if (!cur.planned) continue
+      const prev = wk >= 2 ? board.routineWeekCount(r.id, wk - 1) : null
+      const m = measureOf(r)
+      out.push({ routine: r, cur, low: twoWeeksLow(cur, prev), trend: m ? measureTrend(r.records, m, wk) : null, shorter: shortened(r) })
+    }
+    return out
+  })
+  // 맞춰 보기로 고른 것 → 루틴에 보낼 칸
+  function routineChangeOf(c: RoutineCard): Record<string, unknown> | null {
+    const d = routineDrafts[c.routine.id]
+    const r = range.value
+    if (!d || !d.kind || !r) return null
+    if (d.kind === 'shorter') return c.shorter < c.routine.duration ? { duration: c.shorter } : null
+    if (d.kind === 'days') return d.days.length ? { days: d.days } : null
+    if (d.kind === 'pause') return { pauseWeeks: [...new Set([...(c.routine.pauseWeeks ?? []), nextWeek.value])] }
+    const next = parseDateKey(r.weekEnd)!; next.setDate(next.getDate() + 1)
+    return { endedAt: toDateKey(next) }   // 그만두기 — 다음 주부터 안 나온다(지금까지 기록은 남는다)
+  }
+
   // ── 4. 템포 ──
   // ⚠️ 계획의 속도는 서버에 저장되지 않는다(paceKey 는 설계 중 로컬만) — 시안은 프로젝트 주당 시간 합으로 짐작하고, 모르면 '꾸준히'
   // ⚠️ 2026-10-29 서버 수정 전 계획은 프로젝트 시간이 0분 — 그대로 계산하면 '시간이 안 드는 프로젝트'가 돼서
@@ -230,7 +274,9 @@ export function useWeekReview() {
       const sw = projectStartWeek(pl.timeline, p.id)
       return sw !== null && sw <= wk && wk <= sw + (p.curriculum?.length || 2) - 1
     })
-    return Math.round(active.reduce((n, p) => n + ((p.days?.length ?? 0) * (withTime(p).duration ?? 0)) / 60, 0))
+    // 루틴 시간도 센다(2026-11-21 정할 것 5) — 그 주에 실제로 나온 날 × 1회 시간
+    const routineMin = pl.routines.reduce((n, r) => n + board.routineWeekCount(r.id, wk).planned * (r.duration ?? 0), 0)
+    return Math.round(active.reduce((n, p) => n + ((p.days?.length ?? 0) * (withTime(p).duration ?? 0)) / 60, 0) + routineMin / 60)
   })
   // 속도 카드 — 올인은 계획에 저장된 주당 시간(하루 시간 × 6)을 쓴다(검토 11-17 L2).
   // PACES 의 올인(주 24시간)을 그대로 쓰면 하루 8시간 올인 계획이 결산에서 '같은 올인'인데 주 24시간으로 다시 짜여 시험이 늘었다
@@ -255,7 +301,11 @@ export function useWeekReview() {
   function endIfPace(pace: Pace) {
     const pl = plan.value
     if (!pl) return { endDate: '', weeks: 0, remaining: 0, moved: 0, timeline: [] as TimelineSlot[], changed: [] as Project[] }
-    const r = rescheduleFrom(projectsNow.value, timelineNow.value, nextWeek.value, pace.hours)
+    // 루틴 시간도 속도 예산에(2026-11-21 정할 것 5) — 붙은 루틴은 그 프로젝트 시간으로, 붙지 않은 루틴은 예산에서 먼저 뺀다
+    const loaded = withRoutineLoad(projectsNow.value, pl.routines.filter((x) => !(routineDrafts[x.id]?.kind === 'stop')))
+    const raw = rescheduleFrom(loaded.projects, timelineNow.value, nextWeek.value, budgetHours(pace.hours, loaded.freeMin))
+    const plain = (p: Project): Project => { if (p.routineMin === undefined) return p; const { routineMin: _m, ...rest } = p; void _m; return rest }
+    const r = { ...raw, timeline: stripLoad(raw.timeline, projectsNow.value), changed: raw.changed.map(plain) }
     const remaining = pl.projects.filter((p) => { const sw = projectStartWeek(pl.timeline, p.id); return sw === null || sw >= nextWeek.value }).length
     const end = weekDateRange(pl.startDate, r.endWeek, pl.reviewDay)?.end ?? ''
     const moved = pl.projects.filter((p) => {
@@ -308,7 +358,7 @@ export function useWeekReview() {
       const key = toDateKey(d)
       const lines = board.itemsOn(d).map((it) => {
         if (it.itemType === 'project') { const p = board.projectOf(it.itemId); return { name: p?.name ?? '', color: categoryColor(p?.category) } }
-        return { name: board.routineOf(it.itemId)?.name ?? '', color: '#9AA0A6' }
+        return { name: board.routineOf(it.itemId)?.name ?? '', color: ROUTINE_COLOR }
       }).filter((x) => x.name)
       out.push({ key, label: `${d.getMonth() + 1}/${d.getDate()} ${DOW[d.getDay()]}`, lines })
       d.setDate(d.getDate() + 1)
@@ -325,6 +375,9 @@ export function useWeekReview() {
     const changed = pace.key !== from.key
     const periodList = periodChanges.value
     const beforeEnd = currentEnd.value; const after = endIfPace(pace)
+    // 루틴 맞춰 보기(2026-11-21) — 시간 줄이기·요일 바꾸기·한 주 쉬기·그만두기. 서버는 요일·쉬는 주·끝낸 날이 바뀌면 이번 주부터 일정을 새로 만든다
+    const routineList = routineCards.value.map((c) => ({ c, body: routineChangeOf(c) })).filter((x) => x.body)
+    for (const { c, body } of routineList) await req.put(`/api/career-plan/${pl.planId}/routines/${c.routine.id}`, body)
     // 과정 일정(2026-11-16) — 바뀐 과정을 먼저 저장한다(서버는 커리큘럼·요일이 바뀌면 이번 주부터 일정을 새로 만든다)
     for (const { after: p } of periodList) {
       await req.put(`/api/career-plan/${pl.planId}/projects/${p.id}`, {
@@ -370,7 +423,8 @@ export function useWeekReview() {
     reviewState(pl.planId, r.weekStart).markDone()
     Object.assign(reviewDraft, { satisfaction: 0, note: '', pledge: '', feel: '', paceKey: '' })
     for (const k of Object.keys(periodDrafts)) delete periodDrafts[k]
-    if (changed || periodList.length) await store.loadActivePlan(true)
+    for (const k of Object.keys(routineDrafts)) delete routineDrafts[k]
+    if (changed || periodList.length || routineList.length) await store.loadActivePlan(true)
     return true
   }
 
@@ -383,5 +437,6 @@ export function useWeekReview() {
     weeklyHours, paceOptions, currentPace, recommendedPace, endIfPace, nextWeek, currentEnd,
     nextDays,
     periodCards, periodChanges, periodPreview,
+    routineCards,
   }
 }

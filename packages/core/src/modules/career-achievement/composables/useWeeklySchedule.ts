@@ -5,6 +5,7 @@ import type {
 } from '@/modules/career-design/types/career-design'
 import { weekOfDate, weekDateRange, projectsActiveInWeek } from '@/modules/career-design/composables/usePlanTimeline'
 import { uid } from '@/shared/utils/uid'
+import { routineOnDay } from '@/modules/career-design/lib/routine'
 
 // 한 주의 확정된 일정 1건. BE WeeklySchedule.items 의 1요소.
 export interface WeeklyScheduleItem {
@@ -112,6 +113,7 @@ export function generateItemsForWeek(
     if (planWeek === null) { cursor.setDate(cursor.getDate() + 1); continue }
     // 그 주에 진행 중인 프로젝트만 후보 (시작주 ~ 시작주+기간-1)
     const activeIds = new Set(projectsActiveInWeek(timeline, planWeek, plan.projects).map(p => p.id))
+    let courseDay = false   // 그날 과정(학교·학원)에 다니는가 — 새 루틴은 그날 빠진다(2026-11-21 루틴 리뉴얼)
 
     for (const p of plan.projects) {
       if (!activeIds.has(p.id)) continue
@@ -124,6 +126,7 @@ export function generateItemsForWeek(
       // 과정의 쉬는 주(주간결산 '잠시 쉬어요')에는 오늘 할 일을 만들지 않는다(2026-11-16)
       if (p.period && curriculumWeek && p.curriculum?.find((c) => c.week === curriculumWeek)?.pause) continue
 
+      if (p.period) courseDay = true
       out.push({
         id: uid(),
         itemType: 'project',
@@ -133,8 +136,10 @@ export function generateItemsForWeek(
       })
     }
 
+    // 루틴(2026-11-21 루틴 리뉴얼) — 요일 + 붙은 프로젝트가 놓인 주에만 · 쉬는 주·끝낸 날 · 과정 다니는 날 빼기(lib/routine.ts)
+    const projectIds = new Set(plan.projects.map((p) => p.id))
     for (const r of plan.routines) {
-      if (!r.days?.includes(dow)) continue
+      if (!routineOnDay(r, { date: dateKey, dow, planWeek, projectIds, activeProjectIds: activeIds, courseDay })) continue
       out.push({
         id: uid(),
         itemType: 'routine',

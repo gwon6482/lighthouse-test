@@ -117,6 +117,16 @@
         </template>
       </section>
 
+      <!-- 이번 주 기록 재기(2026-11-21 루틴 리뉴얼) — 기준 넘기·실력 올리기 루틴의 주 1회 기록. 매일 분량은 루틴, 재기는 여기 -->
+      <section v-if="phase === 'running' && measureDue.length" class="ah-sec ah-measure" aria-label="이번 주 기록 재기">
+        <RoutineMeasureCard
+          v-for="m in measureDue" :key="m.routine.id"
+          :title="m.project?.name ?? m.routine.name" :measure="m.measure" :record="m.record" :prev="m.prev"
+          :caution="m.routine.kind === 'target' ? '기준은 응시하는 해 공고에서 확인해요' : null"
+          :on-save="(v) => saveRecord(m.routine.id, v)"
+        />
+      </section>
+
       <!-- 주간 결산 — 결산일에만, 오늘 할 일 바로 아래(2026-10-30 사용자). 평소엔 안 보인다.
            추후: 앱 진입 때 결산 팝업 + 앱 푸시 예정 -->
       <div v-if="showReviewButton" class="ah-review">
@@ -171,6 +181,14 @@
 
     </template>
 
+    <!-- 붙은 프로젝트가 끝난 루틴 — '감 유지로 바꾸기 / 끝내기'를 한 번 묻는다(2026-11-21). 결산 팝업이 떠 있으면 기다린다 -->
+    <RoutineEndSheet
+      v-if="endSheet && !promptOpen"
+      :routine="endSheet.routine" :project="endSheet.project"
+      :on-decide="(c) => decideEnded(endSheet!.routine.id, c)"
+      @close="markAsked(endSheet.routine.id)"
+    />
+
     <!-- 주간결산 팝업 — 한 주에 한 번(전날 다 했을 때 / 못 했으면 시작일 첫 접속) -->
     <div v-if="promptOpen" class="ah-pop" role="dialog" aria-modal="true" aria-labelledby="ah-pop-title">
       <div class="ah-pop__panel">
@@ -196,6 +214,9 @@ import { categoryColor, reviewMoment, shouldPromptReview } from '../lib/planBoar
 import { reviewState } from '../composables/useReviewState'
 import { methodIcon } from '@/modules/career-design/composables/projectMethods'
 import PeriodTag from '@/modules/career-design/components/PeriodTag.vue'
+import RoutineMeasureCard from '../components/RoutineMeasureCard.vue'
+import RoutineEndSheet from '../components/RoutineEndSheet.vue'
+import { ROUTINE_COLOR, ROUTINE_TINT } from '../composables/usePlanBoard'
 import type { Project } from '@/modules/career-design/types/career-design'
 import { elapsedOf, elapsedText, pausedEyebrow, type FocusSession } from '../lib/focusSession'
 
@@ -211,7 +232,9 @@ const {
   todayProjects, todayRoutines, todayFocus, startProject, toggleRoutine, toggleProject, periodToday, isProjectDone, isRoutineDone,
   weekGoals, weekNumber, review,
   pausedFor, heldSessions, resumeFocus, projectOf, todayKey,
+  routineWeekCount, measureDue, saveRecord, endedRoutines, markAsked, decideEnded,
 } = usePlanBoard()
+const endSheet = computed(() => (loading.value ? null : endedRoutines.value[0] ?? null))
 
 // 분류 색의 옅은 바탕(아이콘 칩)
 const tint = (c: string) => `color-mix(in srgb, ${c} 14%, white)`
@@ -260,7 +283,13 @@ const rows = computed(() => {
     ;(isProjectDone(p.id) ? finished : pending).push(row)
   }
   for (const r of todayRoutines.value) {
-    const row: TodayRow = { key: 'r' + r.id, type: 'routine', id: r.id, name: r.name, sub: `루틴 · ${r.duration}분`, icon: 'ui-repeat', chipStyle: { color: '#3B6FD8', background: '#E6F0FF' } }
+    // '이번 주 1/3번'(2026-11-21 루틴 리뉴얼 정할 것 6) — 연속 기록이 아니라 그 주에 나온 날 중 한 날
+    const wc = routineWeekCount(r.id, weekNumber.value)
+    const row: TodayRow = {
+      key: 'r' + r.id, type: 'routine', id: r.id, name: r.name,
+      sub: `루틴 · ${r.duration}분` + (wc.planned > 1 ? ` · 이번 주 ${wc.done}/${wc.planned}번` : ''),
+      icon: 'ui-repeat', chipStyle: { color: ROUTINE_COLOR, background: ROUTINE_TINT },
+    }
     ;(isRoutineDone(r.id) ? finished : pending).push(row)
   }
   return { pending: [...pausedRows, ...pending], finished }

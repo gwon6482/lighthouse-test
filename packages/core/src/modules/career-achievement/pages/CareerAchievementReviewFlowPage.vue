@@ -73,6 +73,8 @@
           v-for="c in periodCards" :key="c.project.id"
           :card="c" :preview="periodPreview(c.project.id)" :week-label="weekLabel"
         />
+        <!-- 루틴(2026-11-21 루틴 리뉴얼) — 'N번 중 M번' · 기록 추이 · 2주 연속 절반 미만이면 맞춰 보기 -->
+        <RoutineReviewCard v-for="c in routineCards" :key="c.routine.id" :card="c" />
         <div class="wv-sat" role="radiogroup" aria-label="만족도">
           <button
             v-for="s in SATISFACTION" :key="s.v" type="button" class="wv-sat__btn"
@@ -158,6 +160,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { useWeekReview, reviewDraft } from '../composables/useWeekReview'
 import PeriodReviewCard from '../components/PeriodReviewCard.vue'
+import RoutineReviewCard from '../components/RoutineReviewCard.vue'
 import { weekDateRange } from '@/modules/career-design/composables/usePlanTimeline'
 import { parsePlanDate, daysBetween } from '../lib/planBoard'
 
@@ -171,6 +174,7 @@ const {
   weekGain, beforePercent,
   paceOptions, currentPace, recommendedPace, endIfPace, nextWeek, nextDays, finishReview, currentEnd,
   periodCards, periodChanges, periodPreview,
+  routineCards,
 } = useWeekReview()
 // 계획 주차 → 그 주 마지막 날 'M/D'(과정 카드의 끝 예정)
 function weekLabel(week: number): string {

@@ -302,6 +302,25 @@ export interface PrepProject {
   studyHours?: number
   minAge?: number       // 응시할 수 있는 나이(공무원 공채 18·교정 20·경위 21 — 시험을 보는 해 기준). 없으면 앱의 이름 규칙
   firstPassRounds?: number   // 1차 합격 효력이 미치는 2차 회차 수(회계사·세무사 1차 = 2 — 그 회와 다음 회)
+  routine?: PrepRoutineSuggestion          // 루틴 제안(2026-11-21 루틴 리뉴얼) — 반복 연습 프로젝트에만. 옛 서버는 없다
+}
+
+/**
+ * 루틴 제안(2026-11-21) — 진로설계 ④ 루틴 단계의 '넣기' 카드. 분량은 모두 예시 · 현직자 검토 전.
+ * project = 넣었을 때 그 계획 안의 해당 프로젝트가 바뀌는 값(주 1회 기록 재기·점검, 주 수 같음). 빼면 원래대로 되돌린다
+ */
+export interface PrepRoutineSuggestion {
+  name: string
+  kind: 'target' | 'level'
+  days: string[]
+  minutes: number
+  minMinutes: number | null
+  measure: { label: string; unit: 'time' | 'count' | 'number' | 'media'; better?: 'low' | 'high' | null; suffix?: string } | null
+  safety: 'body' | 'voice' | null
+  safetyText: string | null
+  caution: string | null
+  example: string
+  project: { daysPerWeek: number; minutesPerSession: number; phases: PrepPhase[] }
 }
 
 /** 길 위의 한 걸음 — ref 로 projects 에서 프로젝트를 찾는다 */

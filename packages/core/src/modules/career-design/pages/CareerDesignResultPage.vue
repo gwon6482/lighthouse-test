@@ -42,7 +42,7 @@
 
       <!-- 루틴 목록 -->
       <div v-if="draftPlan.routines.length" class="cd-result__section">
-        <h3 class="cd-result__section-title">매일의 루틴</h3>
+        <h3 class="cd-result__section-title">루틴</h3>
         <div class="cd-result__routines">
           <div
             v-for="routine in draftPlan.routines"
@@ -52,8 +52,7 @@
             <div class="cd-result__routine-left">
               <span class="cd-result__routine-name">{{ routine.name }}</span>
               <span class="cd-result__routine-meta">
-                {{ daysSummary(routine.days) }} · {{ routine.duration }}분
-                <template v-if="routine.notification"> · <AppIcon name="ui-bell" /> {{ routine.notificationTime }}</template>
+                <template v-if="routine.kind">{{ KIND_LABEL[routine.kind] }} · </template>{{ daysSummary(routine.days) }} · {{ routine.duration }}분<template v-if="routineProjectName(routine)"> · ‘{{ routineProjectName(routine) }}’{{ josaWa(routineProjectName(routine)) }} 함께</template>
               </span>
             </div>
           </div>
@@ -204,6 +203,7 @@
 </template>
 
 <script setup lang="ts">
+import { KIND_LABEL, josaWa } from '../lib/routine'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { weekEntriesOf } from '../composables/useProjectCurriculum'
 import { ref, computed, onMounted } from 'vue'
@@ -216,7 +216,7 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { useDesignSteps } from '../composables/useDesignSteps'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
-import type { Project, ProjectCategory, DayOfWeek } from '../types/career-design'
+import type { Project, ProjectCategory, DayOfWeek, Routine } from '../types/career-design'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 const router = useRouter()
@@ -298,6 +298,8 @@ async function startNow() {
 }
 
 const ALL_DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
+// 루틴(2026-11-21 루틴 리뉴얼) — 종류·함께 할 프로젝트. 알림은 보내는 코드가 없어 화면에서 뺐다(정할 것 7)
+const routineProjectName = (r: Pick<Routine, 'projectId'>) => (r.projectId ? draftPlan.projects.find((x) => x.id === r.projectId)?.name ?? '' : '')
 function daysSummary(days: DayOfWeek[]): string {
   if (days.length === 7) return '매일'
   if (days.length === 5 && ALL_DAYS.slice(0, 5).every(d => days.includes(d))) return '평일'

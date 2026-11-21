@@ -20,6 +20,9 @@ import {
 } from '../lib/planBoard'
 import { useFocusSessions } from './useFocusSessions'
 import { sessionKey, isAlive, type FocusSession } from '../lib/focusSession'
+import { req } from '@/shared/api'
+import { attachedEnded, keepVersion, measureOf, recordOfWeek, type WeekCount } from '@/modules/career-design/lib/routine'
+import type { RoutineRecord } from '@/modules/career-design/types/career-design'
 
 export interface PreviewLine { name: string; color: string }
 export interface DayPreview { key: string; dow: string; md: string; weekend: boolean; lines: PreviewLine[]; more: number; rest: boolean }
@@ -27,7 +30,9 @@ export interface DayPreview { key: string; dow: string; md: string; weekend: boo
 export interface WeekGoalBar { project: Project; weekIdx: number; total: number; done: number; period?: boolean }
 
 const DOW: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토']
-const ROUTINE_COLOR = '#9AA0A6'
+// 루틴 색은 하나(2026-11-21 루틴 리뉴얼 — 홈은 파랑, 미리 보기·결산은 회색이던 것을 맞췄다). 아이콘은 ui-repeat
+export const ROUTINE_COLOR = '#3B6FD8'
+export const ROUTINE_TINT = '#E6F0FF'
 
 export function usePlanBoard() {
   const router = useRouter()
@@ -220,6 +225,87 @@ export function usePlanBoard() {
     return `${md(a.start)}~${md(b.end)}`
   }
 
+  // ── 루틴(2026-11-21 루틴 리뉴얼) ──
+  /** 그 루틴의 한 주 — 나온 날 수와 완료한 날 수('이번 주 3번 중 1번') */
+  function routineWeekCount(routineId: string, week: number | null): WeekCount {
+    const pl = plan.value
+    const r = pl && week ? weekDateRange(pl.startDate, week, pl.reviewDay) : null
+    if (!r) return { planned: 0, done: 0 }
+    let planned = 0
+    let done = 0
+    const d = parseDateKey(r.start)!
+    for (let i = 0; i < 14 && toDateKey(d) <= r.end; i += 1) {
+      const key = toDateKey(d)
+      if (itemsOn(d).some((it) => it.itemType === 'routine' && it.itemId === routineId)) {
+        planned += 1
+        if (ach.isRoutineDone(routineId, key)) done += 1
+      }
+      d.setDate(d.getDate() + 1)
+    }
+    return { planned, done }
+  }
+  /** 이번 주 기록을 재는 루틴 — 기준 넘기·실력 올리기에 기록 항목이 있고 이번 주에 나오는 것 */
+  const measureDue = computed(() => {
+    const pl = plan.value
+    const wk = weekNumber.value
+    if (!pl || !wk || phase.value !== 'running') return []
+    return pl.routines.filter((r) => measureOf(r) && routineWeekCount(r.id, wk).planned > 0).map((r) => ({
+      routine: r,
+      measure: measureOf(r)!,
+      project: r.projectId ? projectOf(r.projectId) ?? null : null,
+      record: recordOfWeek(r, wk),
+      prev: [...(r.records ?? [])].filter((x) => x.week < wk && (x.value !== null || measureOf(r)!.unit === 'media')).sort((a, b) => b.week - a.week)[0] ?? null,
+    }))
+  })
+  /** 이번 주 기록 저장 — 계획 주차가 열쇠. 화면에는 바로 반영하고 서버에 보낸다 */
+  async function saveRecord(routineId: string, value: number | null): Promise<boolean> {
+    const pl = plan.value
+    const wk = weekNumber.value
+    const r = pl?.routines.find((x) => x.id === routineId)
+    if (!pl || !wk || !r) return false
+    const rec: RoutineRecord = { week: wk, date: todayKey.value, value }
+    try {
+      await req.put(`/api/career-plan/${pl.planId}/routines/${routineId}/records/${wk}`, { date: rec.date, value })
+      r.records = [...(r.records ?? []).filter((x) => x.week !== wk), rec].sort((a, b) => a.week - b.week)
+      return true
+    } catch {
+      return false
+    }
+  }
+  /** 붙은 프로젝트가 끝난 루틴 — 한 번만 묻는다(이 기기). 고르지 않고 닫아도 다시 묻지 않는다(그 루틴은 이미 일정에 안 나온다) */
+  const ASKED_KEY = 'lh_routine_end_asked'
+  const asked = ref<string[]>((() => { try { return JSON.parse(localStorage.getItem(ASKED_KEY) || '[]') } catch { return [] } })())
+  const endedRoutines = computed(() => {
+    const pl = plan.value
+    const wk = weekNumber.value
+    if (!pl || !wk) return []
+    return pl.routines
+      .map((r) => ({ routine: r, project: attachedEnded(r, pl.projects, pl.timeline, wk, todayKey.value) }))
+      .filter((x): x is { routine: Routine; project: Project } => !!x.project && !asked.value.includes(x.routine.id))
+  })
+  function markAsked(routineId: string) {
+    asked.value = [...asked.value, routineId]
+    try { localStorage.setItem(ASKED_KEY, JSON.stringify(asked.value.slice(-50))) } catch { /* 저장 못 해도 이번엔 닫힌다 */ }
+  }
+  /** 감 유지로 바꾸기 / 끝내기 */
+  async function decideEnded(routineId: string, choice: 'keep' | 'end'): Promise<boolean> {
+    const pl = plan.value
+    const r = pl?.routines.find((x) => x.id === routineId)
+    if (!pl || !r) return false
+    const body = choice === 'keep'
+      ? (() => { const k = keepVersion(r); return { kind: 'keep', projectId: '', measure: null, days: k.days, duration: k.duration } })()
+      : { endedAt: todayKey.value }
+    try {
+      await req.put(`/api/career-plan/${pl.planId}/routines/${routineId}`, body)
+      markAsked(routineId)
+      await store.loadActivePlan(true)
+      schedules.value = await fetchSchedules(pl.planId).catch(() => [])
+      return true
+    } catch {
+      return false
+    }
+  }
+
   async function load() {
     loading.value = true
     try {
@@ -258,5 +344,7 @@ export function usePlanBoard() {
     totalWeeks, roadmap, weekSpanLabel,
     // 주간결산이 쓴다 — 날짜별 항목·완료 판정
     itemsOn, itemDone, projectOf, routineOf, isItemDone,
+    // 루틴(2026-11-21)
+    routineWeekCount, measureDue, saveRecord, endedRoutines, markAsked, decideEnded,
   }
 }

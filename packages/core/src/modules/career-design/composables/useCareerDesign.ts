@@ -40,13 +40,16 @@ const draftPlan = reactive<DraftPlan>({
   ...savedDraft.draftPlan,
 })
 
+// 루틴 작성 중 값(2026-11-21 루틴 리뉴얼 — 알림 칸은 뺐다, 종류·함께 할 프로젝트·기록 재기 칸을 더했다)
 const draftRoutine = reactive<Partial<Routine>>({
   name: '',
   days: ['월', '화', '수', '목', '금'],
   duration: 30,
-  notificationTime: '09:00',
-  notification: false,
   memo: '',
+  kind: 'keep',
+  projectId: '',
+  measure: null,
+  onCourseDays: false,
   ...savedDraft.draftRoutine,
 })
 
@@ -153,9 +156,19 @@ export function useCareerDesign() {
     draftRoutine.name = ''
     draftRoutine.days = ['월', '화', '수', '목', '금']
     draftRoutine.duration = 30
-    draftRoutine.notificationTime = '09:00'
-    draftRoutine.notification = false
     draftRoutine.memo = ''
+    draftRoutine.kind = 'keep'
+    draftRoutine.projectId = ''
+    draftRoutine.measure = null
+    draftRoutine.onCourseDays = false
+    delete draftRoutine.minMinutes
+    delete draftRoutine.safety
+    delete draftRoutine.notification
+    delete draftRoutine.notificationTime
+    delete draftRoutine.id
+    delete draftRoutine.records
+    delete draftRoutine.pauseWeeks
+    delete draftRoutine.endedAt
   }
 
   // ── API 연동 ────────────────────────────────────────────────
@@ -278,18 +291,26 @@ export function useCareerDesign() {
     }
   }
 
+  // 루틴 칸(2026-11-21 루틴 리뉴얼) — 알림 칸은 보내지 않는다(정할 것 7). 새 칸은 옛 서버가 버린다(그래도 이름·요일·시간은 저장된다).
+  // 비운 칸은 null·'' 로 보내 서버가 지운다(고칠 때 종류를 바꾸거나 프로젝트를 떼면)
+  const routinePayload = (r: Routine) => ({
+    name: r.name,
+    days: r.days,
+    duration: r.duration,
+    memo: r.memo ?? '',
+    kind: r.kind ?? null,
+    projectId: r.projectId || '',
+    measure: r.measure ?? null,
+    minMinutes: r.minMinutes ?? null,
+    safety: r.safety ?? null,
+    ...(r.onCourseDays !== undefined ? { onCourseDays: r.onCourseDays } : {}),
+  })
+
   // 루틴 추가
   async function syncAddRoutine(routine: Routine): Promise<boolean> {
     if (holdSync()) return true
     try {
-      const res = await req.post(`/api/career-plan/${draftPlan.planId}/routines`, {
-        name:             routine.name,
-        days:             routine.days,
-        duration:         routine.duration,
-        notificationTime: routine.notificationTime,
-        notification:     routine.notification,
-        memo:             routine.memo,
-      })
+      const res = await req.post(`/api/career-plan/${draftPlan.planId}/routines`, routinePayload(routine))
       routine.id = res.data.routine.id
       return true
     } catch {
@@ -301,14 +322,7 @@ export function useCareerDesign() {
   async function syncUpdateRoutine(routine: Routine): Promise<boolean> {
     if (holdSync()) return true
     try {
-      await req.put(`/api/career-plan/${draftPlan.planId}/routines/${routine.id}`, {
-        name:             routine.name,
-        days:             routine.days,
-        duration:         routine.duration,
-        notificationTime: routine.notificationTime,
-        notification:     routine.notification,
-        memo:             routine.memo,
-      })
+      await req.put(`/api/career-plan/${draftPlan.planId}/routines/${routine.id}`, routinePayload(routine))
       return true
     } catch {
       return false
@@ -376,6 +390,8 @@ export function useCareerDesign() {
           ok = (await syncAddProject(p)) && ok // p.id 가 서버 ID 로 바뀐다
           if (p.id !== localId) {
             for (const slot of draftTimeline.value) for (const sp of slot.projects) if (sp.id === localId) sp.id = p.id
+            // 이 프로젝트에 붙은 루틴도 새 ID 로(2026-11-21 루틴 리뉴얼)
+            for (const r of draftPlan.routines) if (r.projectId === localId) r.projectId = p.id
           }
         } else if (!same(p, was)) {
           ok = (await syncUpdateProject(p)) && ok

@@ -237,8 +237,9 @@ export function projectedEndDate(startDate: string, timeline: TimelineSlot[], pr
 
 // ── 자동 배치(B안, 2026-10-22 사용자 선택): "한 주에 몇 시간 쓸 수 있어요?" ──
 // 프로젝트의 주당 시간 = 실행 요일 수 × 1회 시간
-export function projectHoursPerWeek(p: Pick<Project, 'days' | 'duration'>): number {
-  return ((p.days?.length ?? 0) * (p.duration ?? 0)) / 60
+// routineMin(2026-11-21 루틴 리뉴얼) — 붙은 루틴의 주당 분. 속도 계산 때만 붙인다(lib/routine.ts withRoutineLoad) — 루틴 시간도 그 프로젝트의 시간으로 센다
+export function projectHoursPerWeek(p: Pick<Project, 'days' | 'duration'> & { routineMin?: number }): number {
+  return ((p.days?.length ?? 0) * (p.duration ?? 0) + (p.routineMin ?? 0)) / 60
 }
 
 // 과정 중에 하는 프로젝트(during) → 그것이 딸린 과정 프로젝트(course). 순서에서 바로 앞에 있는 과정이 주인이다(2026-11-16)

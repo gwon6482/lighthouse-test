@@ -257,6 +257,7 @@ import {
   weekDateRange, monthWeekOf, monthWeekLabel, weeksInMonth, parseDateKey, resolveProject,
   projectHoursPerWeek, lastWeekOfMonth,
 } from '../composables/usePlanTimeline'
+import { budgetHours, stripLoad, withRoutineLoad } from '../lib/routine'
 import { DEFAULT_PACE_HOURS, buildTimeline, monthsLabel, paceByKey, paceOfHours, pacedProjects } from '../composables/usePlanPace'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
@@ -494,7 +495,8 @@ onMounted(() => {
     // 큰 시험은 그 속도로 기간을 다시 잡아 넣는다(속도 고르기와 같은 계산, 2026-11-17)
     const paced = pacedProjects(draftPlan.projects, draftPlan.weeklyHours)
     draftPlan.projects.splice(0, draftPlan.projects.length, ...paced)
-    draftTimeline.value = buildTimeline(draftPlan.projects, draftPlan.weeklyHours)
+    const L = withRoutineLoad(draftPlan.projects, draftPlan.routines)   // 루틴 시간도 속도 예산에(2026-11-21)
+    draftTimeline.value = stripLoad(buildTimeline(L.projects, budgetHours(draftPlan.weeklyHours, L.freeMin)), draftPlan.projects)
     draftPlan.timelineManual = false
   }
 })

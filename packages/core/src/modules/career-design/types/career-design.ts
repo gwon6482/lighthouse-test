@@ -1,4 +1,5 @@
 import type { ProjectMethod, MethodField } from '../composables/projectMethods'
+import type { PrepRoutineSuggestion } from '@/modules/encyclopedia/types/encyclopedia'
 
 // 'experience'(실무경험, 2026-10-25) — 인턴·현장실습·대외활동처럼 '기간·시간을 채우는' 준비물.
 //   포트폴리오(결과물이 남음)에 억지로 넣던 것을 분리했다. API enum 에도 있다(lighthouse-api 6035c60)
@@ -58,6 +59,10 @@ export interface Project {
   firstPassRounds?: number   // 1차 합격 효력이 미치는 2차 회차 수(자료, 회계사·세무사 1차 = 2) — 속도 고르기 사실 한 줄(설계 중에만 쓴다)
   alongside?: string    // 나란히 공부하는 대상 프로젝트 id(7·5급 PSAT ↔ 전문·2차) — 같은 때 시작해 주당 시간을 나눠 쓴다
   examStat?: ExamStat   // 속도 고르기에 보여 줄 합격자 수치(설계 중에만 — 서버에 저장하지 않는다)
+  // 루틴 제안(2026-11-21, 설계 중에만 — 서버에 저장하지 않는다). 템플릿에서 온 반복 연습 프로젝트에만
+  routine?: PrepRoutineSuggestion
+  routineBackup?: { days: DayOfWeek[]; duration: number; curriculum: WeekCurriculum[] }   // 제안을 넣어 줄이기 전 값 — 루틴을 빼면 되돌린다
+  routineMin?: number   // 붙은 루틴의 주당 분(속도 계산 때만 잠깐 붙인다 — lib/routine.ts withRoutineLoad)
 }
 
 /** 속도 고르기에 보여 줄 합격자 수치 한 벌(2026-11-17) — 라이브러리 passStats 에서 만든다(lib/examPace.ts examStatOf) */
@@ -69,14 +74,32 @@ export interface ExamStat {
   allLine: string | null            // "합격한 사람 100명 중 97명은 4년 안에 붙었어요"
 }
 
+/** 루틴 종류(2026-11-21 루틴 리뉴얼) — 기준 넘기 · 실력 올리기 · 감 유지. 없으면 옛 루틴(감 유지처럼 계획 끝까지) */
+export type RoutineKind = 'target' | 'level' | 'keep'
+export type MeasureUnit = 'time' | 'count' | 'number' | 'media'
+/** 주 1회 기록 재기 — time 은 초로 저장하고 분:초로 보인다. media(녹음·영상)는 했는지만 */
+export interface RoutineMeasure { label: string; unit: MeasureUnit; better?: 'low' | 'high' | null; suffix?: string }
+export interface RoutineRecord { week: number; date: string; value: number | null; note?: string }
+
 export interface Routine {
   id: string
   name: string
   days: DayOfWeek[]
   duration: number
-  notificationTime: string
-  notification: boolean
   memo: string
+  // 옛 칸 — 알림은 보내는 코드가 없어 화면에서 뺐다(정할 것 7). 옛 데이터에 남아 있어도 무시한다
+  notificationTime?: string
+  notification?: boolean
+  // 2026-11-21 루틴 리뉴얼 — 모두 선택(옛 서버·옛 루틴은 없다)
+  kind?: RoutineKind
+  projectId?: string           // 함께 할 프로젝트 — 그 프로젝트가 놓인 주에만 나온다
+  measure?: RoutineMeasure | null
+  minMinutes?: number          // 바쁜 날 최소
+  safety?: 'body' | 'voice'    // 고정 안전 문구(라이브러리 제안에서)
+  onCourseDays?: boolean       // 과정(학교·학원) 다니는 날에도 하나. false 면 그날은 빠진다(새 루틴 기본). 없음 = 옛 루틴 그대로
+  pauseWeeks?: number[]        // 쉬는 계획 주차(주간결산 '한 주 쉬기')
+  endedAt?: string             // 끝낸 날 — 그날부터 안 나온다
+  records?: RoutineRecord[]    // 주 1회 기록(계획 주차가 열쇠)
 }
 
 // 타임라인 슬롯 — week 는 프로젝트의 **시작 주차**(1-based).

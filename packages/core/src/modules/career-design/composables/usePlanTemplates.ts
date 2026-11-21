@@ -59,6 +59,8 @@ function toProject(prep: JobPreparation, item: PrepItem, project: PrepProject, d
   const p = helperExampleToProject(projectToExample(prep, item, project), project.category, recent)
   if (project.course) p.course = true
   if (during) p.during = true
+  // 루틴 제안(2026-11-21) — ④ 루틴 단계의 '넣기' 카드. 프로젝트 분량은 그대로 두고, 넣을 때만 줄인다
+  if (project.routine) p.routine = JSON.parse(JSON.stringify(project.routine))
   recent.push(p.days)
   return p
 }

@@ -244,6 +244,9 @@ $ah-overlap: 40px;
   &__list { list-style: none; margin: 0; padding: 0; display: grid; gap: $space-md; }
 }
 // 주간 결산 버튼 — 결산일에만 오늘 할 일 카드 바로 아래
+// 이번 주 기록 재기(2026-11-21 루틴 리뉴얼)
+.ah-measure { display: flex; flex-direction: column; gap: $space-sm; }
+
 .ah-review {
   padding: $space-md $space-lg 0;
   &__btn {

@@ -7,6 +7,7 @@ import { useCurriculumCompletion } from '@/modules/career-achievement/composable
 import { useFocusSessions } from '@/modules/career-achievement/composables/useFocusSessions'
 import type { Project, Routine, DayOfWeek, TimelineSlot } from '@/modules/career-design/types/career-design'
 import { projectedEndDate } from '@/modules/career-design/composables/usePlanTimeline'
+import { computeWeekRangeContaining, generateItemsForWeek, toDateKey } from '@/modules/career-achievement/composables/useWeeklySchedule'
 
 interface ActivePlan {
   planId: string
@@ -40,7 +41,14 @@ export const useAchievementStore = defineStore('achievement', () => {
       plan.value.endDate,
       plan.value.reviewDay,
     )
-    const routines = ach.todayRoutines(plan.value.routines)
+    // 루틴은 일정 만들기와 같은 규칙으로(붙은 프로젝트 기간·쉬는 주·끝낸 날·과정 날, 2026-11-21 루틴 리뉴얼)
+    const pl = plan.value
+    const range = computeWeekRangeContaining(ach.today.value, pl.startDate, (pl.reviewDay || '월') as DayOfWeek)
+    const key = toDateKey(ach.today.value)
+    const routineIds = new Set(range
+      ? generateItemsForWeek(pl, pl.timeline, range.weekStart, range.weekEnd).filter((it) => it.itemType === 'routine' && it.date === key).map((it) => it.itemId)
+      : [])
+    const routines = pl.routines.filter((r) => routineIds.has(r.id))
     const pendingProjects = projects.filter(p => !ach.isProjectDone(p.id)).length
     const pendingRoutines = routines.filter(r => !ach.isRoutineDone(r.id)).length
     return pendingProjects + pendingRoutines

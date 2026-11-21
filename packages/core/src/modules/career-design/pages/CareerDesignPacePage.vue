@@ -114,6 +114,7 @@ import CdStepIndicator from '../components/CdStepIndicator.vue'
 import { useDesignSteps } from '../composables/useDesignSteps'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { projectWeeks, toDateKey, type ScheduleOptions } from '../composables/usePlanTimeline'
+import { budgetHours, stripLoad, withRoutineLoad } from '../lib/routine'
 import { PACES, DEFAULT_PACE_HOURS, ALLIN_DAILY, allinWeeklyHours, examAgeDelayed, examAgeOptions, paceFromSituation, paceOfHours, buildTimeline, pacedProjects, scheduleEndWeek, monthLabelOfWeek, monthsLabel } from '../composables/usePlanPace'
 import { examPaceSummary, firstPassLine, isExam } from '../lib/examPace'
 import { useCareerProfile } from '../composables/useCareerProfile'
@@ -175,7 +176,9 @@ const ageRuleOn = computed(() => examAgeDelayed(draftPlan.projects, hoursOf(sele
 // 카드마다 그 속도로 배치했을 때의 완성 시기 — 순서를 바꾸면 함께 바뀐다. 큰 시험은 그 속도로 기간을 다시 잡는다(scheduleEndWeek 안에서)
 const options = computed(() => PACES.map((p) => {
   const hours = hoursOf(p.key)
-  const weeks = scheduleEndWeek(draftPlan.projects, hours, schedOpts.value)
+  // 루틴 시간도 속도 예산에(2026-11-21 루틴 리뉴얼 정할 것 5) — 고칠 때 이미 루틴이 있으면 센다(새 계획은 루틴 단계가 뒤라 0)
+  const L = withRoutineLoad(draftPlan.projects, draftPlan.routines)
+  const weeks = scheduleEndWeek(L.projects, budgetHours(hours, L.freeMin), schedOpts.value)
   const exam = examPaceSummary(draftPlan.projects, hours)
   return { ...p, hours, endLabel: weeks ? monthLabelOfWeek(startKey.value, weeks, draftPlan.reviewDay) : '-', monthsLabel: monthsLabel(weeks), exam }
 }))
@@ -293,7 +296,8 @@ function apply() {
   // 큰 시험은 이 속도로 기간·요일·1회 시간을 다시 잡아 계획에 넣는다(타임라인 슬롯도 이 복사본을 든다)
   const paced = pacedProjects(draftPlan.projects, hours)
   draftPlan.projects.splice(0, draftPlan.projects.length, ...paced)
-  draftTimeline.value = buildTimeline(draftPlan.projects, hours, schedOpts.value)
+  const L = withRoutineLoad(draftPlan.projects, draftPlan.routines)
+  draftTimeline.value = stripLoad(buildTimeline(L.projects, budgetHours(hours, L.freeMin), schedOpts.value), draftPlan.projects)
   draftPlan.timelineManual = false
   router.push(nextPath('pace'))
 }
