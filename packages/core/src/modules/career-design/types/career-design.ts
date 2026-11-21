@@ -63,6 +63,7 @@ export interface Project {
   routine?: PrepRoutineSuggestion
   routineBackup?: { days: DayOfWeek[]; duration: number; curriculum: WeekCurriculum[] }   // 제안을 넣어 줄이기 전 값 — 루틴을 빼면 되돌린다
   routineMin?: number   // 붙은 루틴의 주당 분(속도 계산 때만 잠깐 붙인다 — lib/routine.ts withRoutineLoad)
+  examBackup?: { studyHours: number; curriculum: WeekCurriculum[] }   // '이미 공부해 둔 것'으로 앞 단계를 빼기 전 값(시험일 역산 2026-11-22, 설계 중에만)
 }
 
 /** 속도 고르기에 보여 줄 합격자 수치 한 벌(2026-11-17) — 라이브러리 passStats 에서 만든다(lib/examPace.ts examStatOf) */

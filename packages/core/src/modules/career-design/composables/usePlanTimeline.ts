@@ -273,7 +273,12 @@ export const isGatePeriod = (p: Pick<Project, 'period' | 'days' | 'duration'>) =
 export const LIGHT_PERIOD_COUNTS_HOURS = true
 /** 이 프로젝트의 주당 시간을 예산에 세는가 — 무거운 과정(문)은 세지 않는다 */
 export const countsInBudget = (p: Pick<Project, 'period' | 'days' | 'duration'>) => !p.period || (!isGatePeriod(p) && LIGHT_PERIOD_COUNTS_HOURS)
-export interface ScheduleOptions { minStart?: (p: Project) => number }
+// 2026-11-22(시험일 역산 — lib/examDate.ts)
+//   · opts.fixed — 그 자리에 고정할 걸음(id → 시작 주, 1부터). 시험일이 있는 걸음을 먼저 깔고 나머지를 그 둘레에 채운다.
+//     순서에서 고정 걸음을 만나면 그 시작을 바닥(floor)으로 삼는다 — 뒤 걸음이 앞 걸음보다 먼저 시작하지 않는 규칙 그대로
+//   · opts.after — 짝 뒤 걸음 id → 앞 걸음 id(필기 → 실기, 1차 → 2차). 뒤 걸음은 앞 걸음이 끝난 다음 주부터(예산이 넉넉해도 겹치지 않게)
+//   두 칸이 없으면 배치는 예전과 똑같다
+export interface ScheduleOptions { minStart?: (p: Project) => number; fixed?: Map<string, number>; after?: Map<string, string> }
 
 /** 나란히 짝(둘 다 계획에 있을 때만) — examPace.examMates 와 같은 규칙(순환 import 를 피하려고 여기 둔다) */
 function alongsideMates(projects: Project[]): Map<string, Project> {
@@ -302,7 +307,29 @@ export function autoSchedule(projects: Project[], budgetHours: number, opts: Sch
   let floor = 0
   let gate = 0       // 마지막 '과정'이 끝나는 자리(0부터, 미포함) — 뒤의 프로젝트는 여기부터
   let lastEnd = 0    // 지금까지 놓은 프로젝트(딸린 것 빼고) 가운데 가장 늦게 끝나는 자리 — 과정은 여기부터
+  const endAt = new Map<string, number>()       // 놓은 걸음 id → 끝 자리(0부터, 미포함) — 짝 뒤 걸음(after)이 쓴다
+  // 고정 걸음을 먼저 깐다(시험일 역산)
   for (const p of projects) {
+    const f = opts.fixed?.get(p.id)
+    if (f == null) continue
+    const s = Math.max(0, f - 1)
+    const w = projectWeeks(p)
+    const h = countsInBudget(p) ? projectHoursPerWeek(p) : 0
+    for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
+    out.push({ week: s + 1, project: p })
+    placedIds.add(p.id)
+    endAt.set(p.id, s + w)
+  }
+  for (const p of projects) {
+    const fixedAt = opts.fixed?.get(p.id)
+    if (fixedAt != null) {                       // 고정 걸음 — 순서의 바닥만 맞춘다
+      const s = Math.max(0, fixedAt - 1)
+      floor = Math.max(floor, s)
+      lastEnd = Math.max(lastEnd, s + projectWeeks(p))
+      if (isGatePeriod(p)) gate = Math.max(gate, s + projectWeeks(p))
+      if (p.course) cursor.set(p.id, Math.max(s, s + projectWeeks(p) - (tail.get(p.id) ?? 0)))
+      continue
+    }
     if (placedIds.has(p.id)) continue            // 짝과 함께 이미 놓았다
     const w = projectWeeks(p)
     const isGate = isGatePeriod(p)
@@ -314,6 +341,7 @@ export function autoSchedule(projects: Project[], budgetHours: number, opts: Sch
       for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
       out.push({ week: s + 1, project: p })
       placedIds.add(p.id)
+      endAt.set(p.id, s + w)
       cursor.set(owner.id, s + w)
       continue
     }
@@ -323,7 +351,8 @@ export function autoSchedule(projects: Project[], budgetHours: number, opts: Sch
     const mw = pair ? projectWeeks(pair) : 0
     const mh = pair ? projectHoursPerWeek(pair) : 0
     const span = Math.max(w, mw)
-    const minS = Math.max(opts.minStart?.(p) ?? 0, pair ? (opts.minStart?.(pair) ?? 0) : 0)
+    const pred = opts.after?.get(p.id)
+    const minS = Math.max(opts.minStart?.(p) ?? 0, pair ? (opts.minStart?.(pair) ?? 0) : 0, pred ? (endAt.get(pred) ?? 0) : 0)
     let s = Math.max(floor, gate, isGate ? lastEnd : 0, minS)
     for (;; s++) {
       let ok = true
@@ -337,10 +366,12 @@ export function autoSchedule(projects: Project[], budgetHours: number, opts: Sch
     for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
     out.push({ week: s + 1, project: p })
     placedIds.add(p.id)
+    endAt.set(p.id, s + w)
     if (pair) {
       for (let k = 0; k < mw; k++) load[s + k] = (load[s + k] ?? 0) + mh
       out.push({ week: s + 1, project: pair })
       placedIds.add(pair.id)
+      endAt.set(pair.id, s + mw)
     }
     floor = s
     lastEnd = Math.max(lastEnd, s + span)          // 가벼운 과정도 — 뒤의 무거운 과정이 그 끝을 기다린다

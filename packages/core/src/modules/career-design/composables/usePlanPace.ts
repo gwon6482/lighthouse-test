@@ -6,6 +6,7 @@
 import type { CareerSchool, Project, TimelineSlot } from '../types/career-design'
 import { formatWeeks } from '@/modules/encyclopedia/lib/preparation'
 import { autoSchedule, countsInBudget, duringOwners, isGatePeriod, parseDateKey, projectEndWeek, projectWeeks, projectHoursPerWeek, weekDateRange, weekOfDate, type ScheduleOptions, type WeekStart } from './usePlanTimeline'
+import { examPairs, examReport, hasExamDates, resolveExamAnchors, scheduleWithExams, startsOf, type ExamCtx, type ExamSlot } from '../lib/examDate'
 import { EXAM_DAYS, applyExamPace, ceilWeeks, curriculumPhases, examDurationAt, examMates, examMinAge, expandPhases, isExam, resizeExam, scalePhases } from '../lib/examPace'
 
 export interface Pace {
@@ -49,10 +50,13 @@ export const paceOfHours = (h?: number) => (h == null ? undefined : PACES.find((
  */
 export const pacedProjects = (projects: Project[], hours: number): Project[] => applyExamPace(projects, hours)
 
-/** 자동 배치 결과를 타임라인 슬롯으로 — projects 는 pacedProjects 를 거친 것이어야 한다(슬롯이 그 복사본을 든다) */
-export function buildTimeline(projects: Project[], hours: number, opts?: ScheduleOptions): TimelineSlot[] {
+/**
+ * 자동 배치 결과를 타임라인 슬롯으로 — projects 는 pacedProjects 를 거친 것이어야 한다(슬롯이 그 복사본을 든다).
+ * exam(계획 시작일·시작 요일)을 넘기면 시험일이 있는 걸음을 그날에 맞춘다(lib/examDate.ts — 2026-11-22)
+ */
+export function buildTimeline(projects: Project[], hours: number, opts?: ScheduleOptions, exam?: Omit<ExamCtx, 'minStart'>): TimelineSlot[] {
   const slots: TimelineSlot[] = []
-  for (const { week, project } of autoSchedule(projects, hours, opts)) {
+  for (const { week, project } of scheduleWithExams(projects, hours, { ...exam, minStart: opts?.minStart })) {
     let slot = slots.find((s) => s.week === week)
     if (!slot) { slot = { week, projects: [] }; slots.push(slot) }
     slot.projects.push(project)
@@ -61,9 +65,24 @@ export function buildTimeline(projects: Project[], hours: number, opts?: Schedul
 }
 
 /** 그 속도로 배치하면 몇 주차에 끝나는가(시험은 그 속도로 다시 잡은 기간) */
-export function scheduleEndWeek(projects: Project[], hours: number, opts?: ScheduleOptions): number {
+export function scheduleEndWeek(projects: Project[], hours: number, opts?: ScheduleOptions, exam?: Omit<ExamCtx, 'minStart'>): number {
+  return schedulePreview(projects, hours, opts, exam).endWeek
+}
+
+/**
+ * 그 속도로 놓았을 때 — 끝나는 주와 시험일 있는 걸음의 판정(속도 고르기 카드). budget 은 루틴 시간을 뺀 예산(없으면 hours).
+ * 큰 시험 기간은 hours(고른 속도의 주당 시간)로 다시 잡는다
+ */
+export function schedulePreview(projects: Project[], hours: number, opts?: ScheduleOptions, exam?: Omit<ExamCtx, 'minStart'>, budget = hours): { endWeek: number; exams: ExamSlot[]; projects: Project[]; starts: Map<string, number> } {
   const paced = pacedProjects(projects, hours)
-  return autoSchedule(paced, hours, opts).reduce((m, { week, project }) => Math.max(m, projectEndWeek(week, project)), 0)
+  const placed = scheduleWithExams(paced, budget, { ...exam, minStart: opts?.minStart })
+  const starts = startsOf(placed)
+  return {
+    endWeek: placed.reduce((m, { week, project }) => Math.max(m, projectEndWeek(week, project)), 0),
+    exams: exam?.startDate ? examReport(paced, starts, exam) : [],
+    projects: paced,
+    starts,
+  }
 }
 
 /**
@@ -118,9 +137,29 @@ export const monthsLabel = (weeks: number) => (weeks > 12 ? formatWeeks(weeks) :
 //   · 이미 시작한 시험 — 남은 분량 = 남은 주 × 지금 주당 시간. 그것을 새 속도로 편다. 지난 주의 커리큘럼은 그대로 두고 뒤만 다시 편다
 //   · 가벼운 과정(주 15시간 미만)은 문이 아니다(시간은 예산에 센다 — LIGHT_PERIOD_COUNTS_HOURS) · 나란히 짝은 같은 주에 함께 놓는다(autoSchedule 과 같은 규칙)
 //   projects 로 바뀐 계획을 돌려준다(시험의 기간·요일·1회 시간·커리큘럼이 바뀐 것은 저장해야 한다 — changed)
+// 2026-11-22 시험일 역산: exam(계획 시작일·시작 요일)을 넘기면 시험일이 있는 걸음을 닻으로 고정한다(lib/examDate.ts — autoSchedule 과 같은 함수).
+//   아직 시작 안 한 시험 걸음은 지금 자리가 시험 주 안이면 그대로(keep), 아니면 시험 주에 끝나게 앞당긴다(다음 주보다 앞으로는 못 간다).
+//   짝 뒤 걸음(필기 → 실기)은 앞 걸음이 끝난 다음 주부터 — exam 이 없어도 늘 지킨다
+export interface RescheduleResult { timeline: TimelineSlot[]; endWeek: number; moved: number; projects: Project[]; changed: Project[]; exams: ExamSlot[] }
 export function rescheduleFrom(
-  projects: Project[], timeline: TimelineSlot[], fromWeek: number, hours: number, fallbackMin = 60,
-): { timeline: TimelineSlot[]; endWeek: number; moved: number; projects: Project[]; changed: Project[] } {
+  projects: Project[], timeline: TimelineSlot[], fromWeek: number, hours: number, fallbackMin = 60, exam?: ExamCtx,
+): RescheduleResult {
+  const after = examPairs(projects)
+  const opts: PlaceOptions = after.size ? { after } : {}
+  const first = rescheduleCore(projects, timeline, fromWeek, hours, fallbackMin, opts)
+  if (!exam || !hasExamDates(projects, exam)) return { ...first, exams: [] }
+  const startsOf = (t: TimelineSlot[]) => { const m = new Map<string, number>(); for (const sl of t) for (const p of sl.projects) if (!m.has(p.id) || sl.week < m.get(p.id)!) m.set(p.id, sl.week); return m }
+  const keep = startsOf(timeline)
+  const notStarted = new Set(first.projects.filter((p) => (keep.get(p.id) ?? Infinity) >= fromWeek).map((p) => p.id))
+  const fixed = resolveExamAnchors(first.projects, startsOf(first.timeline), exam, { minWeek: fromWeek, keep, movable: notStarted })
+  const res = fixed.size ? rescheduleCore(projects, timeline, fromWeek, hours, fallbackMin, { ...opts, fixed }) : first
+  return { ...res, exams: examReport(res.projects, startsOf(res.timeline), exam) }
+}
+
+interface PlaceOptions { fixed?: Map<string, number>; after?: Map<string, string> }
+function rescheduleCore(
+  projects: Project[], timeline: TimelineSlot[], fromWeek: number, hours: number, fallbackMin: number, opts: PlaceOptions,
+): Omit<RescheduleResult, 'exams'> {
   const timed = (p: Project) => (p.duration ? p : { ...p, duration: fallbackMin })
   const startOf = new Map<string, number>()
   for (const s of timeline) for (const p of s.projects) if (!startOf.has(p.id) || s.week < startOf.get(p.id)!) startOf.set(p.id, s.week)
@@ -140,6 +179,7 @@ export function rescheduleFrom(
     .sort((a, b) => (startOf.get(a.id) ?? Infinity) - (startOf.get(b.id) ?? Infinity))
   // 진행 중인 프로젝트가 fromWeek 이후에 쓰는 시간 = 미리 깔린 부하(0 = fromWeek). '과정'(period)은 시간을 세지 않고, 무거운 과정만 문이 된다
   const preload: number[] = []
+  const endAt = new Map<string, number>()   // 걸음 id → 끝 자리(fromWeek 기준 0부터, 미포함) — 짝 뒤 걸음(after)이 쓴다
   let gate = 0       // 진행 중인 (무거운) 과정이 끝나는 자리(fromWeek 기준 0부터, 미포함) — 아직 시작 안 한 프로젝트는 그 뒤에
   let lastEnd = 0    // 진행 중인 것(딸린 것 빼고, 가벼운 과정 포함) 가운데 가장 늦게 끝나는 자리 — 아직 시작 안 한 (무거운) 과정은 그 뒤에
   for (const p of kept) {
@@ -147,6 +187,7 @@ export function rescheduleFrom(
     const end = projectEndWeek(s, p)
     const h = countsInBudget(p) ? projectHoursPerWeek(timed(p)) : 0
     for (let w = Math.max(s, fromWeek); w <= end; w++) preload[w - fromWeek] = (preload[w - fromWeek] ?? 0) + h
+    endAt.set(p.id, end - fromWeek + 1)
     if (owners.has(p.id)) continue
     lastEnd = Math.max(lastEnd, end - fromWeek + 1)   // 가벼운 과정도(autoSchedule 과 같은 규칙)
     if (isGatePeriod(p)) gate = Math.max(gate, end - fromWeek + 1)
@@ -156,7 +197,25 @@ export function rescheduleFrom(
   let floor = 0
   const placed: { week: number; project: Project }[] = []
   const placedIds = new Set<string>()
+  // 고정 걸음(시험일 역산)을 먼저 깐다 — autoSchedule 과 같은 규칙
   for (const p of toPlace) {
+    const f = opts.fixed?.get(p.id)
+    if (f == null) continue
+    const s = Math.max(0, f - fromWeek)
+    const w = projectWeeks(p); const h = countsInBudget(p) ? projectHoursPerWeek(timed(p)) : 0
+    for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
+    placed.push({ week: fromWeek + s, project: p }); placedIds.add(p.id)
+    endAt.set(p.id, s + w)
+  }
+  for (const p of toPlace) {
+    const fixedAt = opts.fixed?.get(p.id)
+    if (fixedAt != null) {
+      const s = Math.max(0, fixedAt - fromWeek)
+      floor = Math.max(floor, s)
+      lastEnd = Math.max(lastEnd, s + projectWeeks(p))
+      if (isGatePeriod(p)) gate = Math.max(gate, s + projectWeeks(p))
+      continue
+    }
     if (placedIds.has(p.id)) continue
     const isGate = isGatePeriod(p)
     const counts = countsInBudget(p)
@@ -166,7 +225,8 @@ export function rescheduleFrom(
     const mw = pair ? projectWeeks(pair) : 0
     const mh = pair ? projectHoursPerWeek(timed(pair)) : 0
     const span = Math.max(w, mw)
-    let s = Math.max(floor, gate, isGate ? lastEnd : 0)
+    const pred = opts.after?.get(p.id)
+    let s = Math.max(floor, gate, isGate ? lastEnd : 0, pred ? (endAt.get(pred) ?? 0) : 0)
     for (;; s++) {
       let ok = true
       for (let k = 0; k < span && counts; k++) {
@@ -178,9 +238,11 @@ export function rescheduleFrom(
     }
     for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
     placed.push({ week: fromWeek + s, project: p }); placedIds.add(p.id)
+    endAt.set(p.id, s + w)
     if (pair) {
       for (let k = 0; k < mw; k++) load[s + k] = (load[s + k] ?? 0) + mh
       placed.push({ week: fromWeek + s, project: pair }); placedIds.add(pair.id)
+      endAt.set(pair.id, s + mw)
     }
     floor = s
     lastEnd = Math.max(lastEnd, s + span)          // 가벼운 과정도 — 뒤의 무거운 과정이 그 끝을 기다린다
