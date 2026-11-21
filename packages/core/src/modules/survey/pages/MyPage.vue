@@ -59,7 +59,7 @@
           <div class="ci-test__who">
             <strong>자기이해 검사</strong>
             <span v-if="latestSurvey?.T1_result?.full_name">최근 결과 · {{ latestSurvey.T1_result.full_name }} · {{ formatDate(latestSurvey.submitted_at) }}</span>
-            <span v-else>약 10분 · 무료</span>
+            <span v-else>약 20분 · 무료</span>
           </div>
         </div>
         <ul class="ci-test__areas">
