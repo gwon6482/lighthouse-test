@@ -524,7 +524,7 @@ function apply() {
   &__dates-title { margin: 0; font-size: 14px; font-weight: 700; color: #222; }
   &__date-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid #f2f2f2; }
   &__dates-title + &__date-row { border-top: 0; padding-top: 0; }
-  &__date-name { flex: 1 1 150px; min-width: 0; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #333; word-break: keep-all; }
+  &__date-name { flex: 1 1 150px; min-width: 0; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #333; word-break: keep-all; overflow-wrap: anywhere; }
   &__date-sw { width: 5px; height: 18px; border-radius: 3px; background: #1DB95A; flex-shrink: 0; }
   &__date-val { position: relative; flex-shrink: 0; padding: 7px 10px; border: 1.5px solid #eee; border-radius: 10px; font-size: 13px; font-weight: 700; color: #222; white-space: nowrap; cursor: pointer;
     &--empty { color: #999; font-weight: 600; } }
