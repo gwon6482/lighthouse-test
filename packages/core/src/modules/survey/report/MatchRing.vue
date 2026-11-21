@@ -51,7 +51,9 @@ const dash = computed(() => (Math.max(0, Math.min(100, pctValue.value)) / 100) *
     line-height: 1;
 
     strong { font-weight: 800; letter-spacing: -0.02em; }
-    small { margin-left: 1px; font-weight: 700; }
+    // 단위 앞 간격(2026-11-21 오너 '숫자와 단위가 너무 붙어 보여') — 숫자 크기의 약 0.1em(작은 글자 기준 0.2em). 숫자 쪽 음수 자간은 따라붙지 않게
+    // 정본: 랜딩 components/survey/MatchRing.vue(24f05f1)
+    small { margin-left: 0.2em; font-weight: 700; letter-spacing: 0; }
     span { margin-top: 3px; font-weight: 600; color: #767676; }  // 결과지 메타 회색
   }
 }
