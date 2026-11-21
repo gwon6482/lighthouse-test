@@ -76,10 +76,12 @@ export interface ExamStat {
 
 /** 루틴 종류(2026-11-21 루틴 리뉴얼) — 기준 넘기 · 실력 올리기 · 감 유지. 없으면 옛 루틴(감 유지처럼 계획 끝까지) */
 export type RoutineKind = 'target' | 'level' | 'keep'
-export type MeasureUnit = 'time' | 'count' | 'number' | 'media'
-/** 주 1회 기록 재기 — time 은 초로 저장하고 분:초로 보인다. media(녹음·영상)는 했는지만 */
+export type MeasureUnit = 'time' | 'count' | 'number' | 'ratio' | 'media'
+/** 주 1회 기록 재기 — time 은 초로 저장하고 분:초로 보인다. ratio 는 '푼 문제 수 / 전체'(기록에 total). media(녹음·영상)는 했는지만.
+ *  방향(better)은 단위로 정한다 — 시간은 낮을수록, 나머지는 높을수록(서버가 정해 준다) */
 export interface RoutineMeasure { label: string; unit: MeasureUnit; better?: 'low' | 'high' | null; suffix?: string }
-export interface RoutineRecord { week: number; date: string; value: number | null; note?: string }
+export interface RoutineRecord { week: number; date: string; value: number | null; total?: number; note?: string }
+export type SafetyKey = 'body' | 'voice' | 'start'
 
 export interface Routine {
   id: string
@@ -95,7 +97,8 @@ export interface Routine {
   projectId?: string           // 함께 할 프로젝트 — 그 프로젝트가 놓인 주에만 나온다
   measure?: RoutineMeasure | null
   minMinutes?: number          // 바쁜 날 최소
-  safety?: 'body' | 'voice'    // 고정 안전 문구(라이브러리 제안에서)
+  minNote?: string             // 바쁜 날 최소의 내용('물 밖 맨몸 운동')
+  safety?: SafetyKey[] | SafetyKey   // 고정 안전 문구 열쇠(라이브러리 제안에서). 처음엔 문자열 하나였다 — safetyKeys() 로 읽는다
   onCourseDays?: boolean       // 과정(학교·학원) 다니는 날에도 하나. false 면 그날은 빠진다(새 루틴 기본). 없음 = 옛 루틴 그대로
   pauseWeeks?: number[]        // 쉬는 계획 주차(주간결산 '한 주 쉬기')
   endedAt?: string             // 끝낸 날 — 그날부터 안 나온다

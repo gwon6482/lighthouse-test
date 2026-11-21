@@ -91,6 +91,7 @@
             <option :value="0">정하지 않음</option>
             <option v-for="m in MIN_OPTIONS" :key="m" :value="m" :disabled="m >= (draftRoutine.duration ?? 30)">{{ m }}분만</option>
           </select>
+          <span v-if="draftRoutine.minNote && minMinutes" class="cd-rt-write__min-label">{{ draftRoutine.minNote }}</span>
         </div>
       </div>
 
@@ -100,20 +101,24 @@
         <input
           v-model="measureLabel"
           class="cd-rt-write__input"
-          :placeholder="kind === 'target' ? '예: 순환식 코스 시간' : '예: 낭독 녹음'"
+          placeholder="예: 순환식 코스 시간 · 수영 거리 · 푼 문제 수"
           aria-label="재는 기록"
         />
+        <!-- 연습 성과만 적게(법률·개인정보 검토 11-21) — 입력은 막지 않는다 -->
+        <p class="cd-rt-write__hint">몸무게·혈압 같은 건강 수치 말고 연습 기록을 적어요</p>
         <div v-if="measureLabel.trim()" class="cd-rt-write__units" role="radiogroup" aria-label="기록 단위">
           <button
-            v-for="u in UNITS" :key="u" type="button" role="radio"
-            class="cd-rt-write__kind cd-rt-write__kind--small" :class="{ 'cd-rt-write__kind--on': measureUnit === u }" :aria-checked="measureUnit === u"
-            @click="measureUnit = u"
-          >{{ UNIT_LABEL[u] }}</button>
+            v-for="(o, oi) in MEASURE_OPTIONS" :key="oi" type="button" role="radio"
+            class="cd-rt-write__kind cd-rt-write__kind--small" :class="{ 'cd-rt-write__kind--on': measureOpt === oi }" :aria-checked="measureOpt === oi"
+            @click="measureOpt = oi"
+          >{{ o.label }}</button>
         </div>
       </div>
 
       <!-- 안전 문구(체력·발성 — 라이브러리 제안에서 온 루틴에 고정) -->
-      <p v-if="draftRoutine.safety" class="cd-rt-write__safety"><AppIcon name="tip-warning" /> {{ SAFETY_TEXT[draftRoutine.safety] }}</p>
+      <div v-if="safety.length" class="cd-rt-write__safety">
+        <p v-for="k in safety" :key="k"><AppIcon name="tip-warning" /> {{ SAFETY_TEXT[k] }}</p>
+      </div>
 
       <!-- 메모 -->
       <div class="cd-rt-write__section">
@@ -141,14 +146,13 @@ import { safeBack } from '@/shared/utils/navigation'
 import { useUnsavedGuard } from '@/shared/composables/useUnsavedGuard'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
-import { KINDS, KIND_DESC, KIND_LABEL, SAFETY_TEXT, UNIT_LABEL, attachedWeeks } from '../lib/routine'
-import type { DayOfWeek, MeasureUnit, Routine, RoutineKind } from '../types/career-design'
+import { KINDS, KIND_DESC, KIND_LABEL, MEASURE_OPTIONS, SAFETY_TEXT, attachedWeeks, betterOf, safetyKeys } from '../lib/routine'
+import type { DayOfWeek, Routine, RoutineKind } from '../types/career-design'
 
 const router = useRouter()
 const { draftPlan, draftTimeline, draftRoutine, editingRoutineId, syncAddRoutine, syncUpdateRoutine } = useCareerDesign()
 
 const allDays: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
-const UNITS: MeasureUnit[] = ['time', 'count', 'number', 'media']
 const MIN_OPTIONS = [5, 10, 15, 20, 30]
 
 onMounted(() => window.scrollTo(0, 0))
@@ -181,7 +185,9 @@ const minMinutes = computed({
   set: (v: number) => { if (v) draftRoutine.minMinutes = v; else delete draftRoutine.minMinutes },
 })
 const measureLabel = ref(draftRoutine.measure?.label ?? '')
-const measureUnit = ref<MeasureUnit>(draftRoutine.measure?.unit ?? 'time')
+// 고른 단위 — 거리·무게는 숫자 + 단위(m·cm·kg). 없으면 시간
+const measureOpt = ref(Math.max(0, MEASURE_OPTIONS.findIndex((o) => o.unit === draftRoutine.measure?.unit && (o.suffix ?? '') === (draftRoutine.measure?.suffix ?? ''))))
+const safety = computed(() => safetyKeys(draftRoutine))
 
 function toggleDay(day: DayOfWeek) {
   if (!draftRoutine.days) draftRoutine.days = []
@@ -198,7 +204,7 @@ async function saveRoutine() {
   const name = draftRoutine.name?.trim()
   if (!name) return
   const label = measureLabel.value.trim()
-  const keepMeasure = draftRoutine.measure && draftRoutine.measure.label === label && draftRoutine.measure.unit === measureUnit.value
+  const opt = MEASURE_OPTIONS[measureOpt.value]!
   const routineData: Omit<Routine, 'id'> = {
     name,
     days: allDays.filter((d) => draftRoutine.days?.includes(d)),
@@ -206,9 +212,10 @@ async function saveRoutine() {
     memo: draftRoutine.memo ?? '',
     kind: kind.value,
     ...(draftRoutine.projectId ? { projectId: draftRoutine.projectId } : { projectId: '' }),
-    measure: kind.value !== 'keep' && label ? (keepMeasure ? { ...draftRoutine.measure! } : { label, unit: measureUnit.value }) : null,
+    measure: kind.value !== 'keep' && label ? { label, unit: opt.unit, better: betterOf(opt), ...(opt.suffix ? { suffix: opt.suffix } : {}) } : null,
     ...(draftRoutine.minMinutes && draftRoutine.minMinutes < (draftRoutine.duration ?? 30) ? { minMinutes: draftRoutine.minMinutes } : {}),
-    ...(draftRoutine.safety ? { safety: draftRoutine.safety } : {}),
+    ...(draftRoutine.minNote ? { minNote: draftRoutine.minNote } : {}),
+    ...(safety.value.length ? { safety: [...safety.value] } : {}),
     onCourseDays: draftRoutine.onCourseDays === true,
   }
 
@@ -432,7 +439,7 @@ async function saveRoutine() {
     &--small { padding: 7px 12px; font-size: 12.5px; }
     &:focus-visible { outline: 2px solid #FFC700; outline-offset: 2px; }
   }
-  &__hint { margin: 10px 2px 0; font-size: 12.5px; color: #777; }
+  &__hint { margin: 10px 2px 0; font-size: 12.5px; color: #777; word-break: keep-all; }
   &__select {
     width: 100%; padding: 12px 14px; border: 1.5px solid #eee; border-radius: 10px; background: #fff;
     font-family: inherit; font-size: 14px; color: #222;
@@ -441,7 +448,7 @@ async function saveRoutine() {
   &__check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: #555; input { width: 18px; height: 18px; accent-color: #222; } }
   &__min { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
   &__min-label { font-size: 13px; color: #555; }
-  &__safety { display: flex; gap: 6px; padding: 12px 14px; border-radius: 12px; background: #FFF4E5; font-size: 12.5px; line-height: 1.5; color: #5B3A12; word-break: keep-all; }
+  &__safety { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; background: #FFF4E5; font-size: 12.5px; line-height: 1.5; color: #5B3A12; word-break: keep-all; p { display: flex; gap: 6px; margin: 0; } }
 
   &__textarea {
     width: 100%;

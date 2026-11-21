@@ -315,12 +315,21 @@ export interface PrepRoutineSuggestion {
   days: string[]
   minutes: number
   minMinutes: number | null
-  measure: { label: string; unit: 'time' | 'count' | 'number' | 'media'; better?: 'low' | 'high' | null; suffix?: string } | null
-  safety: 'body' | 'voice' | null
-  safetyText: string | null
+  minNote?: string | null                 // 바쁜 날 최소의 내용('물 밖 맨몸 운동')
+  measure: PrepRoutineMeasure | null
+  safety: ('body' | 'voice' | 'start')[]  // 고정 안전 문구 열쇠(11-21 진로상담 검토로 목록)
+  safetyTexts: string[]
   caution: string | null
   example: string
+  // 갈래마다 다르게 — null 이면 그 갈래엔 제안 안 함(연주가의 지휘)
+  tracks?: Record<string, { name?: string; measure?: PrepRoutineMeasure; safety?: ('body' | 'voice' | 'start')[]; safetyTexts?: string[] } | null> | null
   project: { daysPerWeek: number; minutesPerSession: number; phases: PrepPhase[] }
+}
+export interface PrepRoutineMeasure {
+  label: string
+  unit: 'time' | 'count' | 'number' | 'ratio' | 'media'
+  suffix?: string
+  choices?: { unit: 'time' | 'count' | 'number'; suffix?: string }[]   // 넣을 때 고르는 단위(체력 — 소방은 kg·회·cm, 경찰 순환식은 시간)
 }
 
 /** 길 위의 한 걸음 — ref 로 projects 에서 프로젝트를 찾는다 */

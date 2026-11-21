@@ -13,6 +13,7 @@ import { pathOf, sumParts, sumWeeks } from '@/modules/encyclopedia/lib/preparati
 import type { JobPreparation, PrepItem, PrepProject } from '@/modules/encyclopedia/types/encyclopedia'
 import { helperExampleToProject, projectToExample } from './useHelperExamples'
 import type { CareerProfile, DayOfWeek, Project, ProjectCategory } from '../types/career-design'
+import { suggestionForTrack } from '../lib/routine'
 import { applySituation, canHave, haveTargetOf, isOwned, situationSentence, type HaveTarget, type SituationChange } from '../lib/situation'
 
 // mine = 내 진로상황에 맞춘 플랜(2026-11-16). 내 진로상황이 있으면 이 카드 하나를 먼저 보여 주고, 나머지는 '처음부터 전부 보기'
@@ -55,12 +56,14 @@ export interface PlanTemplate {
 interface Row { item: PrepItem; project: PrepProject }
 
 /** 템플릿 프로젝트 하나 — 과정·과정 중 표시를 싣고, 요일은 앞 프로젝트와 겹치지 않게 */
-function toProject(prep: JobPreparation, item: PrepItem, project: PrepProject, during: boolean, recent: DayOfWeek[][]): Project {
+function toProject(prep: JobPreparation, item: PrepItem, project: PrepProject, during: boolean, recent: DayOfWeek[][], track: string | null = null): Project {
   const p = helperExampleToProject(projectToExample(prep, item, project), project.category, recent)
   if (project.course) p.course = true
   if (during) p.during = true
   // 루틴 제안(2026-11-21) — ④ 루틴 단계의 '넣기' 카드. 프로젝트 분량은 그대로 두고, 넣을 때만 줄인다
-  if (project.routine) p.routine = JSON.parse(JSON.stringify(project.routine))
+  // 갈래마다 다르면(연주가의 성악·지휘) 고른 갈래로 정한다 — 그 갈래에 제안이 없으면 붙이지 않는다
+  const sug = project.routine ? suggestionForTrack(project.routine, track) : null
+  if (sug) p.routine = sug
   recent.push(p.days)
   return p
 }
@@ -116,7 +119,7 @@ export function buildPlanTemplates(prep: JobPreparation, track: string | null | 
     const chosen = must.filter(include)
     const projects = linkAlongside(chosen, chosen.map((r) => {
       // 자동 배치가 쓰는 표시 — 과정 중에 하는 프로젝트는 과정 끝에 맞춰 겹쳐 놓는다
-      const p = toProject(prep, r.item, r.project, !!r.item.during, recent)
+      const p = toProject(prep, r.item, r.project, !!r.item.during, recent, path.track)
       if (canHave(r.project)) skipRefs[p.id] = target(r)
       return p
     }))
@@ -161,7 +164,7 @@ export function buildSituationTemplate(prep: JobPreparation, track: string | nul
   const skipRefs: Record<string, HaveTarget> = {}
   const recent: DayOfWeek[][] = []
   const projects = linkAlongside(res.rows, res.rows.map((r) => {
-    const p = toProject(prep, r.item, r.project, r.during, recent)
+    const p = toProject(prep, r.item, r.project, r.during, recent, path.track)
     if (canHave(r.project)) skipRefs[p.id] = haveTargetOf(prep, r.item, r.project)
     return p
   }))

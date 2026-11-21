@@ -5,7 +5,7 @@ import type {
 } from '@/modules/career-design/types/career-design'
 import { weekOfDate, weekDateRange, projectsActiveInWeek } from '@/modules/career-design/composables/usePlanTimeline'
 import { uid } from '@/shared/utils/uid'
-import { routineOnDay } from '@/modules/career-design/lib/routine'
+import { routineOnDay, voiceOverlap } from '@/modules/career-design/lib/routine'
 
 // 한 주의 확정된 일정 1건. BE WeeklySchedule.items 의 1요소.
 export interface WeeklyScheduleItem {
@@ -138,7 +138,10 @@ export function generateItemsForWeek(
 
     // 루틴(2026-11-21 루틴 리뉴얼) — 요일 + 붙은 프로젝트가 놓인 주에만 · 쉬는 주·끝낸 날 · 과정 다니는 날 빼기(lib/routine.ts)
     const projectIds = new Set(plan.projects.map((p) => p.id))
+    // 목을 쓰는 루틴은 한 번에 하나 — 겹치는 주에는 먼저 시작한 것만(진로상담 검토 11-21)
+    const voiceOff = voiceOverlap(plan.routines, startWeekOf, { date: dateKey, planWeek, activeProjectIds: activeIds })
     for (const r of plan.routines) {
+      if (voiceOff.has(r.id)) continue
       if (!routineOnDay(r, { date: dateKey, dow, planWeek, projectIds, activeProjectIds: activeIds, courseDay })) continue
       out.push({
         id: uid(),

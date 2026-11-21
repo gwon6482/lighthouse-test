@@ -123,7 +123,7 @@
           v-for="m in measureDue" :key="m.routine.id"
           :title="m.project?.name ?? m.routine.name" :measure="m.measure" :record="m.record" :prev="m.prev"
           :caution="m.routine.kind === 'target' ? '기준은 응시하는 해 공고에서 확인해요' : null"
-          :on-save="(v) => saveRecord(m.routine.id, v)"
+          :on-save="(v, t) => saveRecord(m.routine.id, v, t)"
         />
       </section>
 

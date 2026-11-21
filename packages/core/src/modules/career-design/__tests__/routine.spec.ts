@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   applySuggestion, attachedEnded, budgetHours, formatMeasure, keepVersion, measureTrend, restoreProject,
   routineFromSuggestion, routineOnDay, shortened, stripLoad, timeFromParts, twoWeeksLow, withRoutineLoad, josaWa,
+  safetyKeys, suggestionForTrack, voiceOverlap,
 } from '../lib/routine'
 import { generateItemsForWeek } from '@/modules/career-achievement/composables/useWeeklySchedule'
 import type { Project, Routine, TimelineSlot } from '../types/career-design'
@@ -16,7 +17,7 @@ const project = (id: string, weeks: number, extra: Partial<Project> = {}): Proje
 const routine = (extra: Partial<Routine> = {}): Routine => ({ id: 'r1', name: '체력 훈련', days: ['월', '수', '금'], duration: 60, memo: '', ...extra })
 const sug: PrepRoutineSuggestion = {
   name: '체력 훈련', kind: 'target', days: ['월', '수', '금'], minutes: 60, minMinutes: 10,
-  measure: { label: '대표 종목 기록', unit: 'time' }, safety: 'body', safetyText: '…', caution: null, example: '예시 · 현직자 검토 전',
+  measure: { label: '대표 종목 기록', unit: 'time', choices: [{ unit: 'time' }, { unit: 'number', suffix: 'kg' }] }, safety: ['body', 'start'], safetyTexts: ['…'], caution: null, example: '예시 · 현직자 검토 전',
   project: { daysPerWeek: 1, minutesPerSession: 30, phases: [
     { weeks: 1, title: '기준 확인', items: ['현재 기록 재기'] },
     { weeks: 10, title: '기록 재기와 점검', items: ['주 1회 기록 측정'] },
@@ -78,7 +79,10 @@ describe('라이브러리 제안 넣기·빼기', () => {
   })
   it('제안에서 새 루틴 — 과정 날 빼기 기본', () => {
     const r = routineFromSuggestion(sug, 'p1', 'x')
-    expect(r).toMatchObject({ kind: 'target', projectId: 'p1', days: ['월', '수', '금'], duration: 60, minMinutes: 10, safety: 'body', onCourseDays: false })
+    expect(r).toMatchObject({ kind: 'target', projectId: 'p1', days: ['월', '수', '금'], duration: 60, minMinutes: 10, safety: ['body', 'start'], onCourseDays: false })
+    expect(r.measure).toEqual({ label: '대표 종목 기록', unit: 'time', better: 'low' })
+    // 넣을 때 고른 단위 — 무게(kg)는 높을수록 좋음
+    expect(routineFromSuggestion(sug, 'p1', 'x', { unit: 'number', suffix: 'kg' }).measure).toEqual({ label: '대표 종목 기록', unit: 'number', better: 'high', suffix: 'kg' })
   })
 })
 
@@ -135,5 +139,33 @@ describe('주 1회 기록', () => {
     expect(josaWa('체력시험 준비')).toBe('와')
     expect(josaWa('영어 말하기 성적(오픽·토익스피킹)')).toBe('과')
     expect(josaWa('보컬 트레이닝')).toBe('과')
+  })
+})
+
+describe('진로상담 검토 반영(11-21)', () => {
+  it('갈래마다 다른 제안 — 성악은 이름·목 문구, 지휘는 없음', () => {
+    const mu: PrepRoutineSuggestion = { ...sug, name: '악기 연습', safety: ['body'], tracks: { inst: {}, vocal: { name: '성악 연습', safety: ['voice'], safetyTexts: ['목'] }, conduct: null } }
+    expect(suggestionForTrack(mu, 'inst')!.name).toBe('악기 연습')
+    expect(suggestionForTrack(mu, 'vocal')).toMatchObject({ name: '성악 연습', safety: ['voice'] })
+    expect(suggestionForTrack(mu, 'conduct')).toBeNull()
+    expect(suggestionForTrack(mu, null)!.tracks).toBeUndefined()
+  })
+  it('안전 문구 — 옛 문자열도 목록으로', () => {
+    expect(safetyKeys({ safety: 'voice' })).toEqual(['voice'])
+    expect(safetyKeys({ safety: ['body', 'voice'] })).toEqual(['body', 'voice'])
+    expect(safetyKeys({})).toEqual([])
+  })
+  it('푼 수 / 전체 — 비율로 비교한다', () => {
+    const m = { label: '푼 문제 수', unit: 'ratio' as const }
+    expect(formatMeasure(3, m, 4)).toBe('3/4')
+    expect(measureTrend([{ week: 1, date: '', value: 2, total: 2 }, { week: 2, date: '', value: 3, total: 5 }], m).line).toBe('푼 문제 수가 줄고 있어요 · 높을수록 좋아요')
+  })
+  it('목 루틴은 한 번에 하나 — 먼저 시작한 프로젝트의 것만', () => {
+    const a = routine({ id: 'a', projectId: 'pa', safety: ['voice'] })
+    const b = routine({ id: 'b', projectId: 'pb', safety: ['voice'] })
+    const starts = new Map([['pa', 1], ['pb', 3]])
+    expect([...voiceOverlap([a, b], starts, { date: '2026-11-23', planWeek: 3, activeProjectIds: new Set(['pa', 'pb']) })]).toEqual(['b'])
+    expect([...voiceOverlap([a, b], starts, { date: '2026-11-23', planWeek: 5, activeProjectIds: new Set(['pb']) })]).toEqual([])
+    expect([...voiceOverlap([a, b], starts, { date: '2026-11-23', planWeek: 3, activeProjectIds: new Set(['pa', 'pb']) })].length).toBe(1)
   })
 })

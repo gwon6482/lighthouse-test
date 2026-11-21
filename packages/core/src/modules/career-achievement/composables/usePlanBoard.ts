@@ -258,14 +258,14 @@ export function usePlanBoard() {
     }))
   })
   /** 이번 주 기록 저장 — 계획 주차가 열쇠. 화면에는 바로 반영하고 서버에 보낸다 */
-  async function saveRecord(routineId: string, value: number | null): Promise<boolean> {
+  async function saveRecord(routineId: string, value: number | null, total?: number): Promise<boolean> {
     const pl = plan.value
     const wk = weekNumber.value
     const r = pl?.routines.find((x) => x.id === routineId)
     if (!pl || !wk || !r) return false
-    const rec: RoutineRecord = { week: wk, date: todayKey.value, value }
+    const rec: RoutineRecord = { week: wk, date: todayKey.value, value, ...(total ? { total } : {}) }
     try {
-      await req.put(`/api/career-plan/${pl.planId}/routines/${routineId}/records/${wk}`, { date: rec.date, value })
+      await req.put(`/api/career-plan/${pl.planId}/routines/${routineId}/records/${wk}`, { date: rec.date, value, ...(total ? { total } : {}) })
       r.records = [...(r.records ?? []).filter((x) => x.week !== wk), rec].sort((a, b) => a.week - b.week)
       return true
     } catch {

@@ -10,8 +10,8 @@
     <div v-if="card.trend && card.trend.points.length && measure" class="rrc__trend">
       <ol v-if="measure.unit !== 'media'" class="rrc__bars" :aria-label="`${measure.label} 추이`">
         <li v-for="pt in card.trend.points" :key="pt.week" class="rrc__bar">
-          <span class="rrc__val">{{ formatMeasure(pt.value, measure) }}</span>
-          <i :style="{ height: `${barHeight(pt.value)}%` }" />
+          <span class="rrc__val">{{ formatMeasure(pt.value, measure, pt.total) }}</span>
+          <i :style="{ height: `${barHeight(pt.value, pt.total)}%` }" />
           <span class="rrc__wk">{{ pt.week }}주</span>
         </li>
       </ol>
@@ -35,7 +35,7 @@
       </div>
       <p v-if="draft.kind" class="rrc__note">마지막 단계에서 [다음 주 시작하기]를 누르면 적용돼요</p>
     </template>
-    <p v-if="card.routine.minMinutes" class="rrc__min">바쁜 날엔 {{ card.routine.minMinutes }}분만 해도 이어져요</p>
+    <p v-if="card.routine.minMinutes" class="rrc__min">바쁜 날엔 {{ card.routine.minMinutes }}분<template v-if="card.routine.minNote">({{ card.routine.minNote }})</template>만 해도 이어져요</p>
   </section>
 </template>
 
@@ -63,10 +63,12 @@ function toggleDay(d: DayOfWeek) {
   else list.push(d)
 }
 // 막대 높이 — 값의 크기 그대로(낮을수록 좋은 기록도 값대로 그리고, 방향은 아래 한 줄이 말한다)
-function barHeight(v: number | null): number {
-  const vals = (props.card.trend?.points ?? []).map((p) => p.value ?? 0)
-  const max = Math.max(...vals, 1)
-  return Math.max(12, Math.round(((v ?? 0) / max) * 100))
+function barHeight(v: number | null, total?: number): number {
+  const ratio = measure.value?.unit === 'ratio'
+  const val = (x: number | null, t?: number) => (ratio && t ? (x ?? 0) / t : x ?? 0)
+  const vals = (props.card.trend?.points ?? []).map((p) => val(p.value, p.total))
+  const max = Math.max(...vals, ratio ? 0.01 : 1)
+  return Math.max(12, Math.round((val(v, total) / max) * 100))
 }
 </script>
 

@@ -10,7 +10,7 @@
     </div>
 
     <p v-if="record && !editing" class="rmc__saved">
-      <span>이번 주 <strong>{{ formatMeasure(record.value, measure) }}</strong></span>
+      <span>이번 주 <strong>{{ formatMeasure(record.value, measure, record.total) }}</strong></span>
       <button v-if="measure.unit !== 'media'" type="button" class="rmc__link" @click="startEdit">고치기</button>
     </p>
 
@@ -26,6 +26,13 @@
           <input v-model="sec" class="rmc__input" inputmode="numeric" placeholder="00" aria-label="초" maxlength="2" />
           <span class="rmc__sep">초</span>
         </template>
+        <!-- 푼 수 / 전체(코딩 — 테스트마다 문제 수가 달라요) -->
+        <template v-else-if="measure.unit === 'ratio'">
+          <input v-model="num" class="rmc__input" inputmode="numeric" placeholder="0" aria-label="푼 문제 수" maxlength="3" />
+          <span class="rmc__sep">/</span>
+          <input v-model="total" class="rmc__input" inputmode="numeric" placeholder="0" aria-label="전체 문제 수" maxlength="3" />
+          <span class="rmc__sep">문제</span>
+        </template>
         <template v-else>
           <input v-model="num" class="rmc__input rmc__input--wide" inputmode="decimal" :aria-label="measure.label" />
           <span v-if="unitWord" class="rmc__sep">{{ unitWord }}</span>
@@ -36,7 +43,7 @@
     </template>
 
     <p class="rmc__foot">
-      <template v-if="prev">지난주 {{ formatMeasure(prev.value, measure) }}</template>
+      <template v-if="prev">지난주 {{ formatMeasure(prev.value, measure, prev.total) }}</template>
       <template v-if="prev && caution"> · </template>
       <template v-if="caution">{{ caution }}</template>
     </p>
@@ -55,7 +62,7 @@ const props = defineProps<{
   record: RoutineRecord | null        // 이번 주 기록
   prev: RoutineRecord | null          // 지난 기록
   caution?: string | null             // 기준 넘기 — '기준은 응시하는 해 공고에서 확인해요'
-  onSave: (value: number | null) => Promise<boolean>
+  onSave: (value: number | null, total?: number) => Promise<boolean>
 }>()
 
 const editing = ref(false)
@@ -64,23 +71,28 @@ const failed = ref(false)
 const min = ref('')
 const sec = ref('')
 const num = ref('')
+const total = ref('')
 const unitWord = computed(() => props.measure.suffix ?? (props.measure.unit === 'count' ? '회' : ''))
 
 const value = computed<number | null>(() => {
   if (props.measure.unit === 'time') return timeFromParts(min.value, sec.value)
   const n = Number(num.value)
+  if (props.measure.unit === 'ratio') {
+    const t = Number(total.value)
+    return num.value.trim() !== '' && Number.isInteger(n) && Number.isInteger(t) && t > 0 && n >= 0 && n <= t ? n : null
+  }
   return num.value.trim() !== '' && Number.isFinite(n) && n >= 0 ? n : null
 })
 function startEdit() {
   const v = props.record?.value
   if (props.measure.unit === 'time' && typeof v === 'number') { min.value = String(Math.floor(v / 60)); sec.value = String(v % 60).padStart(2, '0') }
-  else if (typeof v === 'number') num.value = String(v)
+  else if (typeof v === 'number') { num.value = String(v); total.value = props.record?.total ? String(props.record.total) : '' }
   editing.value = true
 }
 async function save(v: number | null) {
   busy.value = true
   failed.value = false
-  const ok = await props.onSave(v)
+  const ok = await props.onSave(v, props.measure.unit === 'ratio' ? Number(total.value) : undefined)
   busy.value = false
   if (ok) editing.value = false
   else failed.value = true

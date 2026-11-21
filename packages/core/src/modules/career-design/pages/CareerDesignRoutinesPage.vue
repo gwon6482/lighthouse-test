@@ -19,9 +19,24 @@
               <span class="cd-routines__sug-name"><AppIcon name="ui-repeat" /> {{ s.sug.name }}</span>
               <span class="cd-routines__sug-line">‘{{ s.project.name }}’{{ josaWa(s.project.name) }} 함께<template v-if="s.weeks"> · {{ s.weeks.from }}~{{ s.weeks.to }}주차</template></span>
               <span class="cd-routines__sug-line">{{ daysSummary(s.sug.days) }} · {{ s.sug.minutes }}분<template v-if="s.sug.measure"> · 주 1회 기록 재기</template></span>
+              <!-- 기록 단위를 고르는 제안(체력 — 시험마다 종목 단위가 달라요. 진로상담 검토 11-21) -->
+              <div v-if="s.sug.measure?.choices?.length" class="cd-routines__sug-units" role="radiogroup" :aria-label="`${s.sug.measure.label} 단위`">
+                <span class="cd-routines__sug-line">기록 단위를 골라요</span>
+                <span class="cd-routines__sug-chips">
+                  <button
+                    v-for="(c, ci) in s.sug.measure.choices" :key="ci" type="button" role="radio"
+                    class="cd-routines__sug-chip" :class="{ 'is-on': chosen[s.project.id] === ci }" :aria-checked="chosen[s.project.id] === ci"
+                    @click="chosen[s.project.id] = ci"
+                  >{{ optionLabel(c) }}</button>
+                </span>
+              </div>
               <span class="cd-routines__sug-note">{{ s.sug.example }}</span>
             </div>
-            <button type="button" class="cd-routines__sug-add" @click="addSuggestion(s.project)">넣기</button>
+            <button
+              type="button" class="cd-routines__sug-add"
+              :disabled="!!s.sug.measure?.choices?.length && chosen[s.project.id] === undefined"
+              @click="addSuggestion(s.project)"
+            >넣기</button>
           </li>
         </ul>
 
@@ -58,14 +73,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, reactive } from 'vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { useRouter } from 'vue-router'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import CdStepIndicator from '../components/CdStepIndicator.vue'
 import { useDesignSteps } from '../composables/useDesignSteps'
-import { KIND_LABEL, applySuggestion, josaWa, attachedWeeks, daysSummary, restoreProject, routineFromSuggestion } from '../lib/routine'
+import { KIND_LABEL, applySuggestion, josaWa, optionLabel, attachedWeeks, daysSummary, restoreProject, routineFromSuggestion } from '../lib/routine'
 import type { Project, Routine } from '../types/career-design'
 
 const router = useRouter()
@@ -79,10 +94,15 @@ const suggestions = computed(() => draftPlan.projects
 
 const projectName = (r: Routine) => (r.projectId ? draftPlan.projects.find((p) => p.id === r.projectId)?.name ?? '' : '')
 
+// 고른 기록 단위(제안마다) — 고르기 전에는 '넣기'를 누를 수 없다
+const chosen = reactive<Record<string, number>>({})
+
 async function addSuggestion(p: Project) {
   const i = draftPlan.projects.findIndex((x) => x.id === p.id)
   if (i < 0 || !p.routine) return
-  const routine = routineFromSuggestion(p.routine, p.id, `draft-${Date.now()}`)
+  const choices = p.routine.measure?.choices
+  if (choices?.length && chosen[p.id] === undefined) return
+  const routine = routineFromSuggestion(p.routine, p.id, `draft-${Date.now()}`, choices?.length ? choices[chosen[p.id]!] : null)
   const next = applySuggestion(p, p.routine)
   draftPlan.projects.splice(i, 1, next)
   draftPlan.routines.push(routine)
@@ -158,11 +178,19 @@ function goNext() {
   &__sug-name { display: inline-flex; align-items: center; gap: 5px; font-size: 15px; font-weight: 700; color: #1E3A6E; }
   &__sug-line { font-size: 12.5px; color: #44608F; word-break: keep-all; }
   &__sug-note { margin-top: 2px; font-size: 11px; color: #7B8BA8; }
+  &__sug-units { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  &__sug-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  &__sug-chip {
+    padding: 6px 10px; border: 1.5px solid #C9D8F5; border-radius: 999px; background: #fff;
+    font-family: inherit; font-size: 12px; font-weight: 600; color: #44608F; cursor: pointer;
+    &.is-on { border-color: #3B6FD8; background: #3B6FD8; color: #fff; }
+  }
   &__sug-add {
     flex: none; padding: 9px 16px; border: 0; border-radius: 999px; background: #3B6FD8; color: #fff;
     font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
     &:active { opacity: 0.85; }
     &:focus-visible { outline: 2px solid #FFC700; outline-offset: 2px; }
+    &:disabled { background: #C9D6EE; cursor: default; }
   }
 
   &__tip {

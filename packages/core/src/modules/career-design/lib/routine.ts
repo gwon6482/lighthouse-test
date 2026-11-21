@@ -7,7 +7,7 @@
 //   · 루틴 시간은 속도 예산에 센다 — 붙은 루틴은 그 프로젝트의 시간으로, 붙지 않은 루틴은 예산에서 먼저 뺀다
 //   · '이번 주 N번 중 M번'. 2주 연속 절반 미만이면 주간결산에서 맞춰 보기를 묻는다(빨간 X·'실패' 같은 말은 쓰지 않는다)
 import type { PrepRoutineSuggestion } from '@/modules/encyclopedia/types/encyclopedia'
-import type { DayOfWeek, MeasureUnit, Project, Routine, RoutineKind, RoutineMeasure, RoutineRecord, TimelineSlot, WeekCurriculum } from '../types/career-design'
+import type { DayOfWeek, MeasureUnit, Project, Routine, RoutineKind, RoutineMeasure, RoutineRecord, SafetyKey, TimelineSlot, WeekCurriculum } from '../types/career-design'
 import { phasesToCurriculum } from '../composables/useHelperExamples'
 import { projectEndWeek, projectStartWeek } from '../composables/usePlanTimeline'
 
@@ -18,12 +18,32 @@ export const KIND_DESC: Record<RoutineKind, string> = {
   keep: '익힌 감을 잃지 않게 가볍게 이어 가요',
 }
 export const KINDS: RoutineKind[] = ['target', 'level', 'keep']
-export const UNIT_LABEL: Record<MeasureUnit, string> = { time: '시간(분:초)', count: '횟수', number: '숫자', media: '녹음·영상' }
-// 고정 안전 문구(시안 '내가 정한 것') — 서버 자료(routines.json safety)와 같은 글. 루틴에는 열쇠만 저장한다
-export const SAFETY_TEXT: Record<'body' | 'voice', string> = {
-  body: '아프거나 다친 곳이 있으면 쉬고, 계속되면 전문가와 상의하세요.',
-  voice: '목이 아프거나 쉬면 쉬고, 계속되면 전문가와 상의하세요.',
+export const UNIT_LABEL: Record<MeasureUnit, string> = { time: '시간(분:초)', count: '횟수', number: '숫자', ratio: '푼 수 / 전체', media: '녹음·영상' }
+/** 기록 단위 고르기 — 작성 화면과 체력 제안 넣기가 쓴다(거리·무게는 숫자 + 단위, 2026-11-21 진로상담 검토) */
+export interface MeasureOption { unit: Exclude<MeasureUnit, 'media' | 'ratio'> | 'media' | 'ratio'; suffix?: string; label: string }
+export const MEASURE_OPTIONS: MeasureOption[] = [
+  { unit: 'time', label: '시간(분:초)' },
+  { unit: 'count', suffix: '회', label: '횟수(회)' },
+  { unit: 'number', suffix: 'm', label: '거리(m)' },
+  { unit: 'number', suffix: 'cm', label: '거리(cm)' },
+  { unit: 'number', suffix: 'kg', label: '무게(kg)' },
+  { unit: 'ratio', label: '푼 수 / 전체' },
+  { unit: 'number', label: '숫자' },
+  { unit: 'media', label: '녹음·영상' },
+]
+export const optionLabel = (u: { unit: string; suffix?: string }) =>
+  MEASURE_OPTIONS.find((o) => o.unit === u.unit && (o.suffix ?? '') === (u.suffix ?? ''))?.label ?? (u.suffix ? `${UNIT_LABEL[u.unit as MeasureUnit]}(${u.suffix})` : UNIT_LABEL[u.unit as MeasureUnit])
+// 고정 안전 문구 — 서버 자료(routines.json safety)와 같은 글(2026-11-21 진로상담 검토로 바꿈). 루틴에는 열쇠만 저장한다
+export const SAFETY_TEXT: Record<SafetyKey, string> = {
+  body: '아프거나 다친 곳이 있으면 쉬어요. 통증이 계속되면 병원 진료를 받아 보세요.',
+  voice: '목이 아프거나 쉬면 쉬어요. 쉰 소리가 계속되면 이비인후과 진료를 받아 보세요.',
+  start: '운동이 처음이거나 지병이 있으면 시작 전에 상의해요.',
 }
+/** 안전 문구 열쇠 — 처음엔 문자열 하나였다(목록으로 읽는다) */
+export const safetyKeys = (r: Pick<Routine, 'safety'>): SafetyKey[] =>
+  (Array.isArray(r.safety) ? r.safety : r.safety ? [r.safety] : []).filter((k): k is SafetyKey => k in SAFETY_TEXT)
+/** 기록 방향 — 단위로 정한다(시간은 낮을수록, 나머지는 높을수록) */
+export const betterOf = (m: Pick<RoutineMeasure, 'unit'>): 'low' | 'high' | null => (m.unit === 'media' ? null : m.unit === 'time' ? 'low' : 'high')
 export const EXAMPLE_NOTE = '예시 · 현직자 검토 전'
 
 const ALL_DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
@@ -59,6 +79,20 @@ export function routineOnDay(r: Routine, c: RoutineDayContext): boolean {
   // 과정 다니는 날은 기본으로 뺀다(새 루틴은 onCourseDays: false 로 저장). 옛 루틴(칸 없음)은 지금처럼 나온다
   if (r.onCourseDays === false && c.courseDay) return false
   return true
+}
+
+/**
+ * 목을 쓰는 루틴은 한 번에 하나(2026-11-21 진로상담 검토 — 아나운서 발성·낭독 → 뉴스 낭독, 성우 발성·낭독 → 목소리 연기).
+ * 같은 날 둘 이상이 나올 때는 붙은 프로젝트가 먼저 시작한 것만 남긴다 — 앞 프로젝트가 끝나는 주부터 뒤 루틴이 이어받는다.
+ * 돌려주는 것 = 그날 빼야 하는 루틴 id
+ */
+export function voiceOverlap(routines: Routine[], startWeekOf: Map<string, number>, c: Pick<RoutineDayContext, 'date' | 'planWeek' | 'activeProjectIds'>): Set<string> {
+  const live = routines.filter((r) => safetyKeys(r).includes('voice') && r.projectId && c.activeProjectIds.has(r.projectId)
+    && !(r.endedAt && c.date >= r.endedAt) && !r.pauseWeeks?.includes(c.planWeek))
+  if (live.length < 2) return new Set()
+  const start = (r: Routine) => startWeekOf.get(r.projectId!) ?? Infinity
+  const keep = live.reduce((a, b) => (start(b) < start(a) ? b : a))
+  return new Set(live.filter((r) => r !== keep).map((r) => r.id))
 }
 
 /** 붙은 프로젝트가 끝났거나 그만뒀는가 — 끝날 때 '감 유지로 바꾸기 / 끝내기'를 한 번 묻는다 */
@@ -145,8 +179,26 @@ export function restoreProject(p: Project): Project {
 function cloneCurriculum(c?: WeekCurriculum[]): WeekCurriculum[] {
   return (c ?? []).map((w) => ({ ...w, items: [...(w.items ?? [])], ...(w.checks ? { checks: [...w.checks] } : {}) }))
 }
-/** 제안에서 새 루틴 */
-export function routineFromSuggestion(sug: PrepRoutineSuggestion, projectId: string, id: string): Routine {
+/** 갈래마다 다른 제안을 고른 갈래로 정한다 — 그 갈래가 null 이면 제안 없음(연주가의 지휘) */
+export function suggestionForTrack(sug: PrepRoutineSuggestion, track: string | null): PrepRoutineSuggestion | null {
+  const copy: PrepRoutineSuggestion = JSON.parse(JSON.stringify(sug))
+  const t = track && sug.tracks && track in sug.tracks ? sug.tracks[track] : undefined
+  delete copy.tracks
+  if (t === null) return null
+  if (!t) return copy
+  return {
+    ...copy,
+    ...(t.name ? { name: t.name } : {}),
+    ...(t.measure ? { measure: { ...t.measure } } : {}),
+    ...(t.safety ? { safety: [...t.safety], safetyTexts: [...(t.safetyTexts ?? [])] } : {}),
+  }
+}
+
+/** 제안에서 새 루틴 — choice = 넣을 때 고른 기록 단위(체력) */
+export function routineFromSuggestion(sug: PrepRoutineSuggestion, projectId: string, id: string, choice?: { unit: string; suffix?: string } | null): Routine {
+  const m = sug.measure
+  const unit = (choice?.unit ?? m?.unit) as MeasureUnit | undefined
+  const suffix = choice ? choice.suffix : m?.suffix
   return {
     id,
     name: sug.name,
@@ -155,8 +207,9 @@ export function routineFromSuggestion(sug: PrepRoutineSuggestion, projectId: str
     days: ALL_DAYS.filter((d) => sug.days.includes(d)),
     duration: sug.minutes,
     ...(sug.minMinutes ? { minMinutes: sug.minMinutes } : {}),
-    measure: sug.measure ? { ...sug.measure } : null,
-    ...(sug.safety ? { safety: sug.safety } : {}),
+    ...(sug.minNote ? { minNote: sug.minNote } : {}),
+    measure: m && unit ? { label: m.label, unit, better: betterOf({ unit }), ...(suffix ? { suffix } : {}) } : null,
+    ...(sug.safety?.length ? { safety: [...sug.safety] } : {}),
     onCourseDays: false,
     memo: '',
   }
@@ -181,10 +234,11 @@ export const twoWeeksLow = (cur: WeekCount, prev: WeekCount | null) =>
   !!prev && cur.planned > 0 && prev.planned > 0 && cur.done * 2 < cur.planned && prev.done * 2 < prev.planned
 
 // ── 주 1회 기록 ──
-/** 분:초 · 42개 · 250m · 했어요 */
-export function formatMeasure(value: number | null | undefined, m: RoutineMeasure): string {
+/** 분:초 · 42개 · 250m · 3/4 · 했어요 */
+export function formatMeasure(value: number | null | undefined, m: RoutineMeasure, total?: number): string {
   if (m.unit === 'media') return value === null || value === undefined ? '했어요' : String(value)
   if (value === null || value === undefined) return '-'
+  if (m.unit === 'ratio') return total ? `${value}/${total}` : String(value)
   if (m.unit === 'time') {
     const s = Math.round(value)
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
@@ -200,7 +254,7 @@ export function timeFromParts(min: string | number, sec: string | number): numbe
   const total = Math.round(m * 60 + s)
   return total > 0 ? total : null
 }
-const better = (m: RoutineMeasure) => m.better ?? (m.unit === 'time' ? 'low' : 'high')
+const better = (m: RoutineMeasure) => betterOf(m)
 /** 받침에 맞춘 '과/와' — '체력시험 준비’와 함께' */
 export function josaWa(w: string): string {
   const t = w.replace(/[^가-힣A-Za-z0-9]+$/, '')
@@ -223,8 +277,10 @@ export function measureTrend(records: RoutineRecord[] = [], m: RoutineMeasure, u
     .slice(-last)
   if (m.unit === 'media') return { points, line: points.length ? `${points.length}주 남겼어요` : '' }
   if (points.length < 2) return { points, line: points.length ? '다음 주 기록과 비교해 볼 수 있어요' : '' }
-  const a = points[points.length - 2]!.value!
-  const b = points[points.length - 1]!.value!
+  // 푼 수 / 전체는 비율로 비교한다(테스트마다 문제 수가 다르다)
+  const val = (p: RoutineRecord) => (m.unit === 'ratio' && p.total ? p.value! / p.total : p.value!)
+  const a = val(points[points.length - 2]!)
+  const b = val(points[points.length - 1]!)
   const dir = b < a ? '줄고 있어요' : b > a ? '늘고 있어요' : '그대로예요'
   const hint = better(m) === 'low' ? '낮을수록 좋아요' : '높을수록 좋아요'
   return { points, line: `${m.label}${josaIGa(m.label)} ${dir} · ${hint}` }
