@@ -264,14 +264,19 @@ const viaPrep = ref<JobPreparation | null>(null)
 const viaLoading = ref(false)
 const prep = computed(() => (viaCode.value ? viaPrep.value : basePrep.value))
 let baseTrack: string | null = null
+// push — 휴대폰 뒤로 가기를 누르면 목표 직업(via 없는 주소)으로 돌아온다(2026-11-21 오너). via 에서 다른 via 로 가는 길은 없다
 function goVia(code: string) {
   baseTrack = track.value
-  void router.replace({ query: { ...route.query, via: code } })
+  void router.push({ query: { ...route.query, via: code } })
 }
+// '○○ 계획으로 돌아가기' — 바로 앞 기록이 목표 직업 화면이면 그리로 한 칸 돌아간다(같은 화면이 기록에 두 번 쌓이지 않게).
+// 새로고침·바로 열기처럼 앞 기록이 없으면 via 만 지운다
 function leaveVia() {
   const rest = { ...route.query }
   delete rest.via
-  void router.replace({ query: rest })
+  const target = router.resolve({ query: rest }).fullPath
+  if ((window.history.state as { back?: string } | null)?.back === target) router.back()
+  else void router.replace({ query: rest })
 }
 watch(viaCode, async (code, prev) => {
   openId.value = null
