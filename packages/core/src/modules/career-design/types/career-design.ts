@@ -166,6 +166,7 @@ export interface DraftPlan {
   paceKey?: string          // 고른 속도 카드(light·steady·focus·full·allin, 로컬만)
   dailyHours?: number       // 올인일 때 하루 시간(주 시간 = 하루 × 6, 로컬만)
   timelineManual?: boolean  // 자동 배치 뒤 타임라인을 직접 옮겼는가(속도를 다시 고를 때 덮어쓰기 안내용, 로컬만)
+  examLate?: string[]       // '시험 직전으로 옮기기'를 고른 걸음 id(시험일 역산 2026-11-22, 로컬만 — 다시 배치할 때도 그 자리)
   editing?: boolean         // 이미 있는 계획을 고치는 중인가(계획 상세 '수정'으로 들어옴, 로컬만) — 단계 순서·완성 화면이 달라진다(useDesignSteps)
   editBase?: EditBase       // 수정을 시작할 때의 원본 — 마칠 때 바뀐 것만 서버에 반영하고(commitEdit), 취소하면 그냥 버린다
   targetJobCode?: string    // 목표 직업의 진로백과 코드(로컬만) — 예시 진로설계(템플릿·도우미 추천)를 이 코드로 찾는다. 직접 적은 목표면 비어 있다

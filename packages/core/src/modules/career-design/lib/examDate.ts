@@ -79,6 +79,7 @@ export interface AnchorOptions {
   minWeek?: number                 // 이보다 앞으로는 못 간다(주간결산: 다음 주)
   keep?: Map<string, number>       // 지금 자리(주간결산) — 시험 주 안이면 그대로 둔다
   movable?: Set<string>            // 옮겨도 되는 걸음(주간결산: 아직 시작 안 한 것). 없으면 전부
+  late?: Set<string>               // 사용자가 '시험 직전으로 옮기기'를 고른 걸음 — 여유가 있어도 시험 주에 끝나게(정할 것 5)
 }
 /**
  * 시험일이 있는 걸음(과 함께 움직일 걸음)의 고정 자리(id → 시작 주, 1부터).
@@ -103,7 +104,8 @@ export function resolveExamAnchors(projects: Project[], forward: Map<string, num
     const floor = Math.max(lo, (ctx.minStart?.(p) ?? 0) + 1)
     const k = o.keep?.get(e.id)
     let s: number
-    if (k != null && k >= floor && k + w - 1 <= e.week) s = k          // 지금 자리가 시험 주 안 — 그대로
+    if (o.late?.has(e.id) && e.week - w + 1 >= floor) s = e.week - w + 1   // 시험 직전으로 옮기기
+    else if (k != null && k >= floor && k + w - 1 <= e.week) s = k     // 지금 자리가 시험 주 안 — 그대로
     else if (f + w - 1 <= e.week) s = f                                  // 앞에서 채워도 시험 전에 끝남 — 그대로
     else if (e.week - w + 1 >= floor) s = e.week - w + 1                 // 시험 주에 끝나게 앞당김
     else s = f                                                           // 앞당길 자리가 없음 — 모자라요
@@ -124,14 +126,14 @@ export function resolveExamAnchors(projects: Project[], forward: Map<string, num
  * 새 계획 배치(속도 고르기·완성 화면) — 닻 없이 한 번 놓고, 시험일이 있으면 닻을 정해 다시 놓는다.
  * 짝 뒤 걸음은 시험일이 없어도 늘 앞 걸음 뒤에(정할 것 6 — 예전엔 주 16시간 이상에서 필기·실기가 같은 주에 시작했다)
  */
-export function scheduleWithExams(projects: Project[], budgetHours: number, ctx?: Partial<ExamCtx>): { week: number; project: Project }[] {
+export function scheduleWithExams(projects: Project[], budgetHours: number, ctx?: Partial<ExamCtx>, extra: Pick<AnchorOptions, 'late'> = {}): { week: number; project: Project }[] {
   const after = examPairs(projects)
   const base: ScheduleOptions = { ...(ctx?.minStart ? { minStart: ctx.minStart } : {}), ...(after.size ? { after } : {}) }
   const forward = autoSchedule(projects, budgetHours, base)
   if (!ctx?.startDate) return forward
   const full: ExamCtx = { startDate: ctx.startDate, reviewDay: ctx.reviewDay, minStart: ctx.minStart }
   if (!hasExamDates(projects, full)) return forward
-  const fixed = resolveExamAnchors(projects, startsOf(forward), full)
+  const fixed = resolveExamAnchors(projects, startsOf(forward), full, extra)
   return fixed.size ? autoSchedule(projects, budgetHours, { ...base, fixed }) : forward
 }
 /** 놓은 결과 → id → 시작 주 */
@@ -252,10 +254,20 @@ export function skipDonePhases(p: Project, done: number): Project {
   return { ...p, examBackup: backup, studyHours: Math.round((backup.studyHours * leftWeeks) / total), curriculum, weeks: curriculum.length }
 }
 
+/** 마지막 주 할 일 '응시'를 뺀다(시험일이 있으면 시험 날 표시로 옮긴다 — 정할 것 5). 그 주에 다른 할 일이 없으면 그대로 */
+export function withoutApplyItem(p: Project): Project {
+  const cur = p.curriculum ?? []
+  const last = cur[cur.length - 1]
+  if (!last || !last.items.includes('응시') || last.items.length < 2) return p
+  return { ...p, curriculum: [...cur.slice(0, -1), { ...last, items: last.items.filter((t) => t !== '응시') }] }
+}
+
 // ── 표시용 ──
 const DOW = ['일', '월', '화', '수', '목', '금', '토']
 /** '3월 27일(토)' */
 export const mdLabel = (date: string) => { const d = parseDateKey(date); return d ? `${d.getMonth() + 1}월 ${d.getDate()}일(${DOW[d.getDay()]})` : '' }
+/** '3월 27일' */
+export const mdPlain = (date: string) => { const d = parseDateKey(date); return d ? `${d.getMonth() + 1}월 ${d.getDate()}일` : '' }
 /** '5.15(토)' */
 export const shortMdLabel = (date: string) => { const d = parseDateKey(date); return d ? `${d.getMonth() + 1}.${d.getDate()}(${DOW[d.getDay()]})` : '' }
 /** '2029년 12월' — 그 주 마지막 날의 달 */

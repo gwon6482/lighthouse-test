@@ -54,9 +54,10 @@ export const pacedProjects = (projects: Project[], hours: number): Project[] => 
  * 자동 배치 결과를 타임라인 슬롯으로 — projects 는 pacedProjects 를 거친 것이어야 한다(슬롯이 그 복사본을 든다).
  * exam(계획 시작일·시작 요일)을 넘기면 시험일이 있는 걸음을 그날에 맞춘다(lib/examDate.ts — 2026-11-22)
  */
-export function buildTimeline(projects: Project[], hours: number, opts?: ScheduleOptions, exam?: Omit<ExamCtx, 'minStart'>): TimelineSlot[] {
+export type ExamPlaceCtx = Omit<ExamCtx, 'minStart'> & { late?: Set<string> }
+export function buildTimeline(projects: Project[], hours: number, opts?: ScheduleOptions, exam?: ExamPlaceCtx): TimelineSlot[] {
   const slots: TimelineSlot[] = []
-  for (const { week, project } of scheduleWithExams(projects, hours, { ...exam, minStart: opts?.minStart })) {
+  for (const { week, project } of scheduleWithExams(projects, hours, { ...exam, minStart: opts?.minStart }, { late: exam?.late })) {
     let slot = slots.find((s) => s.week === week)
     if (!slot) { slot = { week, projects: [] }; slots.push(slot) }
     slot.projects.push(project)
@@ -65,7 +66,7 @@ export function buildTimeline(projects: Project[], hours: number, opts?: Schedul
 }
 
 /** 그 속도로 배치하면 몇 주차에 끝나는가(시험은 그 속도로 다시 잡은 기간) */
-export function scheduleEndWeek(projects: Project[], hours: number, opts?: ScheduleOptions, exam?: Omit<ExamCtx, 'minStart'>): number {
+export function scheduleEndWeek(projects: Project[], hours: number, opts?: ScheduleOptions, exam?: ExamPlaceCtx): number {
   return schedulePreview(projects, hours, opts, exam).endWeek
 }
 
@@ -73,9 +74,9 @@ export function scheduleEndWeek(projects: Project[], hours: number, opts?: Sched
  * 그 속도로 놓았을 때 — 끝나는 주와 시험일 있는 걸음의 판정(속도 고르기 카드). budget 은 루틴 시간을 뺀 예산(없으면 hours).
  * 큰 시험 기간은 hours(고른 속도의 주당 시간)로 다시 잡는다
  */
-export function schedulePreview(projects: Project[], hours: number, opts?: ScheduleOptions, exam?: Omit<ExamCtx, 'minStart'>, budget = hours): { endWeek: number; exams: ExamSlot[]; projects: Project[]; starts: Map<string, number> } {
+export function schedulePreview(projects: Project[], hours: number, opts?: ScheduleOptions, exam?: ExamPlaceCtx, budget = hours): { endWeek: number; exams: ExamSlot[]; projects: Project[]; starts: Map<string, number> } {
   const paced = pacedProjects(projects, hours)
-  const placed = scheduleWithExams(paced, budget, { ...exam, minStart: opts?.minStart })
+  const placed = scheduleWithExams(paced, budget, { ...exam, minStart: opts?.minStart }, { late: exam?.late })
   const starts = startsOf(placed)
   return {
     endWeek: placed.reduce((m, { week, project }) => Math.max(m, projectEndWeek(week, project)), 0),

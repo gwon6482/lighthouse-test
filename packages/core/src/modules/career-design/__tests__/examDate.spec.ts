@@ -7,7 +7,7 @@ import { buildTimeline, pacedProjects, rescheduleFrom, schedulePreview } from '.
 import { expandPhases } from '../lib/examPace'
 import {
   doneChoicesOf, examDateOf, examDateWarnings, examPairs, examVerdict, examWeekOf, hoursLabel, scheduleWithExams,
-  skipDonePhases, startsOf, takesExamDate,
+  skipDonePhases, startsOf, takesExamDate, withoutApplyItem,
 } from '../lib/examDate'
 
 const D: Record<number, DayOfWeek[]> = { 1: ['토'], 2: ['화', '목'], 3: ['월', '수', '금'], 4: ['월', '화', '목', '금'], 5: ['월', '화', '수', '목', '금'], 6: ['월', '화', '수', '목', '금', '토'] }
@@ -261,5 +261,22 @@ describe('날짜 사이 확인(정할 것 6)', () => {
     expect(examDateWarnings(near).map((w) => w.kind)).toEqual(['grade'])
     const far = g9Plan().map((p) => (p.id === 'g9' ? dated(p, '2027-03-27') : p.id === 'kh' ? dated(p, '2027-02-13') : p))
     expect(examDateWarnings(far)).toEqual([])
+  })
+})
+
+describe('시험 직전으로 옮기기 · 응시 할 일', () => {
+  it('한국사(여유 8주)를 옮기면 9~12주차, 9급 필기는 13주차로 밀리고 계획 끝 +8주(전력으로)', () => {
+    const plan = g9Plan().map((p) => (p.id === 'kh' ? dated(p, '2027-02-13') : p))
+    const paced = pacedProjects(plan, 16)
+    const s = startsOf(scheduleWithExams(paced, 16, CTX, { late: new Set(['kh']) }))
+    expect([s.get('kh'), s.get('g9')]).toEqual([9, 13])
+    expect(schedulePreview(plan, 16, {}, { ...CTX, late: new Set(['kh']) }).endWeek).toBe(171)
+  })
+  it("마지막 주 '응시'만 뺀다(다른 할 일이 있을 때)", () => {
+    const p = mk('x', '한국사능력검정 심화', 5, 60, [[1, '기출 회독']])
+    const withItems = { ...p, curriculum: [{ week: 1, title: '기출 회독', items: ['기출 5회', '응시'] }] }
+    expect(withoutApplyItem(withItems).curriculum![0]!.items).toEqual(['기출 5회'])
+    const only = { ...p, curriculum: [{ week: 1, title: '응시', items: ['응시'] }] }
+    expect(withoutApplyItem(only)).toBe(only)
   })
 })
