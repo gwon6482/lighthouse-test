@@ -23,7 +23,7 @@ $rm-bar-h: 90px; // 실측 높이(노치 없는 폰) — 자동 이동 때 정�
   gap: 8px;
   &__row { display: flex; align-items: baseline; justify-content: space-between; gap: $space-md; }
   &__title { margin: 0; min-width: 0; font-size: 17px; font-weight: $tw-title; letter-spacing: $ls-heading; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  &__pct { flex: 0 0 auto; font-size: 20px; font-weight: $tw-title; letter-spacing: -0.5px; line-height: 1; small { font-size: 14px; margin-left: 1px; } }
+  &__pct { flex: 0 0 auto; font-size: 20px; font-weight: $tw-title; letter-spacing: -0.5px; line-height: 1; small { font-size: 14px; margin-left: 2px; letter-spacing: 0; } }
   &__track { display: block; height: 8px; border-radius: $radius-pill; background: rgba(0, 0, 0, 0.1); overflow: hidden;
     i { display: block; height: 100%; border-radius: inherit; background: $color-text; transition: width 1s $ease-standard; } }
   &__meta { margin: 0; font-size: $fs-xs; color: rgba(0, 0, 0, 0.68); font-variant-numeric: tabular-nums; strong { color: $color-text; } }

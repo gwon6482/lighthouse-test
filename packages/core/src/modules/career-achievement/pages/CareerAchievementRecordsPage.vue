@@ -40,7 +40,7 @@
           <div class="rc-card__body">
             <span class="rc-card__name">{{ e.itemName || '프로젝트' }}</span>
             <span class="rc-card__meta">
-              {{ dayLabel(e.date) }}<template v-if="e.elapsedSec"> · {{ Math.max(1, Math.round(e.elapsedSec / 60)) }}분</template>
+              {{ dayLabel(e.date) }}<template v-if="e.elapsedSec"> · {{ logMinutesLabel(e.elapsedSec) }}</template>
             </span>
             <span class="rc-card__stars" :aria-label="`체감난이도 ${e.difficulty}`">
               <AppIcon v-for="n in 5" :key="n" name="ui-star" :class="{ 'rc-card__star--on': n <= e.difficulty }" />
@@ -60,6 +60,7 @@ import { useAchievementStore } from '@/shared/stores/achievement'
 import { useAchievementEntries } from '../composables/useAchievementEntries'
 import { useAchievement } from '../composables/useAchievement'
 import { categoryColor } from '../lib/planBoard'
+import { logMinutesLabel } from '../lib/focusTimer'
 import { getToday } from '@/shared/utils/dev-date'
 import { toDateKey } from '../composables/useWeeklySchedule'
 

@@ -5,6 +5,8 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { useHardwareBack } from '@/shared/composables/useHardwareBack'
 import BottomNav from '@/shared/components/BottomNav.vue'
+import AppIcon from '@/shared/components/AppIcon.vue'
+import { appToast } from '@/shared/composables/useAppToast'
 
 const authStore = useAuthStore()
 const achievementStore = useAchievementStore()
@@ -36,6 +38,13 @@ watch(() => authStore.user, (u) => {
       한 번 더 누르면 종료됩니다
     </div>
   </Transition>
+
+  <!-- 잠깐 알림(useAppToast) — 앱 종료 안내와 같은 모양·자리. 화면 읽기 프로그램에도 읽힌다(role=status) -->
+  <Transition name="exit-toast">
+    <div v-if="appToast && !showExitToast" :key="appToast" class="exit-toast app-toast" role="status">
+      <AppIcon name="ui-check" :size="15" />{{ appToast }}
+    </div>
+  </Transition>
 </template>
 
 <style lang="scss">
@@ -53,6 +62,12 @@ watch(() => authStore.user, (u) => {
   font-weight: 500;
   white-space: nowrap;
   pointer-events: none;
+}
+
+.app-toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .exit-toast-enter-active,

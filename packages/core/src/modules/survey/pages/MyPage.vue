@@ -152,6 +152,7 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { req } from '@/shared/api'
 import AccountDeleteSheet from '../components/AccountDeleteSheet.vue'
+import { markAccountDeleted } from '@/shared/auth/farewell'
 import ConfirmSheet from '@/shared/components/ConfirmSheet.vue'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 import { AREA_ICON } from '@/modules/survey/surveyIcons'
@@ -171,11 +172,13 @@ const showDelete = ref(false)
 // 서버에서 계정이 지워진 뒤에만 불린다. 이제 토큰이 가리키는 계정이 없으므로
 // **반드시 로컬 인증을 정리**하고 앱 밖으로 내보낸다.
 // ⚠️ `router.push` 가 아니라 `replace` 다 — 뒤로가기로 지워진 계정 화면에 돌아오면 안 된다.
+// 탈퇴 직후는 스플래시를 건너뛰고 가입 첫 화면 위에 '탈퇴했어요' 띠(2026-11-21 A6)
 function onDeleted() {
   showDelete.value = false
   authStore.logout()
   achievementStore.reset()
-  router.replace('/onboarding')
+  markAccountDeleted()
+  router.replace('/onboarding/auth')
 }
 
 const avatarLetter = computed(() => {

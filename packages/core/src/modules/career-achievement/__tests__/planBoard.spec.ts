@@ -1,12 +1,19 @@
 import { describe, it, expect } from 'vitest'
 import {
   objectJosa, planPhase, planDayNumber, dDayLabel, overallProgress, progressUpToWeek,
-  streakCount, reviewBadge, todayMessage, journeyHeadline,
+  streakCount, reviewBadge, todayMessage, journeyHeadline, roadmapWeekLabel,
 } from '../lib/planBoard'
 
 const d = (s: string) => { const [y, m, day] = s.split('-').map(Number); return new Date(y!, m! - 1, day!) }
 
 describe('planBoard', () => {
+  it('로드맵 주 줄 — 계획 전체 주차 + 프로젝트 안 순서(A5)', () => {
+    // 7~8주차 프로젝트의 2번째 주, 지금 8주차
+    expect(roadmapWeekLabel(7, 2, 8)).toEqual({ title: '이번 주 · 8주차', sub: '프로젝트 2주째', now: true })
+    expect(roadmapWeekLabel(7, 1, 8)).toEqual({ title: '7주차', sub: '프로젝트 1주째', now: false })
+    expect(roadmapWeekLabel(1, 3, null).title).toBe('3주차')
+  })
+
   it('을/를', () => {
     expect(objectJosa('간호사')).toBe('를')
     expect(objectJosa('회계사무원')).toBe('을')

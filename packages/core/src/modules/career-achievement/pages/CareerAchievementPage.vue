@@ -137,7 +137,8 @@
           <ul class="ah-week__list">
             <li v-for="g in weekGoals" :key="g.project.id" class="ah-goal">
               <span class="ah-goal__name"><i class="ah-day__dot" :style="{ background: categoryColor(g.project.category) }" /><PeriodTag v-if="g.period" /> {{ g.project.name }}</span>
-              <span class="ah-goal__count"><strong>{{ g.done }}</strong>/{{ g.total }}{{ g.period ? '일' : '' }}</span>
+              <!-- '할 일' — 주간 일정의 칸(하는 날)과 세는 단위가 달라 단위를 붙인다(2026-11-21 A3). 과정은 '일' -->
+              <span class="ah-goal__count"><template v-if="!g.period">할 일 </template><strong>{{ g.done }}</strong>/{{ g.total }}{{ g.period ? '일' : '' }}</span>
               <span class="ah-goal__bar">
                 <i
                   v-for="i in g.total" :key="i" class="ah-goal__seg"

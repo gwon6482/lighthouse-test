@@ -29,7 +29,7 @@
         </div>
         <p class="ws__hint">
           프로젝트를 추가/제거하거나 다른 요일로 옮길 수 있어요. 루틴은 정해진 요일로 자동 배치돼요.
-          바꾼 내용은 아래 <strong>[수정하기]</strong>를 눌러야 저장돼요.
+          바꾼 내용은 아래 <strong>[저장하기]</strong>를 눌러야 저장돼요.
           <span v-if="dirty" class="ws__autosave">바꾼 내용 있음</span>
         </p>
 
@@ -47,10 +47,12 @@
               <button class="ws__day-add" @click="openAddSheet(day.date)" type="button">+ 추가</button>
             </div>
             <ul v-if="day.items.length" class="ws__day-items">
+              <!-- 끝낸 칸은 흐리게 + '✓ 완료', ✕는 숨긴다(2026-11-21 A3). 끝낸 날이 기록의 날짜라 지우거나 옮기지 않는다 -->
               <li
                 v-for="it in day.items"
                 :key="it.id"
                 class="ws__day-item"
+                :class="{ 'ws__day-item--done': it.done }"
                 :style="{ '--cat-color': it.color } as any"
               >
                 <span
@@ -58,8 +60,10 @@
                   :style="{ color: it.color, background: `color-mix(in srgb, ${it.color} 14%, white)` }"
                 >{{ it.categoryLabel }}</span>
                 <span class="ws__day-item-name">{{ it.name }}</span>
-                <span class="ws__day-item-meta">{{ it.duration }}분</span>
+                <span v-if="it.done" class="ws__day-item-done"><AppIcon name="ui-check" />완료</span>
+                <span v-else class="ws__day-item-meta">{{ it.duration }}분</span>
                 <button
+                  v-if="!it.done"
                   class="ws__day-item-remove"
                   @click="removeItem(it.id)"
                   type="button"
@@ -72,12 +76,12 @@
         </div>
       </section>
 
-      <!-- 취소 / 수정하기(2026-10-30) — 예전엔 바꾸는 즉시 저장되고 '오늘의 계획 시작하기'로 홈에 갔다.
+      <!-- 취소 / 저장하기(2026-10-30 · 버튼 이름은 2026-11-21 A3 '수정하기' → '저장하기') — 예전엔 바꾸는 즉시 저장되고 '오늘의 계획 시작하기'로 홈에 갔다.
            이제 바꾼 내용은 임시로 들고 있다가 [수정하기]에서 확인 후 한 번에 저장, [취소]는 확인 후 버리고 뒤로 -->
       <div class="ws__footer ws__footer--two">
         <button class="ws__cancel" type="button" :disabled="saving" @click="cancelEdit">취소</button>
         <button class="ws__start" type="button" :disabled="saving || !dirty" @click="applyEdit">
-          {{ saving ? '저장 중...' : '수정하기' }}
+          {{ saving ? '저장 중...' : '저장하기' }}
         </button>
       </div>
     </template>
@@ -122,11 +126,11 @@
               >
                 <span
                   class="ws-sheet__row-dot"
-                  :style="{ background: CAT_COLOR[p.category] }"
+                  :style="{ background: categoryColor(p.category) }"
                 />
                 <div class="ws-sheet__row-body">
                   <span class="ws-sheet__row-name">{{ p.name }}</span>
-                  <span class="ws-sheet__row-meta">{{ CAT_LABEL[p.category] }} · {{ p.duration }}분</span>
+                  <span class="ws-sheet__row-meta">{{ categoryLabel(p.category) }} · {{ p.duration }}분</span>
                 </div>
                 <span class="ws-sheet__row-plus">＋</span>
               </button>
@@ -153,28 +157,16 @@ import {
 import type { WeeklySchedule } from '../composables/useWeeklySchedule'
 import { useAchievement } from '../composables/useAchievement'
 import { getToday } from '@/shared/utils/dev-date'
-import type { ProjectCategory, DayOfWeek } from '@/modules/career-design/types/career-design'
+import type { DayOfWeek } from '@/modules/career-design/types/career-design'
 import { uid } from '@/shared/utils/uid'
+import { categoryColor, categoryLabel } from '../lib/planBoard'
 
 const router = useRouter()
 const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
 const { updateSchedule, ensureWeekSchedule } = useWeeklySchedule()
 const { isProjectDone, isRoutineDone, toggleProject, toggleRoutine } = useAchievement()
 
-const CAT_COLOR: Record<ProjectCategory, string> = {
-  qualification: '#1DB95A',
-  knowledge:     '#F47820',
-  skill:         '#A855F7',
-  portfolio:     '#4480F5',
-  experience:    '#F0507E',
-}
-const CAT_LABEL: Record<ProjectCategory, string> = {
-  qualification: '자격요건',
-  knowledge:     '분야지식',
-  skill:         '직무기술',
-  portfolio:     '포트폴리오',
-  experience:    '실무경험',
-}
+// 분류 색·라벨은 planBoard 의 CATEGORY_META(정본, categoryColor·categoryLabel) — 이 화면에 있던 복제 표는 2026-11-21 지움
 
 const loading         = ref(true)
 const saving          = ref(false)
@@ -206,6 +198,7 @@ interface DayCardItem {
   duration: number
   categoryLabel: string
   color: string
+  done: boolean
 }
 interface DayCard {
   date: string
@@ -241,8 +234,9 @@ const currentDays = computed<DayCard[]>(() => {
         itemId:    it.itemId,
         name:      p.name,
         duration:  p.duration ?? 0,
-        categoryLabel: CAT_LABEL[p.category] ?? '',
-        color:     CAT_COLOR[p.category] ?? '#888',
+        categoryLabel: categoryLabel(p.category),
+        color:     categoryColor(p.category),
+        done:      isProjectDone(it.itemId, it.date),
       })
     }
     out.push({
@@ -308,7 +302,7 @@ function cancelEdit() {
 
 async function applyEdit() {
   if (!dirty.value || !draftPlan.planId || !currentSchedule.value || !draftItems.value) return
-  if (!confirm('이대로 이번 주 일정을 수정할까요?')) return
+  if (!confirm('이대로 이번 주 일정을 저장할까요?')) return
   const before = currentSchedule.value.items
   const next = draftItems.value
   saving.value = true
@@ -630,6 +624,27 @@ onMounted(async () => {
     font-size: 11px;
     font-weight: 600;
     color: #888;
+  }
+
+  // 끝낸 칸 — 흐리게, '✓ 완료'는 홈의 완료 표시와 같은 초록
+  &__day-item--done {
+    border-left-color: color-mix(in srgb, var(--cat-color, #FFC700) 40%, #FAFAF7);
+    > :not(.ws__day-item-done) { opacity: 0.45; }
+  }
+  &__day-item-done {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 8px;
+    background: #E4F8EC;
+    color: #1DB95A;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+    // ✕ 자리(22px)만큼 비워 다른 칸의 '60분'과 오른쪽 끝을 맞춘다
+    margin-right: 22px;
   }
 
   &__day-item-remove {

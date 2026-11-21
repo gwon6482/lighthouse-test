@@ -20,7 +20,9 @@
         <h2 class="cac__item-name">{{ item.name }}</h2>
         <div class="cac__item-meta">
           <span>소요시간 · <strong>{{ elapsedLabel }}</strong></span>
-          <span>계획 · {{ item.duration }}분</span>
+          <!-- 집중을 거쳐 왔으면 그때 고른 목표, 아니면 계획의 1회 시간(2026-11-21 A2) -->
+          <span v-if="focusGoalMin">목표 · {{ focusGoalMin }}분</span>
+          <span v-else>계획 · {{ item.duration }}분</span>
         </div>
       </div>
 
@@ -113,6 +115,7 @@ import { CATEGORY_META } from '../lib/planBoard'
 import { useFocusSessions } from '../composables/useFocusSessions'
 import { sessionKey, combinedElapsed, recordTimeLabel } from '../lib/focusSession'
 import { useAchievementStore } from '@/shared/stores/achievement'
+import { showToast } from '@/shared/composables/useAppToast'
 import type { Project, Routine } from '@/modules/career-design/types/career-design'
 
 const route = useRoute()
@@ -134,6 +137,13 @@ const elapsedSec = computed(() => {
   // 주소에 시간이 없으면(새로 고침 등) 기기에 적어 둔 멈춘 집중의 시간
   const s = focusSessions.get(focusKey.value)
   return s ? Math.floor(s.accSec) : 0
+})
+
+// 집중 화면에서 고른 목표(분) — 주소의 goal, 없으면(새로 고침 등) 기기에 적어 둔 멈춘 집중의 목표
+const focusGoalMin = computed<number | null>(() => {
+  const n = Number(route.query.goal)
+  if (route.query.goal != null && route.query.goal !== '' && Number.isFinite(n) && n > 0) return Math.round(n)
+  return focusSessions.get(focusKey.value)?.goalMin ?? null
 })
 
 function toTodayKey(): string {
@@ -297,6 +307,7 @@ async function save() {
     }
 
     leaving = true
+    showToast('기록을 저장했어요') // 홈 아래 2초(2026-11-21 A4) — 앱 종료 안내와 같은 모양·자리
     router.replace('/career-achievement')
   } finally {
     saving.value = false

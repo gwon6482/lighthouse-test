@@ -93,12 +93,13 @@
 
     <!-- ④ 완료 — 판정하지 않는다(일찍 끝낸 건 일이 빨리 끝난 것일 수 있다) -->
     <section v-else class="fm-done">
-      <div class="fm-done__badge"><div class="fm-done__huge fm-num">{{ Math.floor(elapsed / 60) }}<small>분</small></div></div>
+      <!-- 1분이 안 되면 초로(2026-11-21 A1 — 14초가 '0분'으로 보였다) -->
+      <div class="fm-done__badge"><div class="fm-done__huge fm-num">{{ badge.num }}<small>{{ badge.unit }}</small></div></div>
       <h3>집중을 마쳤어요</h3>
       <p>{{ gap.line }}</p>
       <div class="fm-done__stats">
         <div><b class="fm-num">{{ clockLabel(elapsed) }}</b><small>집중한 시간</small></div>
-        <div><b class="fm-num">{{ gap.diff }}</b><small>목표 {{ goalMin }}분보다</small></div>
+        <div><b class="fm-num">{{ gap.diff }}</b><small>{{ gap.sub }}</small></div>
       </div>
       <div class="fm-done__btns">
         <button type="button" class="p" @click="toRecord">기록 남기기</button>
@@ -117,7 +118,7 @@ import type { Project, Routine } from '@/modules/career-design/types/career-desi
 import { CATEGORY_META } from '../lib/planBoard'
 import {
   FOCUS_PRESETS, FOCUS_MIN, FOCUS_MAX, FOCUS_STEP,
-  clampGoal, focusGap, focusDigits, clockLabel,
+  clampGoal, focusGap, focusDigits, clockLabel, focusBadge,
 } from '../lib/focusTimer'
 import { applyThemeColor, THEME_COLOR } from '@/shared/router/themeColor'
 import { safeBack } from '@/shared/utils/navigation'
@@ -187,6 +188,7 @@ const digits = computed(() => focusDigits(elapsed.value, goalSec.value))
 const percent = computed(() => Math.floor((elapsed.value / goalSec.value) * 100))
 const fill = computed(() => Math.min(100, (elapsed.value / goalSec.value) * 100))
 const gap = computed(() => focusGap(elapsed.value, goalSec.value))
+const badge = computed(() => focusBadge(elapsed.value))
 // 지금 페이스면 끝날 시각(멈춘 동안은 그만큼 밀린다)
 const endAt = computed(() => new Date(now.value + Math.max(0, goalSec.value - elapsed.value) * 1000))
 const endAtLabel = computed(() => {
@@ -316,7 +318,8 @@ function toRecord() {
   bypassLeaveGuard = true
   router.replace({
     path: `/career-achievement/complete/${itemType.value}/${itemId.value}`,
-    query: { date: dateKey.value, elapsed: String(Math.floor(elapsed.value)) },
+    // goal — 기록 작성 화면이 '계획 · 60분' 대신 이때 고른 '목표 · 15분'을 보이게(2026-11-21 A2)
+    query: { date: dateKey.value, elapsed: String(Math.floor(elapsed.value)), goal: String(goalMin.value) },
   })
 }
 

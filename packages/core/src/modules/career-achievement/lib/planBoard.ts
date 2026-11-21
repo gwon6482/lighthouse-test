@@ -237,3 +237,11 @@ export function shouldPromptReview(m: ReviewMoment, o: { todayTotal: number; tod
   if (m.day === 'start') return true
   return o.todayTotal === 0 || o.todayDone >= o.todayTotal
 }
+
+// 로드맵 정거장을 펼친 주 줄(2026-11-21 A5) — 머리·홈과 같은 '계획 전체 주차'로 쓰고, 프로젝트 안 순서는 작게 'N주째'.
+// 예전엔 프로젝트 안 순서('이번 주 · 2주차')라 머리의 '7~8주차'와 한 화면에 두 셈이 섞였다
+export function roadmapWeekLabel(startWeek: number, projectWeek: number, currentWeek: number | null | undefined): { title: string; sub: string; now: boolean } {
+  const planWeek = startWeek + projectWeek - 1
+  const now = planWeek === currentWeek
+  return { title: `${now ? '이번 주 · ' : ''}${planWeek}주차`, sub: `프로젝트 ${projectWeek}주째`, now }
+}

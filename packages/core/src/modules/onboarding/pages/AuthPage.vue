@@ -3,6 +3,12 @@
     <!-- 돌아갈 곳(?next=)이 있을 때만 — 진로백과 '분류로 찾기'의 '가입하고 연봉 보기'처럼 앱 안에서 넘어온 경우(2026-11-18) -->
     <button v-if="nextPath" type="button" class="auth__back" aria-label="뒤로" @click="safeBack(router, nextPath)"><AppIcon name="ui-back" /></button>
     <div class="auth__inner">
+      <!-- 탈퇴 직후 한 번(2026-11-21 A6). ✕로 닫고, 다시 들어오면 보이지 않는다 -->
+      <div v-if="farewell" class="auth__farewell" role="status">
+        <AppIcon name="ui-check" class="auth__farewell-icon" />
+        <p><b>탈퇴했어요</b><span>계정과 기록을 모두 지웠어요. 그동안 함께해 주셔서 고마워요.</span></p>
+        <button type="button" class="auth__farewell-x" aria-label="닫기" @click="farewell = false"><AppIcon name="ui-close" /></button>
+      </div>
       <!-- 브랜드 헤더 -->
       <div class="auth__brand">
         <img class="auth__logo" src="/Symbol.svg" width="64" height="76" alt="라이트하우스" />
@@ -157,6 +163,7 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import { safeBack } from '@/shared/utils/navigation'
 import { dropAfterLogin, rememberAfterLogin, takeAfterLogin } from '@/shared/auth/afterLogin'
 import { loadBrowseAxes } from '@/modules/encyclopedia/composables/useJobBrowse'
+import { takeAccountDeleted } from '@/shared/auth/farewell'
 
 const router = useRouter()
 const route = useRoute()
@@ -166,6 +173,7 @@ const authStore = useAuthStore()
 const achievementStore = useAchievementStore()
 
 const mode = ref<'signup' | 'login'>('signup')   // 회원가입이 기본
+const farewell = ref(takeAccountDeleted())
 
 // ── 회원가입 ──
 function goEmailSignup() {

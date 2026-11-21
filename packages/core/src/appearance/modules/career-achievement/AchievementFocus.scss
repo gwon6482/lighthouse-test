@@ -57,7 +57,8 @@ $fm-col: 520px;
   &__goal { margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 22px; }
   &__value {
     min-width: 150px; text-align: center; font-size: 64px; font-weight: 800; line-height: 1;
-    small { margin-left: 2px; font-size: 22px; font-weight: $tw-title; }
+    // 숫자와 단위 사이(2026-11-21 오너 '간격이 너무 가까워 보여') — 숫자의 음수 자간을 넘어 눈에 띄게 띄운다
+    small { margin-left: 6px; font-size: 22px; font-weight: $tw-title; letter-spacing: 0; }
   }
   &__step {
     width: 48px; height: 48px; border-radius: 50%; background: $fm-card; box-shadow: $fm-shadow; font-size: 24px;
@@ -174,7 +175,8 @@ $fm-col: 520px;
     background: $color-primary; box-shadow: 0 18px 40px rgba(255, 190, 0, .3);
     animation: fm-badge .5s cubic-bezier(.2, 1.4, .4, 1) both;
   }
-  &__huge { font-size: 72px; font-weight: 800; letter-spacing: -0.06em; line-height: .9; small { font-size: 26px; } }
+  // 단위 앞 간격(2026-11-21 오너) — 숫자 자간이 -0.06em(약 -4px)이라 마지막 숫자 뒤가 당겨져 '14초'가 붙어 보였다
+  &__huge { font-size: 72px; font-weight: 800; letter-spacing: -0.06em; line-height: .9; small { margin-left: 10px; font-size: 26px; letter-spacing: 0; } }
   h3 { margin-top: 24px; font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
   > p { margin-top: 8px; font-size: 14px; opacity: .7; }
   &__stats {

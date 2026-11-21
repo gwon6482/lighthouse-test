@@ -63,8 +63,8 @@
                 :class="{ 'rm-week--now': s.startWeek + w.week - 1 === weekNumber }"
               >
                 <span class="rm-week__label">
-                  <template v-if="s.startWeek + w.week - 1 === weekNumber">이번 주 · </template>{{ w.week }}주차
-                  <small>{{ weekSpanLabel(s.startWeek + w.week - 1, s.startWeek + w.week - 1) }}</small>
+                  {{ roadmapWeekLabel(s.startWeek, w.week, weekNumber).title }}
+                  <small>{{ roadmapWeekLabel(s.startWeek, w.week, weekNumber).sub }} · {{ weekSpanLabel(s.startWeek + w.week - 1, s.startWeek + w.week - 1) }}</small>
                 </span>
                 <span v-for="(e, k) in w.entries" :key="k" class="rm-week__item" :class="{ 'rm-week__item--done': e.done }">
                   <AppIcon :name="e.done ? 'ui-check' : 'ui-chevron-right'" />{{ e.text }}
@@ -103,7 +103,7 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { usePlanBoard } from '../composables/usePlanBoard'
-import { categoryColor, categoryLabel, parsePlanDate, daysBetween, type RoadmapStop } from '../lib/planBoard'
+import { categoryColor, categoryLabel, roadmapWeekLabel, parsePlanDate, daysBetween, type RoadmapStop } from '../lib/planBoard'
 import { methodIcon } from '@/modules/career-design/composables/projectMethods'
 import PeriodTag from '@/modules/career-design/components/PeriodTag.vue'
 
