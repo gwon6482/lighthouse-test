@@ -59,10 +59,36 @@ import { useCareerDesign } from '../composables/useCareerDesign'
 import type { DayOfWeek } from '../types/career-design'
 import { firstReviewDate } from '../composables/usePlanTimeline'
 import { parseDateKey } from '@/modules/career-achievement/composables/useWeeklySchedule'
+import { examDateOf, examWeekOf } from '../lib/examDate'
+import { buildTimeline, examAgeOptions } from '../composables/usePlanPace'
+import { budgetHours, stripLoad, withRoutineLoad } from '../lib/routine'
+import { useAuthStore } from '@/shared/stores/auth'
 
 const router = useRouter()
 const { prevPath, nextPath, editing } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
-const { draftPlan, syncPlanReviewDay } = useCareerDesign()
+const { draftPlan, draftTimeline, syncPlanReviewDay } = useCareerDesign()
+const auth = useAuthStore()
+// 속도 고르기는 시작 요일을 고르기 전이라(이 단계가 뒤) 그때의 요일(없으면 월요일)로 시험 주를 셌다
+const dayAtPlacement = draftPlan.reviewDay || '월'
+
+/**
+ * 시험일 역산(2026-11-22) — 시작 요일이 바뀌어 어느 시험의 시험 주가 달라졌으면, 그 요일로 다시 놓는다(손으로 옮긴 배치는 두고).
+ * 시험 주가 그대로면 아무것도 하지 않는다
+ */
+function reanchorExams() {
+  const start = draftPlan.startDate
+  const day = draftPlan.reviewDay
+  // 새 계획에서만(고치는 중이면 이미 시작한 걸음이 있다 — 다시 놓지 않는다)
+  if (editing.value || !start || !day || draftPlan.timelineManual || !draftTimeline.value.length || !draftPlan.weeklyHours) return
+  const shifted = draftPlan.projects.some((p) => {
+    const d = examDateOf(p)
+    return !!d && examWeekOf(start, d, dayAtPlacement) !== examWeekOf(start, d, day)
+  })
+  if (!shifted) return
+  const L = withRoutineLoad(draftPlan.projects, draftPlan.routines)
+  const opts = examAgeOptions(start, auth.user?.age, day)
+  draftTimeline.value = stripLoad(buildTimeline(L.projects, budgetHours(draftPlan.weeklyHours, L.freeMin), opts, { startDate: start, reviewDay: day, late: new Set(draftPlan.examLate ?? []) }), draftPlan.projects)
+}
 
 // 첫 리뷰일 — 1주차는 시작일(아직 없으면 오늘)부터 첫 리뷰일 전날까지 7~13일(2026-11-04)
 const firstReview = computed(() => {
@@ -87,6 +113,7 @@ async function goNext() {
   if (!draftPlan.reviewDay) return
   saving.value = true
   try {
+    reanchorExams()
     await syncPlanReviewDay() // 계획 ID 가 생기기 전이면 서버로 안 간다 — 목표 설정에서 한꺼번에 올린다
     router.push(nextPath('reviewDay'))
   } finally {

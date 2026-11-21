@@ -258,6 +258,7 @@ import {
   methodsOf, methodDef, methodFits, methodIcon, doneLabel, missingMethodField, QUALIFICATION_EXTRA,
   type ProjectMethod, type MethodField,
 } from '../composables/projectMethods'
+import { takesExamDate } from '../lib/examDate'
 
 const router = useRouter()
 const { draftPlan, draftProject, editingProjectId } = useCareerDesign()
@@ -348,15 +349,18 @@ function toggleDay(day: DayOfWeek) {
 // ── 진행 방식 ──
 const methods = computed(() => methodsOf(draftProject.category))
 const currentMethod = computed(() => methodDef(draftProject.method))
-// 자격요건은 방식과 상관없이 시험일을 함께 받는다(필수 교육 이수는 시험이 아니라 제외)
+// 시험일은 '합격하면 완료'인 걸음에만 받는다(자격요건 · 필수 교육 이수·기타 빼고 — 시험일 역산 2026-11-22, lib/examDate.takesExamDate).
+// 기타(자기소개서·면접)에 예전에 넣은 값은 지우지 않는다(칸만 감춘다)
 const methodFields = computed(() => {
   const base = currentMethod.value?.fields ?? []
-  return draftProject.category === 'qualification' && draftProject.method !== 'required_course'
-    ? [...base, { ...QUALIFICATION_EXTRA, placeholder: '' }]
-    : base
+  return takesExamDate(draftProject) ? [...base, { ...QUALIFICATION_EXTRA, placeholder: '' }] : base
 })
 function pickMethod(m: ProjectMethod) {
-  if (draftProject.method !== m) draftProject.methodDetail = {}
+  // 방식을 바꾸면 방식별 칸은 비우되 시험일은 남긴다(2026-11-22)
+  if (draftProject.method !== m) {
+    const deadline = draftProject.methodDetail?.deadline
+    draftProject.methodDetail = deadline ? { deadline } : {}
+  }
   draftProject.method = m
 }
 function setDetail(k: MethodField, v: string) {

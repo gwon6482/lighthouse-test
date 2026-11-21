@@ -175,6 +175,15 @@ $ah-overlap: 40px;
   }
 }
 
+// 가장 가까운 시험(2026-11-22 시험일 역산) — 노란 영역 안 흰 띠
+.ah-exam {
+  display: flex; align-items: center; gap: $space-md;
+  margin-top: $space-md; padding: 10px 14px;
+  border-radius: 14px; background: $color-surface;
+  &__d { flex: 0 0 auto; font-size: 18px; font-weight: 800; color: #13843F; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  &__body { min-width: 0; display: grid; strong { font-size: $fs-sm; word-break: keep-all; } small { font-size: $fs-2xs; color: $color-text-secondary; } }
+}
+
 // 멈춘 집중(어제 것·오늘 목록에 없는 것) — '오늘 할 일' 위에 따로 한 장(2026-11-19). 이게 경계에 걸치고 오늘 할 일은 그 아래
 .ah-held {
   position: relative;

@@ -17,6 +17,7 @@ import { categoryColor } from '../lib/planBoard'
 import type { DayOfWeek, Project, Routine, TimelineSlot } from '@/modules/career-design/types/career-design'
 import { budgetHours, measureOf, measureTrend, shortened, stripLoad, twoWeeksLow, withRoutineLoad, type WeekCount } from '@/modules/career-design/lib/routine'
 import { ROUTINE_COLOR } from './usePlanBoard'
+import { examDateOf, type ExamSlot } from '@/modules/career-design/lib/examDate'
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -37,6 +38,14 @@ export const periodDrafts = reactive<Record<string, PeriodDraft>>({})
 export function periodDraftOf(p: Project): PeriodDraft {
   if (!periodDrafts[p.id]) periodDrafts[p.id] = { checked: [], changed: false, kind: '', endDelta: 0, pauseWeeks: 2, days: [...p.days] }
   return periodDrafts[p.id]!
+}
+// 시험 뒤 첫 결산(2026-11-22 시험일 역산 정할 것 9 · 진로상담) — 결과를 기다려요(그대로, 다음 주에 다시 묻기) / 다음 시험 날짜 넣기 / 이 시험은 끝났어요(시험 날 표시만 지움).
+// 합격 여부는 묻지 않고, 걸음을 완료 처리하지 않는다
+export interface ExamAfterDraft { kind: '' | 'wait' | 'next' | 'done'; date: string }
+export const examAfterDrafts = reactive<Record<string, ExamAfterDraft>>({})
+export function examAfterDraftOf(id: string): ExamAfterDraft {
+  if (!examAfterDrafts[id]) examAfterDrafts[id] = { kind: '', date: '' }
+  return examAfterDrafts[id]!
 }
 // 루틴(2026-11-21 루틴 리뉴얼 정할 것 6) — 2주 연속 절반 미만이면 맞춰 보기. 고른 것은 결산을 마칠 때 적용
 export type RoutineAdjust = '' | 'shorter' | 'days' | 'pause' | 'stop'
@@ -201,10 +210,25 @@ export function useWeekReview() {
     }
     return list
   })
+  // ── 시험 뒤(정할 것 9) — 결산하는 주 끝날까지 시험 날이 지난 걸음 ──
+  const examsPassed = computed<Project[]>(() => {
+    const pl = plan.value; const r = range.value
+    if (!pl || !r) return []
+    return pl.projects.filter((p) => { const d = examDateOf(p); return !!d && d <= r.weekEnd })
+  })
+  // 날짜가 바뀌는 것(다음 시험 날짜 넣기 · 끝났어요)
+  const examChanges = computed(() => examsPassed.value.flatMap((p) => {
+    const d = examAfterDrafts[p.id]
+    if (!d || (d.kind !== 'done' && d.kind !== 'next') || (d.kind === 'next' && !d.date)) return []
+    const detail = { ...(p.methodDetail ?? {}) }
+    if (d.kind === 'next') detail.deadline = d.date
+    else delete detail.deadline
+    return [{ ...p, methodDetail: detail }]
+  }))
   const projectsNow = computed<Project[]>(() => {
     const pl = plan.value
     if (!pl) return []
-    const changed = new Map(periodChanges.value.map((x) => [x.after.id, x.after]))
+    const changed = new Map([...periodChanges.value.map((x) => [x.after.id, x.after] as const), ...examChanges.value.map((p) => [p.id, p] as const)])
     return pl.projects.map((p) => changed.get(p.id) ?? p)
   })
   // 학교 과정이 늘거나 쉬면 그 과정 끝에 맞춰 놓인 '과정 중에' 프로젝트(아직 시작 전)도 같은 만큼 옮긴다
@@ -300,10 +324,11 @@ export function useWeekReview() {
   // 과정 일정을 바꿨으면(3단계) 바뀐 과정을 넣고 계산한다. moved = 시작 주가 달라지는 프로젝트 수(지금 배치와 비교)
   function endIfPace(pace: Pace) {
     const pl = plan.value
-    if (!pl) return { endDate: '', weeks: 0, remaining: 0, moved: 0, timeline: [] as TimelineSlot[], changed: [] as Project[] }
+    if (!pl) return { endDate: '', weeks: 0, remaining: 0, moved: 0, timeline: [] as TimelineSlot[], changed: [] as Project[], exams: [] as ExamSlot[] }
     // 루틴 시간도 속도 예산에(2026-11-21 정할 것 5) — 붙은 루틴은 그 프로젝트 시간으로, 붙지 않은 루틴은 예산에서 먼저 뺀다
     const loaded = withRoutineLoad(projectsNow.value, pl.routines.filter((x) => !(routineDrafts[x.id]?.kind === 'stop')))
-    const raw = rescheduleFrom(loaded.projects, timelineNow.value, nextWeek.value, budgetHours(pace.hours, loaded.freeMin))
+    // 시험일이 있는 걸음은 그 자리에 두고, 큰 시험이 시험일을 넘는지 함께 본다(2026-11-22 시험일 역산)
+    const raw = rescheduleFrom(loaded.projects, timelineNow.value, nextWeek.value, budgetHours(pace.hours, loaded.freeMin), 60, { startDate: pl.startDate, reviewDay: pl.reviewDay || '월' })
     const plain = (p: Project): Project => { if (p.routineMin === undefined) return p; const { routineMin: _m, ...rest } = p; void _m; return rest }
     const r = { ...raw, timeline: stripLoad(raw.timeline, projectsNow.value), changed: raw.changed.map(plain) }
     const remaining = pl.projects.filter((p) => { const sw = projectStartWeek(pl.timeline, p.id); return sw === null || sw >= nextWeek.value }).length
@@ -314,7 +339,15 @@ export function useWeekReview() {
       return was !== null && was >= nextWeek.value && now !== was
     }).length
     // changed = 새 속도로 다시 잡은 큰 시험(2026-11-17) — 결산을 마칠 때 저장한다
-    return { endDate: end, weeks: r.endWeek, remaining, moved, timeline: r.timeline, changed: r.changed }
+    return { endDate: end, weeks: r.endWeek, remaining, moved, timeline: r.timeline, changed: r.changed, exams: r.exams }
+  }
+  /** 그 속도로 바꾸면 시험일을 넘기는 시험(가장 많이 넘는 것) — 지금 속도에서는 넘지 않을 때만(바꿔서 생기는 일만 알린다) */
+  function examLateIfPace(pace: Pace): { late: ExamSlot; now: ExamSlot | null } | null {
+    if (pace.key === currentPace.value.key) return null
+    const late = endIfPace(pace).exams.filter((x) => x.spare < 0).sort((a, b) => a.spare - b.spare)[0]
+    if (!late) return null
+    const now = endIfPace(currentPace.value).exams.find((x) => x.id === late.id) ?? null
+    return now && now.spare < 0 ? null : { late, now }
   }
   // 과정 카드의 한 줄 미리보기 — 지금 속도 기준(4단계에서 속도를 바꾸면 거기서 다시 보여 준다)
   function periodPreview(id: string): { endFrom: number; endTo: number; moved: number; planEndFrom: string; planEndTo: string } | null {
@@ -343,9 +376,9 @@ export function useWeekReview() {
   const recommendedPace = computed<Pace>(() => {
     const list = paceOptions.value
     const i = list.findIndex((p) => p.key === currentPace.value.key)
-    if (reviewDraft.feel === 'tight') return list[Math.max(0, i - 1)]!
-    if (reviewDraft.feel === 'loose') return list[Math.min(list.length - 1, i + 1)]!
-    return currentPace.value
+    const rec = reviewDraft.feel === 'tight' ? list[Math.max(0, i - 1)]! : reviewDraft.feel === 'loose' ? list[Math.min(list.length - 1, i + 1)]! : currentPace.value
+    // '추천'이 시험일을 넘기는 속도에 붙지 않게(진로상담 11-22 정할 것 7)
+    return examLateIfPace(rec) ? currentPace.value : rec
   })
 
   // ── 5. 다음 주 일정 ──
@@ -374,6 +407,8 @@ export function useWeekReview() {
     const from = currentPace.value
     const changed = pace.key !== from.key
     const periodList = periodChanges.value
+    const examList = examChanges.value
+    const examReplace = examList.some((p) => !!examDateOf(p))   // 다음 시험 날짜를 넣었으면 그 날짜에 맞춰 다시 놓는다
     const beforeEnd = currentEnd.value; const after = endIfPace(pace)
     // 루틴 맞춰 보기(2026-11-21) — 시간 줄이기·요일 바꾸기·한 주 쉬기·그만두기. 서버는 요일·쉬는 주·끝낸 날이 바뀌면 이번 주부터 일정을 새로 만든다
     const routineList = routineCards.value.map((c) => ({ c, body: routineChangeOf(c) })).filter((x) => x.body)
@@ -384,7 +419,11 @@ export function useWeekReview() {
         curriculum: p.curriculum, days: p.days, ...(p.stoppedAt ? { stoppedAt: p.stoppedAt } : {}),
       })
     }
-    if (changed || periodList.length) {
+    // 시험 뒤(정할 것 9) — 시험일만 바꾼다(걸음은 완료 처리하지 않는다)
+    for (const p of examList) {
+      await req.put(`/api/career-plan/${pl.planId}/projects/${p.id}`, { method: p.method, methodDetail: p.methodDetail })
+    }
+    if (changed || periodList.length || examReplace) {
       // 0) 큰 시험(2026-11-17) — 새 속도로 기간·요일·1회 시간·커리큘럼을 다시 잡은 것을 먼저 저장한다(남은 시험 기간을 그 시간으로 다시 셈)
       for (const p of after.changed) {
         if (periodList.some((x) => x.after.id === p.id)) continue
@@ -424,7 +463,8 @@ export function useWeekReview() {
     Object.assign(reviewDraft, { satisfaction: 0, note: '', pledge: '', feel: '', paceKey: '' })
     for (const k of Object.keys(periodDrafts)) delete periodDrafts[k]
     for (const k of Object.keys(routineDrafts)) delete routineDrafts[k]
-    if (changed || periodList.length || routineList.length) await store.loadActivePlan(true)
+    for (const k of Object.keys(examAfterDrafts)) delete examAfterDrafts[k]
+    if (changed || periodList.length || routineList.length || examList.length) await store.loadActivePlan(true)
     return true
   }
 
@@ -438,5 +478,6 @@ export function useWeekReview() {
     nextDays,
     periodCards, periodChanges, periodPreview,
     routineCards,
+    examsPassed, examLateIfPace,
   }
 }

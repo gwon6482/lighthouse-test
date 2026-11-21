@@ -53,6 +53,14 @@
             </span>
           </div>
         </div>
+        <!-- 가장 가까운 시험 하나(2026-11-22 시험일 역산 정할 것 8) — 시험 날엔 '오늘 ○○ 시험이에요' -->
+        <div v-if="nextExam" class="ah-exam">
+          <span class="ah-exam__d">{{ nextExam.days === 0 ? '오늘' : `D-${nextExam.days}` }}</span>
+          <span class="ah-exam__body">
+            <strong>{{ nextExam.days === 0 ? COPY.ddayToday(nextExam.name) : COPY.ddayTitle(nextExam.name) }}</strong>
+            <small>{{ mdLabel(nextExam.date) }}</small>
+          </span>
+        </div>
       </section>
 
       <!-- 멈춘 집중 중 오늘 목록에 없는 것(어제 것·일정을 옮긴 것) — '오늘 할 일' 위에 따로 한 장(2026-11-19 정할 것 5) -->
@@ -218,6 +226,8 @@ import RoutineMeasureCard from '../components/RoutineMeasureCard.vue'
 import RoutineEndSheet from '../components/RoutineEndSheet.vue'
 import { ROUTINE_COLOR, ROUTINE_TINT } from '../composables/usePlanBoard'
 import type { Project } from '@/modules/career-design/types/career-design'
+import { daysUntil, examDateOf, mdLabel } from '@/modules/career-design/lib/examDate'
+import { COPY } from '@/modules/career-design/lib/examDateRules'
 import { elapsedOf, elapsedText, pausedEyebrow, type FocusSession } from '../lib/focusSession'
 
 const router = useRouter()
@@ -235,6 +245,19 @@ const {
   routineWeekCount, measureDue, saveRecord, endedRoutines, markAsked, decideEnded,
 } = usePlanBoard()
 const endSheet = computed(() => (loading.value ? null : endedRoutines.value[0] ?? null))
+
+// 가장 가까운 시험(오늘 포함) — 시험일 역산(2026-11-22)
+const nextExam = computed(() => {
+  const pl = plan.value
+  if (!pl) return null
+  const list = pl.projects
+    .map((p) => ({ name: p.name, date: examDateOf(p) }))
+    .filter((x) => !!x.date)
+    .map((x) => ({ ...x, days: daysUntil(x.date, today.value) }))
+    .filter((x) => x.days >= 0)
+    .sort((a, b) => a.days - b.days)
+  return list[0] ?? null
+})
 
 // 분류 색의 옅은 바탕(아이콘 칩)
 const tint = (c: string) => `color-mix(in srgb, ${c} 14%, white)`

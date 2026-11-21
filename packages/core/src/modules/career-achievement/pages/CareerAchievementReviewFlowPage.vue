@@ -16,6 +16,21 @@
     <main v-else class="wv-body">
       <!-- 1. 이번 주 성과 -->
       <section v-if="step === 1" class="wv-page">
+        <!-- 시험 뒤 첫 결산(2026-11-22 시험일 역산 정할 것 9) — 합격 여부는 묻지 않는다. 하나만 고르니 동그라미 -->
+        <div v-for="p in examsPassed" :key="p.id" class="wv-exam-after">
+          <strong>{{ COPY.afterTitle(mdPlain(examDateOf(p)), p.name) }}</strong>
+          <div class="wv-exam-after__opts" role="radiogroup">
+            <button
+              v-for="o in COPY.afterOptions" :key="o.key" type="button" role="radio"
+              class="wv-exam-after__opt" :class="{ on: examAfterDraftOf(p.id).kind === o.key }" :aria-checked="examAfterDraftOf(p.id).kind === o.key"
+              @click="examAfterDraftOf(p.id).kind = o.key"
+            ><i /><b>{{ o.label }}</b><small>{{ o.sub }}</small></button>
+          </div>
+          <label v-if="examAfterDraftOf(p.id).kind === 'next'" class="wv-exam-after__date">
+            <span>다음 시험 날짜</span>
+            <input type="date" :min="range?.weekEnd" :value="examAfterDraftOf(p.id).date" @change="examAfterDraftOf(p.id).date = ($event.target as HTMLInputElement).value" />
+          </label>
+        </div>
         <p class="wv-eyebrow">{{ weekNo }}주차 · {{ rangeLabel }}</p>
         <h1 class="wv-title">{{ headline }}</h1>
         <div class="wv-hero">
@@ -124,6 +139,11 @@
               <strong>전체 계획이 다시 짜여요</strong>
               <p v-if="chosenKey !== currentPace.key">아직 시작 안 한 프로젝트 {{ impact.remaining }}개를 {{ nextWeek }}주차부터 '{{ chosen.title }}' 속도로 다시 배치해요. 진행 중인 프로젝트<template v-if="periodNames">와 과정({{ periodNames }})은</template><template v-else>는</template> 그대로예요.</p>
               <p v-else>3단계에서 바꾼 과정 일정에 맞춰 아직 시작 안 한 프로젝트를 {{ nextWeek }}주차부터 다시 배치해요. 속도는 그대로예요.</p>
+              <!-- 시험일을 넘기게 되면 — 고른 카드 바로 아래·완료 예정 줄 위, 주황(진로상담 11-22 정할 것 7) -->
+              <template v-if="examLate">
+                <p class="wv-impact__exam">{{ COPY.reviewLate(chosen.title, examLate.late.name, mdPlain(examLate.late.date), -examLate.late.spare) }}</p>
+                <p v-if="examLate.now" class="wv-impact__exam">{{ COPY.reviewFit(currentPace.title, examLate.now.spare) }}</p>
+              </template>
               <p class="wv-impact__date">완료 예정 {{ ymd(baseline.endDate) }} → <b>{{ ymd(impact.endDate) }}</b> <em>{{ diffLabel }}</em></p>
               <p class="wv-impact__note">마지막 단계에서 [다음 주 시작하기]를 누르면 적용돼요.</p>
             </template>
@@ -158,7 +178,9 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
-import { useWeekReview, reviewDraft } from '../composables/useWeekReview'
+import { useWeekReview, reviewDraft, examAfterDraftOf } from '../composables/useWeekReview'
+import { examDateOf, mdPlain } from '@/modules/career-design/lib/examDate'
+import { COPY } from '@/modules/career-design/lib/examDateRules'
 import PeriodReviewCard from '../components/PeriodReviewCard.vue'
 import RoutineReviewCard from '../components/RoutineReviewCard.vue'
 import { weekDateRange } from '@/modules/career-design/composables/usePlanTimeline'
@@ -175,7 +197,9 @@ const {
   paceOptions, currentPace, recommendedPace, endIfPace, nextWeek, nextDays, finishReview, currentEnd,
   periodCards, periodChanges, periodPreview,
   routineCards,
+  examsPassed, examLateIfPace,
 } = useWeekReview()
+const examLate = computed(() => examLateIfPace(chosen.value))
 // 계획 주차 → 그 주 마지막 날 'M/D'(과정 카드의 끝 예정)
 function weekLabel(week: number): string {
   const pl = plan.value

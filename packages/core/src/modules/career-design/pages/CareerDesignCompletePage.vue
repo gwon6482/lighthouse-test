@@ -22,6 +22,19 @@
         <button type="button" class="cd-complete__pace-btn" @click="router.push('/career-design/plan/pace')">속도 다시 정하기</button>
       </div>
 
+      <!-- 시험일 역산(2026-11-22) — 시험까지 여유가 있으면 그대로 두고 알리기·옮기기(정할 것 5), 늦으면 한 줄, 날짜 사이 확인(정할 것 6) -->
+      <div v-for="x in spareSlots" :key="`spare-${x.id}`" class="cd-complete__exam-box">
+        <b>{{ COPY.spareTitle(x.name, x.spare) }}</b>
+        <p>{{ COPY.spareBody(weekEndMd(draftPlan.startDate, x.end, draftPlan.reviewDay), mdLabel(x.date)) }}</p>
+        <p>{{ COPY.spareTip }}</p>
+        <template v-if="canMove">
+          <button type="button" class="cd-complete__exam-move" @click="moveToExam(x.id)">{{ COPY.spareMove }}</button>
+          <p class="cd-complete__exam-note">{{ moveEffect(x.id) }}</p>
+        </template>
+      </div>
+      <p v-for="x in lateSlots" :key="`late-${x.id}`" class="cd-complete__exam-late">{{ COPY.lateLine(x.name, mdLabel(x.date), -x.spare) }}</p>
+      <p v-for="w in examWarns" :key="w" class="cd-complete__exam-late">{{ w }}</p>
+
       <!-- 프로젝트 풀 -->
       <div class="cd-complete__section">
         <div class="cd-complete__section-header">
@@ -134,6 +147,7 @@
                   :class="{ 'cd-complete__week-hours--over': draftPlan.weeklyHours && w.hours > draftPlan.weeklyHours }"
                 >{{ fmtH(w.hours) }}시간</span>
               </div>
+              <span v-for="pin in w.pins" :key="pin" class="cd-complete__exam-pin">{{ pin }}</span>
 
               <div class="cd-complete__week-body">
                 <p v-if="!w.bars.length" class="cd-complete__week-empty">
@@ -251,14 +265,17 @@ import { weekEntriesOf, weekDescriptionOf } from '../composables/useProjectCurri
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import CdStepIndicator from '../components/CdStepIndicator.vue'
 import { useDesignSteps } from '../composables/useDesignSteps'
-import type { Project, ProjectCategory } from '../types/career-design'
+import type { Project, ProjectCategory, TimelineSlot } from '../types/career-design'
 import {
   provisionalWeekCount, weekRangeLabel, projectWeeks, projectEndWeek, fitsInPlan,
   weekDateRange, monthWeekOf, monthWeekLabel, weeksInMonth, parseDateKey, resolveProject,
-  projectHoursPerWeek, lastWeekOfMonth,
+  projectHoursPerWeek, lastWeekOfMonth, weekOfDate,
 } from '../composables/usePlanTimeline'
 import { budgetHours, stripLoad, withRoutineLoad } from '../lib/routine'
-import { DEFAULT_PACE_HOURS, buildTimeline, monthsLabel, paceByKey, paceOfHours, pacedProjects } from '../composables/usePlanPace'
+import { DEFAULT_PACE_HOURS, buildTimeline, examAgeOptions, monthsLabel, paceByKey, paceOfHours, pacedProjects } from '../composables/usePlanPace'
+import { examDateOf, examDateWarnings, examReport, mdLabel, shortMdLabel, startsOf, weekEndMd, weekEndYm } from '../lib/examDate'
+import { COPY } from '../lib/examDateRules'
+import { useAuthStore } from '@/shared/stores/auth'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 
@@ -344,6 +361,7 @@ interface WeekRow {
   bars: WeekBar[]
   canPlace: boolean
   hours: number          // 그 주에 걸친 프로젝트의 주당 시간 합
+  pins: string[]         // 그 주에 든 시험 날('시험 5.15(토)' — 시험일 역산 2026-11-22)
 }
 
 interface BarDetail { text: string }
@@ -398,10 +416,53 @@ const weekRows = computed<WeekRow[]>(() => {
       bars,
       canPlace: !!sel && fitsInPlan(week, sel, totalWeeks.value),
       hours: bars.reduce((n, b) => n + projectHoursPerWeek(b.project), 0),
+      pins: examPins.value.get(week) ?? [],
     })
   }
   return rows
 })
+
+// ── 시험일 역산(2026-11-22) ─────────────────────────
+const examCtx = computed(() => ({ startDate: draftPlan.startDate, reviewDay: draftPlan.reviewDay }))
+const timelineStarts = computed(() => startsOf(draftTimeline.value.flatMap((sl) => sl.projects.map((project) => ({ week: sl.week, project })))))
+const examSlots = computed(() => (draftPlan.startDate ? examReport(draftPlan.projects, timelineStarts.value, examCtx.value) : []))
+const spareSlots = computed(() => examSlots.value.filter((x) => x.verdict === 'ahead'))
+const lateSlots = computed(() => examSlots.value.filter((x) => x.spare < 0))
+const examWarns = computed(() => examDateWarnings(draftPlan.projects, timelineStarts.value, examCtx.value).map((w) =>
+  w.kind === 'pair' ? COPY.pairWarn(w.text.after!, w.text.before!) : w.kind === 'grade' ? COPY.gradeWarn : COPY.courseWarn(w.text.course!)))
+// 시험 날 표시 — 시험 날짜가 든 주(시험이 둘 이상이면 이름 앞말을 붙인다)
+const examPins = computed(() => {
+  const m = new Map<number, string[]>()
+  if (!draftPlan.startDate) return m
+  const dated = draftPlan.projects.filter((p) => !!examDateOf(p))
+  for (const p of dated) {
+    const d = examDateOf(p)
+    const w = weekOfDate(draftPlan.startDate, parseDateKey(d)!, draftPlan.reviewDay)
+    if (!w) continue
+    const head = dated.length > 1 ? `${p.name.split(/[\s(]/)[0]} ` : ''
+    m.set(w, [...(m.get(w) ?? []), `${head}${COPY.pin(shortMdLabel(d))}`])
+  }
+  return m
+})
+// 시험 직전으로 옮기기 — 손으로 옮긴 배치가 없을 때만(옮기면 다시 놓는다). 고른 것은 기억해 다시 놓을 때도 그 자리
+const auth = useAuthStore()
+const canMove = computed(() => !draftPlan.timelineManual && !!draftPlan.weeklyHours && !editing.value)
+function timelineIfLate(late: string[]) {
+  const L = withRoutineLoad(draftPlan.projects, draftPlan.routines)
+  const opts = examAgeOptions(draftPlan.startDate, auth.user?.age, draftPlan.reviewDay)
+  return stripLoad(buildTimeline(L.projects, budgetHours(draftPlan.weeklyHours ?? DEFAULT_PACE_HOURS, L.freeMin), opts, { ...examCtx.value, late: new Set(late) }), draftPlan.projects)
+}
+const endOf = (t: TimelineSlot[]) => t.reduce((m, sl) => Math.max(m, ...sl.projects.map((p) => projectEndWeek(sl.week, resolveProject(p, draftPlan.projects)))), 0)
+function moveEffect(id: string) {
+  const next = endOf(timelineIfLate([...(draftPlan.examLate ?? []), id]))
+  const now = autoWeeks.value
+  return COPY.spareMoveEffect(next - now, weekEndYm(draftPlan.startDate, next, draftPlan.reviewDay), weekEndYm(draftPlan.startDate, now, draftPlan.reviewDay))
+}
+function moveToExam(id: string) {
+  const late = [...new Set([...(draftPlan.examLate ?? []), id])]
+  draftTimeline.value = timelineIfLate(late)
+  draftPlan.examLate = late
+}
 
 // ── 배치 상태 ─────────────────────────────────────
 const placedProjectIds = computed(() =>
@@ -496,7 +557,7 @@ onMounted(() => {
     const paced = pacedProjects(draftPlan.projects, draftPlan.weeklyHours)
     draftPlan.projects.splice(0, draftPlan.projects.length, ...paced)
     const L = withRoutineLoad(draftPlan.projects, draftPlan.routines)   // 루틴 시간도 속도 예산에(2026-11-21)
-    draftTimeline.value = stripLoad(buildTimeline(L.projects, budgetHours(draftPlan.weeklyHours, L.freeMin)), draftPlan.projects)
+    draftTimeline.value = stripLoad(buildTimeline(L.projects, budgetHours(draftPlan.weeklyHours, L.freeMin), {}, { ...examCtx.value, late: new Set(draftPlan.examLate ?? []) }), draftPlan.projects)
     draftPlan.timelineManual = false
   }
 })
@@ -772,6 +833,15 @@ function barStyle(bar: WeekBar) {
       cursor: not-allowed;
     }
   }
+
+  // 시험일 역산(2026-11-22)
+  &__exam-box { background: #fff; border: 1.5px solid #E4F8EC; border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; word-break: keep-all;
+    b { font-size: 14px; color: #222; }
+    p { margin: 0; font-size: 12.5px; color: #666; line-height: 1.5; } }
+  &__exam-move { margin-top: 2px; padding: 10px; border: 1.5px solid #ddd; border-radius: 12px; background: #fff; font: inherit; font-size: 13px; font-weight: 700; color: #222; cursor: pointer; }
+  &__exam-note { font-size: 11.5px !important; color: #999 !important; }
+  &__exam-late { margin: 0; padding: 10px 14px; border-radius: 12px; background: #FFF4E5; color: #B54708; font-size: 12.5px; font-weight: 600; line-height: 1.5; word-break: keep-all; }
+  &__exam-pin { align-self: flex-start; padding: 2px 9px; border-radius: 999px; background: #1A1A1A; color: #fff; font-size: 11px; font-weight: 700; white-space: nowrap; }
 
   &__week-head {
     display: flex;

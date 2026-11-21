@@ -84,7 +84,20 @@
   strong { font-size: $fs-md; } p { margin: 0; font-size: $fs-sm; color: $color-text-secondary; }
   &__date { color: $color-text !important; b { font-weight: $fw-bold; } em { font-style: normal; color: #E8590C; font-weight: $fw-bold; margin-left: 4px; } }
   &__note { font-size: $fs-2xs !important; color: $color-text-tertiary !important; }
-  &--same { background: $color-success-tint; border-color: #B6EAC9; } }
+  &--same { background: $color-success-tint; border-color: #B6EAC9; }
+  &__exam { color: #B54708 !important; font-weight: $fw-bold; } }
+
+// 시험 뒤 첫 결산(2026-11-22 시험일 역산 정할 것 9)
+.wv-exam-after { display: grid; gap: 10px; padding: 16px; border-radius: $radius-card; background: $color-surface;
+  strong { font-size: $fs-md; line-height: 1.45; }
+  &__opts { display: grid; gap: 6px; }
+  &__opt { display: grid; grid-template-columns: 18px 1fr; gap: 2px 10px; align-items: start; padding: 11px 12px; border: 1.5px solid $color-border; border-radius: $radius-lg; background: $color-surface; font: inherit; color: $color-text; text-align: left; cursor: pointer;
+    i { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid $color-border-strong; margin-top: 2px; box-sizing: border-box; }
+    b { font-size: $fs-sm; }
+    small { grid-column: 2; font-size: $fs-2xs; color: $color-text-secondary; }
+    &.on { border-color: $color-text; background: $color-primary-tint; i { border: 5px solid $color-text; } } }
+  &__date { display: grid; gap: 6px; font-size: $fs-sm; font-weight: $fw-semibold;
+    input { padding: 12px; border: 1px solid $color-border-strong; border-radius: $radius-md; background: $color-surface; font: inherit; font-size: $fs-md; color: $color-text; } } }
 
 // 5
 .wv-pledge { display: flex; align-items: center; gap: 8px; margin: -6px 0 0; padding: 12px 14px; border-radius: $radius-lg; background: $color-primary-tint; font-size: $fs-sm; font-weight: $fw-semibold; }
