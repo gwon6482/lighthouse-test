@@ -1,4 +1,4 @@
-<!-- 가입 뒤 소개 4쪽(2026-11-20 시안 2판) — 쪽 내용은 lib/introSlides.ts, 가운데 그림은 components/IntroArt.vue.
+<!-- 가입 뒤 소개 6쪽(2026-11-22 시안 4판, 틀은 2026-11-20 2판) — 쪽 내용은 lib/introSlides.ts, 가운데 그림은 components/IntroArt.vue.
      틀(그림 상자 → 제목 → 설명 → 점 → 노란 버튼, 옆으로 밀어 넘기기)은 예전 그대로. 건너뛰기 없음 -->
 <template>
   <div class="intro">

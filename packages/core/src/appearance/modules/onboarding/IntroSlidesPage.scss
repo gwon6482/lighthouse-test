@@ -1,7 +1,7 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
-// 가입 뒤 소개 4쪽(2026-11-20 시안 2판). 쪽이 화면보다 길면(작은 폰) 쪽 안에서 위아래로 밀린다
+// 가입 뒤 소개 6쪽(2026-11-22 시안 4판, 틀은 2026-11-20 2판 그대로). 쪽이 화면보다 길면(작은 폰) 쪽 안에서 위아래로 밀린다
 .intro {
   @include fullscreen-page($z-overlay-high);
 
@@ -68,6 +68,8 @@
     &--b { background: linear-gradient(135deg, #E6F0FF 0%, #C9DDFF 100%); }
     &--p { background: linear-gradient(135deg, #EFE6FF 0%, #DCC9FF 100%); }
     &--g { background: linear-gradient(135deg, #E4F6EC 0%, #C6EBD6 100%); }
+    &--o { background: linear-gradient(135deg, #FFF0E4 0%, #FFD9BC 100%); } // 5쪽 한 주 돌아보기
+    &--s { background: linear-gradient(135deg, #E2F5F3 0%, #BFE7E1 100%); } // 6쪽 성장 기록
   }
 
   &__shot {
@@ -151,7 +153,8 @@
   .intro__track { transition: none; }
 }
 
-// ── 그림(IntroArt) — 실제 화면을 닮게 단순하게. 그림 속 색은 각 화면의 실제 색 ──
+// ── 그림(IntroArt) — 실제 화면을 닮게 단순하게. 그림 속 색은 각 화면의 실제 색(2026-11-22 시안 4판)
+//    직업 상세 JobDetailHeader·OverviewTab / 홈 AchievementHome / 주간결산 AchievementReview·RoutineReviewCard / 로드맵 AchievementRoadmap
 .iart {
   width: 100%;
   box-sizing: border-box;
@@ -167,8 +170,9 @@
 
   &__eyebrow { font-size: 10.5px; font-weight: $fw-bold; letter-spacing: 0.14em; color: #A07800; }
   &__title { font-size: 16px; font-weight: $fw-bold; letter-spacing: -0.02em; }
-  &__stack { display: grid; gap: 4px; }
+  &__stack { display: grid; gap: 4px; justify-items: start; }
 
+  // 1쪽 결과지
   &__grp { border: 1px solid $color-border; border-radius: 12px; padding: 11px; display: grid; gap: 8px; }
   &__head { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: $fw-bold; }
   &__rank { width: 22px; height: 22px; border-radius: 50%; background: $color-primary; display: grid; place-items: center; font-size: 12px; flex: none; }
@@ -188,38 +192,48 @@
     span { display: flex; justify-content: space-between; padding: 6px 8px; border-radius: 8px; background: #F7F7F7; }
   }
 
+  // 2쪽 직업 상세(머리 + 개요 탭)
+  &--job { gap: 9px; }
   &__badges { display: flex; gap: 5px; }
   &__badge {
     font-size: 10.5px; font-weight: $fw-semibold; padding: 2px 7px; border-radius: $radius-pill;
     &--deg { color: #4F46E5; background: #EEF0FE; }
     &--sel { color: #0F8A7E; background: #E2F6F3; }
   }
+  &__rec {
+    display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; padding: 3px 9px; border-radius: 20px;
+    background: linear-gradient(135deg, #EEF2FF, #E0E7FF); border: 1px solid #C7D2FE;
+    font-size: 11.5px; font-weight: $fw-medium; color: #4F46E5;
+    .app-icon { font-size: 11px; color: #6366F1; }
+  }
+  &__tabs {
+    display: flex; gap: 14px; border-bottom: 1px solid $color-border; font-size: 12px; color: $color-text-tertiary;
+    > * { padding: 2px 0 6px; }
+    b { color: $color-text; box-shadow: inset 0 -2px 0 $color-text; }
+  }
+  &__sec {
+    display: grid; gap: 3px;
+    b { font-size: 13px; }
+    p { margin: 0; font-size: 12px; color: $gray-600; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  }
+  &__pf { display: grid; gap: 6px; padding: 10px 11px; border-radius: 10px; background: #F8F9FA; }
+  &__pf--mini { grid-template-columns: auto 1fr; align-items: center; gap: 8px; padding: 8px 11px; }
+  &__pfhead {
+    display: flex; align-items: center; gap: 6px;
+    b { font-size: 13px; color: #333333; }
+    span { font-size: 10px; font-weight: $fw-medium; color: #666666; background: #E9ECEF; border-radius: 5px; padding: 1px 6px; }
+  }
+  &__pflab { margin: 0; display: flex; align-items: center; gap: 4px; font-size: 11px; color: $color-text-secondary; .app-icon { font-size: 13px; color: #185FA5; } }
+  &__pfchips { display: flex; flex-wrap: wrap; gap: 5px; span { font-size: 11.5px; padding: 3px 9px; border-radius: 20px; background: #E6F1FB; color: #0C447C; } }
+
+  // 3쪽 진로계획
   &__gate {
     display: grid; gap: 5px; padding: 10px; border-radius: 10px; background: #FFFDF6; border: 1px solid #ECE8DC;
-    > b { font-size: 12.5px; }
     &--must { background: #EEF3FF; border-color: #DCE6FF; }
     &--must small { font-size: 11px; font-weight: $fw-semibold; color: #3365E3; }
     &--must .iart__txt { color: #24365F; }
   }
-  &__gchips {
-    display: flex; gap: 5px; flex-wrap: wrap;
-    span { font-size: 10.5px; font-weight: $fw-semibold; padding: 2px 8px; border-radius: $radius-pill; background: $color-surface; border: 1px solid #E2DED2; }
-  }
-  &__row {
-    display: grid; gap: 4px; padding: 10px; border-radius: 10px; background: #F7F8FA;
-    small { font-size: 11px; color: $color-text-secondary; }
-  }
-  &__sal {
-    display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; color: #777777;
-    b { font-size: 18px; color: #2B5BA8; font-weight: $fw-bold; }
-  }
-  &__sal-mid { text-align: center; }
-  &__sal-end { text-align: right; }
-  &__line { height: 4px; border-radius: 2px; background: linear-gradient(90deg, #C9DAF3, #4A78C2); }
-  &__chip { justify-self: start; font-size: 11px; font-weight: $fw-bold; padding: 2px 9px; border-radius: $radius-pill; background: #EEF1F5; color: #475569; }
   &__txt { font-size: 12.5px; line-height: 1.45; &--strong { font-weight: $fw-semibold; } }
-  &__src { font-size: 10.5px; color: $color-text-tertiary; }
-
   &__steps {
     display: grid; gap: 5px;
     > span { display: flex; align-items: center; gap: 7px; font-size: 12px; padding: 6px 8px; border-radius: 8px; background: #F7F7F7; }
@@ -230,18 +244,124 @@
     font-style: normal; display: grid; place-items: center; flex: none;
   }
 
-  &__todayhead { display: flex; justify-content: space-between; align-items: baseline; > span:last-child { font-size: 12px; color: $color-text-secondary; } }
-  &__today { display: grid; gap: 7px; }
-  &__task {
-    display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 10px; background: #FAFAFA; border: 1px solid #EFEFEF; font-size: 12.5px; font-weight: $fw-medium;
-    i { width: 26px; height: 26px; border-radius: 8px; flex: none; }
-    span { flex: 1; min-width: 0; }
-    b { font-size: 11px; font-weight: $fw-semibold; padding: 4px 9px; border-radius: $radius-pill; background: $color-text; color: $color-surface; flex: none; }
+  // 4쪽 진로달성 홈
+  &--today { gap: 8px; }
+  &__todayhead {
+    display: flex; justify-content: space-between; align-items: baseline; padding: 0 2px;
+    > span:last-child { font-size: 12px; color: $color-text-secondary; font-variant-numeric: tabular-nums; b { color: $color-text; font-size: 14px; } }
   }
-  &__week {
-    display: grid; gap: 6px; padding: 10px; border-radius: 12px; background: #FFFCEB; border: 1px solid #FBEBB5; font-size: 12px;
-    > div { display: flex; justify-content: space-between; gap: 8px; }
+  &__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  &__task { display: flex; align-items: center; gap: 10px; padding: 6px 3px; border-radius: 10px; }
+  &__chip { flex: 0 0 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; font-size: 16px; }
+  &__tbody { flex: 1; min-width: 0; display: grid; gap: 1px; }
+  &__eye { font-size: 10px; font-weight: $fw-medium; color: $amber-700; }
+  &__tname { font-size: 12.5px; font-weight: $fw-medium; }
+  &__tsub { font-size: 10.5px; color: $color-text-secondary; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &__start { flex: none; padding: 5px 10px; border-radius: 7px; background: $color-primary; font-size: 11.5px; font-weight: $fw-medium; }
+  &__done-btn { flex: none; padding: 4px 9px; border-radius: 7px; border: 1px solid $color-border-strong; background: $color-surface; font-size: 11px; font-weight: $fw-medium; }
+  &__state { flex: none; display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: $fw-medium; color: $color-success; }
+  &__task--next {
+    padding: 9px 8px; background: $color-primary-tint;
+    .iart__chip { flex-basis: 34px; height: 34px; font-size: 18px; }
+    .iart__tname { font-size: 13.5px; font-weight: $fw-semibold; }
   }
-  &__dday { color: #A07800; font-weight: $fw-semibold; flex: none; }
-  &__wbar { display: grid !important; grid-template-columns: repeat(3, 1fr); gap: 3px; i { height: 5px; border-radius: 3px; background: #E7E7E7; } }
+  &__task--done { opacity: 0.5; padding-top: 3px; padding-bottom: 3px; .iart__chip { flex-basis: 24px; height: 24px; border-radius: 7px; font-size: 13px; } }
+  &__divider {
+    margin: 0; display: flex; align-items: center; gap: 6px; font-size: 10px; color: $color-text-tertiary;
+    &::after { content: ''; flex: 1; height: 1px; background: $color-border; }
+  }
+  &__week { display: grid; gap: 8px; padding: 10px; border-radius: 12px; background: linear-gradient(180deg, #FFFBEA 0%, $color-surface 60%); border: 1px solid #FFF0B3; }
+  &__whead {
+    display: flex; justify-content: space-between; align-items: center; gap: 6px;
+    b { font-size: 12.5px; span { color: $color-text-secondary; font-weight: 400; } }
+  }
+  &__badge-d { flex: none; padding: 2px 8px; border-radius: $radius-pill; background: $color-primary-tint; color: $amber-700; font-size: 10px; font-weight: $fw-medium; }
+  &__goal { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; }
+  &__gname {
+    display: flex; align-items: center; gap: 5px; min-width: 0; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    i { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+  }
+  &__gcount { font-size: 10.5px; color: $color-text-secondary; b { color: $color-text; } }
+  &__gbar { grid-column: 1 / -1; display: flex; gap: 3px; i { flex: 1; height: 5px; border-radius: 3px; background: $color-border; } }
+
+  // 5쪽 주간결산 · 6쪽 로드맵 — 노란 머리가 카드 끝까지 닿게 안쪽 여백 없이
+  &--review, &--roadmap { padding: 0; gap: 0; overflow: hidden; background: $color-surface-page; }
+  &__rbar { padding: 9px 12px; background: $color-primary; }
+  &__rrow {
+    display: flex; align-items: center; gap: 6px; font-size: 12.5px;
+    .app-icon { font-size: 15px; }
+    b { flex: 1; }
+    span { font-size: 11px; font-weight: $fw-medium; color: rgba(0, 0, 0, 0.6); }
+  }
+  &__rdots { display: flex; gap: 3px; margin-top: 6px; i { flex: 1; height: 3px; border-radius: 2px; background: rgba(0, 0, 0, 0.12); } i.on { background: $color-text; } }
+  &__rbody { display: grid; gap: 6px; padding: 10px 11px 11px; }
+  &__rtitle { font-size: 16px; font-weight: $fw-bold; letter-spacing: -0.02em; }
+  &__hero {
+    display: flex; align-items: baseline; gap: 8px; padding: 8px 12px; border-radius: 12px; background: $color-surface;
+    strong { font-size: 28px; line-height: 1; font-weight: $fw-black; letter-spacing: -1px; small { font-size: 14px; margin-left: 3px; letter-spacing: 0; } }
+    span { font-size: 11px; color: $color-text-secondary; }
+  }
+  &__days { list-style: none; margin: 0; padding: 6px; display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; border-radius: 12px; background: $color-surface; }
+  &__day {
+    display: grid; justify-items: center; gap: 2px;
+    small { font-size: 9.5px; font-weight: $fw-medium; color: $color-text-tertiary; }
+    > span { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 8.5px; font-weight: $fw-bold; background: $color-surface-alt; color: $color-text-tertiary; }
+    &--all > span { background: $color-success; color: $color-surface; font-size: 12px; }
+    &--part > span { background: $color-primary-tint; color: $amber-700; box-shadow: 0 0 0 1.5px $color-primary inset; }
+  }
+  &__rsub { margin-top: 2px; font-size: 12px; font-weight: $fw-bold; }
+  &__gain {
+    list-style: none; margin: 0; padding: 2px 10px; border-radius: 12px; background: $color-surface;
+    li { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 6px; padding: 4px 0; }
+    li + li { border-top: 1px solid $color-border; }
+    i { width: 6px; height: 6px; border-radius: 50%; }
+    span { font-size: 11.5px; font-weight: $fw-medium; white-space: nowrap; }
+    small { font-size: 9.5px; color: $color-text-tertiary; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  }
+  &__memo {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px; padding: 6px 9px;
+    border-radius: 9px; border: 1px solid $color-border-strong; background: $color-surface;
+    small { font-size: 10.5px; font-weight: $fw-medium; color: $color-text-secondary; }
+    span { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  }
+
+  // 6쪽 로드맵 — 아래는 다음 정거장이 옅게 잘린다(이어지는 길)
+  &--roadmap { position: relative; max-height: 352px; }
+  &--roadmap::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 40px; background: linear-gradient(to bottom, rgba(245, 245, 245, 0), $color-surface-page); pointer-events: none; }
+  &__rmbar { display: grid; gap: 5px; padding: 10px 12px 9px; background: $color-primary; }
+  &__rmrow {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+    b { font-size: 13px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    strong { font-size: 16px; line-height: 1; small { font-size: 11px; margin-left: 2px; } }
+  }
+  &__rmtrack { display: block; height: 6px; border-radius: $radius-pill; background: rgba(0, 0, 0, 0.1); overflow: hidden; i { display: block; height: 100%; border-radius: inherit; background: $color-text; } }
+  &__rmmeta { margin: 0; font-size: 10.5px; color: rgba(0, 0, 0, 0.68); b { color: $color-text; } }
+  &__path { list-style: none; margin: 0; padding: 12px 10px 0; }
+  &__node, &__here { position: relative; padding: 0 0 10px 34px; }
+  &__node::before { content: ''; position: absolute; left: 13px; top: 12px; bottom: -12px; border-left: 2.5px solid $color-text; }
+  &__node--next::before { border-left-style: dashed; border-left-color: $color-border-strong; }
+  &__here::before { content: ''; position: absolute; left: 13px; top: 0; bottom: 0; border-left: 2.5px solid $color-text; }
+  &__here span { position: relative; z-index: 1; display: inline-flex; margin-left: -28px; padding: 4px 9px; border-radius: $radius-pill; background: $color-text; color: $color-primary; font-size: 10.5px; font-weight: $fw-bold; }
+  &__dot {
+    position: absolute; left: 4px; top: 1px; width: 21px; height: 21px; border-radius: 50%; box-sizing: border-box; z-index: 1;
+    display: grid; place-items: center; background: $color-surface; border: 2.5px solid $color-text; font-size: 11px;
+    i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  }
+  &__node--done &__dot { background: $color-success; border-color: $color-success; color: $color-surface; }
+  &__node--now &__dot { background: $color-primary; border-color: $color-text; }
+  &__node--next &__dot { border-color: $color-border-strong; color: $color-border-strong; }
+  &__stop { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 9px 10px; border-radius: 12px; background: $color-surface; }
+  &__node--now &__stop { box-shadow: 0 0 0 1.5px $color-text inset; }
+  &__node--done &__stop { opacity: 0.75; }
+  &__node--next &__stop { background: transparent; box-shadow: 0 0 0 1px $color-border-strong inset; }
+  &__stop-top { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; }
+  &__stop-chip { flex: 0 0 20px; height: 20px; display: grid; place-items: center; border-radius: 6px; font-size: 11px; }
+  &__stop-when { flex: 1; min-width: 0; font-size: 9.5px; color: $color-text-secondary; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &__stop-status { flex: none; padding: 2px 6px; border-radius: $radius-pill; background: $color-surface-alt; font-size: 9px; font-weight: $fw-bold; color: $color-text-secondary; }
+  &__node--now &__stop-status { background: $color-primary; color: $color-text; }
+  &__node--done &__stop-status { background: $color-success-tint; color: $color-success; }
+  &__stop-name { grid-column: 1 / -1; font-size: 12.5px; font-weight: $fw-bold; }
+  &__stop-cat { grid-column: 1 / -1; font-size: 9.5px; color: $color-text-tertiary; }
+  &__stop-bar { grid-column: 1; align-self: center; display: block; height: 4px; border-radius: 2px; background: $color-border; overflow: hidden; i { display: block; height: 100%; border-radius: inherit; } }
+  &__stop-count { grid-column: 2; font-size: 9.5px; color: $color-text-secondary; font-variant-numeric: tabular-nums; }
 }
