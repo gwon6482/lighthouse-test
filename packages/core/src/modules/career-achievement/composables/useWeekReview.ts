@@ -7,7 +7,7 @@ import { useAchievementEntries } from './useAchievementEntries'
 import { computeWeekRangeContaining, parseDateKey, toDateKey } from './useWeeklySchedule'
 import { weekOfDate, projectStartWeek, planWeekCount, weekDateRange, duringOwners } from '@/modules/career-design/composables/usePlanTimeline'
 import { weekEntriesOf } from '@/modules/career-design/composables/useProjectCurriculum'
-import { PACES, paceOfHours, paceByKey, rescheduleFrom, DEFAULT_PACE_HOURS, type Pace } from '@/modules/career-design/composables/usePlanPace'
+import { PACES, paceOfHours, paceByKey, rescheduleFrom, examAgeOptions, DEFAULT_PACE_HOURS, type Pace } from '@/modules/career-design/composables/usePlanPace'
 import { applyPeriodChange, periodWeekInfo, type PeriodChange, type PeriodWeekInfo } from '@/modules/career-design/lib/period'
 import { req } from '@/shared/api'
 import { useAchievementStore } from '@/shared/stores/achievement'
@@ -17,7 +17,9 @@ import { categoryColor } from '../lib/planBoard'
 import type { DayOfWeek, Project, Routine, TimelineSlot } from '@/modules/career-design/types/career-design'
 import { budgetHours, measureOf, measureTrend, shortened, stripLoad, twoWeeksLow, withRoutineLoad, type WeekCount } from '@/modules/career-design/lib/routine'
 import { ROUTINE_COLOR } from './usePlanBoard'
-import { examDateOf, type ExamSlot } from '@/modules/career-design/lib/examDate'
+import { allItemsDone, examAfterChange, examDateOf, type ExamSlot } from '@/modules/career-design/lib/examDate'
+import { useCurriculumCompletion } from './useCurriculumCompletion'
+import { useAuthStore } from '@/shared/stores/auth'
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -77,6 +79,8 @@ export function useWeekReview() {
   const board = usePlanBoard()
   const { feedSorted, entries } = useAchievementEntries()
   const { plan, today } = board
+  const { isItemDone } = useCurriculumCompletion()
+  const auth = useAuthStore()
 
   const startDow = computed(() => (plan.value?.reviewDay || '월') as DayOfWeek)
 
@@ -214,17 +218,20 @@ export function useWeekReview() {
   const examsPassed = computed<Project[]>(() => {
     const pl = plan.value; const r = range.value
     if (!pl || !r) return []
-    return pl.projects.filter((p) => { const d = examDateOf(p); return !!d && d <= r.weekEnd })
+    // 할 일을 다 끝낸 걸음에는 묻지 않는다(코드 검토 11-22)
+    return pl.projects.filter((p) => { const d = examDateOf(p); return !!d && d <= r.weekEnd && !allItemsDone(p, isItemDone, weekEntriesOf) })
   })
   // 날짜가 바뀌는 것(다음 시험 날짜 넣기 · 끝났어요)
-  const examChanges = computed(() => examsPassed.value.flatMap((p) => {
-    const d = examAfterDrafts[p.id]
-    if (!d || (d.kind !== 'done' && d.kind !== 'next') || (d.kind === 'next' && !d.date)) return []
-    const detail = { ...(p.methodDetail ?? {}) }
-    if (d.kind === 'next') detail.deadline = d.date
-    else delete detail.deadline
-    return [{ ...p, methodDetail: detail }]
-  }))
+  // '다음 시험 날짜 넣기'는 이미 시작한 걸음이면 남은 주를 새 시험 주에 맞춰 다시 편다(코드 검토 11-22 — 예전엔 날짜만 바뀌었다)
+  const examChanges = computed(() => {
+    const pl = plan.value
+    if (!pl) return []
+    return examsPassed.value.flatMap((p) => {
+      const d = examAfterDrafts[p.id]
+      const ch = d ? examAfterChange(p, d.kind, d.date, { startDate: pl.startDate, reviewDay: pl.reviewDay || '월', startWeek: projectStartWeek(pl.timeline, p.id), fromWeek: nextWeek.value }) : null
+      return ch ? [ch] : []
+    })
+  })
   const projectsNow = computed<Project[]>(() => {
     const pl = plan.value
     if (!pl) return []
@@ -328,7 +335,9 @@ export function useWeekReview() {
     // 루틴 시간도 속도 예산에(2026-11-21 정할 것 5) — 붙은 루틴은 그 프로젝트 시간으로, 붙지 않은 루틴은 예산에서 먼저 뺀다
     const loaded = withRoutineLoad(projectsNow.value, pl.routines.filter((x) => !(routineDrafts[x.id]?.kind === 'stop')))
     // 시험일이 있는 걸음은 그 자리에 두고, 큰 시험이 시험일을 넘는지 함께 본다(2026-11-22 시험일 역산)
-    const raw = rescheduleFrom(loaded.projects, timelineNow.value, nextWeek.value, budgetHours(pace.hours, loaded.freeMin), 60, { startDate: pl.startDate, reviewDay: pl.reviewDay || '월' })
+    // 응시 나이도 새 계획과 같이(코드 검토 11-22)
+    const ageOpts = examAgeOptions(pl.startDate, auth.user?.age, pl.reviewDay || '월')
+    const raw = rescheduleFrom(loaded.projects, timelineNow.value, nextWeek.value, budgetHours(pace.hours, loaded.freeMin), 60, { startDate: pl.startDate, reviewDay: pl.reviewDay || '월', minStart: ageOpts.minStart })
     const plain = (p: Project): Project => { if (p.routineMin === undefined) return p; const { routineMin: _m, ...rest } = p; void _m; return rest }
     const r = { ...raw, timeline: stripLoad(raw.timeline, projectsNow.value), changed: raw.changed.map(plain) }
     const remaining = pl.projects.filter((p) => { const sw = projectStartWeek(pl.timeline, p.id); return sw === null || sw >= nextWeek.value }).length
@@ -421,7 +430,11 @@ export function useWeekReview() {
     }
     // 시험 뒤(정할 것 9) — 시험일만 바꾼다(걸음은 완료 처리하지 않는다)
     for (const p of examList) {
-      await req.put(`/api/career-plan/${pl.planId}/projects/${p.id}`, { method: p.method, methodDetail: p.methodDetail })
+      const before = pl.projects.find((x) => x.id === p.id)
+      await req.put(`/api/career-plan/${pl.planId}/projects/${p.id}`, {
+        method: p.method, methodDetail: p.methodDetail,
+        ...(before && before.curriculum !== p.curriculum ? { curriculum: p.curriculum } : {}),
+      })
     }
     if (changed || periodList.length || examReplace) {
       // 0) 큰 시험(2026-11-17) — 새 속도로 기간·요일·1회 시간·커리큘럼을 다시 잡은 것을 먼저 저장한다(남은 시험 기간을 그 시간으로 다시 셈)
@@ -443,7 +456,7 @@ export function useWeekReview() {
       complete: true, weekEnd: r.weekEnd, weekNo: weekNo.value ?? undefined,
       satisfaction: reviewDraft.satisfaction, note: reviewDraft.note, pledge: reviewDraft.pledge, feel: reviewDraft.feel,
       paceFrom: from.key, paceTo: pace.key,
-      endDateFrom: changed || periodList.length ? beforeEnd : '', endDateTo: changed || periodList.length ? after.endDate : '',
+      endDateFrom: changed || periodList.length || examReplace ? beforeEnd : '', endDateTo: changed || periodList.length || examReplace ? after.endDate : '',
       // 과정 점검·일정 변경 기록(2026-11-16)
       periodChecks: periodCards.value.filter((c) => c.checks.length).map((c) => ({
         projectId: c.project.id, week: c.idx, items: c.checks, done: (periodDrafts[c.project.id]?.checked ?? []).filter((x) => c.checks.includes(x)),

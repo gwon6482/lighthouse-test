@@ -19,16 +19,17 @@
         <!-- 시험 뒤 첫 결산(2026-11-22 시험일 역산 정할 것 9) — 합격 여부는 묻지 않는다. 하나만 고르니 동그라미 -->
         <div v-for="p in examsPassed" :key="p.id" class="wv-exam-after">
           <strong>{{ COPY.afterTitle(mdPlain(examDateOf(p)), p.name) }}</strong>
-          <div class="wv-exam-after__opts" role="radiogroup">
+          <div class="wv-exam-after__opts" role="radiogroup" :aria-label="COPY.afterTitle(mdPlain(examDateOf(p)), p.name)" @keydown="afterKey($event, p.id)">
             <button
               v-for="o in COPY.afterOptions" :key="o.key" type="button" role="radio"
               class="wv-exam-after__opt" :class="{ on: examAfterDraftOf(p.id).kind === o.key }" :aria-checked="examAfterDraftOf(p.id).kind === o.key"
+              :tabindex="examAfterDraftOf(p.id).kind === o.key || (!examAfterDraftOf(p.id).kind && o.key === COPY.afterOptions[0]!.key) ? 0 : -1"
               @click="examAfterDraftOf(p.id).kind = o.key"
             ><i /><b>{{ o.label }}</b><small>{{ o.sub }}</small></button>
           </div>
           <label v-if="examAfterDraftOf(p.id).kind === 'next'" class="wv-exam-after__date">
-            <span>다음 시험 날짜</span>
-            <input type="date" :min="range?.weekEnd" :value="examAfterDraftOf(p.id).date" @change="examAfterDraftOf(p.id).date = ($event.target as HTMLInputElement).value" />
+            <span>{{ COPY.afterDateLabel }}</span>
+            <input type="date" :min="dayAfterWeek" :value="examAfterDraftOf(p.id).date" @change="examAfterDraftOf(p.id).date = ($event.target as HTMLInputElement).value" />
           </label>
         </div>
         <p class="wv-eyebrow">{{ weekNo }}주차 · {{ rangeLabel }}</p>
@@ -175,7 +176,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { useWeekReview, reviewDraft, examAfterDraftOf } from '../composables/useWeekReview'
@@ -200,6 +201,24 @@ const {
   examsPassed, examLateIfPace,
 } = useWeekReview()
 const examLate = computed(() => examLateIfPace(chosen.value))
+function afterKey(e: KeyboardEvent, id: string) {
+  const d = ({ ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 } as Record<string, number>)[e.key]
+  if (!d) return
+  e.preventDefault()
+  const opts = COPY.afterOptions
+  const i = Math.max(0, opts.findIndex((o) => o.key === examAfterDraftOf(id).kind))
+  const next = opts[(i + d + opts.length) % opts.length]!
+  examAfterDraftOf(id).kind = next.key
+  const group = e.currentTarget as HTMLElement
+  nextTick(() => group.querySelectorAll<HTMLElement>('[role="radio"]')[opts.indexOf(next)]?.focus())
+}
+// 다음 시험 날짜는 결산한 주 다음 날부터(그날을 고르면 다음 주에 또 묻게 된다 — 코드 검토 11-22)
+const dayAfterWeek = computed(() => {
+  const d = parsePlanDate(range.value?.weekEnd)
+  if (!d) return undefined
+  d.setDate(d.getDate() + 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+})
 // 계획 주차 → 그 주 마지막 날 'M/D'(과정 카드의 끝 예정)
 function weekLabel(week: number): string {
   const pl = plan.value

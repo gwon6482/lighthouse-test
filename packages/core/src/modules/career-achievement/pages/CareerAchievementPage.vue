@@ -55,7 +55,7 @@
         </div>
         <!-- 가장 가까운 시험 하나(2026-11-22 시험일 역산 정할 것 8) — 시험 날엔 '오늘 ○○ 시험이에요' -->
         <div v-if="nextExam" class="ah-exam">
-          <span class="ah-exam__d">{{ nextExam.days === 0 ? '오늘' : `D-${nextExam.days}` }}</span>
+          <span class="ah-exam__d">{{ COPY.ddayBadge(nextExam.days) }}</span>
           <span class="ah-exam__body">
             <strong>{{ nextExam.days === 0 ? COPY.ddayToday(nextExam.name) : COPY.ddayTitle(nextExam.name) }}</strong>
             <small>{{ mdLabel(nextExam.date) }}</small>

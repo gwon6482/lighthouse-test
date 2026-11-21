@@ -63,6 +63,7 @@ export interface Project {
   routine?: PrepRoutineSuggestion
   routineBackup?: { days: DayOfWeek[]; duration: number; curriculum: WeekCurriculum[] }   // 제안을 넣어 줄이기 전 값 — 루틴을 빼면 되돌린다
   routineMin?: number   // 붙은 루틴의 주당 분(속도 계산 때만 잠깐 붙인다 — lib/routine.ts withRoutineLoad)
+  applyItemBackup?: string[]   // 시험일 때문에 마지막 주 '응시'를 빼기 전 할 일(설계 중에만 — 날짜를 지우면 되돌린다)
   examBackup?: { studyHours: number; curriculum: WeekCurriculum[] }   // '이미 공부해 둔 것'으로 앞 단계를 빼기 전 값(시험일 역산 2026-11-22, 설계 중에만)
 }
 

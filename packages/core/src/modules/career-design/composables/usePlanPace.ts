@@ -146,9 +146,10 @@ export function rescheduleFrom(
   projects: Project[], timeline: TimelineSlot[], fromWeek: number, hours: number, fallbackMin = 60, exam?: ExamCtx,
 ): RescheduleResult {
   const after = examPairs(projects)
-  const opts: PlaceOptions = after.size ? { after } : {}
+  // 응시 나이(minStart)도 새 계획과 같이 지킨다(2026-11-22 코드 검토 — 예전엔 주간결산에서 빠져 있었다)
+  const opts: PlaceOptions = { ...(after.size ? { after } : {}), ...(exam?.minStart ? { minStart: exam.minStart } : {}) }
   const first = rescheduleCore(projects, timeline, fromWeek, hours, fallbackMin, opts)
-  if (!exam || !hasExamDates(projects, exam)) return { ...first, exams: [] }
+  if (!exam?.startDate || !hasExamDates(projects, exam)) return { ...first, exams: [] }
   const startsOf = (t: TimelineSlot[]) => { const m = new Map<string, number>(); for (const sl of t) for (const p of sl.projects) if (!m.has(p.id) || sl.week < m.get(p.id)!) m.set(p.id, sl.week); return m }
   const keep = startsOf(timeline)
   const notStarted = new Set(first.projects.filter((p) => (keep.get(p.id) ?? Infinity) >= fromWeek).map((p) => p.id))
@@ -157,7 +158,7 @@ export function rescheduleFrom(
   return { ...res, exams: examReport(res.projects, startsOf(res.timeline), exam) }
 }
 
-interface PlaceOptions { fixed?: Map<string, number>; after?: Map<string, string> }
+interface PlaceOptions { fixed?: Map<string, number>; after?: Map<string, string>; minStart?: (p: Project) => number }
 function rescheduleCore(
   projects: Project[], timeline: TimelineSlot[], fromWeek: number, hours: number, fallbackMin: number, opts: PlaceOptions,
 ): Omit<RescheduleResult, 'exams'> {
@@ -227,7 +228,9 @@ function rescheduleCore(
     const mh = pair ? projectHoursPerWeek(timed(pair)) : 0
     const span = Math.max(w, mw)
     const pred = opts.after?.get(p.id)
-    let s = Math.max(floor, gate, isGate ? lastEnd : 0, pred ? (endAt.get(pred) ?? 0) : 0)
+    // 응시 나이 — minStart 는 1주차 기준 자리(0부터)라 fromWeek 기준으로 옮긴다
+    const age = (q: Project) => (opts.minStart ? Math.max(0, opts.minStart(q) - (fromWeek - 1)) : 0)
+    let s = Math.max(floor, gate, isGate ? lastEnd : 0, pred ? (endAt.get(pred) ?? 0) : 0, age(p), pair ? age(pair) : 0)
     for (;; s++) {
       let ok = true
       for (let k = 0; k < span && counts; k++) {

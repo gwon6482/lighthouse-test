@@ -18,6 +18,9 @@ export const GRADE_BEFORE_RULES: { grade: RegExp; exam: RegExp }[] = [
   { grade: /cp\.korean-history|한국사능력검정/, exam: /9급/ },
 ]
 
+/** 시험 뒤 다음 시험에 맞춰 다시 펼 때, 걸음이 끝난 뒤 이미 지난 주의 이름(할 일 없음) */
+export const WAIT_WEEK_TITLE = '다음 시험 기다림'
+
 // ── '이미 공부해 둔 것' 보기(데이터 평가 11-22 — 사용자 말로) ──
 // done = 끝낸 단계 수(앞에서부터). 'last' = 마지막 단계만 남김
 export const DONE_CHOICES: { key: 'none' | 'basic' | 'past'; label: string; done: number | 'last' }[] = [
@@ -39,14 +42,19 @@ export const COPY = {
   boxApply: '원서 접수는 시험보다 한두 달 먼저 끝나요. 공고에서 접수 기간도 함께 확인해요.',   // 진로상담 꼭 고칠 것 1
   // 사실 상자 — 낼 수 있는 시간과 예시 분량을 나란히(오너 11-22 '1-5 권장대로' 2). 시간은 백 단위 반올림, 실제 쓸 수 있는 주 기준
   headAvail: (md: string, avail: string, need: string) => `${md}까지 낼 수 있는 시간은 ${avail}이에요. 예시 분량은 ${need}이에요.`,
-  headWeeks: (name: string, md: string, weeks: number) => `${name} ${md}까지 공부할 수 있는 주는 ${weeks}주예요.`,   // 분량이 없는 짧은 시험
+  headWeeks: (name: string, md: string, weeks: number) => (weeks > 0
+    ? `${name} ${md}까지 공부할 수 있는 주는 ${weeks}주예요.`   // 분량이 없는 짧은 시험
+    : `${name} ${md} 시험까지 공부할 주가 없어요.`),
   headNote: '예시 분량은 전업 1년으로 잡은 양이에요. 잰 값이 아니라서 사람마다 많이 달라요.',
   headShortNote: '걸음 기간은 예시예요.',
   headChoose: '어떻게 할지 고르기',
-  // 판정 세 칸(데이터 평가 · 오너 2) — 늦는 카드에는 줄을 달지 않는다(오너 5)
-  verdictAhead: (weeks: number) => `예시 분량을 시험 ${weeks}주 전에 마쳐요`,
-  verdictTight: '시험 주에 겨우 마쳐요. 빠듯해요',
-  verdictShort: '예시 분량을 마치기엔 시험까지 시간이 모자라요',
+  // 판정 세 칸(데이터 평가 · 오너 2) — 늦는 카드에는 줄을 달지 않는다(오너 5). 마침표는 쓰는 곳에서 붙인다(띠에는 없음).
+  // 분량이 없는 짧은 시험에는 '예시 분량'이라는 말을 쓰지 않는다(코드 검토 11-22)
+  verdict: (x: { verdict: 'ahead' | 'tight' | 'short'; spare: number; need: number | null }) => {
+    if (x.verdict === 'tight') return '시험 주에 겨우 마쳐요. 빠듯해요'
+    if (x.need) return x.verdict === 'ahead' ? `예시 분량을 시험 ${x.spare}주 전에 마쳐요` : '예시 분량을 마치기엔 시험까지 시간이 모자라요'
+    return x.verdict === 'ahead' ? `시험 ${x.spare}주 전에 마쳐요` : `시험보다 ${Math.max(1, -x.spare)}주 늦게 끝나요`
+  },
   cardEnd: (name: string, ym: string) => `${name} 공부는 ${ym}에 끝나요.`,
   // 모자랄 때 고르기(오너 4) — 제목은 판정이 아니라 질문
   sheetTitle: (md: string, weeks: number) => `${md}까지 ${weeks}주, 어떻게 준비할까요?`,
@@ -60,11 +68,16 @@ export const COPY = {
   // 이미 공부해 둔 것
   doneTitle: (name: string) => `${name}, 어디까지 했나요?`,
   doneLeft: (hoursLabel: string, rest: string) => (rest ? `남은 ${hoursLabel} · ${rest}` : hoursLabel),
-  doneResult: (paceTitle: string, verdict: string) => `‘${paceTitle}’${josa(paceTitle, '이면', '면')} ${verdict}`,
+  doneResult: (paceTitle: string, verdict: string) => `‘${paceTitle}’${josa(paceTitle, '이면', '면')} ${verdict}.`,
   doneNote: '스스로 고른 단계로 어림했어요. 첫 주간결산에서 다시 맞출 수 있어요.',   // 진로상담 정할 것 4
   doneApply: '이렇게 할게요',
   // 타임라인
-  pin: (md: string) => `시험 ${md}`,
+  // 시험 날 표시 — 시험이 둘 이상이면 걸음 이름(괄호 뺀 것)을 앞에 붙여 필기·실기를 가른다
+  pin: (md: string, head = '') => (head ? `${head} 시험 ${md}` : `시험 ${md}`),
+  pinHead: (name: string) => name.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim(),
+  editNote: '지금 배치는 그대로예요. 주간결산에서 속도를 바꾸면 그때 시험일에 맞춰 다시 놓여요.',   // 계획 고치는 중(범위 밖 — 안내만)
+  gapWarn: (after: string, before: string, weeks: number) =>
+    `${before}${josa(before, '과', '와')} ${after} 시험 사이가 ${after} 준비 기간(${weeks}주)보다 짧아요. ${after} 공부가 시험보다 늦게 끝나요.`,
   spareTitle: (name: string, weeks: number) => `${name} · 시험까지 ${weeks}주 남아요`,
   spareBody: (endMd: string, examMd: string) => `공부는 ${endMd}에 끝나요. 시험은 ${examMd}이에요.`,
   spareTip: '시험 전 주에 기출 한두 회 풀어 봐요.',   // 진로상담 정할 것 5
@@ -83,10 +96,12 @@ export const COPY = {
     ? `‘${paceTitle}’${josa(paceTitle, '을', '를')} 그대로 두면 시험 ${spare}주 전에 끝나요.`
     : `‘${paceTitle}’${josa(paceTitle, '이면', '면')} 시험 주에 끝나요.`),
   // 홈
+  ddayBadge: (days: number) => (days === 0 ? '오늘' : `D-${days}`),
   ddayTitle: (name: string) => `${name} 시험`,
   ddayToday: (name: string) => `오늘 ${name} 시험이에요`,
   // 시험 뒤 첫 주간결산(진로상담 정할 것 9 — 합격 여부는 묻지 않는다, '끝났어요'는 걸음을 완료 처리하지 않는다)
   afterTitle: (md: string, name: string) => `${md} ${name}, 수고했어요. 다음은 어떻게 할까요?`,
+  afterDateLabel: '다음 시험 날짜',
   afterOptions: [
     { key: 'wait', label: '결과를 기다려요', sub: '그대로 두고 다음 주에 다시 물어요' },
     { key: 'next', label: '다음 시험 날짜 넣기', sub: '새 날짜에 맞춰 다시 놓아요' },

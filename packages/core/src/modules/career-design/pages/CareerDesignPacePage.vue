@@ -86,7 +86,7 @@
 
           <!-- 큰 시험 — 고른 카드에만. 고른 시간이 곧 시험 공부 시간이다. 먼 날짜는 막지 않고 사실 한 줄(근거 밖)을 붙인다 -->
           <div v-if="selectedKey === p.key && (p.exam || p.worst)" class="cd-pace__exam">
-            <p v-if="p.worst" class="cd-pace__exam-fit" :class="`cd-pace__exam-fit--${p.worst.verdict}`">{{ COPY.cardEnd(p.worst.name, p.worstYm) }} {{ verdictText(p.worst) }}<template v-if="p.worst.verdict !== 'short'">.</template></p>
+            <p v-if="p.worst" class="cd-pace__exam-fit" :class="`cd-pace__exam-fit--${p.worst.verdict}`">{{ COPY.cardEnd(p.worst.name, p.worstYm) }} {{ verdictText(p.worst) }}.</p>
             <template v-if="p.exam"><p v-for="(line, li) in p.exam.lines" :key="li">{{ line }}</p></template>
           </div>
         </div>
@@ -137,22 +137,16 @@
     </div>
 
     <!-- 모자랄 때 고르기(정할 것 3 · 오너 11-22 4) · 이미 공부해 둔 것(정할 것 4) — 하나만 고르니 동그라미 -->
-    <div v-if="sheet" class="cd-pace__dim" @click.self="sheet = null">
-      <div class="cd-pace__sheet" role="dialog" aria-modal="true" :aria-label="sheetTitle">
-        <h2 class="cd-pace__sheet-title">{{ sheetTitle }}</h2>
-        <div class="cd-pace__opts" role="radiogroup">
-          <template v-if="sheet.kind === 'short'">
-            <button
-              v-for="o in shortOptions" :key="o.key" type="button" role="radio" :aria-checked="sheetPick === o.key"
-              class="cd-pace__opt" :class="{ 'cd-pace__opt--on': sheetPick === o.key }" @click="sheetPick = o.key"
-            ><i /><b>{{ o.label }}</b><small v-if="o.sub">{{ o.sub }}</small></button>
-          </template>
-          <template v-else>
-            <button
-              v-for="c in doneChoices" :key="c.key" type="button" role="radio" :aria-checked="sheetPick === c.key"
-              class="cd-pace__opt" :class="{ 'cd-pace__opt--on': sheetPick === c.key }" @click="sheetPick = c.key"
-            ><i /><b>{{ c.label }}</b><small>{{ COPY.doneLeft(hoursLabel(c.hours), c.rest) }}</small></button>
-          </template>
+    <!-- 접근성(코드 검토 11-22, ConfirmSheet 방식): 열면 고른 보기에 초점, Esc 로 닫기, 닫으면 연 버튼으로. 보기는 화살표 키로 옮긴다 -->
+    <div v-if="sheet" class="cd-pace__dim" @click.self="closeSheet" @keydown.esc="closeSheet">
+      <div ref="sheetEl" class="cd-pace__sheet" role="dialog" aria-modal="true" aria-labelledby="cd-pace-sheet-title">
+        <h2 id="cd-pace-sheet-title" class="cd-pace__sheet-title">{{ sheetTitle }}</h2>
+        <div class="cd-pace__opts" role="radiogroup" aria-labelledby="cd-pace-sheet-title" @keydown="onRadioKey">
+          <button
+            v-for="o in sheetChoices" :key="o.key" type="button" role="radio" :aria-checked="sheetPick === o.key"
+            :tabindex="sheetPick === o.key || (!sheetPick && o === sheetChoices[0]) ? 0 : -1"
+            class="cd-pace__opt" :class="{ 'cd-pace__opt--on': sheetPick === o.key }" @click="sheetPick = o.key"
+          ><i /><b>{{ o.label }}</b><small v-if="o.sub">{{ o.sub }}</small></button>
         </div>
         <div v-if="sheet.kind === 'done' && donePreview" class="cd-pace__result-box" :class="`cd-pace__result-box--${donePreview.verdict}`">
           <b>{{ COPY.doneResult(selectedTitle, verdictText(donePreview)) }}</b>
@@ -169,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import CdStepIndicator from '../components/CdStepIndicator.vue'
@@ -179,7 +173,7 @@ import { projectWeeks, toDateKey, type ScheduleOptions } from '../composables/us
 import { budgetHours, stripLoad, withRoutineLoad } from '../lib/routine'
 import { PACES, DEFAULT_PACE_HOURS, ALLIN_DAILY, allinWeeklyHours, examAgeDelayed, examAgeOptions, paceFromSituation, paceOfHours, buildTimeline, pacedProjects, monthLabelOfWeek, monthsLabel } from '../composables/usePlanPace'
 import { examPaceSummary, firstPassLine, isExam } from '../lib/examPace'
-import { doneChoicesOf, examDateOf, examDateWarnings, hoursLabel, mdLabel, skipDonePhases, takesExamDate, weekEndYm, withoutApplyItem, type ExamSlot } from '../lib/examDate'
+import { doneChoicesOf, examDateOf, examDateWarnings, hoursLabel, mdLabel, skipDonePhases, takesExamDate, weekEndYm, syncApplyItem, type ExamSlot } from '../lib/examDate'
 import { COPY } from '../lib/examDateRules'
 import { schedulePreview } from '../composables/usePlanPace'
 import { useCareerProfile } from '../composables/useCareerProfile'
@@ -267,11 +261,12 @@ const headLine = computed(() => {
   if (!x) return ''
   return x.need ? COPY.headAvail(mdLabel(x.date), hoursLabel(x.available), hoursLabel(x.need)) : COPY.headWeeks(x.name, mdLabel(x.date), x.usableWeeks)
 })
-const verdictText = (x: Pick<ExamSlot, 'verdict' | 'spare'>) => (x.verdict === 'ahead' ? COPY.verdictAhead(x.spare) : x.verdict === 'tight' ? COPY.verdictTight : COPY.verdictShort)
+const verdictText = (x: Pick<ExamSlot, 'verdict' | 'spare' | 'need'>) => COPY.verdict(x)
 // 시험 날짜를 넣은 계획에서는 합격자 수치를 카드 아래로
 const statBelow = computed(() => examTargets.value.some((p) => !!examDateOf(p)))
-const examWarns = computed(() => examDateWarnings(draftPlan.projects).map((w) =>
-  w.kind === 'pair' ? COPY.pairWarn(w.text.after!, w.text.before!) : w.kind === 'grade' ? COPY.gradeWarn : COPY.courseWarn(w.text.course!)))
+const examWarns = computed(() => examDateWarnings(draftPlan.projects, undefined, examCtx.value).map((w) =>
+  w.kind === 'pair' ? COPY.pairWarn(w.text.after!, w.text.before!) : w.kind === 'gap' ? COPY.gapWarn(w.text.after!, w.text.before!, w.text.weeks!)
+    : w.kind === 'grade' ? COPY.gradeWarn : COPY.courseWarn(w.text.course!)))
 
 const projectById = (id: string) => draftPlan.projects.find((p) => p.id === id)
 function setExamDate(id: string, v: string) {
@@ -295,6 +290,35 @@ const currentDoneKey = (p: Project) => {
   return cs.find((c) => c.hours === p.studyHours)?.key ?? 'none'
 }
 const doneLabelOf = (p: Project) => doneChoicesOf(p).find((c) => c.key === currentDoneKey(p))?.label ?? ''
+// 시트 보기(두 종류 같은 모양) · 접근성
+const sheetChoices = computed(() => (sheet.value?.kind === 'done'
+  ? doneChoices.value.map((c) => ({ key: c.key, label: c.label, sub: COPY.doneLeft(hoursLabel(c.hours), c.rest) }))
+  : shortOptions.value))
+const sheetEl = ref<HTMLElement | null>(null)
+let sheetOpener: HTMLElement | null = null
+watch(() => sheet.value?.kind ?? '', async (k, was) => {
+  if (k && !was) sheetOpener = document.activeElement as HTMLElement | null
+  if (k) {
+    await nextTick()
+    const el = sheetEl.value?.querySelector<HTMLElement>('[role="radio"][tabindex="0"]')
+    el?.focus()
+  } else {
+    sheetOpener?.focus?.()
+    sheetOpener = null
+  }
+})
+function closeSheet() { sheet.value = null }
+function onRadioKey(e: KeyboardEvent) {
+  const keys: Record<string, number> = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }
+  const d = keys[e.key]
+  if (!d) return
+  e.preventDefault()
+  const list = sheetChoices.value
+  const i = Math.max(0, list.findIndex((o) => o.key === sheetPick.value))
+  const next = list[(i + d + list.length) % list.length]!
+  sheetPick.value = next.key
+  nextTick(() => sheetEl.value?.querySelectorAll<HTMLElement>('[role="radio"]')[list.indexOf(next)]?.focus())
+}
 function openDone(id: string) {
   const p = projectById(id)
   if (!p) return
@@ -471,7 +495,8 @@ function apply() {
   draftPlan.weeklyHours = hours
   // 큰 시험은 이 속도로 기간·요일·1회 시간을 다시 잡아 계획에 넣는다(타임라인 슬롯도 이 복사본을 든다)
   // 시험일이 있는 걸음은 마지막 주 할 일 '응시'를 빼고 시험 날 표시로 옮긴다(정할 것 5)
-  const paced = pacedProjects(draftPlan.projects, hours).map((p) => (examDateOf(p) ? withoutApplyItem(p) : p))
+  // 날짜를 지웠으면 뺐던 '응시'를 되돌린다(코드 검토 11-22)
+  const paced = pacedProjects(draftPlan.projects, hours).map(syncApplyItem)
   draftPlan.projects.splice(0, draftPlan.projects.length, ...paced)
   const L = withRoutineLoad(draftPlan.projects, draftPlan.routines)
   draftTimeline.value = stripLoad(buildTimeline(L.projects, budgetHours(hours, L.freeMin), schedOpts.value, examCtx.value), draftPlan.projects)

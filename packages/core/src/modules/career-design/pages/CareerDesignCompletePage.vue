@@ -34,6 +34,7 @@
       </div>
       <p v-for="x in lateSlots" :key="`late-${x.id}`" class="cd-complete__exam-late">{{ COPY.lateLine(x.name, mdLabel(x.date), -x.spare) }}</p>
       <p v-for="w in examWarns" :key="w" class="cd-complete__exam-late">{{ w }}</p>
+      <p v-if="editing && examSlots.length" class="cd-complete__exam-note">{{ COPY.editNote }}</p>
 
       <!-- 프로젝트 풀 -->
       <div class="cd-complete__section">
@@ -269,8 +270,9 @@ import type { Project, ProjectCategory, TimelineSlot } from '../types/career-des
 import {
   provisionalWeekCount, weekRangeLabel, projectWeeks, projectEndWeek, fitsInPlan,
   weekDateRange, monthWeekOf, monthWeekLabel, weeksInMonth, parseDateKey, resolveProject,
-  projectHoursPerWeek, lastWeekOfMonth, weekOfDate,
+  projectHoursPerWeek, lastWeekOfMonth, weekOfDate, toDateKey,
 } from '../composables/usePlanTimeline'
+import { getToday } from '@/shared/utils/dev-date'
 import { budgetHours, stripLoad, withRoutineLoad } from '../lib/routine'
 import { DEFAULT_PACE_HOURS, buildTimeline, examAgeOptions, monthsLabel, paceByKey, paceOfHours, pacedProjects } from '../composables/usePlanPace'
 import { examDateOf, examDateWarnings, examReport, mdLabel, shortMdLabel, startsOf, weekEndMd, weekEndYm } from '../lib/examDate'
@@ -429,7 +431,8 @@ const examSlots = computed(() => (draftPlan.startDate ? examReport(draftPlan.pro
 const spareSlots = computed(() => examSlots.value.filter((x) => x.verdict === 'ahead'))
 const lateSlots = computed(() => examSlots.value.filter((x) => x.spare < 0))
 const examWarns = computed(() => examDateWarnings(draftPlan.projects, timelineStarts.value, examCtx.value).map((w) =>
-  w.kind === 'pair' ? COPY.pairWarn(w.text.after!, w.text.before!) : w.kind === 'grade' ? COPY.gradeWarn : COPY.courseWarn(w.text.course!)))
+  w.kind === 'pair' ? COPY.pairWarn(w.text.after!, w.text.before!) : w.kind === 'gap' ? COPY.gapWarn(w.text.after!, w.text.before!, w.text.weeks!)
+    : w.kind === 'grade' ? COPY.gradeWarn : COPY.courseWarn(w.text.course!)))
 // 시험 날 표시 — 시험 날짜가 든 주(시험이 둘 이상이면 이름 앞말을 붙인다)
 const examPins = computed(() => {
   const m = new Map<number, string[]>()
@@ -439,8 +442,7 @@ const examPins = computed(() => {
     const d = examDateOf(p)
     const w = weekOfDate(draftPlan.startDate, parseDateKey(d)!, draftPlan.reviewDay)
     if (!w) continue
-    const head = dated.length > 1 ? `${p.name.split(/[\s(]/)[0]} ` : ''
-    m.set(w, [...(m.get(w) ?? []), `${head}${COPY.pin(shortMdLabel(d))}`])
+    m.set(w, [...(m.get(w) ?? []), COPY.pin(shortMdLabel(d), dated.length > 1 ? COPY.pinHead(p.name) : '')])
   }
   return m
 })
@@ -557,7 +559,9 @@ onMounted(() => {
     const paced = pacedProjects(draftPlan.projects, draftPlan.weeklyHours)
     draftPlan.projects.splice(0, draftPlan.projects.length, ...paced)
     const L = withRoutineLoad(draftPlan.projects, draftPlan.routines)   // 루틴 시간도 속도 예산에(2026-11-21)
-    draftTimeline.value = stripLoad(buildTimeline(L.projects, budgetHours(draftPlan.weeklyHours, L.freeMin), {}, { ...examCtx.value, late: new Set(draftPlan.examLate ?? []) }), draftPlan.projects)
+    // 응시 나이 규칙도 속도 고르기와 같게(코드 검토 11-22 — 예전엔 {}를 넘겨 빠져 있었다)
+    const opts = examAgeOptions(draftPlan.startDate || toDateKey(getToday()), auth.user?.age, draftPlan.reviewDay)
+    draftTimeline.value = stripLoad(buildTimeline(L.projects, budgetHours(draftPlan.weeklyHours, L.freeMin), opts, { ...examCtx.value, late: new Set(draftPlan.examLate ?? []) }), draftPlan.projects)
     draftPlan.timelineManual = false
   }
 })

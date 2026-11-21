@@ -10,19 +10,22 @@
 //   · 짝(필기 → 실기, 1차 → 2차): 뒤 걸음을 당기면 날짜 없는 앞 걸음도 그 앞으로 함께 당긴다. 뒤 걸음은 늘 앞 걸음이 끝난 뒤(examPairs)
 //   · 응시 나이(minStart)보다 앞으로는 당기지 않는다 — 나이 줄이 먼저
 //   · 시험일이 없으면 아무것도 바뀌지 않는다
-import type { Project, ProjectCategory } from '../types/career-design'
+import type { Project, ProjectCategory, WeekCurriculum } from '../types/career-design'
 import type { ProjectMethod } from '../composables/projectMethods'
 import { autoSchedule, parseDateKey, projectWeeks, projectHoursPerWeek, toDateKey, weekDateRange, weekOfDate, type ScheduleOptions, type WeekStart } from '../composables/usePlanTimeline'
-import { curriculumPhases, examMates, expandPhases, isExam } from './examPace'
-import { AHEAD_WEEKS, DONE_CHOICES, GRADE_ANNOUNCE_DAYS, GRADE_BEFORE_RULES, TIGHT_RATIO } from './examDateRules'
+import { curriculumPhases, examMates, expandPhases, isExam, scalePhases } from './examPace'
+import { AHEAD_WEEKS, DONE_CHOICES, GRADE_ANNOUNCE_DAYS, GRADE_BEFORE_RULES, TIGHT_RATIO, WAIT_WEEK_TITLE } from './examDateRules'
 
 export interface ExamCtx { startDate: string; reviewDay?: WeekStart; minStart?: (p: Project) => number }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
-/** 시험일 칸을 받는 걸음 — '합격하면 완료'(자격요건 · 필수 교육·기타가 아닌 방식). projectMethods.doneLabel 과 같은 조건 */
+/**
+ * 시험일 칸을 받는 걸음 — '합격하면 완료'(자격요건 · 필수 교육·기타가 아닌 방식).
+ * 방식이 비어 있는 걸음은 빼다(2026-11-22 코드 검토) — 서버(cleanMethod)는 방식이 없으면 세부 칸을 버려 날짜가 저장되지 않는다
+ */
 export function takesExamDate(p: { category?: ProjectCategory; method?: ProjectMethod | null }): boolean {
-  return p.category === 'qualification' && p.method !== 'required_course' && p.method !== 'etc'
+  return p.category === 'qualification' && !!p.method && p.method !== 'required_course' && p.method !== 'etc'
 }
 
 /** 걸음의 시험일('YYYY-MM-DD') — 칸을 받는 걸음이고 날짜 꼴일 때만. 아니면 '' (기타에 예전에 넣은 값은 지우지 않고 쓰지도 않는다) */
@@ -54,22 +57,30 @@ export function datedExams(projects: Project[], ctx: Pick<ExamCtx, 'startDate' |
 }
 export const hasExamDates = (projects: Project[], ctx: Pick<ExamCtx, 'startDate' | 'reviewDay'>) => datedExams(projects, ctx).length > 0
 
-// ── 짝(필기 → 실기, 1차 → 2차) ──
-const AFTER_RE = /^(.*?)\s*(실기|2차)(.*)$/
-const BEFORE_WORD: Record<string, string> = { 실기: '필기', '2차': '1차' }
-const norm = (s: string) => s.replace(/\s+/g, '')
+// ── 짝(앞 시험 → 뒤 시험) ──
+// 이름의 끝말로 차수를 본다 — 서버 자료 검사(plan-library-validate STAGE_PAIRS)와 같은 꼴: 필기·학과(시험)·이론(시험)·1차 → 실기·2차·면접·심사·구술·기능시험.
+// 괄호 안(과목)은 떼고 본다('공인중개사 1차(부동산학개론·민법)' → '공인중개사 2차(…)'). 자료의 id 꼬리(-written·-first)와 같은 짝을 이름으로 찾는다
+const STAGE_RE = /^(.*?)\s*(필기|1차|학과\s*시험|학과|이론\s*시험|이론|실기\s*·\s*구술|실기\s*시험|실기|2차|심사\s*·\s*면접|면접|기능\s*시험)(\s*시험)?$/
+const FRONT = /^(필기|1차|학과|이론)/
+function stageOf(name: string): { base: string; front: boolean } | null {
+  const m = name.replace(/\([^)]*\)/g, '').trim().match(STAGE_RE)
+  if (!m || !m[1]!.trim()) return null
+  return { base: m[1]!.replace(/\s+/g, ''), front: FRONT.test(m[2]!.replace(/\s+/g, '')) }
+}
 /**
- * 짝 뒤 걸음 id → 앞 걸음 id. 이름으로 본다 — '정보처리기사 필기' → '정보처리기사 실기', '공인회계사 1차' → '공인회계사 2차'.
- * 앞 걸음이 계획에서 먼저 나올 때만(보건의료처럼 실기가 먼저인 시험은 짝으로 보지 않는다)
+ * 짝 뒤 걸음 id → 앞 걸음 id. 앞 걸음이 계획에서 먼저 나올 때만(보건의료처럼 실기가 먼저인 시험은 짝으로 보지 않는다).
+ * 같은 이름 바탕에서 가장 가까운 앞 걸음
  */
 export function examPairs(projects: Pick<Project, 'id' | 'name'>[]): Map<string, string> {
   const out = new Map<string, string>()
+  const stages = projects.map((p) => stageOf(p.name))
   projects.forEach((p, i) => {
-    const m = p.name.match(AFTER_RE)
-    if (!m) return
-    const want = norm(`${m[1]}${BEFORE_WORD[m[2]!]}${m[3]}`)
-    const pred = projects.slice(0, i).reverse().find((q) => norm(q.name) === want)
-    if (pred) out.set(p.id, pred.id)
+    const st = stages[i]
+    if (!st || st.front) return
+    for (let j = i - 1; j >= 0; j--) {
+      const q = stages[j]
+      if (q && q.front && q.base === st.base) { out.set(p.id, projects[j]!.id); break }
+    }
   })
   return out
 }
@@ -83,7 +94,10 @@ export interface AnchorOptions {
 }
 /**
  * 시험일이 있는 걸음(과 함께 움직일 걸음)의 고정 자리(id → 시작 주, 1부터).
- * forward = 닻 없이 지금 규칙으로 놓은 시작 주. projects 는 속도를 반영한 것(큰 시험 기간이 정해진 것)이어야 한다
+ * forward = 닻 없이 지금 규칙으로 놓은 시작 주. projects 는 속도를 반영한 것(큰 시험 기간이 정해진 것)이어야 한다.
+ * 짝(앞 시험 → 뒤 시험)은 겹치지 않는다(2026-11-22 코드 검토 ①): 뒤 걸음은 앞 걸음이 끝난 다음 주부터.
+ *   앞 걸음에 날짜가 없으면 뒤 걸음 앞으로 붙여 고정하고, 앞에 자리가 모자라면 앞 걸음을 들어갈 수 있는 가장 이른 자리에 두고 뒤 걸음을 그 뒤로 민다
+ *   (시험 주를 넘기면 examReport 가 '늦어요'로 알린다). 둘 다 날짜가 있으면 앞 걸음 자리에서 뒤 걸음을 그 뒤로(간격이 모자라면 examDateWarnings 'gap')
  */
 export function resolveExamAnchors(projects: Project[], forward: Map<string, number>, ctx: ExamCtx, o: AnchorOptions = {}): Map<string, number> {
   const fixed = new Map<string, number>()
@@ -95,29 +109,42 @@ export function resolveExamAnchors(projects: Project[], forward: Map<string, num
   const pairs = examPairs(projects)
   const lo = o.minWeek ?? 1
   const can = (id: string) => !o.movable || o.movable.has(id)
+  const floorOf = (p: Project) => Math.max(lo, (ctx.minStart?.(p) ?? 0) + 1)
+  const weeksOf = (p: Project) => { const m = mates.get(p.id); return Math.max(projectWeeks(p), m ? projectWeeks(m) : 0) }
+  const startOf = (id: string) => fixed.get(id) ?? forward.get(id)
   for (const e of exams) {
     const p = byId.get(e.id)
     const f = forward.get(e.id)
     if (!p || f == null || fixed.has(e.id) || !can(e.id)) continue
-    const mate = mates.get(e.id)
-    const w = Math.max(projectWeeks(p), mate ? projectWeeks(mate) : 0)
-    const floor = Math.max(lo, (ctx.minStart?.(p) ?? 0) + 1)
+    const w = weeksOf(p)
+    let floor = floorOf(p)
+    // 앞 걸음 — 날짜가 있거나 옮길 수 없으면(이미 시작) 그 끝 뒤가 바닥
+    const predId = pairs.get(e.id)
+    const q = predId ? byId.get(predId) : undefined
+    const qMovable = !!q && !dated.has(q.id) && !fixed.has(q.id) && can(q.id) && (forward.get(q.id) ?? 0) >= lo
+    let pairFloor = 0
+    if (q && !qMovable && startOf(q.id) != null) { pairFloor = startOf(q.id)! + projectWeeks(q); floor = Math.max(floor, pairFloor) }
     const k = o.keep?.get(e.id)
     let s: number
     if (o.late?.has(e.id) && e.week - w + 1 >= floor) s = e.week - w + 1   // 시험 직전으로 옮기기
     else if (k != null && k >= floor && k + w - 1 <= e.week) s = k     // 지금 자리가 시험 주 안 — 그대로
-    else if (f + w - 1 <= e.week) s = f                                  // 앞에서 채워도 시험 전에 끝남 — 그대로
+    else if (f >= floor && f + w - 1 <= e.week) s = f                    // 앞에서 채워도 시험 전에 끝남 — 그대로
     else if (e.week - w + 1 >= floor) s = e.week - w + 1                 // 시험 주에 끝나게 앞당김
-    else s = f                                                           // 앞당길 자리가 없음 — 모자라요
-    fixed.set(e.id, s)
-    if (mate && can(mate.id)) fixed.set(mate.id, s)
-    // 짝 앞 걸음(날짜 없음) — 뒤 걸음보다 늦게 끝나면 그 앞으로
-    const predId = pairs.get(e.id)
-    const q = predId ? byId.get(predId) : undefined
-    const fq = predId ? forward.get(predId) : undefined
-    if (q && fq != null && !dated.has(q.id) && !fixed.has(q.id) && can(q.id) && fq >= lo && fq + projectWeeks(q) - 1 >= s) {
-      fixed.set(q.id, Math.max(lo, s - projectWeeks(q)))
+    // 앞당길 자리가 없음 — 모자라요. 앞 시험 뒤가 바닥이면 그 바로 뒤에(순서 때문에 더 늦게 놓이지 않게), 아니면 지금 자리
+    else s = pairFloor && f > pairFloor ? floor : Math.max(f, floor)
+    // 날짜 없는 앞 걸음 — 뒤 걸음보다 늦게 끝나면 그 앞에 붙인다. 자리가 모자라면 앞 걸음을 가장 이른 자리에, 뒤 걸음은 그 뒤로
+    if (q && qMovable) {
+      const fq = forward.get(q.id)!
+      const wq = projectWeeks(q)
+      if (fq + wq - 1 >= s) {
+        const qs = Math.max(floorOf(q), s - wq)
+        fixed.set(q.id, qs)
+        s = Math.max(s, qs + wq)
+      } else fixed.set(q.id, fq)          // 이미 앞에 있다 — 다시 놓을 때 뒤 걸음 자리를 넘어가지 않게 그 자리에 고정
     }
+    fixed.set(e.id, s)
+    const mate = mates.get(e.id)
+    if (mate && can(mate.id)) fixed.set(mate.id, s)
   }
   return fixed
 }
@@ -186,7 +213,7 @@ export function examReport(projects: Project[], starts: Map<string, number>, ctx
 }
 
 // ── 날짜 사이 확인(정할 것 6) ──
-export interface ExamWarn { id: string; kind: 'pair' | 'grade' | 'course'; text: { after?: string; before?: string; course?: string } }
+export interface ExamWarn { id: string; kind: 'pair' | 'gap' | 'grade' | 'course'; text: { after?: string; before?: string; course?: string; weeks?: number } }
 /** 짝 순서가 뒤집힌 날짜 · 등급 발표 조건(한국사 → 9급) · 과정이 끝나기 전 시험 — 막지 않고 한 줄 */
 export function examDateWarnings(projects: Project[], starts?: Map<string, number>, ctx?: Pick<ExamCtx, 'startDate' | 'reviewDay'>): ExamWarn[] {
   const out: ExamWarn[] = []
@@ -195,6 +222,11 @@ export function examDateWarnings(projects: Project[], starts?: Map<string, numbe
     const a = byId.get(after)!; const b = byId.get(before)!
     const da = examDateOf(a); const db = examDateOf(b)
     if (da && db && da <= db) out.push({ id: after, kind: 'pair', text: { after: a.name, before: b.name } })
+    // 두 시험 사이가 뒤 걸음 기간보다 짧다 — 겹치지 않게 놓으면 뒤 걸음이 시험보다 늦게 끝난다(2026-11-22 코드 검토 ①)
+    else if (da && db && ctx?.startDate) {
+      const gap = examWeekOf(ctx.startDate, da, ctx.reviewDay) - examWeekOf(ctx.startDate, db, ctx.reviewDay)
+      if (gap < projectWeeks(a)) out.push({ id: after, kind: 'gap', text: { after: a.name, before: b.name, weeks: projectWeeks(a) } })
+    }
   }
   for (const rule of GRADE_BEFORE_RULES) {
     const grades = projects.filter((p) => rule.grade.test(p.id) || rule.grade.test(p.name))
@@ -254,12 +286,78 @@ export function skipDonePhases(p: Project, done: number): Project {
   return { ...p, examBackup: backup, studyHours: Math.round((backup.studyHours * leftWeeks) / total), curriculum, weeks: curriculum.length }
 }
 
-/** 마지막 주 할 일 '응시'를 뺀다(시험일이 있으면 시험 날 표시로 옮긴다 — 정할 것 5). 그 주에 다른 할 일이 없으면 그대로 */
+/**
+ * 마지막 주 할 일 '응시'를 뺀다(시험일이 있으면 시험 날 표시로 옮긴다 — 정할 것 5). 그 주에 다른 할 일이 없으면 그대로.
+ * 원래 할 일은 applyItemBackup 에 남겨 날짜를 지우면 restoreApplyItem 으로 되돌린다(설계 중에만 — 서버에는 가지 않는다)
+ */
 export function withoutApplyItem(p: Project): Project {
   const cur = p.curriculum ?? []
   const last = cur[cur.length - 1]
   if (!last || !last.items.includes('응시') || last.items.length < 2) return p
-  return { ...p, curriculum: [...cur.slice(0, -1), { ...last, items: last.items.filter((t) => t !== '응시') }] }
+  return { ...p, applyItemBackup: [...last.items], curriculum: [...cur.slice(0, -1), { ...last, items: last.items.filter((t) => t !== '응시') }] }
+}
+/** 뺀 '응시'를 되돌린다 — 마지막 주가 뺀 뒤 그대로일 때만(사용자가 고쳤으면 두고 표시만 지운다) */
+export function restoreApplyItem(p: Project): Project {
+  const back = p.applyItemBackup
+  if (!back) return p
+  const { applyItemBackup: _b, ...rest } = p; void _b
+  const cur = p.curriculum ?? []
+  const last = cur[cur.length - 1]
+  const same = !!last && last.items.join('\n') === back.filter((t) => t !== '응시').join('\n')
+  return same ? { ...rest, curriculum: [...cur.slice(0, -1), { ...last!, items: [...back] }] } : rest
+}
+/** 시험일에 맞춰 '응시'를 빼거나 되돌린다 — 속도 고르기 '배치하기' 때 */
+export const syncApplyItem = (p: Project): Project => (examDateOf(p) ? withoutApplyItem(p) : restoreApplyItem(p))
+
+// ── 다음 시험 날짜(시험 뒤 첫 결산 — 정할 것 9) ──
+/**
+ * 이미 시작한(또는 끝난) 시험 걸음을 새 시험 주에 맞춰 다시 편다(2026-11-22 코드 검토 2-1).
+ * 지난 주(fromWeek 앞)의 할 일은 그대로 두고, fromWeek 부터 새 시험 주까지를 남은 단계로 채운다.
+ * 남은 단계가 없으면(이미 끝난 걸음) 마지막 단계(기출·실전)를 그 주 수만큼 다시 편다. 새 시험 주가 fromWeek 보다 앞이면 그대로
+ */
+export function refitStartedExam(p: Project, startWeek: number, fromWeek: number, newExamWeek: number): Project {
+  const cur = p.curriculum ?? []
+  const len = projectWeeks(p)
+  const past = Math.max(0, fromWeek - startWeek)          // 지난 주 수(걸음이 끝난 뒤 지난 주 포함)
+  const left = newExamWeek - fromWeek + 1
+  if (left < 1 || !cur.length) return p
+  const head = cur.slice(0, Math.min(past, len))
+  // 걸음이 끝난 뒤 이미 지난 주 — 할 일 없는 주로 메운다(지난 주에 할 일이 새로 생기지 않게. 걸음은 한 덩어리라 빈 주로 잇는다)
+  const gap = Array.from({ length: Math.max(0, past - len) }, (_, i) => ({ week: len + i + 1, title: WAIT_WEEK_TITLE, items: [] as string[] }))
+  const restPhases = curriculumPhases(cur.slice(Math.min(past, len)))
+  const phases = restPhases.length ? restPhases : curriculumPhases(cur).slice(-1)
+  const tail = expandPhases(scalePhases(phases, left), head.length + gap.length + 1)
+  const curriculum = [...head, ...gap, ...tail]
+  return { ...p, curriculum, weeks: curriculum.length }
+}
+
+/**
+ * 시험 뒤 첫 결산의 고른 것 → 바뀐 걸음(없으면 null). 'done' 은 시험일만 지운다(걸음은 완료 처리하지 않는다),
+ * 'next' 는 새 날짜를 넣고, 이미 시작한 걸음이면 새 시험 주에 맞춰 남은 주를 다시 편다(refitStartedExam). 'wait'·빈 것은 그대로
+ */
+export function examAfterChange(
+  p: Project, kind: '' | 'wait' | 'next' | 'done', date: string,
+  at: { startDate: string; reviewDay?: WeekStart; startWeek: number | null; fromWeek: number },
+): Project | null {
+  if (kind === 'done') {
+    const detail = { ...(p.methodDetail ?? {}) }
+    delete detail.deadline
+    return { ...p, methodDetail: detail }
+  }
+  if (kind !== 'next' || !DATE_RE.test(date)) return null
+  const next: Project = { ...p, methodDetail: { ...(p.methodDetail ?? {}), deadline: date } }
+  if (at.startWeek == null || at.startWeek >= at.fromWeek) return next     // 아직 시작 안 함 — 다시 놓을 때 닻이 맞춘다
+  return refitStartedExam(next, at.startWeek, at.fromWeek, examWeekOf(at.startDate, date, at.reviewDay))
+}
+/** 걸음의 할 일을 다 끝냈는가 — 시험 뒤 질문을 하지 않는다(코드 검토 11-22) */
+export function allItemsDone(p: Pick<Project, 'id' | 'curriculum'>, isItemDone: (id: string, week: number, idx: number) => boolean, entriesOf: (w: WeekCurriculum) => string[]): boolean {
+  let total = 0
+  for (const w of p.curriculum ?? []) {
+    const n = entriesOf(w).length
+    total += n
+    for (let i = 0; i < n; i++) if (!isItemDone(p.id, w.week, i)) return false
+  }
+  return total > 0
 }
 
 // ── 표시용 ──
@@ -285,6 +383,7 @@ export const weekEndMd = (startDate: string, week: number, reviewDay?: WeekStart
 }
 /** 시간 어림 — 백 단위 반올림('약 1,500시간'). 100시간 미만은 10 단위 */
 export const hoursLabel = (h: number) => {
+  if (h <= 0) return '0시간'
   const r = h >= 100 ? Math.round(h / 100) * 100 : Math.max(10, Math.round(h / 10) * 10)
   return `약 ${r.toLocaleString('ko-KR')}시간`
 }
