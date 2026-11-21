@@ -1,8 +1,12 @@
 <template>
   <!-- 마이페이지(2026-10-28 개편) — 메인·로드맵과 같은 톤. 진행 상황(○○를 향해 n일차·%)은 메인·로드맵 몫이라 여기엔 두지 않는다(사용자).
        진로계획 목록도 뺐다(사용자: 리스트로 많이 있을 필요 없음) — 계획 보기·수정은 메인 '내 진로계획' 타일 -->
-  <div class="mp">
+  <!-- 계획 유무를 알기 전에는 그리지 않는다 — 계획 전/후 모양이 달라 새로 고침 때 칸이 바뀌어 보이지 않게(보통은 이미 읽어 둔 상태) -->
+  <div v-if="!planKnown" class="mp"><div class="mp-loading">불러오는 중...</div></div>
+  <div v-else class="mp" :class="{ 'mp--before': beforePlan }">
+    <!-- 진로계획 전(2026-11-21 시안 '계획 전 탈퇴 길' A) — 하단 메뉴가 없어 '진로 여정 시작'으로 돌아가는 줄 -->
     <section class="mp-hero">
+      <button v-if="beforePlan" type="button" class="mp-back" @click="backToStart"><AppIcon name="ui-back" />내 계정</button>
       <div class="mp-hero__profile">
         <span class="mp-hero__avatar">{{ avatarLetter }}</span>
         <div class="mp-hero__who">
@@ -10,9 +14,9 @@
           <p class="mp-hero__email">{{ user?.email }}</p>
         </div>
       </div>
-      <!-- 숫자 3칸 — 완료 기록은 하단 탭 '로그'로, 나머지는 아래 해당 영역으로 -->
-      <div class="mp-counts">
-        <button type="button" class="mp-count" @click="router.push({ name: 'Career Achievement Records' })">
+      <!-- 숫자 3칸 — 완료 기록은 하단 탭 '로그'로, 나머지는 아래 해당 영역으로. 계획 전에는 완료 기록을 빼고 2칸 -->
+      <div class="mp-counts" :class="{ 'mp-counts--two': beforePlan }">
+        <button v-if="!beforePlan" type="button" class="mp-count" @click="router.push({ name: 'Career Achievement Records' })">
           <span class="mp-count__chip mp-count__chip--orange"><AppIcon name="ui-photo" /></span>
           <strong>{{ records.length }}</strong><span>완료 기록</span>
         </button>
@@ -97,7 +101,7 @@
 
     <!-- 기능 메뉴 — 내용(검사결과·관심 직업 카드)과 모양을 나눈다(2026-10-30 사용자: 기능 요소는 따로).
          설정 목록 모양: 작은 아이콘 + 이름 + › -->
-    <section class="mp-sec">
+    <section v-if="!beforePlan || trashCount" class="mp-sec">
       <h2 class="mp-sec__title">진로 관리</h2>
       <ul class="mp-links">
         <li v-if="activePlanId">
@@ -115,7 +119,7 @@
             <AppIcon name="ui-repeat" class="mp-link__icon" /><span class="mp-link__label">최근 삭제한 계획 ({{ trashCount }})</span><AppIcon name="ui-chevron-right" class="mp-link__arrow" />
           </button>
         </li>
-        <li>
+        <li v-if="!beforePlan">
           <button type="button" class="mp-link mp-link--menu" @click="router.push({ name: 'Career Achievement Weekly Schedule' })">
             <AppIcon name="ui-calendar" class="mp-link__icon" /><span class="mp-link__label">주간 일정 조정</span><AppIcon name="ui-chevron-right" class="mp-link__arrow" />
           </button>
@@ -224,6 +228,15 @@ const { feedSorted, entries } = useAchievementEntries()
 const records = computed(() => { void entries.value; return feedSorted().filter((e) => e.itemType === 'project') })
 // 진행 중 계획 — 계획 상세(보기·수정)로 가는 입구(메인 '내 진로계획' 타일을 뺀 뒤, 2026-10-30)
 const activePlanId = computed(() => achievementStore.plan?.planId ?? '')
+// 진로계획 전인가 — 홈·entryGuard 와 같은 기준(진행 중(active) 계획이 있나 · 설계 중(draft)만 있으면 계획 전).
+// 하단 메뉴(BottomNav)도 같은 값으로 숨는다
+const planKnown = computed(() => achievementStore.loaded)
+const beforePlan = computed(() => achievementStore.loaded && !achievementStore.hasActivePlan)
+// '‹ 내 계정' — 진로 여정 시작에서 왔으면 뒤로, 아니면 그 화면으로
+function backToStart() {
+  if (window.history.state?.back === '/main/before') router.back()
+  else router.replace('/main/before')
+}
 // 휴지통(30일 보관) 계획 수 — 있을 때만 '최근 삭제한 계획'을 보여 준다(2026-11-04)
 const trashCount = ref(0)
 function jump(id: string) { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }

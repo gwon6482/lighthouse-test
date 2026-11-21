@@ -11,6 +11,17 @@
   word-break: keep-all;
 }
 
+// 진로계획 전(2026-11-21) — 하단 메뉴가 없어 아래 여백을 줄이고, 위에 '‹ 내 계정' 줄
+.mp--before { padding-bottom: max(32px, env(safe-area-inset-bottom)); }
+.mp-loading { padding: 80px $space-lg; text-align: center; font-size: $fs-sm; color: $color-text-tertiary; }
+.mp-back {
+  display: inline-flex; align-items: center; gap: 2px; justify-self: start;
+  margin: -8px 0 -8px -6px; padding: 6px 6px 6px 0;
+  border: 0; background: none; font: inherit; font-size: $fs-md; font-weight: $tw-title; color: $color-text; cursor: pointer;
+  .app-icon { font-size: 22px; }
+}
+.mp--before .mp-hero { padding-top: max(12px, env(safe-area-inset-top)); }
+
 // ── 머리 ─────────────────────────────────
 .mp-hero {
   padding: max(24px, env(safe-area-inset-top)) $space-lg $space-xl;
@@ -32,6 +43,7 @@
 .mp-counts {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  &--two { grid-template-columns: repeat(2, 1fr); } // 진로계획 전 — 완료 기록 칸 없음(2026-11-21)
   background: rgba(255, 255, 255, 0.7);
   border-radius: $radius-card;
   padding: 14px 0 12px;
