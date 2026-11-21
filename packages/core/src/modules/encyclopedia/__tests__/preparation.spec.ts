@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkLevelLabel, formatFullTime, formatMinutes, formatStudyHours, formatWeeks, hasMajorSkip, josaRo, pathOf, statSourceLine, stepsOf, sumParts, sumWeeks } from '../lib/preparation'
+import { checkLevelLabel, formatFullTime, formatMinutes, formatStudyHours, formatWeeks, hasGateway, hasMajorSkip, josaEulReul, josaIGa, josaRo, pathOf, realityHead, statSourceLine, stepsOf, sumParts, sumWeeks } from '../lib/preparation'
 import type { JobPreparation, PrepProject } from '../types/encyclopedia'
 
 const project = (id: string, weeks: number): PrepProject => ({
@@ -146,5 +146,33 @@ describe('전업 기준 분량 · 출처 줄(검토 11-17 C3·C7)', () => {
     expect(statSourceLine({ title: '논문(2017)', level: 'abstract', via: null, url: null, checkedAt: '2026-11-17', checkAgainAt: null }))
       .toBe('출처 · 논문(2017) · 논문 초록으로 확인 · 2026-11-17 확인')
     expect(statSourceLine({ title: null, level: 'news', via: null, url: null, checkedAt: null, checkAgainAt: null })).toBe('')
+  })
+})
+
+// 먼저 거치는 직업 안내(2026-11-21)
+describe('먼저 알아 둘 것 제목', () => {
+  const via = [{ jobCode: '212201', name: '초등교사' }]
+  it('짧은 이름이 있으면 ○○를 거쳐서 가요 — 받침에 맞춘다', () => {
+    expect(realityHead({ kind: 'career', text: '', via, shortName: '교사·교수' })).toBe('이 직업은 교사·교수를 거쳐서 가요')
+    expect(realityHead({ kind: 'career', text: '', via, shortName: '공무원' })).toBe('이 직업은 공무원을 거쳐서 가요')
+    expect(realityHead({ kind: 'career', text: '', via, shortName: '기업 실무' })).toBe('이 직업은 기업 실무를 거쳐서 가요')
+  })
+  it('옛 서버(짧은 이름 없음)는 옛 제목, 판사 한 줄은 제목 없음, early 는 그대로', () => {
+    expect(realityHead({ kind: 'career', text: '', via })).toBe('경력을 쌓은 뒤에 가는 직업이에요')
+    expect(realityHead({ kind: 'career', text: '', via: [] })).toBeNull()
+    expect(realityHead({ kind: 'early', text: '', via: [] })).toBe('대부분 일찍 시작하는 길이에요')
+  })
+  it('버튼·접기는 먼저 거치는 직업이 있는 경력직만', () => {
+    expect(hasGateway({ kind: 'career', text: '', via })).toBe(true)
+    expect(hasGateway({ kind: 'career', text: '', via: [] })).toBe(false)
+    expect(hasGateway({ kind: 'early', text: '', via })).toBe(false)
+    expect(hasGateway(null)).toBe(false)
+  })
+  it('조사 — 을/를 · 이/가(괄호 뒤는 마지막 한글로)', () => {
+    expect(josaEulReul('교사·교수')).toBe('를')
+    expect(josaEulReul('생산·시공·설비 실무')).toBe('를')
+    expect(josaIGa('초등교사')).toBe('가')
+    expect(josaIGa('학교 관리자(교장·교감)')).toBe('이')
+    expect(josaIGa('PD')).toBe('이(가)')
   })
 })

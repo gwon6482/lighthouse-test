@@ -124,6 +124,8 @@
 
   .prep-gate__label { color: #b45f06; }
   .prep-gate__text { color: #5b3a12; font-weight: 500; }
+  // 2026-11-21 — '이 직업은 ○○를 거쳐서 가요'(진로계획 세우기와 같은 말)
+  .prep-gate__head { font-size: 15px; font-weight: 800; line-height: 1.4; color: #5b3a12; letter-spacing: -0.01em; word-break: keep-all; }
 }
 
 // 지원 자격(나이·신체·결격)

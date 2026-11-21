@@ -1,6 +1,6 @@
 // 진로백과 준비과정 탭의 계산(2026-11-15) — 화면과 무관한 순수 함수만 둔다.
 // 자료는 서버(진로계획 라이브러리)가 갈래별로 순서까지 풀어서 준다. 여기서는 고르고 글자로 바꾸기만 한다.
-import type { JobPreparation, PrepChecked, PrepItem, PrepPath, PrepProject, PrepStatSource, PrepSum } from '../types/encyclopedia'
+import type { JobPreparation, PrepChecked, PrepItem, PrepPath, PrepProject, PrepReality, PrepStatSource, PrepSum } from '../types/encyclopedia'
 
 export interface PrepStep {
   key: string            // 펼침 상태를 기억하는 열쇠 — 프로젝트 id + 순서. 갈래를 바꿔도 공통 항목은 같은 열쇠라 열린 채로 남는다
@@ -147,6 +147,36 @@ export function josaRo(s: string): string {
   const jong = (c - 0xac00) % 28
   return jong === 0 || jong === 8 ? '로' : '으로'
 }
+
+/** '교사·교수' + 를 / '공무원' + 을 — 받침이 있으면 '을' */
+export function josaEulReul(s: string): string {
+  const c = s.charCodeAt(s.length - 1)
+  if (c < 0xac00 || c > 0xd7a3) return '를'
+  return (c - 0xac00) % 28 === 0 ? '를' : '을'
+}
+
+/** '초등교사' + 가 / '학교 관리자(교장·교감)' + 이 — 괄호·기호는 건너뛰고 마지막 한글로 본다 */
+export function josaIGa(s: string): string {
+  const hangul = s.match(/[가-힣](?=[^가-힣]*$)/)
+  if (!hangul) return '이(가)'
+  return (hangul[0].charCodeAt(0) - 0xac00) % 28 === 0 ? '가' : '이'
+}
+
+/**
+ * 먼저 알아 둘 것 상자의 굵은 제목(2026-11-21 먼저 거치는 직업 안내, 진로계획 세우기·준비과정 탭 같은 말).
+ *   짧은 이름이 있으면 '이 직업은 교사·교수를 거쳐서 가요'
+ *   옛 서버(짧은 이름 없음) + 먼저 거치는 직업이 있으면 옛 제목 '경력을 쌓은 뒤에 가는 직업이에요'
+ *   함께 덮는 직업의 한 줄(판사)은 제목 없이 본문만 — null
+ *   early 는 지금 제목 그대로
+ */
+export function realityHead(r: PrepReality): string | null {
+  if (r.kind === 'early') return '대부분 일찍 시작하는 길이에요'
+  if (r.shortName) return `이 직업은 ${r.shortName}${josaEulReul(r.shortName)} 거쳐서 가요`
+  return r.via.length ? '경력을 쌓은 뒤에 가는 직업이에요' : null
+}
+
+/** 먼저 거치는 직업의 예시 계획으로 안내하는 경력직인가(진로계획 세우기 — 버튼·접기) */
+export const hasGateway = (r?: PrepReality | null): r is PrepReality => !!r && r.kind === 'career' && r.via.length > 0
 
 /**
  * 전업 기준 분량을 '약' 없이 — 주 × 12 ÷ 52 를 반올림한 개월(검토 11-17 C3).

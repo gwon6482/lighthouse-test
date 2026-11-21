@@ -388,7 +388,7 @@ export interface JobPreparation {
     // 지원 자격(나이·신체·결격) — 준비를 시작하기 전에 알아야 하는 것(2026-11-16)
     eligibility?: { lines: string[]; checked: PrepChecked | null } | null
     // 먼저 알아 둘 것 — career: 경력을 쌓은 뒤에 가는 직업(via = 먼저 거치는 직업) / early: 대부분 일찍 시작하는 길(2026-11-16)
-    reality?: { kind: 'career' | 'early'; text: string; via: { jobCode: string; name: string }[] } | null
+    reality?: PrepReality | null
     // 학위를 따는 다른 길(2026-11-19) — 정보 상자 하나. 걸음·기간과 상관없다(옛 서버는 없다)
     degreeRoutes?: PrepDegreeRoutes | null
   }
@@ -398,6 +398,19 @@ export interface JobPreparation {
   projects: Record<string, PrepProject>
   passStats?: Record<string, PrepPassStat>   // 보여 주는 길에 쓰인 합격자 수치만(2026-11-17 — 옛 서버는 없다)
   degreeRouteItems?: Record<string, PrepDegreeRoute>   // 학위를 따는 다른 길 상자에 쓰인 길만(2026-11-19 — 옛 서버는 없다)
+}
+
+/**
+ * 먼저 알아 둘 것(2026-11-16) — career: 경력을 쌓은 뒤에 가는 직업(via = 먼저 거치는 직업) / early: 대부분 일찍 시작하는 길.
+ * 2026-11-21(먼저 거치는 직업 안내) 더한 칸 — 옛 서버는 없다:
+ *   shortName: '이 직업은 ○○를 거쳐서 가요'의 ○○(경력직 계획 6개) · checked: 법령 대조(판사의 법조 경력 기간)
+ */
+export interface PrepReality {
+  kind: 'career' | 'early'
+  text: string
+  via: { jobCode: string; name: string }[]
+  shortName?: string
+  checked?: PrepChecked | null
 }
 
 /** 학위를 따는 다른 길 — 그 길로 이 면허·자격이 되는가(2026-11-19). yes 돼요 · no 안 돼요 · if 조건 있어요 */

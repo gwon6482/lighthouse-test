@@ -2,6 +2,7 @@
 // 출처: lighthouse-api data/job-gates/jobGates.draft.json (고용24 '되는 길' 문장을 읽어 붙인 조건)
 // ⚠️ 평가 후 서버(job_info)로 옮기면 이 파일을 지우고 useJobGate 의 출처만 바꾼다
 // 2026-11-18 경력직(senior) 6개 추가 — 관리직 직무(011~014)에서 빠진 것(총장·교장·교감·연구관리자·여행·호텔·음식서비스관리자). API 초안에도 같이 넣었다
+// 2026-11-21 판사 되는 길 '법조 경력(2026년부터 10년)' → 현행 5년(법원조직법 제42조제2항 2024-10-16 개정). API 초안도 같이 고쳤다
 import type { JobGate } from './gateBadges'
 
 export const GATE_CHECKED_AT = '2026-10-27'
@@ -625,7 +626,7 @@ export const JOB_GATES: Record<string, JobGate> = {
    "entry": "senior"
   },
   "weight": "heavy",
-  "note": "변호사 자격 + 법조 경력(2026년부터 10년) 후 임용",
+  "note": "변호사 자격 + 법조 경력 5년 이상 후 임용",
   "evidence": "판사가 되기 위해서는 변호사 자격 취득 후 일정기간 이상의 법조 경력이 있는 사람 중 임명된다",
   "source": "고용24 직업정보(되는 길)"
  },

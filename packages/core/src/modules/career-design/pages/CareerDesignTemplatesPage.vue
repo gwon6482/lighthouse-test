@@ -8,9 +8,35 @@
 
     <div class="cd-tpl__body">
 
-      <p v-if="loading" class="cd-tpl__intro">예시 진로계획을 불러오는 중이에요…</p>
+      <!-- 먼저 거치는 직업의 예시를 보는 중(2026-11-21 B-9) — 목표 진로는 그대로라는 띠. 돌아가면 목표 직업 자신의 계획 -->
+      <div v-if="viaCode && basePrep" class="cd-tpl__goal">
+        <strong class="cd-tpl__goal-title">목표 진로 · {{ targetTitle || basePrep.title }}</strong>
+        <span class="cd-tpl__goal-text">먼저 {{ viaName }}{{ josaIGa(viaName) }} 되는 계획이에요.</span>
+        <button type="button" class="cd-tpl__goal-back" @click="leaveVia">{{ basePrep.displayName }} 계획으로 돌아가기</button>
+      </div>
+
+      <p v-if="loading || viaLoading" class="cd-tpl__intro">예시 진로계획을 불러오는 중이에요…</p>
+      <p v-else-if="viaCode && !prep" class="cd-tpl__intro">{{ viaName }} 예시 계획을 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.</p>
 
       <template v-else-if="prep">
+        <!-- 먼저 알아 둘 것(2026-11-21 B-9·11·13) — 바로 될 수 없는 직업. 진로백과 준비과정 탭과 같은 말.
+             먼저 거치는 직업이 있으면(경력직 계획 6개) 그 직업의 예시 계획으로 가는 버튼 — 목표 진로는 바꾸지 않는다.
+             판사(함께 덮는 직업의 한 줄)는 버튼 없이 본문만 -->
+        <div v-if="!viaCode && careerReality" class="cd-tpl__reality">
+          <span class="cd-tpl__reality-label">먼저 알아 둘 것</span>
+          <strong v-if="realityHead(careerReality)" class="cd-tpl__reality-head">{{ realityHead(careerReality) }}</strong>
+          <p class="cd-tpl__reality-text">{{ careerReality.text }}</p>
+          <template v-if="gateway">
+            <p class="cd-tpl__reality-sub">먼저 거치는 직업의 예시 계획으로 시작해요</p>
+            <div class="cd-tpl__via">
+              <button v-for="v in careerReality.via" :key="v.jobCode" type="button" class="cd-tpl__via-btn" @click="goVia(v.jobCode)">
+                <span class="cd-tpl__via-name">{{ v.name }}</span>
+                <span class="cd-tpl__via-go">예시 계획 보기 <AppIcon name="ui-chevron-right" /></span>
+              </button>
+            </div>
+          </template>
+        </div>
+
         <!-- 자료는 진로백과 준비과정 탭과 같다(진로계획 라이브러리) — 예시이고 현직자 검토 전이라는 것을 여기서도 알린다 -->
         <p class="cd-tpl__intro">
           진로백과의 {{ prep.displayName }} 준비과정 예시를 내 계획의 출발점으로 써요.
@@ -19,7 +45,11 @@
         </p>
 
         <!-- 진입 관문 직업(전공·시험·면허 필수)이면 무엇을 중심에 둘지 먼저 보여준다(2026-10-27) -->
-        <JobGateGuide :job-code="prep.jobCode" variant="plan" class="cd-tpl__gate" />
+        <!-- '경력직' 안내 한 줄은 위 '먼저 알아 둘 것'과 뜻이 같아 뺀다(2026-11-21). 다른 배지 안내는 남긴다 -->
+        <JobGateGuide :job-code="prep.jobCode" variant="plan" :hide="!viaCode && careerReality ? ['senior'] : []" class="cd-tpl__gate" />
+
+        <!-- 목표 직업 자신의 계획은 지우지 않고 아래로 접어 둔다(2026-11-21 B-10, F-6 '계획은 남긴다') -->
+        <p v-if="gateway" class="cd-tpl__divider">{{ basePrep!.displayName }}{{ josaIGa(basePrep!.displayName) }} 된 뒤의 계획</p>
 
         <!-- 내 진로상황(2026-11-16) — 맨 위 플랜이 무엇에 맞췄는지. 고치면 묻는 화면으로 돌아간다 -->
         <div v-if="situationOn" class="cd-tpl__situ">
@@ -183,7 +213,7 @@ import { buildPlanTemplates, buildSituationTemplate, type HaveTarget, type PlanT
 import { sameHave, withoutHave } from '../lib/situation'
 import { hasAnything, schoolSummary, useCareerProfile } from '../composables/useCareerProfile'
 import { toDateKey } from '../composables/usePlanTimeline'
-import { formatWeeks } from '@/modules/encyclopedia/lib/preparation'
+import { formatWeeks, hasGateway, josaIGa, realityHead } from '@/modules/encyclopedia/lib/preparation'
 import { getToday } from '@/shared/utils/dev-date'
 import { startManualPlan } from '../composables/startManualPlan'
 import { fetchTargetCareer } from '@/modules/encyclopedia/encyclopedia.api'
@@ -217,9 +247,54 @@ const COLORS: Record<ProjectCategory, { bg: string; text: string }> = {
 // 목표 진로(진로백과에서 정한 것)의 예시 진로설계를 불러온다. 비로그인·미설정·직접 적은 목표면 템플릿 없이 '직접 설계하기'만 남는다
 // (그런 목표는 진로계획 첫 화면이 이 화면을 건너뛰고 바로 직접 설계로 보낸다 — CareerDesignPage goToTemplates)
 const targetTitle = ref('')
-const prep = ref<JobPreparation | null>(null)
+const basePrep = ref<JobPreparation | null>(null)   // 목표 진로(진로백과에서 정한 직업)의 예시
 const loading = ref(true)
 const track = ref<string | null>(null)
+
+// 먼저 거치는 직업(2026-11-21, 결정 B-9) — 교장이 목표면 초등교사 같은 먼저 거치는 직업의 예시에서 시작할 수 있다.
+// 목표 진로는 그대로 두고 이 화면의 예시만 바꾼다. 주소(?via=코드)에 두어 새로고침해도 남는다. 목록에 없는 코드는 무시한다
+const careerReality = computed(() => (basePrep.value?.plan.reality?.kind === 'career' ? basePrep.value.plan.reality : null))
+const gateway = computed(() => !viaCode.value && hasGateway(careerReality.value))
+const viaCode = computed(() => {
+  const q = route.query.via
+  return typeof q === 'string' && careerReality.value?.via.some((v) => v.jobCode === q) ? q : null
+})
+const viaName = computed(() => careerReality.value?.via.find((v) => v.jobCode === viaCode.value)?.name ?? '')
+const viaPrep = ref<JobPreparation | null>(null)
+const viaLoading = ref(false)
+const prep = computed(() => (viaCode.value ? viaPrep.value : basePrep.value))
+let baseTrack: string | null = null
+function goVia(code: string) {
+  baseTrack = track.value
+  void router.replace({ query: { ...route.query, via: code } })
+}
+function leaveVia() {
+  const rest = { ...route.query }
+  delete rest.via
+  void router.replace({ query: rest })
+}
+watch(viaCode, async (code, prev) => {
+  openId.value = null
+  window.scrollTo(0, 0)
+  if (!code) {
+    viaPrep.value = null
+    track.value = baseTrack ?? basePrep.value?.defaultTrack ?? null
+    mineCollapsed.value = gateway.value   // 목표 직업 자신의 계획은 접힌 채로
+    return
+  }
+  if (!prev) baseTrack = track.value
+  viaLoading.value = true
+  try {
+    const p = await loadLibraryPlan(code)
+    if (viaCode.value !== code) return   // 그 사이 다른 직업을 눌렀다
+    viaPrep.value = p
+    track.value = p?.defaultTrack ?? null
+    mineCollapsed.value = false
+  } finally {
+    if (viaCode.value === code) viaLoading.value = false
+  }
+})
+
 onMounted(async () => {
   try {
     const [{ data }, saved] = await Promise.all([fetchTargetCareer(), loadCareerProfile()])
@@ -227,8 +302,12 @@ onMounted(async () => {
     const target = data.targetCareer
     targetTitle.value = target?.title ?? target?.ref ?? ''
     if (target?.refType === 'jobCode') {
-      prep.value = await loadLibraryPlan(target.ref)
-      track.value = prep.value?.defaultTrack ?? null
+      basePrep.value = await loadLibraryPlan(target.ref)
+      track.value = basePrep.value?.defaultTrack ?? null
+      baseTrack = track.value
+      // 경력직이면 목표 직업 자신의 계획(내 상황 플랜 포함)은 접어 둔다(결정 B-10)
+      if (gateway.value) mineCollapsed.value = true
+      // 주소에 ?via= 가 있으면(새로고침) 그 직업의 예시를 바로 불러온다 — watch 는 basePrep 이 생기며 이미 돌았다
     }
   } catch { /* 비로그인 등 */ } finally {
     loading.value = false
@@ -303,8 +382,10 @@ const optionalOpen = reactive<Record<string, boolean>>({})
 const toggleOptional = (id: string) => { optionalOpen[id] = !optionalOpen[id] }
 
 // 직접 설계하기 — 템플릿 없이 빈 계획으로(진로계획 첫 화면과 같은 함수)
+// 먼저 거치는 직업의 예시를 보는 중이면 그 직업으로(템플릿으로 시작할 때와 같게 — 계획은 그 직업이 되는 계획이다)
 function startManual() {
-  startManualPlan(router, targetTitle.value, prep.value?.jobCode)
+  if (viaCode.value) startManualPlan(router, viaPrep.value?.title ?? viaName.value, viaPrep.value?.jobCode)
+  else startManualPlan(router, targetTitle.value, prep.value?.jobCode)
 }
 
 // 템플릿으로 임시 계획을 채우고 프로젝트 구성으로 — 고친 뒤 타임라인·루틴을 거쳐 맨 끝 목표 설정에서 이름·기간을 정한다
@@ -342,6 +423,32 @@ function startFrom(t: PlanTemplate) {
   &__body { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 
   &__intro { font-size: 12px; color: #888; line-height: 1.5; padding: 0 4px; }
+
+  // 먼저 알아 둘 것(2026-11-21) — 진로백과 준비과정 탭의 같은 상자와 같은 색
+  &__reality { display: flex; flex-direction: column; gap: 7px; padding: 14px; border-radius: 14px; background: #FFF4E5; }
+  &__reality-label { font-size: 11.5px; font-weight: 700; color: #B45F06; }
+  &__reality-head { font-size: 16px; font-weight: 800; line-height: 1.35; letter-spacing: -0.02em; color: #5B3A12; word-break: keep-all; }
+  &__reality-text { font-size: 12.5px; line-height: 1.55; color: #5B3A12; word-break: keep-all; }
+  &__reality-sub { margin-top: 2px; font-size: 12px; font-weight: 700; color: #B45F06; }
+  &__via { display: flex; flex-direction: column; gap: 6px; }
+  &__via-btn {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    width: 100%; padding: 12px; border: 0; border-radius: 10px; background: #fff;
+    font-family: inherit; text-align: left; cursor: pointer;
+
+    &:active { background: #FFFAF2; }
+    &:focus-visible { outline: 2px solid #FFC700; outline-offset: 2px; }
+  }
+  &__via-name { font-size: 14px; font-weight: 700; color: #333; }
+  &__via-go { flex: none; display: inline-flex; align-items: center; gap: 2px; font-size: 12px; color: #888; }
+  // 먼저 거치는 직업의 예시를 보는 중 — 목표 진로는 그대로라는 띠
+  &__goal { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 12px 14px; border-radius: 12px; background: #FFF4E5; color: #5B3A12; }
+  &__goal-title { font-size: 13.5px; font-weight: 800; }
+  &__goal-text { font-size: 12.5px; line-height: 1.5; }
+  &__goal-back {
+    margin-top: 2px; padding: 4px 0; border: 0; background: none;
+    font-family: inherit; font-size: 12.5px; font-weight: 700; color: #B45F06; cursor: pointer;
+  }
 
   &__card { background: #fff; border-radius: 16px; overflow: hidden; border: 1.5px solid transparent; }
   &__card--open { border-color: #FFC700; }

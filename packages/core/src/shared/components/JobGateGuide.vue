@@ -1,5 +1,5 @@
 <template>
-  <section v-if="gate" class="gate-guide" :class="`gate-guide--${variant}`">
+  <section v-if="gate && (variant === 'detail' || badges.length)" class="gate-guide" :class="`gate-guide--${variant}`">
     <div class="gate-guide__head">
       <span class="gate-guide__title">{{ variant === 'plan' ? `${gate.title}${subjectJosa(gate.title)} 이렇게 준비해요` : '이 직업이 되려면' }}</span>
       <!-- 배지는 넣지 않는다 — 상세 헤더·각 항목에 이미 있다(2026-10-27 사용자) -->
@@ -36,10 +36,14 @@ import AppIcon from './AppIcon.vue'
 import { gateBadge, sortGateBadges } from '@/shared/jobGates/gateBadges'
 import { gateOf, gateConditionLines, GATE_CHECKED_AT } from '@/shared/jobGates/useJobGate'
 
-const props = withDefaults(defineProps<{ jobCode?: string | null; variant?: 'detail' | 'plan' }>(), { variant: 'detail' })
+import type { GateBadgeKey } from '@/shared/jobGates/gateBadges'
+
+// hide — 같은 뜻을 다른 상자가 이미 말할 때 뺄 배지(진로계획 세우기의 '먼저 알아 둘 것'이 경력직 안내를 대신한다, 2026-11-21).
+//        plan 에서 남는 배지가 없으면 상자를 그리지 않는다
+const props = withDefaults(defineProps<{ jobCode?: string | null; variant?: 'detail' | 'plan'; hide?: GateBadgeKey[] }>(), { variant: 'detail', hide: () => [] })
 const gate = computed(() => gateOf(props.jobCode))
 const conditionLines = computed(() => (gate.value ? gateConditionLines(gate.value) : []))
-const badges = computed(() => sortGateBadges(gate.value?.badges ?? []).map(gateBadge))
+const badges = computed(() => sortGateBadges((gate.value?.badges ?? []).filter((k) => !props.hide.includes(k))).map(gateBadge))
 const subjectJosa = (w: string) => { const c = w.trim().slice(-1).charCodeAt(0) - 0xac00; return c < 0 || c > 11171 ? '은(는)' : c % 28 ? '은' : '는' }
 </script>
 

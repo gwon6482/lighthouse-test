@@ -19,10 +19,17 @@
           <p v-if="prep.shared" class="prep-intro__shared">
             준비하는 길이 비슷한 <strong>{{ prep.plan.displayName }}</strong>의 계획을 함께 보여드려요.
           </p>
-          <!-- 먼저 알아 둘 것(2026-11-16) — 경력을 쌓은 뒤에 가는 직업·대부분 일찍 시작하는 길. 계획을 읽기 전에 알아야 해서 맨 앞에 둔다 -->
+          <!-- 먼저 알아 둘 것(2026-11-16) — 경력을 쌓은 뒤에 가는 직업·대부분 일찍 시작하는 길. 계획을 읽기 전에 알아야 해서 맨 앞에 둔다.
+               2026-11-21(먼저 거치는 직업 안내 B-12): 경력직은 진로계획 세우기와 같은 말 — 작은 '먼저 알아 둘 것' + 굵게 '이 직업은 ○○를 거쳐서 가요'.
+               판사(함께 덮는 직업의 한 줄)는 제목 없이 본문과 법령 출처만 -->
           <div v-if="prep.plan.reality" class="prep-gate prep-gate--reality">
-            <span class="prep-gate__label">{{ prep.plan.reality.kind === 'career' ? '경력을 쌓은 뒤에 가는 직업이에요' : '대부분 일찍 시작하는 길이에요' }}</span>
+            <template v-if="prep.plan.reality.kind === 'career'">
+              <span class="prep-gate__label">먼저 알아 둘 것</span>
+              <strong v-if="realityHead(prep.plan.reality)" class="prep-gate__head">{{ realityHead(prep.plan.reality) }}</strong>
+            </template>
+            <span v-else class="prep-gate__label">{{ realityHead(prep.plan.reality) }}</span>
             <p class="prep-gate__text">{{ prep.plan.reality.text }}</p>
+            <PreparationNotes v-if="prep.plan.reality.checked" :checked="prep.plan.reality.checked" />
             <div v-if="prep.plan.reality.via.length" class="prep-via">
               <span class="prep-via__label">먼저 거치는 직업</span>
               <RouterLink
@@ -273,7 +280,7 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import PreparationNotes from './PreparationNotes.vue'
 import PeriodTag from '@/modules/career-design/components/PeriodTag.vue'
 import { fetchJobPreparation } from '../../../../encyclopedia.api'
-import { FULL_TIME_HOURS, PART_TIME_HOURS, formatFullTime, formatMinutes, formatStudyHours, formatWeeks, hasMajorSkip, josaRo, pathOf, statSourceLine, stepsOf, sumParts, type PrepStep } from '../../../../lib/preparation'
+import { FULL_TIME_HOURS, PART_TIME_HOURS, formatFullTime, formatMinutes, formatStudyHours, formatWeeks, hasMajorSkip, josaRo, pathOf, realityHead, statSourceLine, stepsOf, sumParts, type PrepStep } from '../../../../lib/preparation'
 import { meanHeadline } from '@/modules/career-design/lib/examPace'
 import type { JobPreparation, PrepDegreeRoute, PrepProject, PrepRouteOk } from '../../../../types/encyclopedia'
 import type { ProjectCategory } from '@/modules/career-design/types/career-design'
