@@ -178,6 +178,18 @@ $fw-heading: 700;    // 제목류
   li::before { content: '* '; }
 }
 
+// 참고(출처, 2026-11-22) — 마지막 쪽 '결과 활용 안내' 바로 아래. 주석(.rp-note)과 같은 크기·색, 머리 '참고'만 조금 진하게
+.rp-credit {
+  margin-top: -3mm;   // 위 구역(.rp-sec)의 아래 여백 6mm 를 반으로 — 활용 안내에 붙은 주석으로 보이게
+  font-size: 7pt;
+  line-height: 1.55;
+  color: $rp-meta;
+  word-break: keep-all;
+
+  b { display: block; margin-bottom: 0.6mm; font-weight: $fw-medium; color: $rp-sub; }
+  p { margin: 0; }
+}
+
 // ── 배지 · 칩 ──
 .rp-tag {
   display: inline-block;

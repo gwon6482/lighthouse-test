@@ -1,5 +1,5 @@
 <template>
-  <div class="rp">
+  <div ref="root" class="rp">
     <ReportPage
       v-for="(page, i) in PAGES"
       :key="i"
@@ -31,7 +31,7 @@
  *
  * 내보낼 때는 화면 밖에 그려 두고 `.rp-page` 를 한 장씩 찍어 PDF 로 합친다(useResultExport.buildPdfFromPages).
  */
-import { computed } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import type { ResearchResultData } from './reportData'
 import ReportPage from './ReportPage.vue'
 import SecCover from './sections/SecCover.vue'
@@ -50,9 +50,14 @@ import SecJobs from './sections/SecJobs.vue'
 import SecJobGroups from './sections/SecJobGroups.vue'
 import SecJobsStrip from './sections/SecJobsStrip.vue'
 import SecGuide from './sections/SecGuide.vue'
-import { formatDate, type ReportMeta } from './reportUtil'
+import SecCredit from './sections/SecCredit.vue'
+import { findPageOverflow, formatDate, type ReportMeta } from './reportUtil'
 
-const PAGES = [
+// 마지막 쪽의 앞·뒤 구역. 넘치면 뒤(LAST_B)를 5쪽으로 내린다(아래 onMounted)
+const LAST_A = [SecEnvironmentFit, SecCurrentJob, SecJobGroups]
+const LAST_B = [SecJobsStrip, SecJobs, SecGuide, SecCredit]
+
+const BASE_PAGES = [
   [SecCover, SecDataSummary, SecType, SecPersonality],
   [SecPersonalityDefs, SecTalent, SecValues],
   // 앱만 다르다: '맞는/맞지 않는 환경'(SecEnvironmentFit)을 4쪽으로 — 관심 분야를 많이 고르면(33개) 3쪽이 122px 넘쳐
@@ -60,10 +65,39 @@ const PAGES = [
   [SecInterest, SecSummaryLine, SecEnvironment],
   // 직무 3가지(SecJobGroups)가 본 추천이고, 직업 순위 Top 5 는 그 밑에 요약 띠(SecJobsStrip)로 붙인다(2026-11-09, 랜딩과 같다).
   //   시안 비교(지금·한 줄 표·요약 띠) 끝에 사용자가 요약 띠를 골랐다 — 4쪽 하나에 안내까지 들어간다.
-  //   업무 환경 문장이 가장 긴 경우(맞는·안 맞는 각 6줄)에도 아래 약 13mm 남는다. 직업 순위에 막대·급여를 다시 넣으면 넘친다
   //   직무를 못 불러오면 위 두 구역은 비고 SecJobs(예전 직업 Top 5 표)가 대신 나온다
-  [SecEnvironmentFit, SecCurrentJob, SecJobGroups, SecJobsStrip, SecJobs, SecGuide],   // SecCurrentJob 은 연구 설문 실무자만 — 앱에서는 늘 빈 구역
+  // SecCredit = 참고(출처, 2026-11-22, 랜딩과 같다) — 활용 안내 바로 밑 작은 글
+  [...LAST_A, ...LAST_B],   // SecCurrentJob 은 연구 설문 실무자만 — 앱에서는 늘 빈 구역
 ]
+
+/*
+ * 넘치면 5쪽으로(앱만, 2026-11-22) — 업무 환경 문장이 길고 많으면(맞는·안 맞는 각 4~6줄) 4쪽이 넘쳐 잘렸다
+ * (참고 문구를 더하기 전에도 가장 긴 경우 31px). 다 그린 뒤 4쪽을 재서 넘칠 때만 직업 순위 띠부터 뒤를 5쪽으로 내린다.
+ * 넘치지 않으면 예전처럼 4쪽. 부르는 쪽은 찍기 전에 `ready` 를 기다린다(SelfUnderstandingResultPage.makeResultPdf)
+ */
+const root = ref<HTMLElement | null>(null)
+const split = ref(false)
+const PAGES = computed(() => {
+  const head = BASE_PAGES.slice(0, -1)
+  return split.value ? [...head, LAST_A, LAST_B] : BASE_PAGES
+})
+let markReady: () => void = () => {}
+const ready = new Promise<void>((res) => { markReady = res })
+onMounted(async () => {
+  try {
+    await nextTick()
+    await Promise.race([document.fonts?.ready, new Promise((r) => setTimeout(r, 3000))])
+    const pages = Array.from(root.value?.querySelectorAll<HTMLElement>('.rp-page') ?? [])
+    const last = pages[pages.length - 1]
+    if (last && findPageOverflow([last]).length) {
+      split.value = true
+      await nextTick()
+    }
+  } finally {
+    markReady()
+  }
+})
+defineExpose({ ready })
 
 const props = defineProps<{ data: ResearchResultData }>()
 const meta = computed<ReportMeta>(() => ({
