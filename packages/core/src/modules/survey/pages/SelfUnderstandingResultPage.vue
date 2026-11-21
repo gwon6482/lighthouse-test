@@ -49,7 +49,7 @@
 
   <!-- PDF 결과지는 화면 밖에 잠깐 그렸다가 찍고 지운다(report/ResultReport.vue) -->
   <div v-if="reportData" ref="reportHost" class="result-report-host" aria-hidden="true">
-    <ResultReport :data="reportData" />
+    <ResultReport ref="reportRef" :data="reportData" />
   </div>
 
 </template>
@@ -134,6 +134,7 @@ const makeResultImages = () => withCapture((el) => captureImageSet(el))
 const makeResultImage = (): Promise<Capture> => withCapture((el) => captureImage(el))
 
 const reportHost = ref<HTMLElement | null>(null)
+const reportRef = ref<InstanceType<typeof ResultReport> | null>(null)
 const reportData = ref<ResearchResultData | null>(null)
 
 // 검사일 = 제출 시각. 분석 API 는 날짜를 주지 않아 내 검사 목록에서 찾는다(없으면 날짜 칸을 숨긴다)
@@ -159,6 +160,8 @@ async function makeResultPdf() {
     currentJob: null,
   }
   await nextTick()
+  // 양식이 쪽을 다 나눌 때까지(넘치면 5쪽 — ResultReport.vue layout)
+  await reportRef.value?.ready
   try {
     const pages = Array.from(reportHost.value?.querySelectorAll<HTMLElement>('.rp-page') ?? [])
     // 양식을 고치다 쪽을 넘기면 PDF 에서 잘린다 — 만들 때마다 확인해 콘솔에 남긴다

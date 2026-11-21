@@ -180,7 +180,7 @@
           </div>
         </section>
 
-        <!-- ⚠️ 쪽 수는 report/ResultReport.vue 의 PAGES 와 같게(지금 4쪽) -->
+        <!-- ⚠️ 쪽 수는 report/ResultReport.vue 의 PAGES 와 같게(지금 4쪽 — 업무 환경 문장이 길면 5쪽으로 늘어난다, 2026-11-22) -->
         <section class="rr__teaser rr__teaser--mini" @click="scrollToLock">
           <span class="rr__pages" aria-hidden="true"><i /><i /><i /><i /></span>
           <div><p class="rr__teaser-title">결과 리포트 저장</p><p class="rr__teaser-what">PDF 4쪽 · 이미지로 저장하고 언제든 다시 보기</p></div>
@@ -419,6 +419,14 @@
       </section>
 
 
+      <!-- 참고(출처, 2026-11-22 오너 확정, 랜딩 정본과 같다) — 결과지 맨 아래 작은 글. 글은 PDF 와 같은 곳(report/reportText.ts 의 credit).
+           카드 밖 주석이라 바탕 없이 글만. 비회원은 가입 상자 아래에 온다(위 결과 구역들이 비회원에겐 없다).
+           하단 액션(슬롯)보다 위 — 결과지의 끝이고, 내보내기 이미지에도 찍힌다 -->
+      <section class="rr__credit">
+        <p class="rr__credit-h">{{ CREDIT.heading }}</p>
+        <p class="rr__credit-t">{{ CREDIT.text }}</p>
+      </section>
+
       <!-- 하단 액션(래퍼가 주입): 일반=CTA / 온보딩=다음으로. 비회원은 위 잠금 상자가 대신한다 -->
       <slot v-if="!guestMode" />
     </template>
@@ -458,6 +466,7 @@ import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
 import GuestLockCard from '@/shared/components/GuestLockCard.vue'
 import SocialLoginButton from '@/shared/components/SocialLoginButton.vue'
 import GuestFloatCard from '@/shared/components/GuestFloatCard.vue'
+import { REPORT_TEXT } from '../report/reportText'
 import { getGuestSurvey, fetchGuestAnalysis, fetchGuestJobTeaser, markLoginRedirect, type GuestJobTeaser } from '@/shared/guest/guestSurvey'
 import { fetchProviders, startOAuth, type Provider } from '@/shared/auth/oauth'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
@@ -800,6 +809,7 @@ const surveyId = props.surveyId
 
 // 비회원 결과지(2026-11-09) — 로그인하지 않았으면 이 기기의 열람 키로 받고, 성격 Top 3 까지만 보여 준다.
 const guestMode = !authStore.isLoggedIn
+const CREDIT = REPORT_TEXT.credit   // 참고(출처) — PDF 와 같은 글
 const providers = ref<Record<Provider, boolean>>({ kakao: false, google: false })
 function goOAuth(p: Provider) {
   markLoginRedirect()   // 소셜 로그인은 같은 탭으로 돌아온다 — '나가면 삭제' 경고를 띄우지 않는다
@@ -1271,6 +1281,10 @@ $c-text-3: #767676;  // 메타 — 분류·급여, 순위, 작은 안내
 .rr__sub { margin-top: 4px; font-size: 0.85rem; color: $c-text-2; }
 .rr__label { margin: 26px 0 10px; font-size: 0.95rem; font-weight: 700; color: $c-text-1; }
 .rr__empty { margin-top: 12px; font-size: 0.9rem; color: $c-text-2; }
+
+// 참고(출처) — 결과지 맨 아래 주석. 카드 밖이라 바탕 없이 작은 메타 글씨(직업 순위 보기 안내 .rr__grp-alt 와 같은 크기·색, 랜딩과 같다)
+.rr__credit { margin-top: 18px; padding: 0 6px; font-size: 0.75rem; line-height: 1.6; color: $c-text-3; word-break: keep-all; }
+.rr__credit-h { margin-bottom: 2px; font-weight: 700; color: $c-text-2; }
 
 // 성격 분포
 .rr__pd { padding: 12px 0; border-bottom: 1px solid #eceef0; &:last-child { border-bottom: 0; } }
