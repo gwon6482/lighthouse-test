@@ -106,6 +106,41 @@ describe('roadmapStops', () => {
   })
 })
 
+describe('단계 진도(로드맵 지금 주)', () => {
+  it('주 이름 (k/n)에서 이름·주·비율을 읽는다', async () => {
+    const { phaseProgress, phaseLineSub } = await import('../lib/planBoard')
+    const a = phaseProgress('네 과목 강의 끝까지 (30/88)')!
+    expect(a).toEqual({ name: '네 과목 강의 끝까지', k: 30, n: 88, pct: 34, last: false })
+    expect(phaseLineSub(a)).toBe('이번 주까지 34%쯤 가면 돼요')
+    expect(phaseProgress('네 과목 기본 강의 끝까지 (30/60)')!.pct).toBe(50)
+    expect(phaseProgress('영역별 기출 끝까지 (4/10)')!.pct).toBe(40)
+    expect(phaseProgress('과목별 이론 (30/172)')!.pct).toBe(17) // 옛 이름으로 세운 계획도
+    expect(phaseProgress('준비 (1/5)')!.pct).toBe(20)
+  })
+  it('마지막 주는 % 대신 마지막 주 글', async () => {
+    const { phaseProgress, phaseLineSub } = await import('../lib/planBoard')
+    const p = phaseProgress('네 과목 강의 끝까지 (88/88)')!
+    expect(p.last).toBe(true)
+    expect(phaseLineSub(p)).toBe('이 단계 마지막 주예요')
+  })
+  it('짧은 단계(n < 5)·과정·그 꼴이 아닌 이름은 없음', async () => {
+    const { phaseProgress } = await import('../lib/planBoard')
+    expect(phaseProgress('기출 분석 (2/4)')).toBeNull()
+    expect(phaseProgress('근무 (3/8)', true)).toBeNull()
+    expect(phaseProgress('근무')).toBeNull()
+    expect(phaseProgress('최종 정리')).toBeNull()       // 1주짜리 단계는 (k/n)이 안 붙는다
+    expect(phaseProgress('토익(1/8)')).toBeNull()       // 띄어 쓰지 않은 직접 쓴 이름
+    expect(phaseProgress(undefined)).toBeNull()
+    expect(phaseProgress('이상한 (9/8)')).toBeNull()
+  })
+  it('로드맵 주에 진도 프로젝트의 주 이름도 실린다', async () => {
+    const { roadmapStops } = await import('../lib/planBoard')
+    const p = { id: 'x', name: 'x', weeks: 2, curriculum: [{ week: 1, title: '기본 (1/2)', items: ['a'] }, { week: 2, title: '기본 (2/2)', items: ['a'] }] } as any
+    const [s] = roadmapStops([p], [{ week: 1, projects: [{ id: 'x' }] }], 1, () => false)
+    expect(s!.weeks.map((w) => w.title)).toEqual(['기본 (1/2)', '기본 (2/2)'])
+  })
+})
+
 describe('주간결산 시점', () => {
   it('시작 요일이 금요일이면 목요일이 전날, 금요일이 시작일', async () => {
     const { reviewMoment } = await import('../lib/planBoard')

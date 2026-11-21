@@ -66,6 +66,15 @@
                   {{ roadmapWeekLabel(s.startWeek, w.week, weekNumber).title }}
                   <small>{{ roadmapWeekLabel(s.startWeek, w.week, weekNumber).sub }} · {{ weekSpanLabel(s.startWeek + w.week - 1, s.startWeek + w.week - 1) }}</small>
                 </span>
+                <!-- 단계 진도(2026-11-22) — 지금 주에만. 이름 'OOO (k/n)'이고 n ≥ 5인 진도 프로젝트 -->
+                <div v-for="ph in nowPhase(s, w)" :key="ph.n" class="rm-week__phase">
+                  <span class="rm-week__phase-row">
+                    <span class="rm-week__phase-name">{{ ph.name }}</span>
+                    <span class="rm-week__phase-num">{{ ph.k }}/{{ ph.n }}주</span>
+                  </span>
+                  <span class="rm-week__phase-track" aria-hidden="true"><i :style="{ width: `${(ph.k / ph.n) * 100}%` }" /></span>
+                  <span class="rm-week__phase-sub">{{ phaseLineSub(ph) }}</span>
+                </div>
                 <span v-for="(e, k) in w.entries" :key="k" class="rm-week__item" :class="{ 'rm-week__item--done': e.done }">
                   <AppIcon :name="e.done ? 'ui-check' : 'ui-chevron-right'" />{{ e.text }}
                 </span>
@@ -103,7 +112,7 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { usePlanBoard } from '../composables/usePlanBoard'
-import { categoryColor, categoryLabel, roadmapWeekLabel, parsePlanDate, daysBetween, type RoadmapStop } from '../lib/planBoard'
+import { categoryColor, categoryLabel, roadmapWeekLabel, parsePlanDate, daysBetween, phaseProgress, phaseLineSub, type PhaseProgress, type RoadmapStop } from '../lib/planBoard'
 import { methodIcon } from '@/modules/career-design/composables/projectMethods'
 import PeriodTag from '@/modules/career-design/components/PeriodTag.vue'
 
@@ -148,6 +157,14 @@ function weeksShown(s: RoadmapStop) {
   if (open.value[s.project.id] !== 'week' || !weekNumber.value) return s.weeks
   const cur = weekNumber.value - s.startWeek + 1
   return s.weeks.filter((w) => w.week === cur)
+}
+
+// 단계 진도 — 지금 주(달력)에만, 과정은 늘 빼고, 주 이름 'OOO (k/n)'만(직접 만든 이름·짧은 단계는 없음).
+// 0개 또는 1개짜리 목록으로 돌려 템플릿에서 한 번만 계산한다
+function nowPhase(s: RoadmapStop, w: RoadmapStop['weeks'][number]): PhaseProgress[] {
+  if (!weekNumber.value || s.startWeek + w.week - 1 !== weekNumber.value) return []
+  const p = phaseProgress(w.title, !!s.project.period)
+  return p ? [p] : []
 }
 
 const shown = ref(false)

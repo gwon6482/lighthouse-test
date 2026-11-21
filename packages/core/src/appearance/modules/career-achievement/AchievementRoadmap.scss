@@ -135,6 +135,15 @@ $rm-bar-h: 90px; // 실측 높이(노치 없는 폰) — 자동 이동 때 정�
     .app-icon { flex: 0 0 auto; margin-top: 3px; color: $color-text-tertiary; } }
   &__item--done { color: $color-text-tertiary; text-decoration: line-through; .app-icon { color: $color-success; } }
   &--now &__label { color: $amber-700; }
+
+  // 단계 진도(2026-11-22) — 연노랑 상자 세 줄: 이름 | k/n주 · 얇은 막대(노랑 — 분류 색 막대는 '한 만큼'이라 다르게) · 작은 글
+  &__phase { display: grid; gap: 5px; margin: 2px 0 4px; padding: 8px 10px 9px; border-radius: 10px; background: $color-primary-tint; }
+  &__phase-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  &__phase-name { min-width: 0; font-size: $fs-xs; font-weight: $tw-title; color: $color-text; word-break: keep-all; overflow-wrap: anywhere; }
+  &__phase-num { flex: 0 0 auto; font-size: $fs-2xs; font-weight: $tw-strong; color: $amber-700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  &__phase-track { display: block; height: 4px; border-radius: $radius-pill; background: rgba(0, 0, 0, 0.08); overflow: hidden;
+    i { display: block; height: 100%; border-radius: inherit; background: $color-primary; } }
+  &__phase-sub { font-size: $fs-2xs; color: $color-text-secondary; font-variant-numeric: tabular-nums; }
 }
 .rm-weeks__all { width: 100%; padding: 9px; border: 0; border-radius: $radius-md; background: $color-surface-alt; font: inherit; font-size: $fs-xs; font-weight: $tw-strong; color: $color-text-secondary; cursor: pointer; }
 

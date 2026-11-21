@@ -22,7 +22,8 @@ export const ceilWeeks = (x: number): number => Math.ceil(x - 1e-9)
 
 export interface PhaseLike { title: string; weeks: number; items: string[] }
 
-const PART = /^(.*) \((\d+)\/(\d+)\)$/
+/** 주차 이름 'OOO (k/n)' — 단계 이름 · 단계 안 k주째 · 단계 주 수. 로드맵 단계 진도(career-achievement/lib/planBoard phaseProgress)도 쓴다 */
+export const PART = /^(.*) \((\d+)\/(\d+)\)$/
 
 /** 주차별 커리큘럼을 단계로 되묶는다 — 'OOO (2/24)' 꼴(phasesToCurriculum 이 만든 이름)을 단계 하나로 */
 export function curriculumPhases(cur: WeekCurriculum[]): PhaseLike[] {

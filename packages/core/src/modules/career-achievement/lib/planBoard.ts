@@ -3,6 +3,7 @@
 import type { DayOfWeek, Project, ProjectCategory, TimelineSlot } from '@/modules/career-design/types/career-design'
 import { weekEntriesOf } from '@/modules/career-design/composables/useProjectCurriculum'
 import { projectEndWeek, projectStartWeek, weekOfDate, weekDateRange } from '@/modules/career-design/composables/usePlanTimeline'
+import { PART } from '@/modules/career-design/lib/examPace'
 
 // 분류 색·라벨 — ⚠️ 같은 표가 여러 화면에 복제돼 있다(실무경험 추가 때 18곳). 새 화면은 여기 것을 쓴다
 export const CATEGORY_META: Record<ProjectCategory, { label: string; color: string }> = {
@@ -173,7 +174,7 @@ export interface RoadmapStop {
   status: StopStatus      // done=항목 다 함 · now=지금 주차가 기간 안 · past=기간 지났는데 남은 항목 · next=아직 시작 전
   done: number
   total: number
-  weeks: { week: number; entries: { text: string; done: boolean }[]; title?: string }[] // week = 그 프로젝트의 n주차. title = 과정의 그 주 이름
+  weeks: { week: number; entries: { text: string; done: boolean }[]; title?: string }[] // week = 그 프로젝트의 n주차. title = 그 주 이름(과정은 '오늘 할 일' 이름, 진도는 '단계 (k/n)')
 }
 export function roadmapStops(
   projects: Project[],
@@ -197,7 +198,7 @@ export function roadmapStops(
       const entries = weekEntriesOf(cw).map((text, i) => ({ text, done: isItemDone(p.id, cw.week, i) }))
       total += entries.length
       done += entries.filter((e) => e.done).length
-      return p.period ? { week: cw.week, entries, title: cw.title } : { week: cw.week, entries }
+      return { week: cw.week, entries, title: cw.title }
     })
     const cur = currentWeek ?? 0
     // 과정(2026-11-16)은 할 일이 없다 — 기간이 지나면(그만둔 것 포함) 끝난 것
@@ -237,6 +238,26 @@ export function shouldPromptReview(m: ReviewMoment, o: { todayTotal: number; tod
   if (m.day === 'start') return true
   return o.todayTotal === 0 || o.todayDone >= o.todayTotal
 }
+
+// ── 단계 진도(2026-11-22 오너 '이대로 가자', 시안 reviews/2026-11-22-roadmap-phase-line) ──
+// 로드맵 지금 주 이름표 아래 한 줄. 주차 이름 '단계 (k/n)'만 읽는다 — 서버가 주 이름을 저장하므로 이미 세운 계획에도 나온다.
+// 달력 주 기준(k = 그 주의 이름 그대로). 뒤처져도 바꾸지 않고, 압박 문구·빨강은 없다.
+export const PHASE_LINE_MIN_WEEKS = 5 // 한 달 넘는 단계만(2~4주 단계는 매주 같은 상자가 덜 쓸모 있다)
+export const PHASE_LINE_LAST = '이 단계 마지막 주예요'
+export const phaseLineTarget = (pct: number) => `이번 주까지 ${pct}%쯤 가면 돼요` // % 앞은 붙여 쓴다(머리 %·결과지 매칭도와 같게)
+export interface PhaseProgress { name: string; k: number; n: number; pct: number; last: boolean }
+/** 주차 이름에서 단계 진도를 읽는다. 과정·그 꼴이 아닌 이름·n < 기준이면 null */
+export function phaseProgress(title: string | undefined, isPeriod = false, minWeeks = PHASE_LINE_MIN_WEEKS): PhaseProgress | null {
+  if (isPeriod || !title) return null
+  const m = title.match(PART)
+  if (!m) return null
+  const k = Number(m[2])
+  const n = Number(m[3])
+  if (!(n >= minWeeks) || !(k >= 1) || k > n) return null
+  return { name: m[1]!.trim(), k, n, pct: Math.round((k / n) * 100), last: k === n }
+}
+/** 상자 아래 작은 글 — 마지막 주는 % 대신 */
+export const phaseLineSub = (p: PhaseProgress) => (p.last ? PHASE_LINE_LAST : phaseLineTarget(p.pct))
 
 // 로드맵 정거장을 펼친 주 줄(2026-11-21 A5) — 머리·홈과 같은 '계획 전체 주차'로 쓰고, 프로젝트 안 순서는 작게 'N주째'.
 // 예전엔 프로젝트 안 순서('이번 주 · 2주차')라 머리의 '7~8주차'와 한 화면에 두 셈이 섞였다
