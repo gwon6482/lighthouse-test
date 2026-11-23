@@ -1,0 +1,2 @@
+// 옛 index.html(서비스 워커에 담긴 2026-11-23 이전 화면)이 부르는 등록 스크립트. 지금 화면은 virtual:pwa-register 로 등록한다(packages/core/src/shared/router/swRegister.ts). 지우지 말 것
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/sw.js', { scope: '/' })})}
