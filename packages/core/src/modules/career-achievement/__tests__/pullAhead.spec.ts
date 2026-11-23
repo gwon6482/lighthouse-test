@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   pullAheadCandidates, moveAheadItem, restOrigin, aheadNote, aheadFromNote, validDateKey, type AheadDay, type AheadItem,
+  homePullAhead, aheadFromForSave, parsePending, addPending, pendingStep, AHEAD_PENDING_MAX, type AheadPending,
 } from '../lib/pullAhead'
 import { parseSessions } from '../lib/focusSession'
 import { generateItemsForWeek } from '../composables/useWeeklySchedule'
@@ -144,5 +145,83 @@ describe('표시·주소 값', () => {
     const byId = Object.fromEntries(Object.values(map).map((x) => [x.itemId, x]))
     expect(byId.ux!.from).toBe('2026-11-30')
     expect(byId.figma!.from).toBeUndefined()
+  })
+})
+
+// ── 홈 연결(usePlanBoard.pullAhead → homePullAhead) ──
+describe('홈 연결', () => {
+  const dt = (k: string) => { const [y, m, d] = k.split('-').map(Number); return new Date(y!, m! - 1, d!) }
+  const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  // 수~화 주(11/25~12/1). 월 11/30: ux·figma, 화 12/1: figma, 다음 주 수 12/2: ux
+  const cells: Record<string, AheadItem[]> = { '2026-11-30': [P('ux'), P('figma')], '2026-12-01': [P('figma')], '2026-12-02': [P('ux')] }
+  const home = (over: Partial<Parameters<typeof homePullAhead>[0]> = {}) => homePullAhead({
+    running: true, today: dt('2026-11-29'), todayKey: '2026-11-29', weekEnd: '2026-12-01',
+    itemsOn: (d) => cells[key(d)] ?? [], sessions: [], projectOf: () => ({}), isDone: () => false, hasUndoneThisWeek: () => true,
+    ...over,
+  })
+  it('진행 중인 계획에서만(시작 전·끝난 뒤는 없다)', () => {
+    expect(home()).toHaveLength(2)
+    expect(home({ running: false })).toEqual([])
+    expect(home({ weekEnd: null })).toEqual([])
+  })
+  it('이번 주 마지막 날까지만 — 다음 주 칸은 후보가 아니다', () => {
+    expect(home({ weekEnd: '2026-11-29' })).toEqual([])
+    expect(home({ hasUndoneThisWeek: (id) => id === 'ux', isDone: (id, d) => id === 'ux' && d === '2026-11-30' })).toEqual([])
+  })
+  it('오늘 멈춘 집중이 있는 프로젝트만 뺀다(다른 날 것은 상관없다)', () => {
+    expect(home({ sessions: [{ date: '2026-11-29', itemId: 'ux' }] }).map((c) => c.projectId)).toEqual(['figma'])
+    expect(home({ sessions: [{ date: '2026-11-28', itemId: 'ux' }] }).map((c) => c.projectId)).toEqual(['ux', 'figma'])
+  })
+  it('의도된 동작: 미리 해서 칸을 비운 다음 날도 쉬어 가는 날이면 미리 하기가 이어서 나온다(2026-11-23 총괄)', () => {
+    // 일요일에 월요일 ux·figma 를 모두 미리 했다 → 월요일 칸이 비었다. 월요일에는 화요일 figma 가 후보로 나온다
+    const moved: Record<string, AheadItem[]> = { '2026-11-29': [{ ...P('ux'), note: aheadNote('2026-11-30') }, { ...P('figma'), note: aheadNote('2026-11-30') }], '2026-12-01': [P('figma')] }
+    const out = home({ today: dt('2026-11-30'), todayKey: '2026-11-30', itemsOn: (d) => moved[key(d)] ?? [] })
+    expect(out).toEqual([{ projectId: 'figma', date: '2026-12-01' }])
+  })
+})
+
+// ── 저장할 때(CompletePage.save → aheadFromForSave) ──
+describe('저장할 때 옮길 날짜', () => {
+  const at = (over: Partial<Parameters<typeof aheadFromForSave>[0]> = {}) => aheadFromForSave({
+    queryFrom: '2026-11-30', sessionFrom: null, to: '2026-11-29', weekStart: '2026-11-25', weekEnd: '2026-12-01', doneOnFrom: () => false, ...over,
+  })
+  it('같은 주의 뒤 날짜만', () => {
+    expect(at()).toBe('2026-11-30')
+    expect(at({ queryFrom: '2026-12-02' })).toBeNull()    // 다음 주
+    expect(at({ queryFrom: '2026-11-28' })).toBeNull()    // 앞 날짜
+    expect(at({ queryFrom: '2026-11-29' })).toBeNull()    // 같은 날
+    expect(at({ queryFrom: '2027-01-01' })).toBeNull()
+    expect(at({ queryFrom: 'x' })).toBeNull()
+  })
+  it('주소에 없으면 멈춘 집중의 from(지우기 전에 읽은 값)', () => {
+    expect(at({ queryFrom: undefined, sessionFrom: '2026-12-01' })).toBe('2026-12-01')
+    expect(at({ queryFrom: undefined, sessionFrom: undefined })).toBeNull()
+  })
+  it('그 요일에 이미 끝냈으면 옮기지 않는다(그 칸이 기록 없이 뜬다)', () => {
+    expect(at({ doneOnFrom: (d) => d === '2026-11-30' })).toBeNull()
+  })
+})
+
+// ── 옮기기 실패분(기기) ──
+describe('옮기기 실패분', () => {
+  const e: AheadPending = { planId: 'p', weekStart: '2026-11-25', weekEnd: '2026-12-01', itemId: 'ux', from: '2026-11-30', to: '2026-11-29' }
+  it('모양이 어긋난 것은 버린다', () => {
+    expect(parsePending(JSON.stringify([e, { ...e, from: 'x' }, { ...e, planId: '' }, null]))).toEqual([e])
+    expect(parsePending('nope')).toEqual([])
+    expect(parsePending(null)).toEqual([])
+  })
+  it('같은 계획·프로젝트·날짜는 하나만, 끝없이 쌓이지 않는다', () => {
+    expect(addPending([e], { ...e, from: '2026-12-01' })).toEqual([{ ...e, from: '2026-12-01' }])
+    let list: AheadPending[] = []
+    for (let i = 0; i < 30; i++) list = addPending(list, { ...e, itemId: `p${i}` })
+    expect(list).toHaveLength(AHEAD_PENDING_MAX)
+    expect(list[0]!.itemId).toBe('p10')
+  })
+  it('주가 지났거나·이미 옮겨졌거나·원래 요일에 끝냈으면 버린다', () => {
+    const base = { todayKey: '2026-11-29', items: [] as AheadItem[], doneOnFrom: false }
+    expect(pendingStep(e, base)).toBe('move')
+    expect(pendingStep(e, { ...base, todayKey: '2026-12-02' })).toBe('drop')
+    expect(pendingStep(e, { ...base, items: [{ ...P('ux'), date: '2026-11-29' }] })).toBe('drop')
+    expect(pendingStep(e, { ...base, doneOnFrom: true })).toBe('drop')
   })
 })

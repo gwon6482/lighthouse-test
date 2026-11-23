@@ -6,7 +6,7 @@ import type {
 import { weekOfDate, weekDateRange, projectsActiveInWeek } from '@/modules/career-design/composables/usePlanTimeline'
 import { uid } from '@/shared/utils/uid'
 import { routineOnDay, voiceOverlap } from '@/modules/career-design/lib/routine'
-import { moveAheadItem } from '../lib/pullAhead'
+import { moveAheadItem, parsePending, addPending, pendingStep, AHEAD_PENDING_KEY, type AheadPending } from '../lib/pullAhead'
 
 // 한 주의 확정된 일정 1건. BE WeeklySchedule.items 의 1요소.
 export interface WeeklyScheduleItem {
@@ -263,28 +263,39 @@ export function useWeeklySchedule() {
     return ensureWeekSchedule(planId, plan, timeline, range.weekStart, range.weekEnd)
   }
 
-  // 미리 하기(2026-11-23) — 기록을 저장할 때 from 날짜의 그 프로젝트 칸을 to(오늘)로 옮긴다. 못 찾으면 오늘 칸을 하나 더한다.
-  // 그 주 일정이 없으면 계획 배치로 먼저 만든다. 실패해도 기록은 이미 남았다(오늘이 쉬는 날로 셈될 뿐)
+  // 미리 하기(2026-11-23) — 기록을 저장할 때 from 날짜의 그 프로젝트 칸을 to(오늘)로 옮긴다. 못 찾으면 오늘 칸을 하나 더한다
+  // (from 이 같은 주의 뒤 날짜인지는 부르는 쪽이 aheadFromForSave 로 본다). 그 주 일정이 없으면 계획 배치로 먼저 만든다.
+  // 실패하면 false — 부르는 쪽이 queueAhead 로 기기에 적어 두고, 홈을 불러올 때 retryAhead 가 다시 시도한다
   async function moveAheadOnSave(
     planId: string,
     plan: { startDate: string; endDate?: string; reviewDay?: DayOfWeek | ''; projects: Project[]; routines: Routine[] },
     timeline: TimelineSlot[],
     o: { itemId: string; from: string; to: string },
   ): Promise<boolean> {
-    const to = parseDateKey(o.to)
-    const range = to ? computeWeekRangeContaining(to, plan.startDate, (plan.reviewDay || '월') as DayOfWeek) : null
-    if (!range) return false
-    const schedule = await ensureWeekSchedule(planId, plan, timeline, range.weekStart, range.weekEnd)
-    if (!schedule) return false
-    const r = moveAheadItem(schedule.items, { ...o, newId: uid() })
-    if (!r.changed) return true
-    return !!(await updateSchedule(planId, schedule.weekStart, { items: r.items }))
+    try {
+      const to = parseDateKey(o.to)
+      const range = to ? computeWeekRangeContaining(to, plan.startDate, (plan.reviewDay || '월') as DayOfWeek) : null
+      if (!range) return false
+      const schedule = await ensureWeekSchedule(planId, plan, timeline, range.weekStart, range.weekEnd)
+      if (!schedule) return false
+      const r = moveAheadItem(schedule.items, { ...o, newId: uid() })
+      if (!r.changed) return true
+      return !!(await updateSchedule(planId, schedule.weekStart, { items: r.items }))
+    } catch {
+      return false
+    }
   }
 
   return {
     schedules,
     fetchSchedules,
     moveAheadOnSave,
+    retryAhead: (
+      planId: string,
+      plan: { startDate: string; endDate?: string; reviewDay?: DayOfWeek | ''; projects: Project[]; routines: Routine[] },
+      timeline: TimelineSlot[],
+      o: { todayKey: string; isDone: (projectId: string, date: string) => boolean },
+    ) => retryAhead(moveAheadOnSave, fetchScheduleByWeek, planId, plan, timeline, o),
     fetchScheduleByWeek,
     createSchedule,
     updateSchedule,
@@ -293,4 +304,45 @@ export function useWeeklySchedule() {
     ensureWeekSchedule,
     ensureFirstWeekSchedule,
   }
+}
+
+// ── 미리 하기 옮기기 실패분(기기) — 성공하거나, 이미 옮겨졌거나, 주가 지났거나, 원래 요일에 끝냈으면 지운다 ──
+function readPending(): AheadPending[] {
+  try { return parsePending(localStorage.getItem(AHEAD_PENDING_KEY)) } catch { return [] }
+}
+function writePending(list: AheadPending[]) {
+  try {
+    if (list.length) localStorage.setItem(AHEAD_PENDING_KEY, JSON.stringify(list))
+    else localStorage.removeItem(AHEAD_PENDING_KEY)
+  } catch { /* 저장 못 하면 다시 시도만 못 한다 */ }
+}
+export function queueAhead(e: AheadPending) {
+  writePending(addPending(readPending(), e))
+}
+/** 홈을 불러올 때 — 그 계획의 실패분을 다시 옮긴다. 무엇이든 옮겼으면 true(부르는 쪽이 일정을 다시 받는다) */
+async function retryAhead(
+  move: (planId: string, plan: any, timeline: TimelineSlot[], o: { itemId: string; from: string; to: string }) => Promise<boolean>,
+  fetchWeek: (planId: string, weekStart: string) => Promise<WeeklySchedule | null>,
+  planId: string,
+  plan: { startDate: string; endDate?: string; reviewDay?: DayOfWeek | ''; projects: Project[]; routines: Routine[] },
+  timeline: TimelineSlot[],
+  o: { todayKey: string; isDone: (projectId: string, date: string) => boolean },
+): Promise<boolean> {
+  const list = readPending()
+  if (!list.some((e) => e.planId === planId)) return false
+  const keep: AheadPending[] = []
+  let moved = false
+  for (const e of list) {
+    if (e.planId !== planId) { keep.push(e); continue }
+    if (!plan.projects.some((p) => p.id === e.itemId)) continue
+    const week = await fetchWeek(planId, e.weekStart)
+    const step = pendingStep(e, { todayKey: o.todayKey, items: week?.items ?? [], doneOnFrom: o.isDone(e.itemId, e.from) })
+    if (step === 'drop') continue
+    if (await move(planId, plan, timeline, { itemId: e.itemId, from: e.from, to: e.to })) moved = true
+    else keep.push(e)
+  }
+  // 다시 시도하는 동안 새로 적힌 것(다른 저장)은 남긴다
+  const added = readPending().filter((x) => !list.some((y) => y.planId === x.planId && y.itemId === x.itemId && y.to === x.to))
+  writePending([...keep, ...added])
+  return moved
 }

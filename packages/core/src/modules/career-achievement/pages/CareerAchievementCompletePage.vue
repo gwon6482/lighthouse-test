@@ -113,12 +113,12 @@ import { useAchievementEntries, type AchievementEntry } from '../composables/use
 import { uploadPhoto } from '../achievement.api'
 import { CATEGORY_META } from '../lib/planBoard'
 import { useFocusSessions } from '../composables/useFocusSessions'
-import { useWeeklySchedule } from '../composables/useWeeklySchedule'
-import { validDateKey } from '../lib/pullAhead'
+import { useWeeklySchedule, queueAhead, computeWeekRangeContaining, parseDateKey } from '../composables/useWeeklySchedule'
+import { aheadFromForSave } from '../lib/pullAhead'
 import { sessionKey, combinedElapsed, recordTimeLabel } from '../lib/focusSession'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { showToast } from '@/shared/composables/useAppToast'
-import type { Project, Routine } from '@/modules/career-design/types/career-design'
+import type { DayOfWeek, Project, Routine } from '@/modules/career-design/types/career-design'
 
 const route = useRoute()
 const router = useRouter()
@@ -128,6 +128,7 @@ const { isItemDone, toggleItem } = useCurriculumCompletion()
 const { saveEntry, getEntry } = useAchievementEntries()
 const focusSessions = useFocusSessions()
 const { moveAheadOnSave } = useWeeklySchedule()
+const achStore = useAchievementStore()
 
 const itemType = computed<'project' | 'routine'>(() => (route.params.type === 'routine' ? 'routine' : 'project'))
 const itemId = computed(() => String(route.params.id ?? ''))
@@ -242,6 +243,21 @@ function resizeToDataUrl(file: File, maxWidth: number): Promise<string> {
   })
 }
 
+// 미리 하기(2026-11-23) — 옮길 칸. 홈과 같은 '진행 중인 계획'(achievement store)으로 주를 정하고,
+// from 이 같은 주의 뒤 날짜이고 그날 완료 기록이 없을 때만(aheadFromForSave). 아니면 null — 평소 저장 그대로
+function aheadTarget() {
+  const pl = achStore.plan
+  if (itemType.value !== 'project' || !pl?.planId) return null
+  const to = parseDateKey(dateKey.value)
+  const range = to ? computeWeekRangeContaining(to, pl.startDate, (pl.reviewDay || '월') as DayOfWeek) : null
+  if (!range) return null
+  const from = aheadFromForSave({
+    queryFrom: route.query.from, sessionFrom: focusSessions.get(focusKey.value)?.from, to: dateKey.value,
+    weekStart: range.weekStart, weekEnd: range.weekEnd, doneOnFrom: (d) => isProjectDone(itemId.value, d),
+  })
+  return from ? { plan: pl, range, move: { itemId: itemId.value, from, to: dateKey.value } } : null
+}
+
 // dateKey가 속한 프로젝트의 curriculum 주차에서 첫 미완료 item 1개를 done 처리.
 // 진로달성 메인의 스플릿 progress bar를 1칸 전진시키는 트리거.
 function advanceProjectCurriculum(project: Project, dateKey: string) {
@@ -294,9 +310,7 @@ async function save() {
       planId: draftPlan.planId ?? undefined,
     }
     // 미리 하기(2026-11-23) — 옮겨 올 칸의 원래 날짜. 멈춘 집중을 지우기 전에 읽는다(이어 하기로 왔으면 주소에 없을 수 있다)
-    const aheadFrom = itemType.value === 'project'
-      ? (validDateKey(route.query.from) ?? focusSessions.get(focusKey.value)?.from ?? null)
-      : null
+    const ahead = aheadTarget()
     saveEntry(entry)
     focusSessions.remove(focusKey.value) // 저장했으니 멈춘 집중은 끝
 
@@ -309,9 +323,10 @@ async function save() {
         toggleProject(itemId.value, dateKey.value)
         advanceProjectCurriculum(item.value as Project, dateKey.value)
         // 미리 하기 — 이번 주 뒤 요일의 그 칸을 이 날짜로 옮긴다(저장할 때만. 시작만 하고 그만두면 원래 요일 그대로)
-        if (aheadFrom && aheadFrom !== dateKey.value && draftPlan.planId) {
-          await moveAheadOnSave(draftPlan.planId, draftPlan, draftTimeline.value, { itemId: itemId.value, from: aheadFrom, to: dateKey.value })
-            .catch(() => false)
+        if (ahead) {
+          const ok = await moveAheadOnSave(ahead.plan.planId, ahead.plan, ahead.plan.timeline, ahead.move)
+          // 실패하면 기기에 적어 두고 홈을 불러올 때 다시 시도한다(기록·완료는 이미 남았다)
+          if (!ok) queueAhead({ planId: ahead.plan.planId, ...ahead.range, ...ahead.move })
         }
       } else {
         toggleRoutine(itemId.value, dateKey.value)

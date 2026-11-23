@@ -23,7 +23,7 @@ import { sessionKey, isAlive, type FocusSession } from '../lib/focusSession'
 import { req } from '@/shared/api'
 import { attachedEnded, keepVersion, measureOf, recordOfWeek, type WeekCount } from '@/modules/career-design/lib/routine'
 import type { RoutineRecord } from '@/modules/career-design/types/career-design'
-import { pullAheadCandidates, restOrigin, type AheadCandidate } from '../lib/pullAhead'
+import { homePullAhead, restOrigin, type AheadCandidate } from '../lib/pullAhead'
 
 export interface PreviewLine { name: string; color: string }
 export interface DayPreview { key: string; dow: string; md: string; weekend: boolean; lines: PreviewLine[]; more: number; rest: boolean }
@@ -41,7 +41,7 @@ export function usePlanBoard() {
   const auth = useAuthStore()
   const ach = useAchievement()
   const { isItemDone, weekItemsDoneCount } = useCurriculumCompletion()
-  const { ensureWeekSchedule, fetchSchedules } = useWeeklySchedule()
+  const { ensureWeekSchedule, fetchSchedules, retryAhead } = useWeeklySchedule()
   const focus = useFocusSessions()
 
   const loading = ref(true)
@@ -146,21 +146,11 @@ export function usePlanBoard() {
   const todayRestOrigin = computed(() => phase.value === 'running' && restOrigin(todayItems.value))
   const pullAhead = computed<(AheadCandidate & { project: Project; dow: string; text: string })[]>(() => {
     const pl = plan.value
-    if (!pl || !todayRestOrigin.value) return []
+    if (!pl) return []
     const range = computeWeekRangeContaining(today.value, pl.startDate, (pl.reviewDay || '월') as DayOfWeek)
-    if (!range) return []
-    const laterDays: { date: string; items: WeeklyScheduleItem[] }[] = []
-    const d = new Date(today.value)
-    for (let i = 0; i < 14; i += 1) {
-      d.setDate(d.getDate() + 1)
-      const key = toDateKey(d)
-      if (key > range.weekEnd) break
-      laterDays.push({ date: key, items: itemsOn(d) })
-    }
-    // 오늘 멈춘 집중이 있는 프로젝트는 '잠시 멈춤' 카드가 맡는다
-    const skip = new Set(Object.values(focus.sessions.value).filter((s) => s.date === todayKey.value).map((s) => s.itemId))
-    return pullAheadCandidates({
-      todayKey: todayKey.value, todayItems: todayItems.value, laterDays, projectOf, skip,
+    return homePullAhead({
+      running: phase.value === 'running', today: today.value, todayKey: todayKey.value, weekEnd: range?.weekEnd ?? null,
+      itemsOn, sessions: Object.values(focus.sessions.value), projectOf,
       isDone: (id, date) => ach.isProjectDone(id, date), hasUndoneThisWeek,
     }).flatMap((c) => {
       const p = projectOf(c.projectId)
@@ -367,6 +357,8 @@ export function usePlanBoard() {
       if (pl?.planId && pl.startDate) {
         const range = computeWeekRangeContaining(today.value, pl.startDate, (pl.reviewDay || '월') as DayOfWeek)
         if (range) await ensureWeekSchedule(pl.planId, pl, pl.timeline, range.weekStart, range.weekEnd).catch(() => null)
+        // 미리 하기 옮기기가 실패해 기기에 적어 둔 것 — 다시 시도한다(2026-11-23 코드 검토 1)
+        await retryAhead(pl.planId, pl, pl.timeline, { todayKey: todayKey.value, isDone: (id, d) => ach.isProjectDone(id, d) }).catch(() => false)
         schedules.value = await fetchSchedules(pl.planId).catch(() => [])
       }
     } finally {

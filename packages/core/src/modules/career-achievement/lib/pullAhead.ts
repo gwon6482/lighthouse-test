@@ -81,3 +81,78 @@ export function moveAheadItem<T extends AheadItem & { id: string; date: string }
   const add = { id: o.newId, itemType: 'project', itemId: o.itemId, date: o.to, curriculumWeek: null, note: aheadNote(o.from) } as T
   return { items: [...items, add], changed: true, found: false }
 }
+
+// ── 홈 연결(usePlanBoard.pullAhead) — 시험하려고 순수 함수로 뺐다 ──
+/**
+ * 계획이 진행 중이고 오늘이 원래 쉬는 날일 때만, 내일 ~ 이번 주 마지막 날의 칸으로 후보를 고른다.
+ * 오늘 멈춘 집중이 있는 프로젝트는 '잠시 멈춤' 카드가 맡으므로 뺀다.
+ * ⚠️ 의도된 동작(2026-11-23 총괄): 미리 해서 칸을 비운 다음 날도 화면이 '쉬어 가는 날'이라 말하므로, 그날도 미리 하기가 이어서 나온다.
+ */
+export function homePullAhead(o: {
+  running: boolean
+  today: Date
+  todayKey: string
+  weekEnd: string | null
+  itemsOn: (d: Date) => AheadItem[]
+  sessions: { date: string; itemId: string }[]
+  projectOf: (id: string) => AheadProject | undefined
+  isDone: (projectId: string, date: string) => boolean
+  hasUndoneThisWeek: (projectId: string) => boolean
+}): AheadCandidate[] {
+  if (!o.running || !o.weekEnd) return []
+  const todayItems = o.itemsOn(o.today)
+  if (!restOrigin(todayItems)) return []
+  const laterDays: AheadDay[] = []
+  const d = new Date(o.today)
+  for (let i = 0; i < 14; i += 1) {
+    d.setDate(d.getDate() + 1)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    if (key > o.weekEnd) break
+    laterDays.push({ date: key, items: o.itemsOn(d) })
+  }
+  const skip = new Set(o.sessions.filter((s) => s.date === o.todayKey).map((s) => s.itemId))
+  return pullAheadCandidates({
+    todayKey: o.todayKey, todayItems, laterDays, projectOf: o.projectOf, skip, isDone: o.isDone, hasUndoneThisWeek: o.hasUndoneThisWeek,
+  })
+}
+
+// ── 저장할 때(CareerAchievementCompletePage.save) ──
+/**
+ * 옮길 원래 날짜 — 주소의 from(없으면 멈춘 집중의 from). 멈춘 집중을 지우기 **전에** 부른다.
+ * 같은 주(weekStart~weekEnd)의 뒤 날짜이고, 그날 그 프로젝트 완료 기록이 없을 때만. 아니면 null(평소 저장 그대로)
+ */
+export function aheadFromForSave(o: {
+  queryFrom: unknown; sessionFrom?: string | null; to: string; weekStart: string; weekEnd: string; doneOnFrom: (from: string) => boolean
+}): string | null {
+  const from = validDateKey(o.queryFrom) ?? validDateKey(o.sessionFrom ?? null)
+  if (!from || !(from > o.to) || from > o.weekEnd || o.to < o.weekStart) return null
+  if (o.doneOnFrom(from)) return null // 그 요일에 평소대로 이미 끝냈으면 옮기지 않는다(그 칸이 기록 없이 뜬다)
+  return from
+}
+
+// ── 옮기기 실패 → 기기에 적어 두고 홈을 불러올 때 다시 시도 ──
+export const AHEAD_PENDING_KEY = 'lh_ahead_pending_v1'
+export const AHEAD_PENDING_MAX = 20
+export interface AheadPending { planId: string; weekStart: string; weekEnd: string; itemId: string; from: string; to: string }
+const pendingKey = (e: AheadPending) => `${e.planId}|${e.itemId}|${e.to}`
+export function parsePending(raw: string | null | undefined): AheadPending[] {
+  let v: unknown
+  try { v = JSON.parse(raw || '[]') } catch { return [] }
+  if (!Array.isArray(v)) return []
+  return v.filter((e): e is AheadPending => !!e && typeof e === 'object'
+    && typeof e.planId === 'string' && !!e.planId && typeof e.itemId === 'string' && !!e.itemId
+    && [e.weekStart, e.weekEnd, e.from, e.to].every((x) => validDateKey(x)))
+}
+/** 같은 계획·프로젝트·날짜는 하나만, 오래된 것부터 버려 AHEAD_PENDING_MAX 개까지 */
+export function addPending(list: AheadPending[], e: AheadPending): AheadPending[] {
+  return [...list.filter((x) => pendingKey(x) !== pendingKey(e)), e].slice(-AHEAD_PENDING_MAX)
+}
+/**
+ * 다시 시도할 것인가 — 주가 지났으면·이미 오늘(to) 칸에 있으면(옮겨졌음)·원래 요일에 끝냈으면 버린다(drop)
+ */
+export function pendingStep(e: AheadPending, o: { todayKey: string; items: AheadItem[]; doneOnFrom: boolean }): 'drop' | 'move' {
+  if (e.weekEnd < o.todayKey) return 'drop'
+  if (o.items.some((it) => it.itemType === 'project' && it.itemId === e.itemId && it.date === e.to)) return 'drop'
+  if (o.doneOnFrom) return 'drop'
+  return 'move'
+}

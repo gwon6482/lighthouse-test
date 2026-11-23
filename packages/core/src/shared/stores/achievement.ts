@@ -7,7 +7,7 @@ import { useCurriculumCompletion } from '@/modules/career-achievement/composable
 import { useFocusSessions } from '@/modules/career-achievement/composables/useFocusSessions'
 import type { Project, Routine, DayOfWeek, TimelineSlot } from '@/modules/career-design/types/career-design'
 import { projectedEndDate } from '@/modules/career-design/composables/usePlanTimeline'
-import { computeWeekRangeContaining, generateItemsForWeek, toDateKey } from '@/modules/career-achievement/composables/useWeeklySchedule'
+import { computeWeekRangeContaining, generateItemsForWeek, toDateKey, useWeeklySchedule } from '@/modules/career-achievement/composables/useWeeklySchedule'
 
 interface ActivePlan {
   planId: string
@@ -31,27 +31,26 @@ export const useAchievementStore = defineStore('achievement', () => {
 
   const hasActivePlan = computed(() => !!plan.value && plan.value.status === 'active')
 
+  // 하단 탭 배지 — 홈 '오늘 할 일'(usePlanBoard.itemsOn)과 같은 셈(2026-11-23 미리 하기 코드 검토 5).
+  // 그 주 일정(일정 조정·미리 하기로 옮겼을 수 있다)을 받아 두었으면 그것, 없으면 계획 배치로. 예전엔 늘 계획 요일로 세서
+  // 미리 해서 비운 날에도 '할 일 1'이 남았다
   const todayPendingCount = computed(() => {
-    if (!plan.value) return 0
-    const ach = useAchievement()
-    const projects = ach.todayProjects(
-      plan.value.projects,
-      plan.value.timeline,
-      plan.value.startDate,
-      plan.value.endDate,
-      plan.value.reviewDay,
-    )
-    // 루틴은 일정 만들기와 같은 규칙으로(붙은 프로젝트 기간·쉬는 주·끝낸 날·과정 날, 2026-11-21 루틴 리뉴얼)
     const pl = plan.value
-    const range = computeWeekRangeContaining(ach.today.value, pl.startDate, (pl.reviewDay || '월') as DayOfWeek)
+    if (!pl) return 0
+    const ach = useAchievement()
     const key = toDateKey(ach.today.value)
-    const routineIds = new Set(range
-      ? generateItemsForWeek(pl, pl.timeline, range.weekStart, range.weekEnd).filter((it) => it.itemType === 'routine' && it.date === key).map((it) => it.itemId)
-      : [])
-    const routines = pl.routines.filter((r) => routineIds.has(r.id))
-    const pendingProjects = projects.filter(p => !ach.isProjectDone(p.id)).length
-    const pendingRoutines = routines.filter(r => !ach.isRoutineDone(r.id)).length
-    return pendingProjects + pendingRoutines
+    const saved = useWeeklySchedule().schedules.value.find((s) => s.planId === pl.planId && s.weekStart <= key && key <= s.weekEnd)
+    let items
+    if (saved) items = saved.items.filter((it) => it.date === key)
+    else {
+      const range = computeWeekRangeContaining(ach.today.value, pl.startDate, (pl.reviewDay || '월') as DayOfWeek)
+      items = range ? generateItemsForWeek(pl, pl.timeline, range.weekStart, range.weekEnd).filter((it) => it.date === key) : []
+    }
+    const projectIds = new Set(pl.projects.map((p) => p.id))
+    const routineIds = new Set(pl.routines.map((r) => r.id))
+    return items.filter((it) => (it.itemType === 'project'
+      ? projectIds.has(it.itemId) && !ach.isProjectDone(it.itemId)
+      : routineIds.has(it.itemId) && !ach.isRoutineDone(it.itemId))).length
   })
 
   // ⚠️ 읽는 중에 또 불리면 **그 결과를 기다린다**(2026-10-29). 예전엔 바로 return 해서, 하단 탭이 먼저 읽기 시작한 뒤
