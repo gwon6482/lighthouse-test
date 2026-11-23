@@ -13,17 +13,29 @@
     </header>
 
     <div class="wiz__body">
+      <!-- 메일 확인(2026-11-22) — 0단계 '코드 받기' 다음. 서버가 이 메일은 확인을 거쳐야 한다고 할 때만(check-email 의 verify) -->
+      <EmailCodeStep
+        v-if="codeStage"
+        purpose="signup"
+        :email="form.email.trim()"
+        :sent-at="codeSentAt"
+        :resend-after="codeResendAfter"
+        @verified="onVerified"
+        @edit-email="editEmail"
+        @resent="(at: number) => (codeSentAt = at)"
+      />
+
       <!-- step 0: 계정 -->
-      <section v-if="step === 0" class="wiz__step">
+      <section v-else-if="step === 0" class="wiz__step">
         <h2 class="wiz__title">계정을 만들어요</h2>
         <p class="wiz__desc">로그인에 사용할 이메일과 비밀번호를 입력해 주세요.</p>
         <div class="wiz__field">
           <label class="wiz__label">이메일</label>
-          <input v-model="form.email" type="email" class="wiz__input" placeholder="user@example.com" autocomplete="email" />
+          <input ref="emailEl" v-model="form.email" type="email" class="wiz__input" placeholder="user@example.com" autocomplete="email" />
         </div>
         <div class="wiz__field">
           <label class="wiz__label">비밀번호</label>
-          <input v-model="form.password" type="password" class="wiz__input" placeholder="6자 이상" autocomplete="new-password" />
+          <input v-model="form.password" type="password" class="wiz__input" :placeholder="`${minPassword}자 이상`" autocomplete="new-password" />
         </div>
         <div class="wiz__field">
           <label class="wiz__label">비밀번호 확인</label>
@@ -131,9 +143,11 @@
       <p v-if="error" class="wiz__error">{{ error }}</p>
     </div>
 
-    <footer class="wiz__footer">
+    <footer v-if="!codeStage" class="wiz__footer">
+      <!-- 처리방침 검토(11-23): 무엇을 보내고 언제 지우는지 버튼 바로 위에 -->
+      <p v-if="step === 0 && emailCodeOn" class="wiz__notice">‘코드 받기’를 누르면 이 메일로 6자리 코드를 보내요. 가입을 마치지 않으면 메일 주소는 1시간 안에 지워요.</p>
       <button class="wiz__next" :disabled="!canNext || loading || checking" @click="next">
-        {{ checking ? '확인 중...' : loading ? '가입 중...' : (isLast ? '가입 완료' : '다음') }}
+        {{ checking ? '확인 중...' : loading ? '가입 중...' : (isLast ? '가입 완료' : (step === 0 && emailCodeOn ? '코드 받기' : '다음')) }}
       </button>
     </footer>
   </div>
@@ -141,7 +155,9 @@
 
 <script setup lang="ts">
 import { linkPendingGuestSurvey } from '@/shared/guest/guestSurvey'
-import { reactive, ref, computed, onMounted, watch } from 'vue'
+import { reactive, ref, computed, onMounted, watch, nextTick } from 'vue'
+import EmailCodeStep from '../components/EmailCodeStep.vue'
+import { NEW_PASSWORD_MIN, sendErrorMessage } from '../lib/emailCode'
 import { useRouter, useRoute, onBeforeRouteUpdate } from 'vue-router'
 import { req } from '@/shared/api'
 import { useAuthStore } from '@/shared/stores/auth'
@@ -179,10 +195,47 @@ const isLast = computed(() => step.value === TOTAL - 1)
 
 // 진행바는 '보이는 구간' 기준으로 센다 — social 은 5단계라 0/6 부터 시작하면 어긋난다.
 const progressPct = computed(() =>
-  Math.max(10, ((step.value - FIRST_STEP) / (TOTAL - FIRST_STEP)) * 100),
+  Math.max(10, ((step.value + (codeStage.value ? 0.5 : 0) - FIRST_STEP) / (TOTAL - FIRST_STEP)) * 100),
 )
 
+
 const form = reactive<SignupForm>(emptySignupForm())
+
+// ── 메일 확인(2026-11-22 시안 2판, 정할 것 1·2) ─────────────────
+// 이메일·비밀번호 바로 다음에 6자리 코드로 확인한다. 확인하면 서버가 '확인 표'(30분)를 주고, 가입 완료(register) 때 함께 보낸다.
+// 서버 스위치(EMAIL_CODE)가 꺼져 있으면 check-email 이 verify 를 주지 않는다 → 지금 흐름 그대로.
+//   emailCodeOn('on' 일 때만): 버튼 '코드 받기'·안내 한 줄·비밀번호 8자. 팀 주소만(team) 시험 때는 이 셋 없이 확인 단계만 보인다
+//   (누가 팀 주소인지 앱은 모른다 — 공개 레포에 목록을 두지 않는다)
+const emailCodeOn = ref(false)
+const minPassword = computed(() => (emailCodeOn.value ? NEW_PASSWORD_MIN : 6))
+const codeStage = ref(false)
+const codeSentAt = ref(0)
+const codeResendAfter = ref(60)
+const codeEmail = ref('')        // 마지막으로 코드를 보낸 메일
+const ticket = ref<string | null>(null)
+const ticketEmail = ref('')
+const emailEl = ref<HTMLInputElement | null>(null)
+const CODE_ALIVE_MS = 10 * 60 * 1000
+
+// 메일을 고치면 앞서 받은 확인은 그 메일 것이라 버린다
+watch(() => form.email.trim().toLowerCase(), (e) => {
+  if (ticket.value && e !== ticketEmail.value) ticket.value = null
+})
+
+function onVerified(t: string) {
+  ticket.value = t
+  ticketEmail.value = form.email.trim().toLowerCase()
+  codeStage.value = false
+  step.value = 1
+}
+
+async function editEmail() {
+  codeStage.value = false
+  step.value = 0
+  await nextTick()
+  emailEl.value?.focus()
+  emailEl.value?.select()
+}
 
 // ── 입력 임시 보관(2026-11-17) ─────────────────────────────
 // 브라우저 뒤로·앞으로·새로고침 때 처음부터 다시 시작하고 입력이 사라졌다(가입 흐름 시험 E3·E4).
@@ -229,6 +282,7 @@ onMounted(async () => {
       return
     }
     restoreDraft(null)
+    loadEmailCodeSwitch()
     return
   }
   // 이 경로로 직접 들어왔거나 새로고침해서 유저가 비어 있을 수 있다.
@@ -262,6 +316,13 @@ onMounted(async () => {
   if (authStore.user?.uid) restoreDraft(authStore.user.uid)
 })
 
+async function loadEmailCodeSwitch() {
+  try {
+    const res = await req.get('/api/auth/providers')
+    emailCodeOn.value = res.data?.data?.emailCode === 'on'
+  } catch { /* 모르면 지금 화면 그대로 */ }
+}
+
 function toggleQ2(value: number) {
   if (value === Q2_NONE) {
     form.q2 = form.q2.includes(Q2_NONE) ? [] : [Q2_NONE]
@@ -276,10 +337,14 @@ function toggleQ2(value: number) {
 
 const error = ref('')
 
-const canNext = computed(() => isStepComplete(step.value, form))
+const canNext = computed(() => isStepComplete(step.value, form) && (step.value !== 0 || form.password.length >= minPassword.value))
 
 async function back() {
   error.value = ''
+  if (codeStage.value) {   // 코드 적기 → 계정 단계(받은 코드는 10분 동안 그대로 쓸 수 있다)
+    codeStage.value = false
+    return
+  }
   if (step.value > FIRST_STEP) {
     step.value--
     return
@@ -318,6 +383,10 @@ async function next() {
         error.value = '이미 사용 중인 이메일이에요.'
         return
       }
+      if (res.data.verify === true) {
+        await startEmailCode()
+        return
+      }
     } catch (e: any) {
       error.value = e.response?.data?.error ?? '이메일 확인 중 오류가 발생했어요.'
       return
@@ -328,6 +397,29 @@ async function next() {
 
   if (isLast.value) submit()
   else step.value++
+}
+
+// 0단계 '코드 받기' — 이미 확인했으면 건너뛰고, 10분 안에 같은 메일로 보낸 코드가 있으면 다시 보내지 않고 그 화면으로
+async function startEmailCode() {
+  const email = form.email.trim().toLowerCase()
+  if (ticket.value && ticketEmail.value === email) { step.value = 1; return }
+  if (form.password.length < NEW_PASSWORD_MIN) {
+    error.value = `비밀번호는 ${NEW_PASSWORD_MIN}자 이상이어야 해요.`
+    return
+  }
+  if (codeEmail.value === email && Date.now() - codeSentAt.value < CODE_ALIVE_MS) {
+    codeStage.value = true
+    return
+  }
+  try {
+    const res = await req.post('/api/auth/email/send-code', { email })
+    codeSentAt.value = Date.now()
+    codeResendAfter.value = Number(res.data?.resendAfter) || 60
+    codeEmail.value = email
+    codeStage.value = true
+  } catch (e: any) {
+    error.value = sendErrorMessage(e?.response?.status, e?.response?.data)
+  }
 }
 
 const loading = ref(false)
@@ -356,7 +448,10 @@ async function submit() {
       const res = await req.post('/api/auth/complete-profile', profile)
       authStore.user = res.data.user
     } else {
-      const res = await req.post('/api/auth/register', { email: form.email, password: form.password, ...profile })
+      const res = await req.post('/api/auth/register', {
+        email: form.email, password: form.password, ...profile,
+        ...(ticket.value && { ticket: ticket.value }),
+      })
       authStore.setAuth(res.data.token, res.data.user)
     }
     dropDraft() // 가입을 마쳤다 — 임시 보관 지움
@@ -375,6 +470,13 @@ async function submit() {
     const linked = await linkPendingGuestSurvey()
     router.replace(linked ? `${linked}?next=1` : '/onboarding/intro')
   } catch (e: any) {
+    if (e.response?.data?.code === 'email_unverified') {
+      // 확인 표가 지났다(30분) — 계정 단계로 돌아가 다시 확인한다. 나머지 칸은 그대로
+      ticket.value = null
+      step.value = 0
+      error.value = '메일 확인 시간이 지났어요. 코드를 다시 받아 주세요.'
+      return
+    }
     error.value = e.response?.data?.error ?? '회원가입 중 오류가 발생했어요.'
   } finally {
     loading.value = false

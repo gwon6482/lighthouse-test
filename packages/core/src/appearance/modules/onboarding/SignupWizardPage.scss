@@ -197,3 +197,12 @@
   a { display: inline; color: #2b69b6; text-decoration: underline; text-underline-offset: 2px; }
 }
 .wiz__underage { margin-top: 12px; font-size: 0.82rem; font-weight: 600; color: #c2410c; }
+
+// '코드 받기' 위 한 줄(2026-11-23 처리방침 검토) — 무엇을 보내고 언제 지우는지
+.wiz__notice {
+  margin: 0 0 10px;
+  font-size: $fs-2xs;
+  line-height: 1.5;
+  color: $color-text-meta;
+  word-break: keep-all;
+}

@@ -142,6 +142,9 @@
           </button>
         </form>
 
+        <!-- 비밀번호 찾기(2026-11-22) — 서버 스위치가 켜졌을 때만(providers.emailCode === 'on'). 적던 메일을 이동 상태로 넘긴다 -->
+        <button v-if="emailCodeOn" type="button" class="auth__forgot" @click="goForgot">비밀번호를 잊었어요</button>
+
         <p class="auth__switch">
           아직 회원이 아니신가요?
           <button class="auth__switch-btn" @click="mode = 'signup'">회원가입</button>
@@ -172,7 +175,8 @@ const nextPath = rememberAfterLogin(route.query.next)
 const authStore = useAuthStore()
 const achievementStore = useAchievementStore()
 
-const mode = ref<'signup' | 'login'>('signup')   // 회원가입이 기본
+// 회원가입이 기본. ?mode=login 이면 로그인부터(카카오·구글 가입자 안내 메일의 '로그인 화면 열기', 비밀번호 찾기의 뒤로)
+const mode = ref<'signup' | 'login'>(route.query.mode === 'login' ? 'login' : 'signup')
 const farewell = ref(takeAccountDeleted())
 
 // ── 회원가입 ──
@@ -202,6 +206,7 @@ onMounted(() => {
 //    제공자가 늘어도 이 객체에 키가 하나 늘 뿐, 판단 위치는 그대로 API 다.
 type Provider = 'kakao' | 'google'
 const providers = ref<Record<Provider, boolean>>({ kakao: false, google: false })
+const emailCodeOn = ref(false)   // 메일 확인·비밀번호 찾기 스위치(서버 EMAIL_CODE = on)
 
 const enabledProviders = computed(
   () => (Object.keys(providers.value) as Provider[]).filter((p) => providers.value[p]),
@@ -215,6 +220,7 @@ onMounted(async () => {
     const res = await req.get('/api/auth/providers')
     const data = res.data?.data ?? {}
     providers.value = { kakao: !!data.kakao, google: !!data.google }
+    emailCodeOn.value = data.emailCode === 'on'
   } catch {
     // 조회 실패 시엔 켜지 않는다 — 눌러도 안 되는 버튼보다 '준비 중'이 낫다
     providers.value = { kakao: false, google: false }
@@ -240,6 +246,10 @@ const socialHint = computed(() => {
 function startOAuth(provider: Provider) {
   markLoginRedirect()   // 비회원 결과지에서 넘어왔을 수 있다 — 돌아와서 연결한다
   startOAuthShared(provider)
+}
+
+function goForgot() {
+  router.push({ path: '/onboarding/password', state: { email: email.value.trim() } })
 }
 
 // ── 로그인 (기존 사용자) ──
