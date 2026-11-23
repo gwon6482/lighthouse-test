@@ -37,6 +37,19 @@ describe('메일 확인 코드', () => {
     expect(passwordTooLong('a'.repeat(64))).toBe(false)
     expect(passwordTooLong('가'.repeat(25))).toBe(true)   // 75바이트
   })
+  it('경계 — 공백·이모지·72바이트(서버와 같은 판정)', () => {
+    expect(passwordError('        a1')).toBeNull()                 // 공백도 글자로 센다
+    expect(passwordError('ab cd 12')).toBeNull()
+    expect(passwordChecks('       1').length).toBe(true)            // 공백 7 + 숫자 = 8자(영문은 없음)
+    expect(passwordError('😀😀😀a1')).toBeNull()                    // 이모지는 2글자(UTF-16)로 센다 — 서버(JS length)와 같다
+    expect(passwordChecks('😀😀😀1').length).toBe(false)              // 7글자
+    expect(passwordError('a1' + 'x'.repeat(70))).toBe('비밀번호는 64자 이하로 적어 주세요.')   // 72자 — 글자 수에서 걸림
+    expect(passwordError('a1' + '가'.repeat(23))).toBeNull()         // 2 + 69 = 71바이트
+    expect(passwordError('a1' + '가'.repeat(23) + 'b')).toBeNull()   // 72바이트 — 딱 맞음
+    expect(passwordError('a1' + '가'.repeat(24))).toBe('비밀번호는 64자 이하로 적어 주세요.')   // 74바이트(26자) — 한계: 글은 '64자'로 같다
+    expect(passwordTooLong('😀'.repeat(18))).toBe(false)             // 72바이트
+    expect(passwordTooLong('😀'.repeat(18) + 'a')).toBe(true)        // 73바이트
+  })
   it('확인 칸 — 둘 다 적었고 다를 때만, 적는 중(앞부분이 같음)에는 기다린다', () => {
     expect(showMismatch('', 'a')).toBe(false)
     expect(showMismatch('abcd1234', '')).toBe(false)

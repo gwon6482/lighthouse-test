@@ -46,8 +46,8 @@
         </div>
         <div class="wiz__field">
           <label class="wiz__label" for="pwreset-again">한 번 더</label>
-          <input id="pwreset-again" v-model="pw2" type="password" class="wiz__input" placeholder="••••••••" autocomplete="new-password" @keydown.enter="save" @blur="pw2Blurred = true" />
-          <p v-if="showMismatch(pw, pw2, pw2Blurred)" class="wiz__field-error">두 비밀번호가 같지 않아요.</p>
+          <input id="pwreset-again" v-model="pw2" type="password" class="wiz__input" placeholder="••••••••" autocomplete="new-password" :aria-describedby="pw2Mismatch ? 'pwreset-mismatch' : undefined" :aria-invalid="pw2Mismatch || undefined" @keydown.enter="save" @blur="pw2Blurred = true" />
+          <p v-if="pw2Mismatch" id="pwreset-mismatch" class="wiz__field-error">두 비밀번호가 같지 않아요.</p>
         </div>
         <p v-if="error" class="wiz__error" role="alert">{{ error }}</p>
       </section>
@@ -108,6 +108,7 @@ const ticket = ref('')
 const pw = ref('')
 const pw2 = ref('')
 const pw2Blurred = ref(false)
+const pw2Mismatch = computed(() => showMismatch(pw.value, pw2.value, pw2Blurred.value))
 const pwEl = ref<HTMLInputElement | null>(null)
 // 조건(8~64자·영문·숫자)을 다 채우고 두 칸이 같아야 버튼이 켜진다 — 이유는 칸 아래 조건 줄·'같지 않아요'가 보여 준다
 const pwReady = computed(() => newPasswordError(pw.value, pw2.value) === null)

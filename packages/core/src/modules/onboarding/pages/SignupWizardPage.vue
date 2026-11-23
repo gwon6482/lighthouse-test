@@ -37,14 +37,14 @@
              옛 화면은 마지막 단계에서야 서버 오류를 보였다) -->
         <div class="wiz__field">
           <label class="wiz__label" for="signup-pw">비밀번호</label>
-          <input id="signup-pw" ref="passwordEl" v-model="form.password" type="password" class="wiz__input" placeholder="••••••••" autocomplete="new-password" aria-describedby="signup-pw-rules" />
+          <input id="signup-pw" ref="passwordEl" v-model="form.password" type="password" class="wiz__input" placeholder="••••••••" autocomplete="new-password" :aria-describedby="passwordServerError ? 'signup-pw-rules signup-pw-server' : 'signup-pw-rules'" :aria-invalid="!!passwordServerError || undefined" />
           <PasswordRules id="signup-pw-rules" :password="form.password" />
-          <p v-if="passwordServerError" class="wiz__field-error" role="alert">{{ passwordServerError }}</p>
+          <p v-if="passwordServerError" id="signup-pw-server" class="wiz__field-error" role="alert">{{ passwordServerError }}</p>
         </div>
         <div class="wiz__field">
           <label class="wiz__label" for="signup-pw2">비밀번호 확인</label>
-          <input id="signup-pw2" v-model="form.passwordConfirm" type="password" class="wiz__input" placeholder="••••••••" autocomplete="new-password" @blur="confirmBlurred = true" />
-          <p v-if="showMismatch(form.password, form.passwordConfirm, confirmBlurred)" class="wiz__field-error">두 비밀번호가 같지 않아요.</p>
+          <input id="signup-pw2" v-model="form.passwordConfirm" type="password" class="wiz__input" placeholder="••••••••" autocomplete="new-password" :aria-describedby="confirmMismatch ? 'signup-pw2-mismatch' : undefined" :aria-invalid="confirmMismatch || undefined" @blur="confirmBlurred = true" />
+          <p v-if="confirmMismatch" id="signup-pw2-mismatch" class="wiz__field-error">두 비밀번호가 같지 않아요.</p>
         </div>
       </section>
 
@@ -224,6 +224,7 @@ const emailEl = ref<HTMLInputElement | null>(null)
 const passwordEl = ref<HTMLInputElement | null>(null)
 // 확인 칸을 한 번 떠났으면 '같지 않아요'를 바로 보인다(적는 중에는 앞부분이 같으면 기다린다 — showMismatch)
 const confirmBlurred = ref(false)
+const confirmMismatch = computed(() => showMismatch(form.password, form.passwordConfirm, confirmBlurred.value))
 // 마지막 단계에서 서버가 비밀번호를 받지 않았을 때(weak_password) 0단계 비밀번호 칸 아래에 보일 이유. 비밀번호를 고치면 지운다
 const passwordServerError = ref('')
 // weak_password 로 0단계에 돌아왔을 때 — 고친 뒤 '다음'이 못 채운 첫 단계(대개 마지막 단계)로 바로 간다(다른 칸은 그대로 채워져 있다)
