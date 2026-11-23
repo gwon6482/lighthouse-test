@@ -12,7 +12,7 @@ import {
   weekRangeLabel,
   projectWeeks,
   projectEndWeek,
-  fitsInPlan,
+  canStartAt,
   resolveProject,
   projectsActiveInWeek,
   projectIdsActiveOnDate,
@@ -200,18 +200,34 @@ describe('projectWeeks — 기간의 출처 우선순위', () => {
   })
 })
 
-describe('fitsInPlan — 계획 끝을 넘는 배치는 막는다', () => {
+describe('canStartAt — 시작 주만 보이는 범위 안이면 놓을 수 있다', () => {
   const p3 = proj('p3', 3)
 
-  it('3주 프로젝트는 10주 계획에서 8주차까지만 시작 가능', () => {
-    expect(fitsInPlan(8, p3, 10)).toBe(true)
-    expect(projectEndWeek(8, p3)).toBe(10)
-    expect(fitsInPlan(9, p3, 10)).toBe(false)
-    expect(fitsInPlan(10, p3, 10)).toBe(false)
+  it('끝 주가 보이는 범위를 넘어가도 시작할 수 있다', () => {
+    // 예전 fitsInPlan 은 10주 화면에서 3주 프로젝트를 8주차까지만 받았다
+    expect(projectEndWeek(9, p3)).toBe(11)
+    expect(canStartAt(9, 10)).toBe(true)
+    expect(canStartAt(10, 10)).toBe(true)
   })
 
-  it('0 이하 주차는 배치 불가', () => {
-    expect(fitsInPlan(0, p3, 10)).toBe(false)
+  it('보이는 범위 밖·0 이하·정수가 아닌 주차는 안 된다', () => {
+    expect(canStartAt(11, 10)).toBe(false)
+    expect(canStartAt(0, 10)).toBe(false)
+    expect(canStartAt(-1, 10)).toBe(false)
+    expect(canStartAt(2.5, 10)).toBe(false)
+  })
+
+  // 2026-11-24 오너 신고 — 21주 뒤에 끝나는 계획(보이는 주 1~22)에 40주 프로젝트를 놓으려 하자 모든 주가 막혔다
+  it('지금 배치보다 긴 프로젝트도 보이는 모든 주에서 시작할 수 있고, 놓으면 끝이 그만큼 늘어난다', () => {
+    const start = '2026-11-24'
+    const p21 = proj('old', 21)
+    const p40 = proj('long', 40)
+    const visible = lastWeekOfMonth(start, projectEndWeek(1, p21)) // 일정 조정 화면의 보이는 범위(마지막 배치 주가 속한 달 끝)
+    expect(visible).toBe(22)
+    for (let w = 1; w <= visible; w++) expect(canStartAt(w, visible)).toBe(true)
+    // 22주차에 놓으면 61주차에 끝난다 — 화면 범위는 이 끝 주에서 다시 계산된다
+    expect(projectEndWeek(22, p40)).toBe(61)
+    expect(lastWeekOfMonth(start, projectEndWeek(22, p40))).toBeGreaterThanOrEqual(61)
   })
 })
 

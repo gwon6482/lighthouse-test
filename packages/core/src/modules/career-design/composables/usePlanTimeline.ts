@@ -152,12 +152,14 @@ export function projectEndWeek(startWeek: number, project: Pick<Project, 'weeks'
   return startWeek + projectWeeks(project) - 1
 }
 
-// 그 주차를 시작주로 삼았을 때 계획 기간 안에 다 들어가는가.
-// 안 들어가면 배치를 막는다(사용자 결정: 잘라내지 않고 막고 안내).
-export function fitsInPlan(
-  startWeek: number, project: Pick<Project, 'weeks' | 'curriculum'>, totalWeeks: number,
-): boolean {
-  return startWeek >= 1 && projectEndWeek(startWeek, project) <= totalWeeks
+// 그 주차를 시작주로 삼을 수 있는가 — 화면에 보이는 주(1 ~ visibleWeeks) 가운데 하나면 된다.
+// ⚠️ 프로젝트의 **끝 주**는 보지 않는다. 종료일은 예상 완료일이라(2026-11-04~) 끝이 보이는 범위를 넘어가도 놓을 수 있고,
+//    놓은 뒤에는 화면 범위가 그 끝 주에 맞춰 늘어난다(일정 조정 화면의 totalWeeks 가 배치에서 계산된다).
+//    예전 fitsInPlan 은 '끝 주가 계획 기간 안'을 요구했다(종료일을 사용자가 정하던 때의 규칙 — 잘라내지 않고 막기).
+//    종료일을 없앤 뒤에도 그 검사가 '보이는 범위 안'으로 남아, 지금 배치가 끝나는 달보다 긴 프로젝트는
+//    어느 주에도 놓을 수 없었다(2026-11-24 오너 신고: 21주 뒤 끝나는 계획에 40주 프로젝트).
+export function canStartAt(startWeek: number, visibleWeeks: number): boolean {
+  return Number.isInteger(startWeek) && startWeek >= 1 && startWeek <= visibleWeeks
 }
 
 // ⚠️ 타임라인 슬롯은 배치 시점의 프로젝트 **복사본**을 들고 있다.
