@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { isChunkLoadError, nextChunkRecovery, resetAppCache, retryChunk } from './chunkReload'
 import { applyThemeColor } from './themeColor'
+import { installSwUpdate } from './swUpdate'
 
 // 화면 파일(lazy 컴포넌트) 불러오기를 감싼다 — 실패하면 같은 화면 안에서 한 번 더(chunkReload.ts retryChunk, 2026-11-17).
 // 라우터는 함수인 component 를 lazy 로 다루므로 함수만 감싼다
@@ -45,6 +46,12 @@ export function makeRouter(routes: RouteRecordRaw[]) {
     else if (next === 'reset-and-reload') void resetAppCache().finally(() => window.location.assign(to.fullPath))
     else console.warn('[chunk] 새 버전 화면을 불러오지 못했어요', to.fullPath)
   })
+  // 새 버전이 넘겨받으면 다음 화면 이동 때 새로 연다 — 입력 중인 화면은 그대로, 로그인·가입 화면 앞에서는 잠깐 기다린다(swUpdate.ts, 2026-11-23 핫픽스).
+  //   등록 모듈(virtual:pwa-register)은 따로 불러온다 — 첫 화면 파일을 키우지 않고, 서비스 워커를 못 쓰는 환경에서는 부르지도 않는다
+  installSwUpdate(router, (h) => {
+    import('./swRegister').then((m) => m.registerAppSw(h)).catch(() => h.onError())
+  })
+
   // ⚠️ 'vite:preloadError' 에서 새로 고치지 말 것 — 라우터보다 먼저 불려서, 아직 바뀌기 전 주소(지금 화면)로 새로 고친다.
   //    거기서 아무것도 안 하면 오류가 그대로 라우터로 와서 위 onError 가 가려던 주소로 처리한다
 

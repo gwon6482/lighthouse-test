@@ -32,8 +32,11 @@ describe('isStepComplete — 단계별 다음 버튼', () => {
   it('다 채우면 모든 단계가 통과', () => {
     for (let s = 0; s <= 5; s++) expect(isStepComplete(s, filled())).toBe(true)
   })
-  it('비밀번호가 6자 미만이거나 확인과 다르면 0단계가 막힌다', () => {
+  it('비밀번호가 새 규칙(8자·영문·숫자)에 못 미치거나 확인과 다르면 0단계가 막힌다', () => {
     expect(isStepComplete(0, filled({ password: '12345', passwordConfirm: '12345' }))).toBe(false)
+    expect(isStepComplete(0, filled({ password: 'secret1', passwordConfirm: 'secret1' }))).toBe(false)     // 7자
+    expect(isStepComplete(0, filled({ password: '12345678', passwordConfirm: '12345678' }))).toBe(false)   // 숫자만(예전엔 통과)
+    expect(isStepComplete(0, filled({ password: 'secretpw', passwordConfirm: 'secretpw' }))).toBe(false)   // 영문만
     expect(isStepComplete(0, filled({ passwordConfirm: 'secret13' }))).toBe(false)
     expect(isStepComplete(0, filled({ password: '', passwordConfirm: '' }))).toBe(false)
   })

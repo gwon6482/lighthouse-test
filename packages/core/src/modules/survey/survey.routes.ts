@@ -40,17 +40,20 @@ export default [
     path: '/self-understanding/select',
     name: 'Self Understanding Select',
     component: () => import('./pages/SelfUnderstandingSelectPage.vue'),
+    meta: { noSwReload: true },
   },
   {
     path: '/self-understanding/test',
     name: 'Self Understanding Test',
     component: () => import('./pages/SelfUnderstandingTestPage.vue'),
+    meta: { noSwReload: true },
   },
   {
     // 검사 완료 페이지 (SURVEY_FLOW_UPDATE.md 참고)
     path: '/self-understanding/complete',
     name: 'Self Understanding Complete',
     component: () => import('./pages/SelfUnderstandingCompletePage.vue'),
+    meta: { noSwReload: true },
   },
   {
     path: '/self-understanding/result/:survey_id',
@@ -67,6 +70,6 @@ export default [
     path: '/mypage',
     name: 'MyPage',
     component: () => import('./pages/MyPage.vue'),
-    meta: { showBottomNav: true, themeColor: THEME_COLOR.heroYellow },
+    meta: { swReloadTo: true, showBottomNav: true, themeColor: THEME_COLOR.heroYellow },
   },
 ]
