@@ -40,11 +40,14 @@
         <input type="email" :value="email.trim()" autocomplete="username" hidden readonly />
         <div class="wiz__field">
           <label class="wiz__label" for="pwreset-new">새 비밀번호</label>
-          <input id="pwreset-new" v-model="pw" type="password" class="wiz__input" :placeholder="`${NEW_PASSWORD_MIN}자 이상`" autocomplete="new-password" />
+          <input id="pwreset-new" ref="pwEl" v-model="pw" type="password" class="wiz__input" placeholder="••••••••" autocomplete="new-password" aria-describedby="pwreset-rules" />
+          <!-- 조건은 칸 바로 아래에서 적는 동안(2026-11-23 핫픽스 — 예전엔 버튼만 꺼지고 이유가 안 보였다) -->
+          <PasswordRules id="pwreset-rules" :password="pw" />
         </div>
         <div class="wiz__field">
           <label class="wiz__label" for="pwreset-again">한 번 더</label>
-          <input id="pwreset-again" v-model="pw2" type="password" class="wiz__input" :placeholder="`${NEW_PASSWORD_MIN}자 이상`" autocomplete="new-password" @keydown.enter="save" />
+          <input id="pwreset-again" v-model="pw2" type="password" class="wiz__input" placeholder="••••••••" autocomplete="new-password" @keydown.enter="save" @blur="pw2Blurred = true" />
+          <p v-if="showMismatch(pw, pw2, pw2Blurred)" class="wiz__field-error">두 비밀번호가 같지 않아요.</p>
         </div>
         <p v-if="error" class="wiz__error" role="alert">{{ error }}</p>
       </section>
@@ -82,7 +85,8 @@ import { useAchievementStore } from '@/shared/stores/achievement'
 import { linkPendingGuestSurvey } from '@/shared/guest/guestSurvey'
 import { takeAfterLogin } from '@/shared/auth/afterLogin'
 import EmailCodeStep from '../components/EmailCodeStep.vue'
-import { NEW_PASSWORD_MIN, newPasswordError, sendErrorMessage } from '../lib/emailCode'
+import PasswordRules from '../components/PasswordRules.vue'
+import { newPasswordError, sendErrorMessage, showMismatch } from '../lib/emailCode'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -103,7 +107,10 @@ const resendAfter = ref(60)
 const ticket = ref('')
 const pw = ref('')
 const pw2 = ref('')
-const pwReady = computed(() => pw.value.length >= NEW_PASSWORD_MIN && pw2.value.length >= NEW_PASSWORD_MIN)
+const pw2Blurred = ref(false)
+const pwEl = ref<HTMLInputElement | null>(null)
+// 조건(8~64자·영문·숫자)을 다 채우고 두 칸이 같아야 버튼이 켜진다 — 이유는 칸 아래 조건 줄·'같지 않아요'가 보여 준다
+const pwReady = computed(() => newPasswordError(pw.value, pw2.value) === null)
 
 async function request() {
   if (!emailOk.value || busy.value) return
@@ -146,6 +153,11 @@ async function save() {
       ticket.value = ''
       stage.value = 'request'
       error.value = '시간이 지났어요. 코드를 다시 받아 주세요.'
+    } else if (code === 'weak_password') {
+      // 서버가 비밀번호를 받지 않았다 — 이유를 보이고 비밀번호 칸으로(표는 쓰이지 않아 고쳐서 다시 누르면 된다)
+      error.value = e?.response?.data?.error ?? '비밀번호를 다시 정해 주세요.'
+      pwEl.value?.focus()
+      pwEl.value?.select()
     } else {
       error.value = e?.response?.data?.error ?? '바꾸지 못했어요. 잠시 뒤 다시 해 주세요.'
     }
@@ -168,7 +180,7 @@ async function goOn() {
 
 function back() {
   error.value = ''
-  if (stage.value === 'newpw') { stage.value = 'request'; ticket.value = ''; pw.value = ''; pw2.value = ''; return }
+  if (stage.value === 'newpw') { stage.value = 'request'; ticket.value = ''; pw.value = ''; pw2.value = ''; pw2Blurred.value = false; return }
   if (stage.value === 'code') { stage.value = 'request'; return }
   router.replace({ path: '/onboarding/auth', query: { mode: 'login' } })
 }

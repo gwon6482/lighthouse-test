@@ -206,3 +206,11 @@
   color: $color-text-meta;
   word-break: keep-all;
 }
+
+// 칸 바로 아래 오류 한 줄(2026-11-23 핫픽스) — '두 비밀번호가 같지 않아요'·서버가 비밀번호를 받지 않은 이유
+.wiz__field-error {
+  @include error-text;
+  margin: 2px 0 0 1px;
+  line-height: 1.4;
+  word-break: keep-all;
+}

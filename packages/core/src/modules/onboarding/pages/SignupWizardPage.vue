@@ -33,13 +33,18 @@
           <label class="wiz__label">이메일</label>
           <input ref="emailEl" v-model="form.email" type="email" class="wiz__input" placeholder="user@example.com" autocomplete="email" />
         </div>
+        <!-- 비밀번호 조건은 칸 바로 아래에서 적는 동안 보인다(2026-11-23 핫픽스 — 예전엔 버튼만 꺼지고 이유가 안 보였고,
+             옛 화면은 마지막 단계에서야 서버 오류를 보였다) -->
         <div class="wiz__field">
-          <label class="wiz__label">비밀번호</label>
-          <input v-model="form.password" type="password" class="wiz__input" :placeholder="`${minPassword}자 이상`" autocomplete="new-password" />
+          <label class="wiz__label" for="signup-pw">비밀번호</label>
+          <input id="signup-pw" ref="passwordEl" v-model="form.password" type="password" class="wiz__input" placeholder="••••••••" autocomplete="new-password" aria-describedby="signup-pw-rules" />
+          <PasswordRules id="signup-pw-rules" :password="form.password" />
+          <p v-if="passwordServerError" class="wiz__field-error" role="alert">{{ passwordServerError }}</p>
         </div>
         <div class="wiz__field">
-          <label class="wiz__label">비밀번호 확인</label>
-          <input v-model="form.passwordConfirm" type="password" class="wiz__input" placeholder="••••••••" autocomplete="new-password" />
+          <label class="wiz__label" for="signup-pw2">비밀번호 확인</label>
+          <input id="signup-pw2" v-model="form.passwordConfirm" type="password" class="wiz__input" placeholder="••••••••" autocomplete="new-password" @blur="confirmBlurred = true" />
+          <p v-if="showMismatch(form.password, form.passwordConfirm, confirmBlurred)" class="wiz__field-error">두 비밀번호가 같지 않아요.</p>
         </div>
       </section>
 
@@ -157,7 +162,8 @@
 import { linkPendingGuestSurvey } from '@/shared/guest/guestSurvey'
 import { reactive, ref, computed, onMounted, watch, nextTick } from 'vue'
 import EmailCodeStep from '../components/EmailCodeStep.vue'
-import { NEW_PASSWORD_MIN, sendErrorMessage } from '../lib/emailCode'
+import PasswordRules from '../components/PasswordRules.vue'
+import { passwordError, sendErrorMessage, showMismatch } from '../lib/emailCode'
 import { useRouter, useRoute, onBeforeRouteUpdate } from 'vue-router'
 import { req } from '@/shared/api'
 import { useAuthStore } from '@/shared/stores/auth'
@@ -204,10 +210,10 @@ const form = reactive<SignupForm>(emptySignupForm())
 // ── 메일 확인(2026-11-22 시안 2판, 정할 것 1·2) ─────────────────
 // 이메일·비밀번호 바로 다음에 6자리 코드로 확인한다. 확인하면 서버가 '확인 표'(30분)를 주고, 가입 완료(register) 때 함께 보낸다.
 // 서버 스위치(EMAIL_CODE)가 꺼져 있으면 check-email 이 verify 를 주지 않는다 → 지금 흐름 그대로.
-//   emailCodeOn('on' 일 때만): 버튼 '코드 받기'·안내 한 줄·비밀번호 8자. 팀 주소만(team) 시험 때는 이 셋 없이 확인 단계만 보인다
+//   emailCodeOn('on' 일 때만): 버튼 '코드 받기'·안내 한 줄. 팀 주소만(team) 시험 때는 이 둘 없이 확인 단계만 보인다
 //   (누가 팀 주소인지 앱은 모른다 — 공개 레포에 목록을 두지 않는다)
+//   비밀번호 규칙은 스위치와 관계없이 하나다(8~64자·영문·숫자, 2026-11-23 — 서버도 스위치와 관계없이 본다)
 const emailCodeOn = ref(false)
-const minPassword = computed(() => (emailCodeOn.value ? NEW_PASSWORD_MIN : 6))
 const codeStage = ref(false)
 const codeSentAt = ref(0)
 const codeResendAfter = ref(60)
@@ -215,6 +221,14 @@ const codeEmail = ref('')        // 마지막으로 코드를 보낸 메일
 const ticket = ref<string | null>(null)
 const ticketEmail = ref('')
 const emailEl = ref<HTMLInputElement | null>(null)
+const passwordEl = ref<HTMLInputElement | null>(null)
+// 확인 칸을 한 번 떠났으면 '같지 않아요'를 바로 보인다(적는 중에는 앞부분이 같으면 기다린다 — showMismatch)
+const confirmBlurred = ref(false)
+// 마지막 단계에서 서버가 비밀번호를 받지 않았을 때(weak_password) 0단계 비밀번호 칸 아래에 보일 이유. 비밀번호를 고치면 지운다
+const passwordServerError = ref('')
+// weak_password 로 0단계에 돌아왔을 때 — 고친 뒤 '다음'이 못 채운 첫 단계(대개 마지막 단계)로 바로 간다(다른 칸은 그대로 채워져 있다)
+const returnAfterFix = ref(false)
+watch(() => form.password, () => { passwordServerError.value = '' })
 const CODE_ALIVE_MS = 10 * 60 * 1000
 
 // 메일을 고치면 앞서 받은 확인은 그 메일 것이라 버린다
@@ -226,7 +240,7 @@ function onVerified(t: string) {
   ticket.value = t
   ticketEmail.value = form.email.trim().toLowerCase()
   codeStage.value = false
-  step.value = 1
+  step.value = afterAccountStep()
 }
 
 async function editEmail() {
@@ -337,7 +351,7 @@ function toggleQ2(value: number) {
 
 const error = ref('')
 
-const canNext = computed(() => isStepComplete(step.value, form) && (step.value !== 0 || form.password.length >= minPassword.value))
+const canNext = computed(() => isStepComplete(step.value, form))
 
 async function back() {
   error.value = ''
@@ -372,8 +386,12 @@ async function next() {
       error.value = '올바른 이메일 형식을 입력해 주세요.'
       return
     }
+    if (passwordError(form.password)) {
+      passwordEl.value?.focus()
+      return
+    }
     if (form.password !== form.passwordConfirm) {
-      error.value = '비밀번호가 일치하지 않습니다.'
+      error.value = '두 비밀번호가 같지 않아요.'
       return
     }
     checking.value = true
@@ -396,15 +414,23 @@ async function next() {
   }
 
   if (isLast.value) submit()
-  else step.value++
+  else step.value = afterAccountStep()
+}
+
+// 0단계를 마친 뒤 갈 단계 — 보통 1단계. weak_password 로 돌아와 고친 경우엔 못 채운 첫 단계(대개 마지막 단계)로
+function afterAccountStep(): number {
+  if (step.value !== 0) return step.value + 1
+  if (!returnAfterFix.value) return 1
+  returnAfterFix.value = false
+  return resumeStep(TOTAL - 1, 1, form)
 }
 
 // 0단계 '코드 받기' — 이미 확인했으면 건너뛰고, 10분 안에 같은 메일로 보낸 코드가 있으면 다시 보내지 않고 그 화면으로
 async function startEmailCode() {
   const email = form.email.trim().toLowerCase()
-  if (ticket.value && ticketEmail.value === email) { step.value = 1; return }
-  if (form.password.length < NEW_PASSWORD_MIN) {
-    error.value = `비밀번호는 ${NEW_PASSWORD_MIN}자 이상이어야 해요.`
+  if (ticket.value && ticketEmail.value === email) { step.value = afterAccountStep(); return }
+  if (passwordError(form.password)) {
+    passwordEl.value?.focus()
     return
   }
   if (codeEmail.value === email && Date.now() - codeSentAt.value < CODE_ALIVE_MS) {
@@ -470,6 +496,18 @@ async function submit() {
     const linked = await linkPendingGuestSurvey()
     router.replace(linked ? `${linked}?next=1` : '/onboarding/intro')
   } catch (e: any) {
+    if (e.response?.data?.code === 'weak_password') {
+      // 서버가 비밀번호를 받지 않았다(규칙이 바뀌기 전 화면에서 적었거나 앱과 서버 판정이 다를 때) — 오류만 띄우지 않고
+      // 0단계 비밀번호 칸으로 데려가 이유를 보인다. 다른 칸·확인 표는 그대로(서버는 표를 쓰지 않았다)
+      codeStage.value = false
+      step.value = 0
+      returnAfterFix.value = true
+      passwordServerError.value = e.response?.data?.error ?? '비밀번호를 다시 정해 주세요.'
+      await nextTick()
+      passwordEl.value?.focus()
+      passwordEl.value?.select()
+      return
+    }
     if (e.response?.data?.code === 'email_unverified') {
       // 확인 표가 지났다(30분) — 계정 단계로 돌아가 다시 확인한다. 나머지 칸은 그대로
       ticket.value = null

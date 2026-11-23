@@ -29,7 +29,7 @@
               <input
                 type="password"
                 v-model="form.password"
-                placeholder="6자 이상"
+                placeholder="8자 이상, 영문·숫자 포함"
                 class="modal__input"
                 autocomplete="new-password"
               />
@@ -104,6 +104,7 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue'
 import { req } from '@/shared/api'
+import { newPasswordError } from '@/modules/onboarding/lib/emailCode'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{
@@ -137,12 +138,10 @@ const handleRegister = async () => {
     errorMsg.value = '모든 항목을 입력해주세요.'
     return
   }
-  if (form.password !== form.passwordConfirm) {
-    errorMsg.value = '비밀번호가 일치하지 않습니다.'
-    return
-  }
-  if (form.password.length < 6) {
-    errorMsg.value = '비밀번호는 6자 이상이어야 합니다.'
+  // 새 비밀번호 규칙은 가입 위저드와 같은 것 하나(onboarding/lib/emailCode.ts, 2026-11-23) — 정본은 서버
+  const pwProblem = newPasswordError(form.password, form.passwordConfirm)
+  if (pwProblem) {
+    errorMsg.value = pwProblem
     return
   }
 

@@ -11,6 +11,8 @@
 //   - 가입을 마치거나 첫 단계 '뒤로'로 그만두면 지운다. 1시간이 지난 것은 쓰지 않는다.
 // 저장소는 인자로 받는다(테스트). 실제 연결은 SignupWizardPage 가 한다.
 
+import { passwordError } from './emailCode'
+
 // ── 질문 보기 ─────────────────────────────────────────────
 // 값은 서버 User.onboarding(status·concerns·selfAwareness)에 그대로 저장된다 — 바꾸면 어드민 '가입 설문' 화면도 함께 본다.
 export const Q1 = [
@@ -60,7 +62,7 @@ export function emptySignupForm(): SignupForm {
 /** 이 단계를 다 채웠는가('다음'을 켤 수 있는가) */
 export function isStepComplete(step: number, f: SignupForm): boolean {
   switch (step) {
-    case 0: return !!f.email && f.password.length >= 6 && f.password === f.passwordConfirm
+    case 0: return !!f.email && passwordError(f.password) === null && f.password === f.passwordConfirm   // 새 비밀번호 규칙 하나(2026-11-23)
     case 1: return f.name.trim().length > 0
     case 2: return !!f.age && f.age >= 14 && !!f.gender && f.agreed
     case 3: return f.q1 !== null
