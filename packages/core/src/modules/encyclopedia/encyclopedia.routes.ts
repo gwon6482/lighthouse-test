@@ -6,7 +6,7 @@ export default [
     path: '/career-info',
     name: 'Career Info',
     component: () => import('./pages/CareerInfoPage.vue'),
-    meta: { showBottomNav: true, themeColor: THEME_COLOR.heroYellow },
+    meta: { swReloadTo: true, showBottomNav: true, themeColor: THEME_COLOR.heroYellow },
   },
   {
     path: '/career-encyclopedia',
@@ -14,7 +14,7 @@ export default [
     component: () => import('./pages/EncyclopediaHomePage.vue'),
     // 아래 탭(2026-11-19 다듬기 2차 7·8) — 보이는 규칙은 다른 탭 화면과 같다(로그인 + 진행 중인 계획). 켜짐은 '진로정보'(BottomNav activeFor).
     // 직업 상세·분류로 찾기는 더 깊은 화면이라 지금처럼 뒤로 버튼
-    meta: { showBottomNav: true },
+    meta: { swReloadTo: true, showBottomNav: true },
   },
   {
     path: '/career-encyclopedia/recommended',

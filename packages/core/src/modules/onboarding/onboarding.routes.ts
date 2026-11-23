@@ -18,17 +18,20 @@ const onboardingRoutes: RouteRecordRaw[] = [
     path: '/onboarding/auth',
     name: 'Onboarding Auth',
     component: () => import('./pages/AuthPage.vue'),
+    meta: { swReloadTo: true },
   },
   {
     // 비밀번호 찾기(2026-11-22) — 로그인 화면 '비밀번호를 잊었어요'. 비회원이 여는 화면이다(진입 가드는 '/'만 본다)
     path: '/onboarding/password',
     name: 'Onboarding Password Reset',
     component: () => import('./pages/PasswordResetPage.vue'),
+    meta: { noSwReload: true, swReloadTo: true },
   },
   {
     path: '/onboarding/signup',
     name: 'Onboarding Signup',
     component: () => import('./pages/SignupWizardPage.vue'),
+    meta: { noSwReload: true, swReloadTo: true },
   },
   {
     // 소셜 로그인 복귀 지점. API 카카오 콜백이 여기로 302 를 보낸다.
@@ -36,6 +39,7 @@ const onboardingRoutes: RouteRecordRaw[] = [
     path: '/onboarding/oauth',
     name: 'Onboarding OAuth Return',
     component: () => import('./pages/OAuthReturnPage.vue'),
+    meta: { noSwReload: true },
   },
   {
     path: '/onboarding/welcome',
