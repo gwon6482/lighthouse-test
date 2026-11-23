@@ -5,7 +5,7 @@
 // 목표 직업 찾기: **직업 코드로만** 찾는다 — 진로백과에서 정한 목표 진로(refType 'jobCode')의 코드가 draftPlan.targetJobCode 로 들어온다.
 //   직접 적은 목표(custom)는 어느 계획인지 알 수 없어 예시를 보여 주지 않는다(이름으로 어림잡지 않는다 — 엉뚱한 직업의 계획이 붙는다).
 import { fetchJobPreparation } from '@/modules/encyclopedia/encyclopedia.api'
-import { checkLevelLabel, pathOf } from '@/modules/encyclopedia/lib/preparation'
+import { checkLevelLabel, pathOf, resourcesOf } from '@/modules/encyclopedia/lib/preparation'
 import type { JobPreparation, PrepItem, PrepPhase, PrepProject } from '@/modules/encyclopedia/types/encyclopedia'
 import type { DayOfWeek, HelperExample, HelperJobExamples, Project, ProjectCategory, WeekCurriculum } from '../types/career-design'
 import { methodFits } from './projectMethods'
@@ -78,6 +78,8 @@ export function projectToExample(prep: JobPreparation, item: PrepItem, project: 
     ...(item.passStat && prep.passStats?.[item.passStat]
       ? { examStat: examStatOf(prep.passStats[item.passStat], isAlongsideTarget(prep, item)) }
       : {}),
+    // 공식 안내(2026-11-23 ⑧) — 계획 안 걸음 값이 먼저. 옛 서버면 칸이 없다
+    ...(() => { const { links } = resourcesOf(item, project); return links.length ? { officialLinks: links.map((l) => ({ ...l })) } : {} })(),
   }
 }
 
@@ -183,5 +185,6 @@ export function helperExampleToProject(ex: HelperExample, category: ProjectCateg
     ...(ex.minAge ? { minAge: ex.minAge } : {}),
     ...(ex.firstPassRounds ? { firstPassRounds: ex.firstPassRounds } : {}),
     ...(ex.examStat ? { examStat: { ...ex.examStat } } : {}),
+    ...(ex.officialLinks?.length ? { officialLinks: ex.officialLinks.map((l) => ({ ...l })) } : {}),
   }
 }

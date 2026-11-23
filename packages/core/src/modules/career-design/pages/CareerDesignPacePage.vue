@@ -25,6 +25,11 @@
         </div>
         <p v-for="w in examWarns" :key="w" class="cd-pace__date-warn">{{ w }}</p>
         <p class="cd-pace__date-hint">{{ COPY.boxHint }}</p>
+        <!-- 공고 보기(2026-11-23 ⑧) — 시험 걸음에 시험 기관 링크가 있을 때만. 주소는 서버 자료 그대로 -->
+        <a
+          v-for="l in examLinks" :key="l.url" class="cd-pace__date-link"
+          :href="l.url" target="_blank" rel="noopener noreferrer"
+        >{{ l.name }} · 공고 보기 ↗</a>
         <p class="cd-pace__date-hint">{{ COPY.boxApply }}</p>
       </section>
 
@@ -178,7 +183,7 @@ import { COPY } from '../lib/examDateRules'
 import { schedulePreview } from '../composables/usePlanPace'
 import { useCareerProfile } from '../composables/useCareerProfile'
 import { useAuthStore } from '@/shared/stores/auth'
-import { formatWeeks } from '@/modules/encyclopedia/lib/preparation'
+import { examLinksOf, formatWeeks } from '@/modules/encyclopedia/lib/preparation'
 import { getToday } from '@/shared/utils/dev-date'
 import type { Project, ProjectCategory } from '../types/career-design'
 import AppIcon from '@/shared/components/AppIcon.vue'
@@ -251,6 +256,7 @@ const options = computed(() => PACES.map((p) => {
 
 // ── 시험 날짜(2026-11-22 시험일 역산) ──
 const examTargets = computed(() => draftPlan.projects.filter(takesExamDate))
+const examLinks = computed(() => examLinksOf(examTargets.value.map((p) => p.officialLinks)))
 const worstOf = (xs: ExamSlot[]) => xs.reduce<ExamSlot | null>((w, x) => (!w || x.spare < w.spare ? x : w), null)
 const dotDate = (d: string) => { const [y, m, dd] = d.split('-'); return `${y}. ${Number(m)}. ${Number(dd)}.` }
 const selectedOption = computed(() => options.value.find((o) => o.key === selectedKey.value))
@@ -532,6 +538,8 @@ function apply() {
   &__date-done { flex-basis: 100%; text-align: left; padding: 0 0 0 11px; border: 0; background: none; font-size: 12px; color: #666; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
   &__date-warn { font-size: 12px; color: #B54708; word-break: keep-all; }
   &__date-hint { font-size: 11.5px; color: #999; word-break: keep-all; }
+  // 공고 보기(2026-11-23 ⑧) — 바깥 링크 한 줄. 누르기 쉽게 세로 여백을 둔다
+  &__date-link { display: inline-block; align-self: flex-start; padding: 4px 0; font-size: 12.5px; font-weight: 700; color: #2f6fed; text-decoration: none; word-break: keep-all; overflow-wrap: anywhere; max-width: 100%; }
   &__facts--exam { background: #FFF4E5; }
   &__facts--ahead { background: #E4F8EC; .cd-pace__stat { color: #13843F; } .cd-pace__fact { color: #4C7A5C; } }
   &__choose { align-self: flex-start; margin-top: 2px; padding: 0; border: 0; background: none; font-size: 13px; font-weight: 700; color: #222; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }

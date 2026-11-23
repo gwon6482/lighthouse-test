@@ -303,6 +303,29 @@ export interface PrepProject {
   minAge?: number       // 응시할 수 있는 나이(공무원 공채 18·교정 20·경위 21 — 시험을 보는 해 기준). 없으면 앱의 이름 규칙
   firstPassRounds?: number   // 1차 합격 효력이 미치는 2차 회차 수(회계사·세무사 1차 = 2 — 그 회와 다음 회)
   routine?: PrepRoutineSuggestion          // 루틴 제안(2026-11-21 루틴 리뉴얼) — 반복 연습 프로젝트에만. 옛 서버는 없다
+  links?: PrepLink[]                       // 공식 안내(2026-11-23 진로설계 보완 ⑧) — 옛 서버는 없다
+  cost?: PrepCost                          // 응시료(같은 날) — 법령·기관 원문에서 읽은 금액만 온다
+}
+
+/** 공식 안내 링크(2026-11-23) — 서버가 기관 주소 + 종목 경로로 만들어 준다. 앱은 주소를 만들지 않는다 */
+export interface PrepLink {
+  name: string            // 기관 이름(큐넷(한국산업인력공단))
+  url: string
+  what: string            // 무엇을 보러 가나(정보처리기사 시험 안내 · 무료 강의)
+  kind: 'exam' | 'free-lecture' | 'support' | 'data' | string | null
+}
+
+/** 응시료(2026-11-23) — of 는 '2026년 기준'처럼 기준 회차·연도까지 담아 온다 */
+export interface PrepCost {
+  lines: { label: string; amount: number }[]
+  unit: string
+  of: string | null
+  basis: 'law' | 'official' | null
+  source: string | null
+  at: string | null
+  note?: string
+  waiver?: string         // 감면·면제 안내 — 받기만 하고 그리지 않는다(진로상담 검토 11-23)
+  when?: string           // 내는 때(대학 마지막 해에 내요) — 자료 칸 이름 확정 전 자리(11-23)
 }
 
 /**
@@ -345,6 +368,8 @@ export interface PrepItem {
   skipFor?: 'any'       // 학과와 상관없이 대학에 다니면 건너뛴다(법조). 없으면 관련 학과일 때만
   alongside?: string    // 이 걸음과 나란히 공부하는 걸음의 ref(7·5급 PSAT ↔ 전문과목·2차, 2026-11-17)
   passStat?: string     // 합격자 수치 id → JobPreparation.passStats(잰 시험·걸음에만, 2026-11-17)
+  links?: PrepLink[]    // 이 계획 안 걸음의 공식 안내 — 있으면 프로젝트 값보다 먼저, 빈 목록 = 이 계획에선 없음(2026-11-23)
+  cost?: PrepCost       // 이 계획 안 걸음의 응시료 — 있으면 프로젝트 값보다 먼저
 }
 
 /** 합격자 수치(2026-11-17) — 합격한 사람만 센 값. 분포가 있으면 평균보다 먼저 쓴다 */

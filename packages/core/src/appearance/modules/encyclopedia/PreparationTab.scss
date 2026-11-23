@@ -717,3 +717,64 @@
 
   .prep-section__title { font-size: 14px; color: #666; }
 }
+
+// 공식 안내·응시료(2026-11-23 진로설계 보완 ⑧) — 걸음 펼침의 단계 목록 아래. 시안 reviews/2026-11-22-job-specific-and-resources.html '.off'
+.prep-off {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background-color: #f7f9ff;
+  word-break: keep-all;
+
+  &__head {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #6b7280;
+
+    small { font-size: 11px; font-weight: 500; }
+  }
+
+  // 기관 이름 위, 무엇을 보러 가나 아래 — 좁은 폰에서 띄어쓰기 없는 긴 기관 이름이 옆 글과 겹치지 않게(WebKit 320 확인)
+  &__link {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-height: 44px;      // 손가락으로 누르기 쉽게
+    padding: 8px 10px;
+    border: 1px solid #e3e8f5;
+    border-radius: 8px;
+    background-color: #fff;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-decoration: none;
+  }
+
+  &__name { max-width: 100%; overflow-wrap: anywhere; }
+
+  &__what {
+    font-style: normal;
+    font-size: 12px;
+    font-weight: 600;
+    color: #2f6fed;
+  }
+
+  &__cost {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  &__sub {
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: #6b7280;
+  }
+}

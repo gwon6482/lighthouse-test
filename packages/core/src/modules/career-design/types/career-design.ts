@@ -1,5 +1,5 @@
 import type { ProjectMethod, MethodField } from '../composables/projectMethods'
-import type { PrepRoutineSuggestion } from '@/modules/encyclopedia/types/encyclopedia'
+import type { PrepLink, PrepRoutineSuggestion } from '@/modules/encyclopedia/types/encyclopedia'
 
 // 'experience'(실무경험, 2026-10-25) — 인턴·현장실습·대외활동처럼 '기간·시간을 채우는' 준비물.
 //   포트폴리오(결과물이 남음)에 억지로 넣던 것을 분리했다. API enum 에도 있다(lighthouse-api 6035c60)
@@ -59,6 +59,7 @@ export interface Project {
   firstPassRounds?: number   // 1차 합격 효력이 미치는 2차 회차 수(자료, 회계사·세무사 1차 = 2) — 속도 고르기 사실 한 줄(설계 중에만 쓴다)
   alongside?: string    // 나란히 공부하는 대상 프로젝트 id(7·5급 PSAT ↔ 전문·2차) — 같은 때 시작해 주당 시간을 나눠 쓴다
   examStat?: ExamStat   // 속도 고르기에 보여 줄 합격자 수치(설계 중에만 — 서버에 저장하지 않는다)
+  officialLinks?: PrepLink[]   // 공식 안내(2026-11-23 ⑧) — 속도 고르기 시험 날짜 상자의 '공고 보기'(설계 중에만 — 서버 스키마에 없어 저장되지 않는다)
   // 루틴 제안(2026-11-21, 설계 중에만 — 서버에 저장하지 않는다). 템플릿에서 온 반복 연습 프로젝트에만
   routine?: PrepRoutineSuggestion
   routineBackup?: { days: DayOfWeek[]; duration: number; curriculum: WeekCurriculum[] }   // 제안을 넣어 줄이기 전 값 — 루틴을 빼면 되돌린다
@@ -192,6 +193,7 @@ export interface HelperExample {
   minAge?: number
   firstPassRounds?: number
   examStat?: ExamStat
+  officialLinks?: PrepLink[]      // 공식 안내(2026-11-23) — Project.officialLinks 로 넘어간다
 }
 
 export interface HelperJobExamples {

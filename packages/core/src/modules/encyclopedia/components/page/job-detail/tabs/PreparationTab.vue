@@ -227,6 +227,7 @@
                   <li v-for="(o, oi) in s.project.options" :key="oi">{{ o }}</li>
                 </ul>
               </div>
+              <PreparationResources :item="s.item" :project="s.project" />
               <p class="prep-step__facts">
                 <span>{{ s.project.level }}</span>
                 <span v-if="kindOf(s.project)">{{ kindOf(s.project) }}</span>
@@ -278,6 +279,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import PreparationNotes from './PreparationNotes.vue'
+import PreparationResources from './PreparationResources.vue'
 import PeriodTag from '@/modules/career-design/components/PeriodTag.vue'
 import { fetchJobPreparation } from '../../../../encyclopedia.api'
 import { FULL_TIME_HOURS, PART_TIME_HOURS, formatFullTime, formatMinutes, formatStudyHours, formatWeeks, hasMajorSkip, josaRo, pathOf, realityHead, statSourceLine, stepsOf, sumParts, type PrepStep } from '../../../../lib/preparation'

@@ -1,6 +1,6 @@
 // 진로백과 준비과정 탭의 계산(2026-11-15) — 화면과 무관한 순수 함수만 둔다.
 // 자료는 서버(진로계획 라이브러리)가 갈래별로 순서까지 풀어서 준다. 여기서는 고르고 글자로 바꾸기만 한다.
-import type { JobPreparation, PrepChecked, PrepItem, PrepPath, PrepProject, PrepReality, PrepStatSource, PrepSum } from '../types/encyclopedia'
+import type { JobPreparation, PrepChecked, PrepCost, PrepItem, PrepLink, PrepPath, PrepProject, PrepReality, PrepStatSource, PrepSum } from '../types/encyclopedia'
 
 export interface PrepStep {
   key: string            // 펼침 상태를 기억하는 열쇠 — 프로젝트 id + 순서. 갈래를 바꿔도 공통 항목은 같은 열쇠라 열린 채로 남는다
@@ -202,4 +202,57 @@ export function statSourceLine(src: PrepStatSource | null | undefined): string {
   } else if (src.level === 'abstract') parts.push('논문 초록으로 확인')
   if (src.checkedAt) parts.push(`${src.checkedAt} 확인`)
   return parts.join(' · ')
+}
+
+// ── 공식 안내·응시료(2026-11-23 진로설계 보완 ⑧) ──
+// 서버가 준 주소만 쓴다(앱에서 주소를 만들지 않는다). http·https 가 아닌 주소는 그리지 않는다
+const isWebUrl = (u: unknown): u is string => typeof u === 'string' && /^https?:\/\//i.test(u)
+
+/**
+ * 걸음 하나의 공식 안내와 응시료 — 계획 안 걸음(item) 값이 있으면 프로젝트 값보다 먼저 쓴다.
+ * item.links 가 빈 목록이면 '이 계획에선 링크 없음'이다(프로젝트 값으로 돌아가지 않는다). 옛 서버(칸 없음)는 둘 다 비어 온다
+ */
+export function resourcesOf(
+  item: Pick<PrepItem, 'links' | 'cost'>,
+  project: Pick<PrepProject, 'links' | 'cost'>,
+): { links: PrepLink[]; cost: PrepCost | null } {
+  const raw = Array.isArray(item.links) ? item.links : Array.isArray(project.links) ? project.links : []
+  const links = raw.filter((l) => !!l && !!l.name && isWebUrl(l.url))
+  const cost = item.cost ?? project.cost ?? null
+  return { links, cost: cost && Array.isArray(cost.lines) && cost.lines.length ? cost : null }
+}
+
+const won = (n: number, unit: string) => `${Number(n).toLocaleString('ko-KR')}${unit || '원'}`
+
+/**
+ * 응시료 한 줄 — '응시료(필기)' 같은 이름은 '응시료' 뒤로 모은다.
+ *   한 줄: '응시료 5,000원(국가직 9급)' / 여러 줄: '응시료 필기 19,400원 · 실기 22,600원'. 다른 이름은 그대로 쓴다
+ */
+export function costAmountLine(cost: PrepCost): string {
+  const inner = cost.lines.map((l) => /^응시료\((.+)\)$/.exec(l.label ?? '')?.[1] ?? (l.label === '응시료' ? '' : null))
+  if (inner.every((x) => x !== null)) {
+    if (cost.lines.length === 1) return `응시료 ${won(cost.lines[0]!.amount, cost.unit)}${inner[0] ? `(${inner[0]})` : ''}`
+    return `응시료 ${cost.lines.map((l, i) => `${inner[i] ? `${inner[i]} ` : ''}${won(l.amount, cost.unit)}`).join(' · ')}`
+  }
+  return cost.lines.map((l) => `${l.label} ${won(l.amount, cost.unit)}`).join(' · ')
+}
+
+/**
+ * 응시료 아래 작은 글 — 기준 · 내는 때 · 단서(진로상담 검토 11-23).
+ *   '2026년 9~11월 시험 기준 · 대학 마지막 해에 내요 · 해마다 바뀔 수 있어요(확인 2026-11-23)'. 내는 때(when)는 자료에 있을 때만
+ * 감면·면제 안내(waiver)는 그리지 않는다(같은 검토). 계획 전체 금액으로 더하지 않는다
+ */
+export const costBasisLine = (cost: PrepCost) =>
+  [cost.of, cost.when, `해마다 바뀔 수 있어요${cost.at ? `(확인 ${cost.at})` : ''}`].filter(Boolean).join(' · ')
+
+/** 시험 날짜 상자의 '공고 보기' — 시험 기관 링크만(무료 강의·지원 제도는 빼고), 같은 주소는 한 번만 */
+export function examLinksOf(lists: (PrepLink[] | undefined)[]): PrepLink[] {
+  const seen = new Set<string>()
+  const out: PrepLink[] = []
+  for (const l of lists.flat()) {
+    if (!l || l.kind !== 'exam' || !l.name || !isWebUrl(l.url) || seen.has(l.url)) continue
+    seen.add(l.url)
+    out.push(l)
+  }
+  return out
 }
