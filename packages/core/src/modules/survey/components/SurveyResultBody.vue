@@ -180,10 +180,10 @@
           </div>
         </section>
 
-        <!-- ⚠️ 쪽 수는 report/ResultReport.vue 의 PAGES 와 같게(지금 4쪽 — 업무 환경 문장이 길면 5쪽으로 늘어난다, 2026-11-22) -->
+        <!-- 쪽 수는 적지 않는다 — 내용이 많으면 PDF가 4쪽에서 5쪽으로 늘어난다(report/ResultReport.vue, 2026-11-22) -->
         <section class="rr__teaser rr__teaser--mini" @click="scrollToLock">
           <span class="rr__pages" aria-hidden="true"><i /><i /><i /><i /></span>
-          <div><p class="rr__teaser-title">결과 리포트 저장</p><p class="rr__teaser-what">PDF 4쪽 · 이미지로 저장하고 언제든 다시 보기</p></div>
+          <div><p class="rr__teaser-title">결과 리포트 저장</p><p class="rr__teaser-what">PDF · 이미지로 저장하고 언제든 다시 보기</p></div>
           <span class="rr__teaser-pill"><AppIcon name="ui-privacy" :size="12" /></span>
         </section>
 
