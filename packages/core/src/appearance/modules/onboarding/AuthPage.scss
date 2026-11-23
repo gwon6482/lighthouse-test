@@ -291,3 +291,20 @@
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: none; }
 }
+
+// 비밀번호를 잊었어요(2026-11-22) — 로그인 버튼 바로 아래 한 줄
+.auth__forgot {
+  align-self: center;
+  margin-top: 12px;
+  min-height: 40px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: $fs-xs;
+  font-weight: $fw-semibold;
+  color: $color-text;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}

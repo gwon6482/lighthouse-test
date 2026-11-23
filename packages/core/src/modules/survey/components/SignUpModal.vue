@@ -161,6 +161,11 @@ const handleRegister = async () => {
       emit('registered', res.data.token, res.data.user)
     }, 800)
   } catch (e: any) {
+    // 메일 확인(2026-11-22) 스위치가 켜진 뒤로는 이 창에서 가입할 수 없다 — 코드 확인은 앱 가입 화면(/onboarding/signup)에만 있다
+    if (e.response?.data?.code === 'email_unverified') {
+      errorMsg.value = '메일 확인이 필요해요. 앱 가입 화면에서 가입해 주세요.'
+      return
+    }
     errorMsg.value = e.response?.data?.error ?? '회원가입 중 오류가 발생했습니다.'
   } finally {
     loading.value = false

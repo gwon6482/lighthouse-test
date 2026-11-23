@@ -20,6 +20,12 @@ const onboardingRoutes: RouteRecordRaw[] = [
     component: () => import('./pages/AuthPage.vue'),
   },
   {
+    // 비밀번호 찾기(2026-11-22) — 로그인 화면 '비밀번호를 잊었어요'. 비회원이 여는 화면이다(진입 가드는 '/'만 본다)
+    path: '/onboarding/password',
+    name: 'Onboarding Password Reset',
+    component: () => import('./pages/PasswordResetPage.vue'),
+  },
+  {
     path: '/onboarding/signup',
     name: 'Onboarding Signup',
     component: () => import('./pages/SignupWizardPage.vue'),
