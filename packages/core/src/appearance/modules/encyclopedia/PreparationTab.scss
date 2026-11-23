@@ -728,6 +728,8 @@
   background-color: #f7f9ff;
   word-break: keep-all;
 
+  &__date { white-space: nowrap; }
+
   &__head {
     display: flex;
     justify-content: space-between;

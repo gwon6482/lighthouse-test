@@ -13,7 +13,7 @@
     ><span class="prep-off__name">{{ l.name }}</span><em class="prep-off__what">{{ l.what }} ↗</em></a>
     <template v-if="cost">
       <p class="prep-off__cost">{{ costAmountLine(cost) }}</p>
-      <p class="prep-off__sub">{{ costBasisLine(cost) }}</p>
+      <p class="prep-off__sub">{{ basisHead }}<span v-if="cost.at" class="prep-off__date">{{ basisDate }}</span></p>
       <p v-if="cost.note" class="prep-off__sub">{{ cost.note }}</p>
     </template>
   </div>
@@ -28,4 +28,11 @@ const props = defineProps<{ item: PrepItem; project: PrepProject }>()
 const res = computed(() => resourcesOf(props.item, props.project))
 const links = computed(() => res.value.links)
 const cost = computed(() => res.value.cost)
+// 확인 날짜 '(확인 2026-11-23)'가 좁은 폰에서 '2026-'·'11-23'으로 갈리지 않게 따로 감싼다(글은 costBasisLine 그대로)
+const basisDate = computed(() => (cost.value?.at ? `(확인 ${cost.value.at})` : ''))
+const basisHead = computed(() => {
+  if (!cost.value) return ''
+  const line = costBasisLine(cost.value)
+  return basisDate.value && line.endsWith(basisDate.value) ? line.slice(0, -basisDate.value.length) : line
+})
 </script>
