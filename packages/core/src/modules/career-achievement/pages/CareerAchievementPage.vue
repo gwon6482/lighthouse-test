@@ -123,6 +123,21 @@
             </li>
           </ul>
         </template>
+
+        <!-- 미리 하기(2026-11-23 오너 승인, 시안 reviews/2026-11-23-pull-ahead) — 원래 쉬어 가는 날에만. 이번 주 뒤 요일 칸을 오늘로 옮겨서 한다(저장할 때 옮김) -->
+        <template v-if="pullAhead.length">
+          <p class="ah-today__divider">미리 해 둘 수 있어요</p>
+          <ul class="ah-list">
+            <li v-for="c in pullAhead" :key="'a' + c.projectId" class="ah-task">
+              <span class="ah-task__chip" :style="{ color: categoryColor(c.project.category), background: tint(categoryColor(c.project.category)) }"><AppIcon :name="methodIcon(c.project.method) || 'ui-target'" /></span>
+              <div class="ah-task__body">
+                <span class="ah-task__name">{{ c.project.name }}</span>
+                <span class="ah-task__focus">{{ c.dow }} 할 일 · {{ c.text }}</span>
+              </div>
+              <button type="button" class="ah-task__ahead" @click="startAhead(c)">미리 하기</button>
+            </li>
+          </ul>
+        </template>
       </section>
 
       <!-- 이번 주 기록 재기(2026-11-21 루틴 리뉴얼) — 기준 넘기·실력 올리기 루틴의 주 1회 기록. 매일 분량은 루틴, 재기는 여기 -->
@@ -242,6 +257,7 @@ const {
   todayProjects, todayRoutines, todayFocus, startProject, toggleRoutine, toggleProject, periodToday, isProjectDone, isRoutineDone,
   weekGoals, weekNumber, review,
   pausedFor, heldSessions, resumeFocus, projectOf, todayKey,
+  pullAhead, startAhead,
   routineWeekCount, measureDue, saveRecord, endedRoutines, markAsked, decideEnded,
 } = usePlanBoard()
 const endSheet = computed(() => (loading.value ? null : endedRoutines.value[0] ?? null))

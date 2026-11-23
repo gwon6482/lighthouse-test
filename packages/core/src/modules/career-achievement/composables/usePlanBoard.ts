@@ -23,6 +23,7 @@ import { sessionKey, isAlive, type FocusSession } from '../lib/focusSession'
 import { req } from '@/shared/api'
 import { attachedEnded, keepVersion, measureOf, recordOfWeek, type WeekCount } from '@/modules/career-design/lib/routine'
 import type { RoutineRecord } from '@/modules/career-design/types/career-design'
+import { pullAheadCandidates, restOrigin, type AheadCandidate } from '../lib/pullAhead'
 
 export interface PreviewLine { name: string; color: string }
 export interface DayPreview { key: string; dow: string; md: string; weekend: boolean; lines: PreviewLine[]; more: number; rest: boolean }
@@ -129,6 +130,47 @@ export function usePlanBoard() {
     if (!pl) return null
     const wIdx = projectWeekIndexOn(pl.timeline, pl.startDate, p.id, today.value, pl.reviewDay)
     return wIdx ? periodWeekInfo(p, wIdx) : null
+  }
+
+  // ── 미리 하기(2026-11-23) — 원래 쉬어 가는 날에만, 이번 주 뒤 요일의 진도 프로젝트 칸(lib/pullAhead.ts) ──
+  // 오늘 칸이 모두 미리 하기로 옮겨 온 것이면 '원래 쉬는 날'이라 하나를 미리 한 뒤에도 남은 후보가 계속 나온다
+  function hasUndoneThisWeek(projectId: string): boolean {
+    const pl = plan.value
+    const p = projectOf(projectId)
+    if (!pl || !p) return false
+    const wIdx = projectWeekIndexOn(pl.timeline, pl.startDate, p.id, today.value, pl.reviewDay)
+    const cw = wIdx ? p.curriculum?.find((c) => c.week === wIdx) : undefined
+    const n = weekEntriesOf(cw).length
+    return !!cw && n > 0 && weekItemsDoneCount(p.id, cw.week, n) < n
+  }
+  const todayRestOrigin = computed(() => phase.value === 'running' && restOrigin(todayItems.value))
+  const pullAhead = computed<(AheadCandidate & { project: Project; dow: string; text: string })[]>(() => {
+    const pl = plan.value
+    if (!pl || !todayRestOrigin.value) return []
+    const range = computeWeekRangeContaining(today.value, pl.startDate, (pl.reviewDay || '월') as DayOfWeek)
+    if (!range) return []
+    const laterDays: { date: string; items: WeeklyScheduleItem[] }[] = []
+    const d = new Date(today.value)
+    for (let i = 0; i < 14; i += 1) {
+      d.setDate(d.getDate() + 1)
+      const key = toDateKey(d)
+      if (key > range.weekEnd) break
+      laterDays.push({ date: key, items: itemsOn(d) })
+    }
+    // 오늘 멈춘 집중이 있는 프로젝트는 '잠시 멈춤' 카드가 맡는다
+    const skip = new Set(Object.values(focus.sessions.value).filter((s) => s.date === todayKey.value).map((s) => s.itemId))
+    return pullAheadCandidates({
+      todayKey: todayKey.value, todayItems: todayItems.value, laterDays, projectOf, skip,
+      isDone: (id, date) => ach.isProjectDone(id, date), hasUndoneThisWeek,
+    }).flatMap((c) => {
+      const p = projectOf(c.projectId)
+      if (!p) return []
+      const day = parseDateKey(c.date)!
+      return [{ ...c, project: p, dow: `${DOW[day.getDay()]}요일`, text: todayFocus(p).text }]
+    })
+  })
+  function startAhead(c: AheadCandidate) {
+    router.push({ path: `/career-achievement/start/project/${c.projectId}`, query: { date: todayKey.value, from: c.date } })
   }
 
   // ── ① 지표 ──
@@ -339,6 +381,7 @@ export function usePlanBoard() {
     previews,
     todayProjects, todayRoutines, todayFocus, startProject, toggleRoutine, toggleProject, periodToday,
     pausedFor, heldSessions, resumeFocus,
+    todayRestOrigin, pullAhead, startAhead,
     isProjectDone: ach.isProjectDone, isRoutineDone: ach.isRoutineDone,
     weekGoals, weekNumber, review,
     totalWeeks, roadmap, weekSpanLabel,

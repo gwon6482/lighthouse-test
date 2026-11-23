@@ -125,6 +125,7 @@ import { safeBack } from '@/shared/utils/navigation'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { useFocusSessions } from '../composables/useFocusSessions'
 import { useAchievement } from '../composables/useAchievement'
+import { validDateKey } from '../lib/pullAhead'
 import { sessionKey, elapsedOf, elapsedText, subjectJosa, type FocusSession } from '../lib/focusSession'
 
 const route = useRoute()
@@ -155,6 +156,8 @@ const item = computed<Project | Routine | null>(() => {
 const keepable = itemType.value === 'project'
 const focusKey = computed(() => sessionKey(dateKey.value, itemType.value, itemId.value))
 const saved = ref<FocusSession | null>(null)
+// 미리 하기(2026-11-23) — 옮겨 올 칸의 원래 날짜. 주소에 없으면(이어 하기·새로 고침) 기기에 적어 둔 멈춘 집중의 것
+const aheadFrom = computed(() => validDateKey(route.query.from) ?? saved.value?.from ?? null)
 const itemName = computed(() => item.value?.name ?? saved.value?.itemName ?? '')
 const category = computed(() => {
   const c = itemType.value === 'project' ? ((item.value as Project | null)?.category ?? saved.value?.itemCategory) : undefined
@@ -270,6 +273,7 @@ function persist() {
     reached: reachedNotified,
     // 시작할 때 이미 완료였나 — 한 번 정하면 그대로(이어 하는 동안 바뀌지 않게)
     afterDone: saved.value ? !!saved.value.afterDone : ach.isProjectDone(itemId.value, dateKey.value),
+    ...(aheadFrom.value ? { from: aheadFrom.value } : {}),
     keepAwake: keepAwake.value,
     notify: notify.value,
     updatedAt: Date.now(),
@@ -319,7 +323,7 @@ function toRecord() {
   router.replace({
     path: `/career-achievement/complete/${itemType.value}/${itemId.value}`,
     // goal — 기록 작성 화면이 '계획 · 60분' 대신 이때 고른 '목표 · 15분'을 보이게(2026-11-21 A2)
-    query: { date: dateKey.value, elapsed: String(Math.floor(elapsed.value)), goal: String(goalMin.value) },
+    query: { date: dateKey.value, elapsed: String(Math.floor(elapsed.value)), goal: String(goalMin.value), ...(aheadFrom.value ? { from: aheadFrom.value } : {}) },
   })
 }
 

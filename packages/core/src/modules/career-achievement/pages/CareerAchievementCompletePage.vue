@@ -113,6 +113,8 @@ import { useAchievementEntries, type AchievementEntry } from '../composables/use
 import { uploadPhoto } from '../achievement.api'
 import { CATEGORY_META } from '../lib/planBoard'
 import { useFocusSessions } from '../composables/useFocusSessions'
+import { useWeeklySchedule } from '../composables/useWeeklySchedule'
+import { validDateKey } from '../lib/pullAhead'
 import { sessionKey, combinedElapsed, recordTimeLabel } from '../lib/focusSession'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { showToast } from '@/shared/composables/useAppToast'
@@ -125,6 +127,7 @@ const { isProjectDone, isRoutineDone, toggleProject, toggleRoutine } = useAchiev
 const { isItemDone, toggleItem } = useCurriculumCompletion()
 const { saveEntry, getEntry } = useAchievementEntries()
 const focusSessions = useFocusSessions()
+const { moveAheadOnSave } = useWeeklySchedule()
 
 const itemType = computed<'project' | 'routine'>(() => (route.params.type === 'routine' ? 'routine' : 'project'))
 const itemId = computed(() => String(route.params.id ?? ''))
@@ -290,6 +293,10 @@ async function save() {
       note: note.value.trim(),
       planId: draftPlan.planId ?? undefined,
     }
+    // 미리 하기(2026-11-23) — 옮겨 올 칸의 원래 날짜. 멈춘 집중을 지우기 전에 읽는다(이어 하기로 왔으면 주소에 없을 수 있다)
+    const aheadFrom = itemType.value === 'project'
+      ? (validDateKey(route.query.from) ?? focusSessions.get(focusKey.value)?.from ?? null)
+      : null
     saveEntry(entry)
     focusSessions.remove(focusKey.value) // 저장했으니 멈춘 집중은 끝
 
@@ -301,6 +308,11 @@ async function save() {
       if (itemType.value === 'project') {
         toggleProject(itemId.value, dateKey.value)
         advanceProjectCurriculum(item.value as Project, dateKey.value)
+        // 미리 하기 — 이번 주 뒤 요일의 그 칸을 이 날짜로 옮긴다(저장할 때만. 시작만 하고 그만두면 원래 요일 그대로)
+        if (aheadFrom && aheadFrom !== dateKey.value && draftPlan.planId) {
+          await moveAheadOnSave(draftPlan.planId, draftPlan, draftTimeline.value, { itemId: itemId.value, from: aheadFrom, to: dateKey.value })
+            .catch(() => false)
+        }
       } else {
         toggleRoutine(itemId.value, dateKey.value)
       }

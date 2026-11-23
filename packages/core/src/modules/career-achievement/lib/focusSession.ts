@@ -27,6 +27,7 @@ export interface FocusSession {
   segStart: number | null   // running 일 때 지금 구간 시작(epoch ms)
   reached: boolean          // 목표 진동을 이미 울렸나(이어 해도 다시 울리지 않게)
   afterDone?: boolean       // 시작할 때 그 날짜에 이미 완료였나(완료한 일을 한 번 더 집중) — 홈에서는 따로 한 장으로
+  from?: string             // 미리 하기(2026-11-23) — 옮겨 올 칸의 원래 날짜. 저장할 때 그 칸을 date 로 옮긴다
   keepAwake: boolean
   notify: boolean
   updatedAt: number
@@ -142,7 +143,9 @@ export function parseSessions(raw: string | null | undefined): FocusSessionMap {
     if (s.state !== 'running' && s.state !== 'paused') continue
     if (s.state === 'running' && (typeof s.segStart !== 'number' || !Number.isFinite(s.segStart))) continue
     const ok = s as FocusSession
-    out[keyOf(ok)] = { ...ok, planId: typeof s.planId === 'string' ? s.planId : '', segStart: ok.state === 'running' ? ok.segStart : null }
+    const { from: rawFrom, ...rest } = ok
+    const from = typeof rawFrom === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawFrom) ? rawFrom : undefined
+    out[keyOf(ok)] = { ...rest, ...(from ? { from } : {}), planId: typeof s.planId === 'string' ? s.planId : '', segStart: ok.state === 'running' ? ok.segStart : null }
   }
   return out
 }
