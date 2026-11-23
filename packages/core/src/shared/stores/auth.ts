@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { req } from '@/shared/api'
+import { clearAccountScope } from '@/shared/auth/accountScope'
 
 export interface AuthUser {
   uid: string
@@ -38,6 +39,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(email: string, password: string) {
     const res = await req.post('/api/auth/login', { email, password })
+    clearAccountScope() // 계정이 바뀐다 — 앞 계정의 검사 id·담아 둔 추천을 비운다(accountScope.ts)
     _applyToken(res.data.token)
     user.value = res.data.user
   }
@@ -64,11 +66,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function setAuth(t: string, u: AuthUser) {
+    clearAccountScope()
     _applyToken(t)
     user.value = u
   }
 
   function logout() {
+    clearAccountScope()
     token.value = null
     user.value = null
     localStorage.removeItem(TOKEN_KEY)
@@ -78,6 +82,7 @@ export const useAuthStore = defineStore('auth', () => {
   // 소셜 로그인 복귀(OAuthReturnPage)처럼 유저 정보 없이 토큰만 먼저 받는 경우.
   // 이어서 fetchMe() 로 유저를 채운다.
   function applyToken(t: string) {
+    clearAccountScope()
     _applyToken(t)
   }
 

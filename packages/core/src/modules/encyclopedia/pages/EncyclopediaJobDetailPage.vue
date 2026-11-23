@@ -235,12 +235,13 @@ onBeforeUnmount(() => stopRestore?.())
 
 onMounted(async () => {
   const jobCode = route.params.jobCode as string
+  // 추천 배지 판정은 직업 자료와 함께 받기 시작한다 — 직업이 그려진 뒤 배지가 늦게 끼어들어 아래가 밀리지 않게(메인에서 받아 둔 것이면 바로)
+  if (authStore.isLoggedIn) myGroups.load()
   await loadJob(jobCode)
   restoreReturn()
 
   if (authStore.isLoggedIn) {
     loadBookmarks()
-    myGroups.load()
     try {
       const { data } = await fetchTargetCareer()
       if (data.success) currentTarget.value = data.targetCareer

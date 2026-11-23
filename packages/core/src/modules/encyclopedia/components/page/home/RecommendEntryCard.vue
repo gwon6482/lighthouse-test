@@ -6,7 +6,7 @@
     <!-- 목표를 정한 회원: 목표가 먼저, 추천은 '다른 길'로 -->
     <component
       :is="target.jobCode ? 'button' : 'div'"
-      v-if="target && !busy"
+      v-if="target"
       :type="target.jobCode ? 'button' : undefined"
       class="rec-entry__goal"
       @click="target.jobCode && router.push(`/career-encyclopedia/job/${target.jobCode}`)"
@@ -23,6 +23,7 @@
       <span class="rec-entry__chip" aria-hidden="true"><AppIcon name="ui-recommend" /></span>
       <div class="rec-entry__title">
         <h2 class="rec-entry__name">{{ heading }}</h2>
+        <!-- 받는 동안은 비워 둔다(한 줄 자리) — 상태가 정해지기 전에 다른 문구가 보였다 바뀌지 않게 -->
         <p class="rec-entry__sub">{{ sub }}</p>
       </div>
       <RouterLink v-if="resultTo" :to="resultTo" class="rec-entry__all">결과에서 보기<AppIcon name="ui-chevron-right" /></RouterLink>
@@ -39,7 +40,7 @@
           type="button"
           class="rec-entry__row"
           :aria-expanded="openCode === g.code"
-          :aria-controls="`rec-entry-jobs-${g.code}`"
+          :aria-controls="openCode === g.code ? `rec-entry-jobs-${g.code}` : undefined"
           @click="toggle(g.code)"
         >
           <span class="rec-entry__dot" aria-hidden="true" />
@@ -61,7 +62,7 @@
               </button>
             </li>
           </ul>
-          <RouterLink v-if="g.jobs.length > REP_JOBS" :to="browseTo(g.code)" class="rec-entry__more">
+          <RouterLink v-if="hasMoreJobs(g)" :to="browseTo(g.code)" class="rec-entry__more">
             이 직무의 직업 {{ g.jobCount }}개 모두 보기<AppIcon name="ui-chevron-right" />
           </RouterLink>
         </div>
@@ -88,32 +89,24 @@ import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
 import { useAuthStore } from '@/shared/stores/auth'
 import { REASON_AXIS, whyParts } from '@/modules/survey/lib/jobGroupWhy'
 import type { JobGroupJob } from '@/modules/survey/types/survey'
-import { useMyJobGroups } from '../../../composables/useMyJobGroups'
-import { fetchTargetCareer } from '../../../encyclopedia.api'
-import { REP_JOBS } from '../../../lib/myJobGroups'
+import { useMyJobGroups, loadMyTarget } from '../../../composables/useMyJobGroups'
+import { REP_JOBS, hasMoreJobs, type TargetLine } from '../../../lib/myJobGroups'
 
 const router = useRouter()
 const auth = useAuthStore()
 const { state, surveyId, groups, load } = useMyJobGroups()
 
-// 목표 진로 — 직업이면 직업 상세로, 직접 적은 목표(custom)는 이름만
-const target = ref<{ title: string; jobCode: string | null } | null>(null)
+// 목표 진로 — 직업이면 직업 상세로, 직접 적은 목표(custom)는 이름만. 계정마다 한 번 받아 둔다(useMyJobGroups)
+const target = ref<TargetLine | null>(null)
 const targetDone = ref(!auth.isLoggedIn)
 
 async function loadTarget() {
-  try {
-    const { data } = await fetchTargetCareer()
-    const t = data.success ? data.targetCareer : null
-    const title = (t?.title ?? (t?.refType === 'custom' ? t.ref : '') ?? '').trim()
-    target.value = t && title ? { title, jobCode: t.refType === 'jobCode' ? t.ref : null } : null
-  } catch {
-    target.value = null
-  } finally {
-    targetDone.value = true
-  }
+  target.value = await loadMyTarget()
+  targetDone.value = true
 }
 
-// 목표와 추천을 둘 다 받은 뒤에 한 번에 그린다 — 목표 줄이 늦게 끼어들며 카드가 두 번 커지지 않게
+// 받는 중 — 목표 줄은 받는 대로 바로 그린다(목표는 빨리 오고 계정마다 담아 두니, 직무가 올 때 아래가 또 밀리지 않게).
+// 직무 자리는 세 줄 자리(실제 줄과 같은 높이)로 잡는다
 const busy = computed(() => state.value === 'idle' || state.value === 'loading' || !targetDone.value)
 
 const heading = computed(() => {
@@ -122,6 +115,7 @@ const heading = computed(() => {
   return target.value && state.value === 'ready' && groups.value.length ? '다른 길도 살펴보기' : '나의 추천 진로'
 })
 const sub = computed(() => {
+  if (busy.value) return ''
   if (state.value === 'guest') return '먼저 나를 알아봐요. 가입하면 결과와 가까운 직무까지 볼 수 있어요'
   if (state.value === 'noSurvey') return '먼저 나를 알아보고, 결과와 가까운 직무도 함께 살펴봐요'
   return '검사 결과와 가까운 직무예요'

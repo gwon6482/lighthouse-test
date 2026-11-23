@@ -22,3 +22,22 @@ describe('pickLatestSurveyId — 내 최근 검사', () => {
     ])).toBe('ok')
   })
 })
+
+import { chooseSurveyId } from '../lib/latestSurvey'
+
+describe('chooseSurveyId — 탭에 둔 검사 id 는 내 목록에 있을 때만', () => {
+  const mine = [
+    { survey_id: 'mine-old', submitted_at: '2026-05-19T10:00:00Z' },
+    { survey_id: 'mine-new', submitted_at: '2026-05-27T10:00:00Z' },
+  ]
+  it('내 목록에 있으면 그 검사', () => {
+    expect(chooseSurveyId('mine-old', mine)).toBe('mine-old')
+  })
+  it('다른 계정(또는 없는) 검사 id 면 내 목록의 최신', () => {
+    expect(chooseSurveyId('someone-else', mine)).toBe('mine-new')
+  })
+  it('탭에 둔 것이 없으면 최신, 목록이 비면 빈 문자열', () => {
+    expect(chooseSurveyId('', mine)).toBe('mine-new')
+    expect(chooseSurveyId('someone-else', [])).toBe('')
+  })
+})

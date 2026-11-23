@@ -9,7 +9,7 @@
     <SurveyResultBody
       ref="bodyRef"
       :survey-id="surveyId"
-      :scroll-to-groups="route.query.at === 'groups'"
+      :scroll-to-groups="scrollToGroups"
       @job-click="goEncyclopedia"
       @group-recruit="goGroupRecruit"
       @ready="(ok, label) => { resultReady = ok; resultLabel = label ?? null }"
@@ -73,6 +73,15 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const surveyId = route.params.survey_id as string
+
+// 진로백과 '나의 추천 진로' 카드의 '결과에서 보기'(?at=groups) — 처음 열 때 한 번만 직무 구역으로 내려간다.
+// 주소에서 at 을 바로 뺀다(기록을 쌓지 않는 replace): 직업 상세에 갔다 뒤로 와도 다시 내려가지 않게(검토 6번).
+// 같은 화면 안 이동이라 새 버전 바꾸기(swUpdate)도 끼어들지 않는다. 지금 맨 위라 라우터가 맨 위로 올려도 그대로다
+const scrollToGroups = route.query.at === 'groups'
+if (scrollToGroups) {
+  const { at: _at, ...rest } = route.query
+  router.replace({ path: route.path, query: rest, hash: route.hash })
+}
 
 function goEncyclopedia(jobCode: string) {
   router.push(`/career-encyclopedia/job/${jobCode}`)

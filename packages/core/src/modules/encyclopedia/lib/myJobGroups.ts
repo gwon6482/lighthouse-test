@@ -2,6 +2,7 @@
 // 직업 상세의 배지 "내 추천 직무 '○○'의 직업이에요"는 저장해 둔 직업 목록(User.recommendedJobs — 결과지를 열 때 덮어써서 낡았다)
 // 대신, 볼 때 최신 검사의 직무 3가지에 이 직업이 들었는지로 정한다. 묶음 직업(고용24가 한 직업으로 조사한 여러 직업)은 풀어서 본다.
 import type { JobGroupRecommend, JobGroupJob } from '@/modules/survey/types/survey'
+import type { TargetCareer } from '../encyclopedia.api'
 
 /** 한 자리의 직업 코드들 — 묶음이면 구성원 전부, 아니면 자기 코드 */
 export function unfoldJob(job: JobGroupJob): string[] {
@@ -24,3 +25,26 @@ export function jobCodesOfGroups(groups: JobGroupRecommend[] | null | undefined)
 
 /** 카드에 펼쳐 보여 줄 대표 직업 수 — 결과지 '대표 직업'과 같다 */
 export const REP_JOBS = 3
+
+/** 펼친 직무에 '이 직무의 직업 N개 모두 보기'를 둘까 — 풀어 센 직업 수가 보여 준 대표 직업보다 많으면(묶음 하나가 여러 직업인 직무 포함) */
+export function hasMoreJobs(g: Pick<JobGroupRecommend, 'jobs' | 'jobCount'>): boolean {
+  const shown = g.jobs.slice(0, REP_JOBS).reduce((n, j) => n + unfoldJob(j).length, 0)
+  return (g.jobCount ?? 0) > shown
+}
+
+export interface TargetLine { title: string; jobCode: string | null }
+
+/**
+ * 카드 맨 위 '내 목표 직업' 한 줄. 보일 이름이 없으면 null(줄을 감춘다).
+ * 직업 목표인데 직업 자료가 없어져 서버가 이름 대신 코드를 주면(title === ref, 숫자) 코드를 이름처럼 보이지 않게 감춘다(검토 5번).
+ */
+export function targetLine(t: TargetCareer | null | undefined): TargetLine | null {
+  if (!t?.ref) return null
+  const title = (t.title ?? (t.refType === 'custom' ? t.ref : '') ?? '').trim()
+  if (!title) return null
+  if (t.refType === 'jobCode') {
+    if (title === t.ref || /^\d+$/.test(title)) return null
+    return { title, jobCode: t.ref }
+  }
+  return { title, jobCode: null }
+}

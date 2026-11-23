@@ -33,7 +33,7 @@
   &__chip { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: #FFC700; color: #3D3100; font-size: 17px; }
   &__title { flex: 1; min-width: 0; }
   &__name { margin: 0; font-size: 16px; font-weight: 800; line-height: 1.4; color: #3D3100; }
-  &__sub { margin: 1px 0 0; font-size: 12px; line-height: 1.45; color: #8A6A00; word-break: keep-all; }
+  &__sub { min-height: 1.45em; margin: 1px 0 0; font-size: 12px; line-height: 1.45; color: #8A6A00; word-break: keep-all; }
   &__all {
     flex: none;
     display: inline-flex;
@@ -48,8 +48,8 @@
 
   &__list { display: grid; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
 
-  // 받는 동안 — 이유가 두 줄인 줄과 같은 높이
-  &__skel { height: 68px; border-radius: 12px; background: linear-gradient(90deg, #fff 0%, #FBF7E6 50%, #fff 100%); }
+  // 받는 동안 — 직무 줄 평균 높이(이유 한 줄 60px · 두 줄 78px)
+  &__skel { height: 66px; border-radius: 12px; background: linear-gradient(90deg, #fff 0%, #FBF7E6 50%, #fff 100%); }
 
   &__item { border-radius: 12px; background: #fff; }
   &__row {
