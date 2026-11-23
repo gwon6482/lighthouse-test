@@ -6,6 +6,7 @@ import type {
 import { weekOfDate, weekDateRange, projectsActiveInWeek } from '@/modules/career-design/composables/usePlanTimeline'
 import { uid } from '@/shared/utils/uid'
 import { routineOnDay, voiceOverlap } from '@/modules/career-design/lib/routine'
+import { onAccountChange } from '@/shared/auth/accountScope'
 import { moveAheadItem, parsePending, addPending, pendingStep, AHEAD_PENDING_KEY, type AheadPending } from '../lib/pullAhead'
 
 // 한 주의 확정된 일정 1건. BE WeeklySchedule.items 의 1요소.
@@ -346,3 +347,6 @@ async function retryAhead(
   writePending([...keep, ...added])
   return moved
 }
+// 계정이 바뀌면(로그아웃·다른 계정 로그인) 앞 계정의 실패분을 비운다(2026-11-24). 계획 id 로도 가르지만(다른 계정의 계획이면 보내지 않음)
+// 같은 기기에 앞 사람의 계획·프로젝트 id·날짜가 남지 않게. 같은 계정으로 다시 로그인해도 지워진다 — 그 칸은 옮기지 못한 채 남는다(기록은 남아 있다)
+onAccountChange(() => writePending([]))

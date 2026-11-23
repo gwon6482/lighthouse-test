@@ -23,7 +23,7 @@ import { sessionKey, isAlive, type FocusSession } from '../lib/focusSession'
 import { req } from '@/shared/api'
 import { attachedEnded, keepVersion, measureOf, recordOfWeek, type WeekCount } from '@/modules/career-design/lib/routine'
 import type { RoutineRecord } from '@/modules/career-design/types/career-design'
-import { homePullAhead, restOrigin, type AheadCandidate } from '../lib/pullAhead'
+import { homePullAhead, type AheadCandidate } from '../lib/pullAhead'
 
 export interface PreviewLine { name: string; color: string }
 export interface DayPreview { key: string; dow: string; md: string; weekend: boolean; lines: PreviewLine[]; more: number; rest: boolean }
@@ -132,8 +132,8 @@ export function usePlanBoard() {
     return wIdx ? periodWeekInfo(p, wIdx) : null
   }
 
-  // ── 미리 하기(2026-11-23) — 원래 쉬어 가는 날에만, 이번 주 뒤 요일의 진도 프로젝트 칸(lib/pullAhead.ts) ──
-  // 오늘 칸이 모두 미리 하기로 옮겨 온 것이면 '원래 쉬는 날'이라 하나를 미리 한 뒤에도 남은 후보가 계속 나온다
+  // ── 미리 하기(2026-11-23, 11-24 넓힘) — 오늘 할 일을 모두 끝냈을 때(쉬어 가는 날 포함), 이번 주 뒤 요일의 진도 프로젝트 칸(lib/pullAhead.ts) ──
+  // 미리 한 칸도 저장할 때 끝낸 채로 오늘에 오므로, 하나를 미리 한 뒤에도 남은 후보가 계속 나온다
   function hasUndoneThisWeek(projectId: string): boolean {
     const pl = plan.value
     const p = projectOf(projectId)
@@ -143,7 +143,6 @@ export function usePlanBoard() {
     const n = weekEntriesOf(cw).length
     return !!cw && n > 0 && weekItemsDoneCount(p.id, cw.week, n) < n
   }
-  const todayRestOrigin = computed(() => phase.value === 'running' && restOrigin(todayItems.value))
   const pullAhead = computed<(AheadCandidate & { project: Project; dow: string; text: string })[]>(() => {
     const pl = plan.value
     if (!pl) return []
@@ -152,6 +151,9 @@ export function usePlanBoard() {
       running: phase.value === 'running', today: today.value, todayKey: todayKey.value, weekEnd: range?.weekEnd ?? null,
       itemsOn, sessions: Object.values(focus.sessions.value), projectOf,
       isDone: (id, date) => ach.isProjectDone(id, date), hasUndoneThisWeek,
+      // 오늘 할 일 수(todayTotal)와 같은 칸만 센다 — 계획에서 빠진 칸은 끝낸 것으로 넘긴다
+      todayItemDone: (it) => !(it.itemType === 'project' ? projectOf(it.itemId) : routineOf(it.itemId))
+        || itemDone(it as WeeklyScheduleItem, todayKey.value),
     }).flatMap((c) => {
       const p = projectOf(c.projectId)
       if (!p) return []
@@ -373,7 +375,7 @@ export function usePlanBoard() {
     previews,
     todayProjects, todayRoutines, todayFocus, startProject, toggleRoutine, toggleProject, periodToday,
     pausedFor, heldSessions, resumeFocus,
-    todayRestOrigin, pullAhead, startAhead,
+    pullAhead, startAhead,
     isProjectDone: ach.isProjectDone, isRoutineDone: ach.isRoutineDone,
     weekGoals, weekNumber, review,
     totalWeeks, roadmap, weekSpanLabel,

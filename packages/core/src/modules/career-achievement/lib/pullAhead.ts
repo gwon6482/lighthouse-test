@@ -4,8 +4,10 @@
 // 규칙
 // - 이번 주 뒤 요일의 진도 프로젝트 칸을 오늘로 옮겨서 한다((a)). 다음 주 몫·한 번 더 하기는 하지 않는다
 // - 옮기는 때는 기록을 저장할 때. 시작만 하고 그만두면 원래 요일 그대로
-// - 옮긴 칸은 주간 일정 칸의 note 에 'ahead:<원래 날짜>'를 남긴다 — 오늘이 '쉬어 가는 날로 시작한 날'인지 가리는 데 쓴다
-//   (오늘 칸이 모두 옮겨 온 칸이면 원래 쉬는 날. 원래 할 일이 있던 날은 다 끝내도 미리 하기가 나오지 않는다 — 정할 것 5)
+// - 옮긴 칸은 주간 일정 칸의 note 에 'ahead:<원래 날짜>'를 남긴다(어디서 왔는지 — 다시 시도·검토용)
+// - 보이는 때(2026-11-24 오너 Todo '오늘 할 일을 다 하면 미리 하기'로 넓힘): 오늘 일정에 놓인 것(진도·과정·루틴)을 **모두 끝냈을 때**.
+//   쉬어 가는 날(칸 없음)은 저절로 여기에 든다. 하나라도 남았으면 나오지 않는다(남은 것부터)
+//   예전(v0.1.50)은 '쉬어 가는 날로 시작한 날'(오늘 칸이 모두 옮겨 온 칸)에만 나왔다
 // - 후보: 프로젝트마다 가장 가까운 요일 하나, 날짜 순 3개까지. 과정·루틴·그만둔 프로젝트·끝낸 칸·오늘 이미 있는 프로젝트,
 //   이번 주 할 일 목록이 다 찬 프로젝트(결과 기다리는 주처럼 할 일이 없는 주 포함)는 내지 않는다
 
@@ -26,9 +28,12 @@ export interface AheadDay { date: string; items: AheadItem[] }
 export interface AheadProject { period?: boolean; stoppedAt?: string }
 export interface AheadCandidate { projectId: string; date: string }
 
-/** 오늘이 원래 쉬어 가는 날인가 — 칸이 없거나, 있는 칸이 모두 미리 하기로 옮겨 온 것 */
-export function restOrigin(todayItems: AheadItem[]): boolean {
-  return todayItems.every((it) => it.itemType === 'project' && !!aheadFromNote(it.note))
+/**
+ * 미리 하기가 열리는가 — 오늘 칸(진도·과정·루틴)을 모두 끝냈다. 칸이 없으면(쉬어 가는 날) 참.
+ * itemDone 은 오늘 그 칸을 끝냈는가(계획에서 빠진 칸은 오늘 할 일 수에도 안 들어가므로 끝낸 것으로 보고 넘긴다)
+ */
+export function todayAllDone(todayItems: AheadItem[], itemDone: (it: AheadItem) => boolean): boolean {
+  return todayItems.every((it) => itemDone(it))
 }
 
 export function pullAheadCandidates(o: {
@@ -41,7 +46,7 @@ export function pullAheadCandidates(o: {
   skip?: Set<string>                                     // 그 밖에 뺄 프로젝트(오늘 멈춘 집중이 있는 것 등)
   max?: number
 }): AheadCandidate[] {
-  if (!restOrigin(o.todayItems)) return []
+  // 열리는지(todayAllDone)는 부르는 쪽(homePullAhead)이 본다. 여기서는 오늘 칸에 있는 프로젝트를 뺄 때만 todayItems 를 쓴다
   const max = o.max ?? AHEAD_MAX
   const today = new Set(o.todayItems.filter((it) => it.itemType === 'project').map((it) => it.itemId))
   const seen = new Set<string>()
@@ -84,8 +89,8 @@ export function moveAheadItem<T extends AheadItem & { id: string; date: string }
 
 // ── 홈 연결(usePlanBoard.pullAhead) — 시험하려고 순수 함수로 뺐다 ──
 /**
- * 계획이 진행 중이고 오늘이 원래 쉬는 날일 때만, 내일 ~ 이번 주 마지막 날의 칸으로 후보를 고른다.
- * 오늘 멈춘 집중이 있는 프로젝트는 '잠시 멈춤' 카드가 맡으므로 뺀다.
+ * 계획이 진행 중이고 오늘 칸을 모두 끝냈을 때만(쉬어 가는 날 포함), 내일 ~ 이번 주 마지막 날의 칸으로 후보를 고른다.
+ * 오늘 멈춘 집중이 있는 프로젝트는 '잠시 멈춤' 카드가 맡으므로 뺀다. 오늘 한 프로젝트는 같은 날 두 번 기록할 수 없어 빠진다.
  * ⚠️ 의도된 동작(2026-11-23 총괄): 미리 해서 칸을 비운 다음 날도 화면이 '쉬어 가는 날'이라 말하므로, 그날도 미리 하기가 이어서 나온다.
  */
 export function homePullAhead(o: {
@@ -98,10 +103,11 @@ export function homePullAhead(o: {
   projectOf: (id: string) => AheadProject | undefined
   isDone: (projectId: string, date: string) => boolean
   hasUndoneThisWeek: (projectId: string) => boolean
+  todayItemDone: (it: AheadItem) => boolean             // 오늘 그 칸을 끝냈나(진도·과정은 완료 기록, 루틴은 체크)
 }): AheadCandidate[] {
   if (!o.running || !o.weekEnd) return []
   const todayItems = o.itemsOn(o.today)
-  if (!restOrigin(todayItems)) return []
+  if (!todayAllDone(todayItems, o.todayItemDone)) return []
   const laterDays: AheadDay[] = []
   const d = new Date(o.today)
   for (let i = 0; i < 14; i += 1) {

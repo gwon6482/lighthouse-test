@@ -14,6 +14,7 @@ const store = new Map<string, string>()
 
 import { useWeeklySchedule, queueAhead } from '../composables/useWeeklySchedule'
 import { AHEAD_PENDING_KEY } from '../lib/pullAhead'
+import { clearAccountScope } from '@/shared/auth/accountScope'
 import type { Project, TimelineSlot } from '@/modules/career-design/types/career-design'
 
 const ux = { id: 'ux', name: 'UX', days: ['월', '수', '금'], curriculum: [{ week: 1, items: ['a'] }, { week: 2, items: ['a'] }] } as unknown as Project
@@ -81,5 +82,22 @@ describe('retryAhead — 홈을 불러올 때', () => {
     queueAhead(pending)
     expect(await useWeeklySchedule().retryAhead('p', plan, timeline, { ...ctx, todayKey: '2026-12-02' })).toBe(false)
     expect(saved()).toEqual([{ ...pending, planId: 'other' }])
+  })
+})
+
+describe('실패분과 계정', () => {
+  const pending = { planId: 'p', weekStart: '2026-11-25', weekEnd: '2026-12-01', itemId: 'ux', from: '2026-11-30', to: '2026-11-29' }
+  const ctx = { todayKey: '2026-11-29', isDone: () => false }
+  it('다른 계정의 계획 것은 이 계정 일정으로 보내지 않는다(계획 id 로 가름)', async () => {
+    queueAhead({ ...pending, planId: 'someone-else' })
+    expect(await useWeeklySchedule().retryAhead('p', plan, timeline, ctx)).toBe(false)
+    expect(api.get).not.toHaveBeenCalled()
+    expect(api.put).not.toHaveBeenCalled()
+  })
+  it('계정이 바뀌면(로그아웃·다른 계정 로그인) 실패분을 비운다', () => {
+    queueAhead(pending)
+    expect(store.has(AHEAD_PENDING_KEY)).toBe(true)
+    clearAccountScope()
+    expect(store.has(AHEAD_PENDING_KEY)).toBe(false)
   })
 })

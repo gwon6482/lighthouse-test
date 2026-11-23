@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  pullAheadCandidates, moveAheadItem, restOrigin, aheadNote, aheadFromNote, validDateKey, type AheadDay, type AheadItem,
+  pullAheadCandidates, moveAheadItem, todayAllDone, aheadNote, aheadFromNote, validDateKey, type AheadDay, type AheadItem,
   homePullAhead, aheadFromForSave, parsePending, addPending, pendingStep, AHEAD_PENDING_MAX, type AheadPending,
 } from '../lib/pullAhead'
 import { parseSessions } from '../lib/focusSession'
@@ -57,17 +57,19 @@ describe('미리 하기 후보', () => {
     expect(pullAheadCandidates({ ...base, skip: new Set(['figma']) }).map((c) => c.projectId)).toEqual(['ux'])
   })
 
-  it('오늘 일정에 이미 있는 프로젝트(옮겨 온 칸)는 빠지고, 나머지는 계속 나온다 — 원래 쉬는 날', () => {
-    const todayItems = [{ ...P('ux'), note: aheadNote('2026-11-30') }]
-    expect(restOrigin(todayItems)).toBe(true)
-    expect(pullAheadCandidates({ ...base, todayItems })).toEqual([{ projectId: 'figma', date: '2026-11-30' }])
+  it('오늘 일정에 이미 있는 프로젝트(오늘 한 것·옮겨 온 칸)는 빠지고, 나머지는 계속 나온다', () => {
+    expect(pullAheadCandidates({ ...base, todayItems: [{ ...P('ux'), note: aheadNote('2026-11-30') }] })).toEqual([{ projectId: 'figma', date: '2026-11-30' }])
+    expect(pullAheadCandidates({ ...base, todayItems: [P('ux'), R('r1')] })).toEqual([{ projectId: 'figma', date: '2026-11-30' }])
   })
 
-  it('원래 할 일이 있던 날은(다 끝냈어도) 나오지 않는다 — 정할 것 5', () => {
-    expect(restOrigin([P('ux')])).toBe(false)
-    expect(restOrigin([R('r1')])).toBe(false)
-    expect(restOrigin([{ ...P('ux'), note: aheadNote('2026-11-30') }, P('figma')])).toBe(false)
-    expect(pullAheadCandidates({ ...base, todayItems: [P('other')] })).toEqual([])
+  it('열리는지 — 오늘 칸을 모두 끝냈을 때(칸이 없으면 쉬어 가는 날이라 참). 2026-11-24 넓힘', () => {
+    const done = new Set(['ux', 'r1'])
+    const isDone = (it: AheadItem) => done.has(it.itemId)
+    expect(todayAllDone([], isDone)).toBe(true)
+    expect(todayAllDone([P('ux')], isDone)).toBe(true)
+    expect(todayAllDone([P('ux'), R('r1')], isDone)).toBe(true)
+    expect(todayAllDone([P('ux'), R('r2')], isDone)).toBe(false)
+    expect(todayAllDone([P('ux'), P('figma')], isDone)).toBe(false)
   })
 
   it('이번 주에 뒤 요일이 없으면(주 마지막 날) 아무것도 없다 — 오늘·지난 날짜는 후보가 아니다', () => {
@@ -156,7 +158,7 @@ describe('홈 연결', () => {
   const cells: Record<string, AheadItem[]> = { '2026-11-30': [P('ux'), P('figma')], '2026-12-01': [P('figma')], '2026-12-02': [P('ux')] }
   const home = (over: Partial<Parameters<typeof homePullAhead>[0]> = {}) => homePullAhead({
     running: true, today: dt('2026-11-29'), todayKey: '2026-11-29', weekEnd: '2026-12-01',
-    itemsOn: (d) => cells[key(d)] ?? [], sessions: [], projectOf: () => ({}), isDone: () => false, hasUndoneThisWeek: () => true,
+    itemsOn: (d) => cells[key(d)] ?? [], sessions: [], projectOf: () => ({}), isDone: () => false, hasUndoneThisWeek: () => true, todayItemDone: () => true,
     ...over,
   })
   it('진행 중인 계획에서만(시작 전·끝난 뒤는 없다)', () => {
@@ -223,5 +225,47 @@ describe('옮기기 실패분', () => {
     expect(pendingStep(e, { ...base, todayKey: '2026-12-02' })).toBe('drop')
     expect(pendingStep(e, { ...base, items: [{ ...P('ux'), date: '2026-11-29' }] })).toBe('drop')
     expect(pendingStep(e, { ...base, doneOnFrom: true })).toBe('drop')
+  })
+})
+
+// ── 오늘 할 일을 다 끝낸 날(2026-11-24 오너 Todo) ──
+describe('다 끝낸 날의 미리 하기', () => {
+  const dt = (k: string) => { const [y, m, d] = k.split('-').map(Number); return new Date(y!, m! - 1, d!) }
+  const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  // 수~화 주. 오늘 금 11/27: ux(진도) + 루틴 r1 + 과정 course. 뒤 요일: 토 11/28 figma, 월 11/30 ux·figma·toeic
+  const projects: Record<string, object> = { ux: {}, figma: {}, toeic: {}, course: { period: true } }
+  const make = (today: AheadItem[], done: Set<string>, cells?: Record<string, AheadItem[]>) => {
+    const c: Record<string, AheadItem[]> = cells ?? {
+      '2026-11-27': today, '2026-11-28': [P('figma')], '2026-11-30': [P('ux'), P('figma'), P('toeic')],
+    }
+    return homePullAhead({
+      running: true, today: dt('2026-11-27'), todayKey: '2026-11-27', weekEnd: '2026-12-01',
+      itemsOn: (d) => c[key(d)] ?? [], sessions: [], projectOf: (id) => projects[id],
+      isDone: (id, date) => date === '2026-11-27' && done.has(id), hasUndoneThisWeek: () => true,
+      todayItemDone: (it) => done.has(it.itemId),
+    })
+  }
+  it('진도만 있는 날 — 다 끝내면 다른 프로젝트의 뒤 요일 것이 나온다(오늘 한 ux 는 빠진다)', () => {
+    expect(make([P('ux')], new Set(['ux']))).toEqual([{ projectId: 'figma', date: '2026-11-28' }, { projectId: 'toeic', date: '2026-11-30' }])
+  })
+  it('하나라도 남으면 나오지 않는다', () => {
+    expect(make([P('ux'), P('figma')], new Set(['ux']))).toEqual([])
+    expect(make([P('ux')], new Set())).toEqual([])
+  })
+  it('루틴이 있는 날 — 루틴까지 끝내야 나온다', () => {
+    expect(make([P('ux'), R('r1')], new Set(['ux']))).toEqual([])
+    expect(make([P('ux'), R('r1')], new Set(['ux', 'r1'])).map((c) => c.projectId)).toEqual(['figma', 'toeic'])
+  })
+  it('과정이 있는 날 — 과정 다니는 날 완료까지 끝내야 나온다(과정은 후보가 아니다)', () => {
+    expect(make([P('ux'), P('course')], new Set(['ux']))).toEqual([])
+    expect(make([P('ux'), P('course')], new Set(['ux', 'course'])).map((c) => c.projectId)).toEqual(['figma', 'toeic'])
+  })
+  it('미리 한 뒤 다시 계산 — 옮겨 온 칸이 끝낸 채로 오늘에 오고, 그 프로젝트는 빠지고 나머지는 남는다', () => {
+    const cells = {
+      '2026-11-27': [P('ux'), { ...P('figma'), note: aheadNote('2026-11-28') }],
+      '2026-11-28': [] as AheadItem[],
+      '2026-11-30': [P('ux'), P('figma'), P('toeic')],
+    }
+    expect(make([], new Set(['ux', 'figma']), cells)).toEqual([{ projectId: 'toeic', date: '2026-11-30' }])
   })
 })
