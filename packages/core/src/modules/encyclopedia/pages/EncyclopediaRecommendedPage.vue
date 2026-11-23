@@ -113,7 +113,7 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useEncyclopedia } from '../composables/useEncyclopedia'
-import { fetchUserSurveyResults } from '../encyclopedia.api'
+import { resolveLatestSurveyId } from '@/modules/survey/lib/latestSurvey'
 import { fetchT2Recommend, fetchSurveyAnalysis } from '@/modules/survey/survey.api'
 import type { T2RecommendJob, SurveyAnalysisResponse } from '@/modules/survey/types/survey'
 import RecommendedJobCard from '../components/page/home/RecommendedJobCard.vue'
@@ -153,19 +153,9 @@ const { recommendedJobs, isLoading, error, loadRecommendedJobs } = useEncycloped
 // ── survey ID 해결 ──
 const noSurvey = ref(false)
 
+// 최근 검사 찾기 — 메인 카드·분류로 찾기와 같은 함수(survey/lib/latestSurvey). 못 받으면 '검사 없음'으로 본다(예전과 같다)
 async function resolveSurveyId(): Promise<string> {
-  const cached = sessionStorage.getItem('lh_survey_id')
-  if (cached) return cached
-  try {
-    const { data } = await fetchUserSurveyResults()
-    if (data.success && data.surveyResults.length > 0) {
-      const sorted = [...data.surveyResults].sort(
-        (a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
-      )
-      return sorted[0]!.survey_id
-    }
-  } catch { /* 비로그인 시 무시 */ }
-  return ''
+  try { return await resolveLatestSurveyId() } catch { return '' }
 }
 
 // ── T2 추천 ──

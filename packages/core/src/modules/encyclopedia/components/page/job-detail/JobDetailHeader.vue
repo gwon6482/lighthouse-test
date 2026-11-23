@@ -10,10 +10,12 @@
       </div>
       <h1 class="job-detail-header__title">{{ title }}</h1>
       <JobGateBadges v-if="jobCode" :job-code="jobCode" size="md" class="job-detail-header__gates" />
-      <div v-if="isRecommended" class="job-detail-header__recommend-badge">
-        <span class="job-detail-header__recommend-icon"><AppIcon name="ui-sparkle" /></span>
-        나의 추천 진로에 있어요
-      </div>
+      <!-- 추천 배지(2026-11-24) — 내 최근 검사의 추천 직무 3가지에 든 직업. 무엇에 근거한 배지인지 직무 이름으로 보인다.
+           직무 이름이 길면 두 줄이 된다(아이콘은 첫 줄에 맞춘다) -->
+      <p v-if="recommendGroup" class="job-detail-header__recommend-badge">
+        <span class="job-detail-header__recommend-icon" aria-hidden="true"><AppIcon name="ui-sparkle" /></span>
+        <span>내 추천 직무 '{{ recommendGroup }}'의 직업이에요</span>
+      </p>
     </div>
 
     <button
@@ -49,7 +51,8 @@ defineProps<{
   title: string
   classification: JobClassification
   isLiked: boolean
-  isRecommended: boolean
+  /** 이 직업이 든 내 추천 직무 이름 — 없으면 배지 없음 */
+  recommendGroup?: string | null
 }>()
 
 const emit = defineEmits<{

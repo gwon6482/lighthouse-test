@@ -9,6 +9,7 @@
     <SurveyResultBody
       ref="bodyRef"
       :survey-id="surveyId"
+      :scroll-to-groups="route.query.at === 'groups'"
       @job-click="goEncyclopedia"
       @group-recruit="goGroupRecruit"
       @ready="(ok, label) => { resultReady = ok; resultLabel = label ?? null }"

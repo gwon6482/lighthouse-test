@@ -49,7 +49,7 @@
         </button>
         <button type="button" class="ci-link ci-link--green" @click="router.push('/career-encyclopedia/recommended')">
           <AppIcon name="ui-recommend" class="ci-link__icon" />
-          <span class="ci-link__text"><strong>나에게 맞는 직업</strong><small>검사 결과 추천</small></span>
+          <span class="ci-link__text"><strong>나의 추천 진로</strong><small>검사 결과 추천</small></span>
         </button>
       </div>
       <!-- 진로백과 바로가기(2026-11-14) — '전체 직업 둘러보기' 타일 대신 눈에 띄는 버튼 하나 -->

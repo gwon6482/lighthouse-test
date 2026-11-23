@@ -92,10 +92,6 @@ export const addBookmark = (jobCode: string) =>
 export const removeBookmark = (jobCode: string) =>
   req.delete<{ success: boolean; bookmarkedJobs: string[] }>(`/api/user/bookmarks/${jobCode}`)
 
-/** 유저 프로필 조회 GET /api/user/profile (로그인 필요) */
-export const fetchUserProfile = () =>
-  req.get<{ success: boolean; user: { recommendedJobs: string[] } }>('/api/user/profile')
-
 /** 유저 설문 목록 조회 GET /api/user/survey-results (로그인 필요) */
 export const fetchUserSurveyResults = () =>
   req.get<{ success: boolean; surveyResults: Array<{ survey_id: string; submitted_at: string }> }>('/api/user/survey-results')

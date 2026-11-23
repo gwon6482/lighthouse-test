@@ -297,7 +297,7 @@
            직업 Top 5 가 '엉뚱하다·뜬금없다'는 테스터 반응에 직업 하나 대신 직무(고용24 채용 직종 중분류)로 넓혔다.
            시안 https://claude.ai/artifact/8rzj7uxZajqRPFj53YXj26 의 '개선안' 그대로 — 총점 % 는 없고, 직업 순위는 아래 '직업 순위 보기'로 남겼다.
            직무를 못 불러오면(로그인 안 됨·서버 오류) 예전처럼 직업 Top 5 를 바로 보여 준다 -->
-      <section v-if="!guestMode" class="rr__sec">
+      <section v-if="!guestMode" id="rr-groups" class="rr__sec rr__sec--groups">
         <p class="rr__eyebrow rr__eyebrow--gold">종합 추천</p>
         <h2 class="rr__title">{{ groupMode ? '나에게 맞는 직무 3가지' : '나에게 맞는 직업 Top 5' }}</h2>
         <p class="rr__sub">성격·재능·관심·가치관·업무환경을 모두 고려한 추천이에요</p>
@@ -444,13 +444,12 @@
 <script setup lang="ts">
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { ENV_JUDGE_ICON, weIcon } from '@/modules/survey/surveyIcons'
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import {
   fetchSurveyAnalysis,
   fetchT2Recommend,
   fetchComprehensiveRecommend,
   fetchJobGroupRecommend,
-  saveRecommendedJobs,
   linkSurveyToUser,
 } from '../survey.api'
 import { useAuthStore } from '@/shared/stores/auth'
@@ -459,7 +458,6 @@ import type {
   T2RecommendJob,
   ComprehensiveRecommendJob,
   JobGroupRecommend,
-  JobGroupReason,
   JobGroupMember,
 } from '../types/survey'
 import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
@@ -467,12 +465,14 @@ import GuestLockCard from '@/shared/components/GuestLockCard.vue'
 import SocialLoginButton from '@/shared/components/SocialLoginButton.vue'
 import GuestFloatCard from '@/shared/components/GuestFloatCard.vue'
 import { REPORT_TEXT } from '../report/reportText'
+import { REASON_AXIS, whyParts } from '../lib/jobGroupWhy'
 import { getGuestSurvey, fetchGuestAnalysis, fetchGuestJobTeaser, markLoginRedirect, type GuestJobTeaser } from '@/shared/guest/guestSurvey'
 import { fetchProviders, startOAuth, type Provider } from '@/shared/auth/oauth'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 
 // recruitLink: 직무 카드의 '채용 공고'(다른 화면으로 간다). 온보딩 결과처럼 흐름을 벗어나면 안 되는 곳은 끈다
-const props = withDefaults(defineProps<{ surveyId: string; recruitLink?: boolean }>(), { recruitLink: true })
+// scrollToGroups: 다 받은 뒤 '나에게 맞는 직무 3가지' 구역으로 내려간다(진로백과 '나의 추천 진로' 카드의 '결과에서 보기', 2026-11-24)
+const props = withDefaults(defineProps<{ surveyId: string; recruitLink?: boolean; scrollToGroups?: boolean }>(), { recruitLink: true, scrollToGroups: false })
 const emit = defineEmits<{
   (e: 'job-click', jobCode: string): void
   // 직무 카드의 '채용 공고' — 직무 코드(고용24 채용 직종 중분류)
@@ -1076,9 +1076,6 @@ async function loadComprehensiveRecommend() {
     const { data } = await fetchComprehensiveRecommend(surveyId, 5)
     if (data.success) {
       compJobs.value = data.data
-      if (authStore.isLoggedIn) {
-        saveRecommendedJobs(data.data.map((j) => j.jobCode)).catch(() => {})
-      }
     } else {
       compError.value = true
     }
@@ -1103,19 +1100,7 @@ const toggleOpen = (g: JobGroupRecommend) => {
   openGroups.value = isOpen(g) ? openGroups.value.filter((c) => c !== g.code) : [...openGroups.value, g.code]
 }
 
-// 이유 항목의 영역 — 결과지에서 그 이름이 나온 구역(성격 분포 · 재능 Top 3 · 관심 분야 · 나의 가치관)
-const REASON_AXIS: Record<JobGroupReason['axis'], string> = { T1: '성격', T21: '재능', T22: '관심', T23: '가치관' }
-// 조사 — 받침이 있으면 앞 것(과·이). 한글이 아니면 둘 다
-const josa = (w: string, batchim: string, none: string) => { const c = w.trim().slice(-1).charCodeAt(0) - 0xac00; return c < 0 || c > 11171 ? `${batchim}(${none})` : c % 28 ? batchim : none }
-// "특히 A와 B가 잘 맞아요" — 핵심어만 굵은 색 글씨. 칩 상자를 씌우면 조사가 떨어져 보였다(시안 때 실제로 그랬다)
-// '잘 맞아요'는 줄바꿈 없는 공백으로 붙인다 — 영역 괄호가 붙어 길어지자 '잘 / 맞아요'로 끊겼다
-function whyParts(g: JobGroupRecommend): { text?: string; kw?: JobGroupReason }[] {
-  const [a, b] = g.reasons
-  if (!a) return []
-  return b
-    ? [{ text: '특히 ' }, { kw: a }, { text: `${josa(a.name, '과', '와')} ` }, { kw: b }, { text: `${josa(b.name, '이', '가')} 잘\u00a0맞아요` }]
-    : [{ text: '특히 ' }, { kw: a }, { text: `${josa(a.name, '이', '가')} 잘\u00a0맞아요` }]
-}
+// 이유 한 문장(REASON_AXIS·whyParts)은 '나의 추천 진로' 카드와 같이 쓰려고 ../lib/jobGroupWhy 로 옮겼다(2026-11-24, 글은 그대로)
 
 async function loadJobGroups() {
   groupLoading.value = true
@@ -1130,6 +1115,38 @@ async function loadJobGroups() {
     groupLoading.value = false
   }
 }
+
+// '결과에서 보기'(진로백과 카드)로 왔으면 — 위 구역이 다 그려진 뒤(높이가 정해진 뒤) 직무 구역으로 한 번 내려간다.
+// 화면에 보이는 것은 바꾸지 않는다(랜딩 정본과 같은 모양). 직무를 못 받았어도 같은 구역(직업 Top 5)으로 간다
+let scrolledToGroups = false
+watch(
+  () => props.scrollToGroups && !guestMode && !isLoading.value && !error.value && !t2Loading.value && !groupLoading.value && !compLoading.value,
+  async (go) => {
+    if (!go || scrolledToGroups) return
+    scrolledToGroups = true
+    await nextTick()
+    const el = document.getElementById('rr-groups')
+    if (!el) return
+    // 바로 내려간다(부드럽게 내려가는 사이 위 구역의 그림·글꼴이 늦게 그려지면 엉뚱한 곳에 멈춘다).
+    // 위가 늦게 커지면 잠깐 동안 한 번 더 맞춘다 — 사용자가 먼저 움직이면(터치·휠·키) 그만둔다
+    el.scrollIntoView({ block: 'start' })
+    let userMoved = false
+    const stop = () => { userMoved = true }
+    const opts = { passive: true, once: true } as const
+    window.addEventListener('touchstart', stop, opts)
+    window.addEventListener('wheel', stop, opts)
+    window.addEventListener('keydown', stop, { once: true })
+    for (const wait of [300, 800, 1500]) {
+      await new Promise((r) => setTimeout(r, wait))
+      if (userMoved || !el.isConnected) break
+      if (Math.abs(el.getBoundingClientRect().top - 12) > 8) el.scrollIntoView({ block: 'start' })
+    }
+    window.removeEventListener('touchstart', stop)
+    window.removeEventListener('wheel', stop)
+    window.removeEventListener('keydown', stop)
+  },
+  { immediate: true },
+)
 
 watch(
   () => !isLoading.value && !error.value && !!analysis.value && !compLoading.value && !groupLoading.value,
@@ -1256,6 +1273,7 @@ $c-text-3: #767676;  // 메타 — 분류·급여, 순위, 작은 안내
   &--s { background: $c-b-tint; color: $c-b-text; border-color: $c-b-line; }
 }
 
+.rr__sec--groups { scroll-margin-top: 12px; }
 .rr__sec {
   margin-top: 14px;
   padding: 24px 20px;

@@ -53,8 +53,8 @@ export const fetchComprehensiveRecommend = (surveyId: string, limit = 5) =>
 export const fetchJobGroupRecommend = (surveyId: string) =>
   req.get<JobGroupRecommendResponse>(`/api/job/recommend-groups/${surveyId}`)
 
-export const saveRecommendedJobs = (jobCodes: string[]) =>
-  req.post<{ success: boolean; recommendedJobs: string[] }>('/api/user/recommended-jobs', { jobCodes })
+// 추천 직업 저장(POST /api/user/recommended-jobs)은 2026-11-24 앱에서 그만 부른다 — 직업 상세 배지는 볼 때 판정한다(useMyJobGroups).
+// 서버 라우트·칸은 다음 처리방침 개정 때 함께 정리한다(오너 결정 9)
 
 /**
  * 회원 탈퇴 DELETE /api/user

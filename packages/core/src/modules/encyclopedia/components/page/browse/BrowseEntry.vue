@@ -18,10 +18,7 @@
       </span>
       <AppIcon name="ui-chevron-right" class="be__mine-arrow" />
     </button>
-    <RouterLink v-else-if="hintTo" :to="hintTo" class="be__hintline">
-      <span>검사를 하면 내 결과로 바로 찾을 수 있어요</span>
-      <AppIcon name="ui-chevron-right" class="be__hintline-arrow" />
-    </RouterLink>
+    <!-- 검사 안내 줄('검사를 하면 내 결과로 바로 찾을 수 있어요')은 2026-11-24 뺐다 — 바로 위 '나의 추천 진로' 카드가 검사로 안내한다(한 화면에 두 번 권하지 않게) -->
   </section>
 </template>
 
@@ -39,7 +36,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const guest = !auth.isLoggedIn
 const { axes, load: loadAxes } = useBrowseAxes()
-const { mine, noSurvey, load: loadMine } = useMyBrowseStart()
+const { mine, load: loadMine } = useMyBrowseStart()
 
 // 칸 색 — 검사 결과 화면과 같은 영역 색(좋아하는 일 = 하늘, 업무 환경 = 청록). 직무는 둘러보기의 직무 꼬리표 노랑, 연봉은 회색
 const NEUTRAL = { text: '#5F6670', bg: '#F0F1F3', line: '#E2E4E8' }
@@ -62,8 +59,6 @@ const tiles = computed(() => {
   ]
 })
 
-// 검사 안내 — 비회원은 비회원 검사(/start), 검사 전 회원은 자기이해 검사로
-const hintTo = computed(() => (guest ? '/start' : noSurvey.value ? '/self-understanding' : null))
 
 /** 고르기 화면은 이 화면 위에 한 칸으로 쌓인다(pd = 고르기 화면 깊이) — 적용하면 그만큼 되돌아온 뒤 목록을 연다 */
 function openAxis(key: BrowseAxisKey) {

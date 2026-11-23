@@ -59,9 +59,12 @@
 
   &__recommend-badge {
     display: inline-flex;
-    align-items: center;
+    align-items: flex-start;   // 두 줄이 되면 아이콘은 첫 줄에(2026-11-24 직무 이름 문구)
+    max-width: 100%;
+    line-height: 1.45;
+    word-break: keep-all;
     gap: 4px;
-    margin-top: 6px;
+    margin: 6px 0 0;
     padding: 4px 10px;
     background: linear-gradient(135deg, #eef2ff, #e0e7ff);
     border: 1px solid #c7d2fe;
@@ -73,6 +76,9 @@
   }
 
   &__recommend-icon {
+    flex: none;
+    display: inline-flex;
+    margin-top: 4px;
     font-size: 10px;
     color: #6366f1;
   }

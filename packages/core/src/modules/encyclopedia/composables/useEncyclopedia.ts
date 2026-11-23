@@ -20,9 +20,8 @@ import {
   fetchBookmarks,
   addBookmark,
   removeBookmark,
-  fetchUserProfile,
-  fetchUserSurveyResults,
 } from '../encyclopedia.api'
+import { resolveLatestSurveyId } from '@/modules/survey/lib/latestSurvey'
 import type {
   Job,
   JobSummary,
@@ -65,9 +64,6 @@ const reviews = ref<JobReview[]>([])
 // 북마크
 const bookmarkedJobCodes = ref<string[]>([])
 
-// 유저 저장된 추천 직업 jobCodes (프로필 기반)
-const userRecommendedJobCodes = ref<string[]>([])
-
 // 로딩 / 에러 상태
 const isLoading = ref(false)
 const error = ref<string | null>(null)
@@ -82,21 +78,10 @@ export function useEncyclopedia() {
 
   /** 추천 진로 목록 로드 */
   async function loadRecommendedJobs(surveyId?: string) {
-    let id = surveyId ?? sessionStorage.getItem('lh_survey_id') ?? ''
-
-    // sessionStorage에 없으면 유저 survey 이력에서 가장 최근 id 사용
+    let id = surveyId ?? ''
+    // 없으면 내 최근 검사(메인 카드·분류로 찾기와 같은 함수 — survey/lib/latestSurvey)
     if (!id) {
-      try {
-        const { data: ud } = await fetchUserSurveyResults()
-        if (ud.success && ud.surveyResults.length > 0) {
-          const sorted = [...ud.surveyResults].sort(
-            (a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
-          )
-          id = sorted[0]!.survey_id
-        }
-      } catch {
-        // 비로그인 또는 실패 시 무시
-      }
+      try { id = await resolveLatestSurveyId() } catch { /* 비로그인 또는 실패 시 무시 */ }
     }
 
     if (!id) {
@@ -116,18 +101,6 @@ export function useEncyclopedia() {
       error.value = e instanceof Error ? e.message : '추천 진로를 불러오는데 실패했습니다.'
     } finally {
       isLoading.value = false
-    }
-  }
-
-  /** 유저 프로필에 저장된 추천 직업 jobCode 목록 로드 */
-  async function loadUserRecommendedJobCodes() {
-    try {
-      const { data } = await fetchUserProfile()
-      if (data.success) {
-        userRecommendedJobCodes.value = data.user.recommendedJobs ?? []
-      }
-    } catch {
-      // 비로그인 또는 실패 시 무시
     }
   }
 
@@ -336,7 +309,5 @@ export function useEncyclopedia() {
     toggleBookmark,
 
     // 유저 추천 직업 (프로필 저장 기반)
-    userRecommendedJobCodes,
-    loadUserRecommendedJobCodes,
   }
 }

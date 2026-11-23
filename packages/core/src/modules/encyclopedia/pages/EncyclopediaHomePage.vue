@@ -40,6 +40,12 @@
 
     <!-- 메인 메뉴 (검색어 없을 때) -->
     <template v-else>
+      <!-- 나의 추천 진로(2026-11-24 시안 3판) — 검색 바로 아래. 예전에는 맨 아래 메뉴 한 줄이라 첫 화면에서 보이지 않았다.
+           검사(나)와 진로백과(직업)를 잇는 자리 — 결과지와 같은 직무 3가지, 비회원·검사 전에는 검사로 -->
+      <div class="enc-home__section">
+        <RecommendEntryCard />
+      </div>
+
       <!-- 분류로 찾기(2026-11-17) — 검색 바로 아래, 진로 둘러보기 위(2026-11-21 오너: 둘러보기 위로 올림). -->
       <div class="enc-home__section">
         <BrowseEntry />
@@ -64,23 +70,11 @@
             :description="'group' in job ? job.overview : undefined"
             @click="goToJobDetail(job.jobCode)"
           />
-          <!-- 처음 받는 동안 카드 자리를 미리 잡는다 — 받은 뒤에 아래 '나의 추천 진로'가 밀려 내려가지 않게(2026-11-18 사용성 확인) -->
+          <!-- 처음 받는 동안 카드 자리를 미리 잡는다 — 받은 뒤에 아래가 밀려 내려가지 않게(2026-11-18 사용성 확인) -->
           <template v-if="!browseJobs.length && isExploring">
             <div v-for="i in 5" :key="`skel-${i}`" class="enc-home__skel" aria-hidden="true" />
           </template>
         </div>
-      </div>
-
-      <!-- 나의 추천 진로 -->
-      <div class="enc-home__section">
-        <button class="enc-home__menu-btn" @click="goToRecommended">
-          <span class="enc-home__menu-icon"><AppIcon name="ui-recommend" /></span>
-          <div class="enc-home__menu-text">
-            <span class="enc-home__menu-title">{{ guest ? '나에게 맞는 직업 찾기' : '나의 추천 진로' }}</span>
-            <span class="enc-home__menu-desc">{{ guest ? '자기이해 검사를 하면 나에게 맞는 직업을 추천해 드려요' : '자기이해 결과를 바탕으로 추천된 직업을 확인해보세요' }}</span>
-          </div>
-          <span class="enc-home__menu-arrow"><AppIcon name="ui-chevron-right" /></span>
-        </button>
       </div>
     </template>
   </div>
@@ -100,10 +94,11 @@ import SearchBar from '../components/page/home/SearchBar.vue'
 import RecommendedJobCard from '../components/page/home/RecommendedJobCard.vue'
 import SearchResult from '../components/page/home/SearchResult.vue'
 import BrowseEntry from '../components/page/browse/BrowseEntry.vue'
+import RecommendEntryCard from '../components/page/home/RecommendEntryCard.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
-// 비회원(2026-11-09): 아직 검사 전이라 단계는 '자기이해' 에, 추천 메뉴는 검사 시작(A 경로)으로
+// 비회원(2026-11-09): 아직 검사 전이라 단계는 '자기이해' 에(추천 카드는 RecommendEntryCard 가 스스로 비회원을 본다)
 const guest = !authStore.isLoggedIn
 // 아래 탭이 보일 때(BottomNav 와 같은 규칙) 마지막 메뉴가 가리지 않게 아래를 띄운다
 const achievementStore = useAchievementStore()
@@ -138,9 +133,5 @@ onMounted(() => loadExploreJobs())
 
 function goToJobDetail(jobCode: string) {
   router.push(`/career-encyclopedia/job/${jobCode}`)
-}
-
-function goToRecommended() {
-  router.push(guest ? '/start' : '/career-encyclopedia/recommended')
 }
 </script>

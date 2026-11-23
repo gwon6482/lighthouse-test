@@ -18,7 +18,7 @@
         :title="selectedJob.title"
         :classification="selectedJob.classification"
         :is-liked="bookmarkedJobCodes.includes(selectedJob.jobCode)"
-        :is-recommended="isCurrentJobRecommended"
+        :recommend-group="recommendGroupName"
         @toggle-like="handleToggleLike"
       />
 
@@ -104,6 +104,8 @@ import RecruitmentTab from '../components/page/job-detail/tabs/RecruitmentTab.vu
 import JobGuestCta from '../components/page/job-detail/JobGuestCta.vue'
 import GuestFloatCard from '@/shared/components/GuestFloatCard.vue'
 import { restoreScrollWhenReady, saveDetailReturn, takeDetailReturn } from '../lib/detailReturn'
+import { useMyJobGroups } from '../composables/useMyJobGroups'
+import { groupForJob } from '../lib/myJobGroups'
 
 const route = useRoute()
 const router = useRouter()
@@ -118,8 +120,6 @@ const {
   bookmarkedJobCodes,
   loadBookmarks,
   toggleBookmark,
-  userRecommendedJobCodes,
-  loadUserRecommendedJobCodes,
 } = useEncyclopedia()
 
 // 비회원 진로백과(2026-11-09): '이 일을 하는 사람들' 아래와 다른 탭을 잠근다. 목표 진로 버튼은 원래 로그인해야 보인다
@@ -142,9 +142,12 @@ onMounted(() => window.addEventListener('scroll', updateGuestFloat, { passive: t
 onBeforeUnmount(() => window.removeEventListener('scroll', updateGuestFloat))
 watch(activeTab, () => nextTick(updateGuestFloat))   // 탭을 바꾸면 길이가 달라진다
 
-const isCurrentJobRecommended = computed(() =>
-  !!selectedJob.value &&
-  userRecommendedJobCodes.value.includes(selectedJob.value!.jobCode)
+// 추천 배지(2026-11-24 시안 3판) — 내 최근 검사의 추천 직무 3가지에 이 직업이 들었으면 "내 추천 직무 '○○'의 직업이에요".
+// 예전에는 결과지를 열 때 저장해 둔 직업 5개(User.recommendedJobs)를 따라 낡은 목록이 남았다 — 이제 볼 때 판정한다.
+// 메인 카드가 받아 둔 응답을 같이 쓴다(useMyJobGroups — 검사 id별로 담아 둠)
+const myGroups = useMyJobGroups()
+const recommendGroupName = computed(() =>
+  myGroups.state.value === 'ready' ? groupForJob(myGroups.groups.value, selectedJob.value?.jobCode)?.name ?? null : null
 )
 
 async function handleToggleLike() {
@@ -237,7 +240,7 @@ onMounted(async () => {
 
   if (authStore.isLoggedIn) {
     loadBookmarks()
-    loadUserRecommendedJobCodes()
+    myGroups.load()
     try {
       const { data } = await fetchTargetCareer()
       if (data.success) currentTarget.value = data.targetCareer
