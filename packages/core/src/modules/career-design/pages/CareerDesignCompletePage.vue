@@ -545,7 +545,7 @@ const hintText = computed(() => {
   const sel = selectedProject.value
   if (!sel) return '칩을 탭해서 선택하세요'
   const n = projectWeeks(sel)
-  return `"${sel.name}"(${n}주) 선택됨 — 시작할 주차를 탭하세요`
+  return `"${sel.name}"(${isDated(sel) ? datedRange(sel, '~') : `${n}주`}) 선택됨 — 시작할 주차를 탭하세요`
 })
 
 // ── 프로젝트 상세 팝업 ────────────────────────────
