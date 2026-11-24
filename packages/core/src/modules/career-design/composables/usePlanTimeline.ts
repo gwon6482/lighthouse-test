@@ -280,6 +280,10 @@ export const countsInBudget = (p: Pick<Project, 'period' | 'days' | 'duration'>)
 //     순서에서 고정 걸음을 만나면 그 시작을 바닥(floor)으로 삼는다 — 뒤 걸음이 앞 걸음보다 먼저 시작하지 않는 규칙 그대로
 //   · opts.after — 짝 뒤 걸음 id → 앞 걸음 id(필기 → 실기, 1차 → 2차). 뒤 걸음은 앞 걸음이 끝난 다음 주부터(예산이 넉넉해도 겹치지 않게)
 //   두 칸이 없으면 배치는 예전과 똑같다
+// 2026-11-25(날짜로 정한 프로젝트 — lib/projectDates.ts)
+//   · 날짜 걸음도 opts.fixed 로 온다(시험일 고정과 같은 자리). 앞 순서 걸음이 그 전에 못 끝나면 둘레에 채워 뒤로 갈 수 있다
+//   · 고정된 무거운 과정(문, 주 15시간 이상 — 인턴 날짜 등)의 기간은 다른 걸음이 건너뛴다(blocked) — 과정 규칙 '과정 동안 다른 걸음은 기다림'과 맞춘다.
+//     예전엔 문을 순서에서 만날 때만 세워, 그보다 앞 순서 걸음이 고정 과정 기간에 겹쳐 놓였다. 과정에 딸린 걸음(during)은 예외(과정 끝에 맞춰 겹침)
 export interface ScheduleOptions { minStart?: (p: Project) => number; fixed?: Map<string, number>; after?: Map<string, string> }
 
 /** 나란히 짝(둘 다 계획에 있을 때만) — examPace.examMates 와 같은 규칙(순환 import 를 피하려고 여기 둔다) */
@@ -291,6 +295,11 @@ function alongsideMates(projects: Project[]): Map<string, Project> {
     if ((p.studyHours ?? 0) > 0 && q && (q.studyHours ?? 0) > 0 && q.id !== p.id) { out.set(p.id, q); out.set(q.id, p) }
   }
   return out
+}
+
+/** [s, s+span) 가 고정된 무거운 과정 기간과 겹치는가(0부터 자리) */
+export function hitsBlocked(blocked: [number, number][], s: number, span: number): boolean {
+  return blocked.some(([a, b]) => s < b && a < s + Math.max(1, span))
 }
 
 // 반환: 시작 주차(1부터)
@@ -310,7 +319,8 @@ export function autoSchedule(projects: Project[], budgetHours: number, opts: Sch
   let gate = 0       // 마지막 '과정'이 끝나는 자리(0부터, 미포함) — 뒤의 프로젝트는 여기부터
   let lastEnd = 0    // 지금까지 놓은 프로젝트(딸린 것 빼고) 가운데 가장 늦게 끝나는 자리 — 과정은 여기부터
   const endAt = new Map<string, number>()       // 놓은 걸음 id → 끝 자리(0부터, 미포함) — 짝 뒤 걸음(after)이 쓴다
-  // 고정 걸음을 먼저 깐다(시험일 역산)
+  const blocked: [number, number][] = []        // 고정된 무거운 과정의 기간 [시작, 끝) — 다른 걸음이 건너뛴다(2026-11-25)
+  // 고정 걸음을 먼저 깐다(시험일 역산 · 날짜 걸음)
   for (const p of projects) {
     const f = opts.fixed?.get(p.id)
     if (f == null) continue
@@ -321,6 +331,7 @@ export function autoSchedule(projects: Project[], budgetHours: number, opts: Sch
     out.push({ week: s + 1, project: p })
     placedIds.add(p.id)
     endAt.set(p.id, s + w)
+    if (isGatePeriod(p)) blocked.push([s, s + w])
   }
   for (const p of projects) {
     const fixedAt = opts.fixed?.get(p.id)
@@ -357,8 +368,8 @@ export function autoSchedule(projects: Project[], budgetHours: number, opts: Sch
     const minS = Math.max(opts.minStart?.(p) ?? 0, pair ? (opts.minStart?.(pair) ?? 0) : 0, pred ? (endAt.get(pred) ?? 0) : 0)
     let s = Math.max(floor, gate, isGate ? lastEnd : 0, minS)
     for (;; s++) {
-      let ok = true
-      for (let k = 0; k < span && counts; k++) {
+      let ok = !hitsBlocked(blocked, s, span)
+      for (let k = 0; k < span && counts && ok; k++) {
         const l = load[s + k] ?? 0
         const add = (k < w ? h : 0) + (k < mw ? mh : 0)
         if (l > 0 && l + add > budgetHours) { ok = false; break }

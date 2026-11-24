@@ -4,6 +4,7 @@ import type {
   Project, Routine, DayOfWeek, TimelineSlot,
 } from '@/modules/career-design/types/career-design'
 import { weekOfDate, weekDateRange, projectsActiveInWeek } from '@/modules/career-design/composables/usePlanTimeline'
+import { outsideDates } from '@/modules/career-design/lib/projectDates'
 import { uid } from '@/shared/utils/uid'
 import { routineOnDay, voiceOverlap } from '@/modules/career-design/lib/routine'
 import { onAccountChange } from '@/shared/auth/accountScope'
@@ -120,6 +121,8 @@ export function generateItemsForWeek(
     for (const p of plan.projects) {
       if (!activeIds.has(p.id)) continue
       if (!p.days?.includes(dow)) continue
+      // 날짜로 정한 걸음(2026-11-25) — 첫 주·마지막 주의 날짜 밖 요일은 뺀다(시작 전날·마감 다음 날에 할 일이 뜨지 않게)
+      if (outsideDates(p, dateKey)) continue
 
       // 커리큘럼 n주차 = 계획주차 - 프로젝트 시작주차 + 1.
       // 주차 모델에서는 배치 자체가 주 단위라 나눗셈 없이 바로 떨어진다.

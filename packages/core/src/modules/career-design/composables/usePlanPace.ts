@@ -5,8 +5,9 @@
 // ⚠️ 주당 시간 값(5·8·12·16·24)은 데이터 근거 없이 정한 출발값이다(생활 모습 설명에 맞춘 대략치). 사용 데이터로 다듬을 것.
 import type { CareerSchool, Project, TimelineSlot } from '../types/career-design'
 import { formatWeeks } from '@/modules/encyclopedia/lib/preparation'
-import { autoSchedule, countsInBudget, duringOwners, isGatePeriod, parseDateKey, projectEndWeek, projectWeeks, projectHoursPerWeek, weekDateRange, weekOfDate, type ScheduleOptions, type WeekStart } from './usePlanTimeline'
+import { autoSchedule, countsInBudget, duringOwners, hitsBlocked, isGatePeriod, parseDateKey, projectEndWeek, projectWeeks, projectHoursPerWeek, weekDateRange, weekOfDate, type ScheduleOptions, type WeekStart } from './usePlanTimeline'
 import { examPairs, examReport, hasExamDates, resolveExamAnchors, scheduleWithExams, startsOf, type ExamCtx, type ExamSlot } from '../lib/examDate'
+import { datedFixed } from '../lib/projectDates'
 import { EXAM_DAYS, applyExamPace, ceilWeeks, curriculumPhases, examDurationAt, examMates, examMinAge, expandPhases, isExam, resizeExam, scalePhases } from '../lib/examPace'
 
 export interface Pace {
@@ -55,9 +56,11 @@ export const pacedProjects = (projects: Project[], hours: number): Project[] => 
  * exam(계획 시작일·시작 요일)을 넘기면 시험일이 있는 걸음을 그날에 맞춘다(lib/examDate.ts — 2026-11-22)
  */
 export type ExamPlaceCtx = Omit<ExamCtx, 'minStart'> & { late?: Set<string> }
+// 날짜로 정한 걸음(2026-11-25, lib/projectDates.ts)도 exam(계획 시작일·시작 요일)으로 그 날짜에 고정한다
+const pinnedOf = (projects: Project[], exam?: ExamPlaceCtx) => (exam?.startDate ? datedFixed(projects, { startDate: exam.startDate, reviewDay: exam.reviewDay }) : undefined)
 export function buildTimeline(projects: Project[], hours: number, opts?: ScheduleOptions, exam?: ExamPlaceCtx): TimelineSlot[] {
   const slots: TimelineSlot[] = []
-  for (const { week, project } of scheduleWithExams(projects, hours, { ...exam, minStart: opts?.minStart }, { late: exam?.late })) {
+  for (const { week, project } of scheduleWithExams(projects, hours, { ...exam, minStart: opts?.minStart }, { late: exam?.late, pinned: pinnedOf(projects, exam) })) {
     let slot = slots.find((s) => s.week === week)
     if (!slot) { slot = { week, projects: [] }; slots.push(slot) }
     slot.projects.push(project)
@@ -76,7 +79,7 @@ export function scheduleEndWeek(projects: Project[], hours: number, opts?: Sched
  */
 export function schedulePreview(projects: Project[], hours: number, opts?: ScheduleOptions, exam?: ExamPlaceCtx, budget = hours): { endWeek: number; exams: ExamSlot[]; projects: Project[]; starts: Map<string, number> } {
   const paced = pacedProjects(projects, hours)
-  const placed = scheduleWithExams(paced, budget, { ...exam, minStart: opts?.minStart }, { late: exam?.late })
+  const placed = scheduleWithExams(paced, budget, { ...exam, minStart: opts?.minStart }, { late: exam?.late, pinned: pinnedOf(paced, exam) })
   const starts = startsOf(placed)
   return {
     endWeek: placed.reduce((m, { week, project }) => Math.max(m, projectEndWeek(week, project)), 0),
@@ -148,13 +151,18 @@ export function rescheduleFrom(
   const after = examPairs(projects)
   // 응시 나이(minStart)도 새 계획과 같이 지킨다(2026-11-22 코드 검토 — 예전엔 주간결산에서 빠져 있었다)
   const opts: PlaceOptions = { ...(after.size ? { after } : {}), ...(exam?.minStart ? { minStart: exam.minStart } : {}) }
-  const first = rescheduleCore(projects, timeline, fromWeek, hours, fallbackMin, opts)
-  if (!exam?.startDate || !hasExamDates(projects, exam)) return { ...first, exams: [] }
   const startsOf = (t: TimelineSlot[]) => { const m = new Map<string, number>(); for (const sl of t) for (const p of sl.projects) if (!m.has(p.id) || sl.week < m.get(p.id)!) m.set(p.id, sl.week); return m }
   const keep = startsOf(timeline)
-  const notStarted = new Set(first.projects.filter((p) => (keep.get(p.id) ?? Infinity) >= fromWeek).map((p) => p.id))
-  const fixed = resolveExamAnchors(first.projects, startsOf(first.timeline), exam, { minWeek: fromWeek, keep, movable: notStarted })
-  const res = fixed.size ? rescheduleCore(projects, timeline, fromWeek, hours, fallbackMin, { ...opts, fixed }) : first
+  // 날짜로 정한 걸음(2026-11-25) — 아직 시작 안 한 것은 그 날짜에 고정(속도를 바꿔도 그 자리). 이미 시작한 것은 원래대로 그대로 둔다
+  const pinned = exam?.startDate ? datedFixed(projects, exam, (p) => (keep.get(p.id) ?? Infinity) >= fromWeek) : new Map<string, number>()
+  const base: PlaceOptions = pinned.size ? { ...opts, fixed: pinned } : opts
+  const first = rescheduleCore(projects, timeline, fromWeek, hours, fallbackMin, base)
+  if (!exam?.startDate || !hasExamDates(projects, exam)) return { ...first, exams: [] }
+  const notStarted = new Set(first.projects.filter((p) => (keep.get(p.id) ?? Infinity) >= fromWeek && !pinned.has(p.id)).map((p) => p.id))
+  const anchors = resolveExamAnchors(first.projects, startsOf(first.timeline), exam, { minWeek: fromWeek, keep, movable: notStarted })
+  const fixed = new Map(anchors)
+  for (const [k, v] of pinned) fixed.set(k, v)
+  const res = anchors.size ? rescheduleCore(projects, timeline, fromWeek, hours, fallbackMin, { ...opts, fixed }) : first
   return { ...res, exams: examReport(res.projects, startsOf(res.timeline), exam) }
 }
 
@@ -199,7 +207,8 @@ function rescheduleCore(
   let floor = 0
   const placed: { week: number; project: Project }[] = []
   const placedIds = new Set<string>()
-  // 고정 걸음(시험일 역산)을 먼저 깐다 — autoSchedule 과 같은 규칙
+  // 고정 걸음(시험일 역산 · 날짜 걸음)을 먼저 깐다 — autoSchedule 과 같은 규칙. 고정된 무거운 과정 기간은 다른 걸음이 건너뛴다(2026-11-25)
+  const blocked: [number, number][] = []
   for (const p of toPlace) {
     const f = opts.fixed?.get(p.id)
     if (f == null) continue
@@ -208,6 +217,7 @@ function rescheduleCore(
     for (let k = 0; k < w; k++) load[s + k] = (load[s + k] ?? 0) + h
     placed.push({ week: fromWeek + s, project: p }); placedIds.add(p.id)
     endAt.set(p.id, s + w)
+    if (isGatePeriod(p)) blocked.push([s, s + w])
   }
   for (const p of toPlace) {
     const fixedAt = opts.fixed?.get(p.id)
@@ -232,8 +242,8 @@ function rescheduleCore(
     const age = (q: Project) => (opts.minStart ? Math.max(0, opts.minStart(q) - (fromWeek - 1)) : 0)
     let s = Math.max(floor, gate, isGate ? lastEnd : 0, pred ? (endAt.get(pred) ?? 0) : 0, age(p), pair ? age(pair) : 0)
     for (;; s++) {
-      let ok = true
-      for (let k = 0; k < span && counts; k++) {
+      let ok = !hitsBlocked(blocked, s, span)
+      for (let k = 0; k < span && counts && ok; k++) {
         const l = load[s + k] ?? 0
         const add = (k < w ? h : 0) + (k < mw ? mh : 0)
         if (l > 0 && l + add > hours) { ok = false; break }

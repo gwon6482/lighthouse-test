@@ -125,6 +125,23 @@ function stretchRun(runs: Run[]): Run | null {
 const renumber = (list: WeekCurriculum[]) => list.map((c, i) => ({ ...c, week: i + 1 }))
 const copyWeek = (c: WeekCurriculum): WeekCurriculum => ({ ...c, items: [...(c.items ?? [])], ...(c.checks ? { checks: [...c.checks] } : {}) })
 
+// 날짜로 정한 과정(2026-11-25, lib/projectDates.ts)은 끝나는 날도 함께 고친다 — 늘어난(줄어든) 주 × 7일. 그만뒀으면 그날까지.
+// 그래야 걸친 주 수(날짜) = 커리큘럼 길이가 맞고, 다시 놓아도 같은 자리다. 날짜가 없으면 아무것도 안 한다
+const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/
+function addDays(key: string, n: number): string {
+  const [y, m, d] = key.split('-').map(Number)
+  const x = new Date(y!, m! - 1, d! + n)
+  const pad = (v: number) => String(v).padStart(2, '0')
+  return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`
+}
+function shiftedDates(p: Project, deltaWeeks: number, stoppedOn: string): Partial<Project> {
+  if (!p.dateStart || !p.dateEnd || !DATE_KEY.test(p.dateStart) || !DATE_KEY.test(p.dateEnd)) return {}
+  if (stoppedOn && DATE_KEY.test(stoppedOn)) return { dateEnd: stoppedOn < p.dateStart ? p.dateStart : stoppedOn < p.dateEnd ? stoppedOn : p.dateEnd }
+  if (!deltaWeeks) return {}
+  const end = addDays(p.dateEnd, deltaWeeks * 7)
+  return { dateEnd: end < p.dateStart ? p.dateStart : end }
+}
+
 /**
  * 바뀐 일정을 프로젝트에 반영한다(새 객체). curIdx = 결산한 주가 그 과정의 몇 주째인지(1부터) — 바뀜은 다음 주부터다.
  *   · end  +n: 늘리는 단계 뒤에 같은 이름의 주를 n개. 마지막 주의 점검은 새 마지막 주로 옮긴다
@@ -138,7 +155,7 @@ export function applyPeriodChange(p: Project, change: PeriodChange, curIdx: numb
   const at = Math.max(0, Math.min(cur.length, Math.trunc(curIdx)))
   const done = (list: WeekCurriculum[], extra: Partial<Project> = {}): Project => {
     const curriculum = renumber(list)
-    return { ...p, ...extra, curriculum, weeks: curriculum.length }
+    return { ...p, ...extra, ...shiftedDates(p, curriculum.length - cur.length, change.kind === 'stop' ? todayKey : ''), curriculum, weeks: curriculum.length }
   }
   switch (change.kind) {
     case 'days':

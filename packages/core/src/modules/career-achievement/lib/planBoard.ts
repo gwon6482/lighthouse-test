@@ -4,6 +4,7 @@ import type { DayOfWeek, Project, ProjectCategory, TimelineSlot } from '@/module
 import { weekEntriesOf } from '@/modules/career-design/composables/useProjectCurriculum'
 import { projectEndWeek, projectStartWeek, weekOfDate, weekDateRange } from '@/modules/career-design/composables/usePlanTimeline'
 import { PART } from '@/modules/career-design/lib/examPace'
+import { projectDatesOf } from '@/modules/career-design/lib/projectDates'
 
 // 분류 색·라벨 — ⚠️ 같은 표가 여러 화면에 복제돼 있다(실무경험 추가 때 18곳). 새 화면은 여기 것을 쓴다
 export const CATEGORY_META: Record<ProjectCategory, { label: string; color: string }> = {
@@ -181,6 +182,7 @@ export function roadmapStops(
   timeline: { week: number; projects: Pick<Project, 'id'>[] }[],
   currentWeek: number | null,
   isItemDone: (projectId: string, week: number, idx: number) => boolean,
+  todayKey = '',
 ): RoadmapStop[] {
   const startOf = new Map<string, number>()
   for (const slot of timeline) for (const p of slot.projects) {
@@ -201,12 +203,15 @@ export function roadmapStops(
       return { week: cw.week, entries, title: cw.title }
     })
     const cur = currentWeek ?? 0
+    // 날짜로 정한 걸음(2026-11-25)은 마감일 다음 날부터 지난 것 — 마지막 주 안이어도 마감이 지났으면 '마감 지남'(정할 것 5)
+    const dates = projectDatesOf(p)
+    const overdue = !!dates && !!todayKey && todayKey > dates.end
     // 과정(2026-11-16)은 할 일이 없다 — 기간이 지나면(그만둔 것 포함) 끝난 것
     const status: StopStatus =
-      p.period ? (start > cur ? 'next' : end < cur ? 'done' : 'now')
+      p.period ? (start > cur ? 'next' : end < cur || overdue ? 'done' : 'now')
       : total > 0 && done >= total ? 'done'
       : start > cur ? 'next'
-      : end < cur ? 'past'
+      : end < cur || overdue ? 'past'
       : 'now'
     out.push({ project: p, startWeek: start, endWeek: end, status, done, total, weeks })
   }

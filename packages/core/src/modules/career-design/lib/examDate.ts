@@ -153,15 +153,20 @@ export function resolveExamAnchors(projects: Project[], forward: Map<string, num
  * 새 계획 배치(속도 고르기·완성 화면) — 닻 없이 한 번 놓고, 시험일이 있으면 닻을 정해 다시 놓는다.
  * 짝 뒤 걸음은 시험일이 없어도 늘 앞 걸음 뒤에(정할 것 6 — 예전엔 주 16시간 이상에서 필기·실기가 같은 주에 시작했다)
  */
-export function scheduleWithExams(projects: Project[], budgetHours: number, ctx?: Partial<ExamCtx>, extra: Pick<AnchorOptions, 'late'> = {}): { week: number; project: Project }[] {
+// extra.pinned(2026-11-25) — 날짜로 정한 걸음의 고정 자리(lib/projectDates.datedFixed). 닻 없이 놓을 때부터 깔고, 시험일 닻과 합친다
+export function scheduleWithExams(projects: Project[], budgetHours: number, ctx?: Partial<ExamCtx>, extra: Pick<AnchorOptions, 'late'> & { pinned?: Map<string, number> } = {}): { week: number; project: Project }[] {
   const after = examPairs(projects)
+  const pinned = extra.pinned?.size ? extra.pinned : undefined
   const base: ScheduleOptions = { ...(ctx?.minStart ? { minStart: ctx.minStart } : {}), ...(after.size ? { after } : {}) }
-  const forward = autoSchedule(projects, budgetHours, base)
+  const forward = autoSchedule(projects, budgetHours, pinned ? { ...base, fixed: pinned } : base)
   if (!ctx?.startDate) return forward
   const full: ExamCtx = { startDate: ctx.startDate, reviewDay: ctx.reviewDay, minStart: ctx.minStart }
   if (!hasExamDates(projects, full)) return forward
-  const fixed = resolveExamAnchors(projects, startsOf(forward), full, extra)
-  return fixed.size ? autoSchedule(projects, budgetHours, { ...base, fixed }) : forward
+  const anchors = resolveExamAnchors(projects, startsOf(forward), full, extra)
+  if (!anchors.size) return forward
+  const fixed = new Map(anchors)
+  for (const [k, v] of pinned ?? []) fixed.set(k, v)      // 날짜 걸음이 먼저(시험일 칸이 있는 걸음은 날짜를 못 가져 겹치지 않는다)
+  return autoSchedule(projects, budgetHours, { ...base, fixed })
 }
 /** 놓은 결과 → id → 시작 주 */
 export const startsOf = (placed: { week: number; project: Pick<Project, 'id'> }[]) => {
