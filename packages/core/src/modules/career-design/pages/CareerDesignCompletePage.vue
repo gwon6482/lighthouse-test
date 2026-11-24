@@ -135,7 +135,6 @@
               class="cd-complete__week"
               :class="{
                 'cd-complete__week--target': !!selectedProject && w.canPlace,
-                'cd-complete__week--blocked': !!selectedProject && !w.canPlace,
               }"
               @click="placeAtWeek(w.week)"
             >
@@ -152,9 +151,7 @@
 
               <div class="cd-complete__week-body">
                 <p v-if="!w.bars.length" class="cd-complete__week-empty">
-                  {{ selectedProject
-                    ? (w.canPlace ? '탭해서 여기부터 시작' : '기간이 모자라요')
-                    : '비어 있음' }}
+                  {{ selectedProject ? '탭해서 여기부터 시작' : '비어 있음' }}
                 </p>
 
                 <div
@@ -268,7 +265,7 @@ import CdStepIndicator from '../components/CdStepIndicator.vue'
 import { useDesignSteps } from '../composables/useDesignSteps'
 import type { Project, ProjectCategory, TimelineSlot } from '../types/career-design'
 import {
-  provisionalWeekCount, weekRangeLabel, projectWeeks, projectEndWeek, fitsInPlan,
+  provisionalWeekCount, weekRangeLabel, projectWeeks, projectEndWeek, canStartAt,
   weekDateRange, monthWeekOf, monthWeekLabel, weeksInMonth, parseDateKey, resolveProject,
   projectHoursPerWeek, lastWeekOfMonth, weekOfDate, toDateKey,
 } from '../composables/usePlanTimeline'
@@ -416,7 +413,8 @@ const weekRows = computed<WeekRow[]>(() => {
       dateLabel: weekRangeLabel(draftPlan.startDate, week, draftPlan.reviewDay),
       monthHeader: isNewMonth && mw ? `${mw.month}월 · ${weeksInMonth(mw.year, mw.month, draftPlan.reviewDay)}주` : '',
       bars,
-      canPlace: !!sel && fitsInPlan(week, sel, totalWeeks.value),
+      // 시작 주만 본다 — 끝이 보이는 범위를 넘어가도 놓을 수 있고, 놓으면 범위가 그 끝까지 늘어난다(2026-11-24)
+      canPlace: !!sel && canStartAt(week, totalWeeks.value),
       hours: bars.reduce((n, b) => n + projectHoursPerWeek(b.project), 0),
       pins: examPins.value.get(week) ?? [],
     })
@@ -512,8 +510,8 @@ const closeProjectPopup = () => { popupProject.value = null }
 function placeAtWeek(week: number) {
   const project = selectedProject.value
   if (!project) return
-  // 계획 기간을 넘어가면 배치하지 않는다(막고 안내).
-  if (!fitsInPlan(week, project, totalWeeks.value)) return
+  // 시작 주가 보이는 범위 안이면 놓는다. 끝 주는 막지 않는다 — 종료일은 예상 완료일이라 배치에 따라 늘어난다
+  if (!canStartAt(week, totalWeeks.value)) return
 
   // 이미 배치돼 있으면 옮기는 것 — 기존 시작주에서 뺀다.
   removeProject(project.id)
