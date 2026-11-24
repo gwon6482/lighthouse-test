@@ -138,13 +138,15 @@
             </template>
             <template v-else>
               <strong>전체 계획이 다시 짜여요</strong>
-              <p v-if="chosenKey !== currentPace.key">아직 시작 안 한 프로젝트 {{ impact.remaining }}개를 {{ nextWeek }}주차부터 '{{ chosen.title }}' 속도로 다시 배치해요. 진행 중인 프로젝트<template v-if="periodNames">와 과정({{ periodNames }})은</template><template v-else>는</template> 그대로예요.</p>
+              <p v-if="chosenKey !== currentPace.key">아직 시작 안 한 프로젝트 {{ impact.remaining }}개를 {{ nextWeek }}주차부터 '{{ chosen.title }}' 속도로 다시 배치해요. {{ keptLine }}</p>
               <p v-else>3단계에서 바꾼 과정 일정에 맞춰 아직 시작 안 한 프로젝트를 {{ nextWeek }}주차부터 다시 배치해요. 속도는 그대로예요.</p>
               <!-- 시험일을 넘기게 되면 — 고른 카드 바로 아래·완료 예정 줄 위, 주황(진로상담 11-22 정할 것 7) -->
               <template v-if="examLate">
                 <p class="wv-impact__exam">{{ COPY.reviewLate(chosen.title, examLate.late.name, mdPlain(examLate.late.date), -examLate.late.spare) }}</p>
                 <p v-if="examLate.now" class="wv-impact__exam">{{ COPY.reviewFit(currentPace.title, examLate.now.spare) }}</p>
               </template>
+              <!-- 날짜로 정한 걸음(2026-11-25) — 앞 걸음이 그 뒤로 새로 밀리면 한 줄(시험일 줄과 같은 자리·색, 막지 않음) -->
+              <p v-for="line in flipLines" :key="line" class="wv-impact__exam">{{ line }}</p>
               <p class="wv-impact__date">완료 예정 {{ ymd(baseline.endDate) }} → <b>{{ ymd(impact.endDate) }}</b> <em>{{ diffLabel }}</em></p>
               <p class="wv-impact__note">마지막 단계에서 [다음 주 시작하기]를 누르면 적용돼요.</p>
             </template>
@@ -176,6 +178,7 @@
 </template>
 
 <script setup lang="ts">
+import { datedRange, eunNeun, euro, flipGroups, gwaWa, iga } from '@/modules/career-design/lib/projectDates'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
@@ -228,6 +231,19 @@ function weekLabel(week: number): string {
 }
 // 진행 중인 과정 이름 — 속도를 바꿔도 그대로라고 알려 준다
 const periodNames = computed(() => periodCards.value.map((c) => c.project.name).join(', '))
+// '진행 중인 프로젝트와 과정(…)과 날짜를 정한 공모전 도전은 그대로예요' — 날짜 걸음(2026-11-25)은 아직 시작 전이어도 그 자리
+const keptLine = computed(() => {
+  const parts = ['진행 중인 프로젝트']
+  if (periodNames.value) parts.push(`과정(${periodNames.value})`)
+  const dated = impact.value.datedKept.map((p) => p.name)
+  if (dated.length) parts.push(`날짜를 정한 ${dated.join(', ')}`)
+  const head = parts.slice(0, -1).map((w) => (w.endsWith(')') ? `${w}${gwaWa(w.replace(/\(.*\)$/, '')).slice(-1)}` : gwaWa(w))).join(' ')
+  const last = parts[parts.length - 1]!
+  const lastJ = last.endsWith(')') ? `${last}${eunNeun(last.replace(/\(.*\)$/, '')).slice(-1)}` : eunNeun(last)
+  return `${head ? `${head} ` : ''}${lastJ} 그대로예요.`
+})
+const flipLines = computed(() => flipGroups(impact.value.flips).map((g) =>
+  `‘${chosen.value.title}’${euro(chosen.value.title).slice(chosen.value.title.length)} 바꾸면 ${iga(g.more ? `${g.first.name} 외 ${g.more}개` : g.first.name)} ${g.dated.name}(${datedRange(g.dated, '~')}) 뒤로 밀려요.`))
 
 const SATISFACTION = [
   { v: 1 as const, label: '아쉬워요' }, { v: 2 as const, label: '조금 아쉬워요' }, { v: 3 as const, label: '보통이에요' },

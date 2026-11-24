@@ -63,11 +63,13 @@ import { examDateOf, examWeekOf } from '../lib/examDate'
 import { buildTimeline, examAgeOptions } from '../composables/usePlanPace'
 import { budgetHours, stripLoad, withRoutineLoad } from '../lib/routine'
 import { useAuthStore } from '@/shared/stores/auth'
+import { useDatedAlign } from '../composables/useDatedAlign'
 
 const router = useRouter()
 const { prevPath, nextPath, editing } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
 const { draftPlan, draftTimeline, syncPlanReviewDay } = useCareerDesign()
 const auth = useAuthStore()
+const { alignDraft } = useDatedAlign()
 // 속도 고르기는 시작 요일을 고르기 전이라(이 단계가 뒤) 그때의 요일(없으면 월요일)로 시험 주를 셌다
 const dayAtPlacement = draftPlan.reviewDay || '월'
 
@@ -113,6 +115,8 @@ async function goNext() {
   if (!draftPlan.reviewDay) return
   saving.value = true
   try {
+    // 날짜로 정한 걸음(2026-11-25) — 주 경계가 바뀌면 걸친 주 수·자리가 바뀐다. 손으로 옮긴 타임라인이어도 날짜 걸음만은 다시 맞춘다
+    alignDraft({ rebuild: !editing.value })
     reanchorExams()
     await syncPlanReviewDay() // 계획 ID 가 생기기 전이면 서버로 안 간다 — 목표 설정에서 한꺼번에 올린다
     router.push(nextPath('reviewDay'))

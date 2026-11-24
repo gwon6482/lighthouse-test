@@ -76,6 +76,7 @@ import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import PeriodTag from '../components/PeriodTag.vue'
+import { useDatedAlign } from '../composables/useDatedAlign'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import {
   END_TITLE, PERIOD_CHECK_MAX, defaultPeriodPhases, hasEndPhase, hasStartPhase, periodCheckWeeks, periodDefaults,
@@ -86,6 +87,7 @@ import type { ProjectCategory } from '../types/career-design'
 
 const router = useRouter()
 const { draftPlan, draftProject, editingProjectId, syncAddProject, syncUpdateProject } = useCareerDesign()
+const { alignDraft } = useDatedAlign()
 const WRITE_PATH = '/career-design/project/new'
 
 const categoryColorMap: Record<ProjectCategory, string> = {
@@ -185,6 +187,8 @@ async function save() {
     // ⚠️ 필드를 하나씩 옮겨 담는 곳이다(커리큘럼 화면과 같다) — Project 에 필드를 늘리면 여기도
     method: draftProject.method ?? null,
     methodDetail: { ...(draftProject.methodDetail ?? {}) },
+    // 날짜로 정한 프로젝트(2026-11-25) — 둘을 함께. 주 수로 바꾼 것은 '' 둘(서버가 지운다)
+    ...(draftProject.dateStart !== undefined || draftProject.dateEnd !== undefined ? { dateStart: draftProject.dateStart ?? '', dateEnd: draftProject.dateEnd ?? '' } : {}),
     period: true as const,
   }
   try {
@@ -200,6 +204,8 @@ async function save() {
       draftPlan.projects.push(created)
       await syncAddProject(created)
     }
+    // 수정 흐름에서 날짜를 넣거나 바꾼 걸음은 그 날짜로 옮긴다(나머지는 그대로 — 2026-11-25)
+    if (draftPlan.editing) alignDraft({ rebuild: false })
     draftProject.curriculum = projectData.curriculum
     saved = true
     router.replace('/career-design/plan/projects')

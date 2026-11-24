@@ -207,6 +207,49 @@
       <!-- 프로젝트 기간(과정이면 다니는 기간 + 빠른 선택 — 4년을 +로 208번 누를 수는 없다) -->
       <div class="cd-proj-write__section">
         <h3 class="cd-proj-write__label">{{ isPeriodDraft ? '다니는 기간' : '프로젝트 기간' }}</h3>
+        <!-- 주 수로 / 날짜로(2026-11-25, 시안 reviews/2026-11-24-project-dates.html) — 시험일 칸이 있는 자격 시험 걸음은 시험일을 쓴다(정할 것 2) -->
+        <div v-if="datesAllowed" class="cd-proj-write__kinds cd-proj-write__kinds--by" role="radiogroup" aria-label="기간 정하는 법">
+          <button type="button" class="cd-proj-write__by" :class="{ 'cd-proj-write__kind--on': !dateMode }" role="radio" :aria-checked="!dateMode" @click="setDateMode(false)">
+            주 수로<i class="cd-proj-write__kind-dot" />
+          </button>
+          <button type="button" class="cd-proj-write__by" :class="{ 'cd-proj-write__kind--on': dateMode }" role="radio" :aria-checked="dateMode" @click="setDateMode(true)">
+            날짜로<i class="cd-proj-write__kind-dot" />
+          </button>
+        </div>
+        <template v-if="dateMode">
+          <div class="cd-proj-write__dates">
+            <div class="cd-proj-write__drow">
+              <span id="pd-start">시작일</span>
+              <label class="cd-proj-write__dval" :class="{ 'cd-proj-write__dval--empty': !draftProject.dateStart }">
+                {{ draftProject.dateStart ? fullDate(draftProject.dateStart) : '날짜 고르기' }}
+                <AppIcon name="ui-calendar" />
+                <input
+                  type="date" class="cd-proj-write__date-input" aria-labelledby="pd-start"
+                  :value="draftProject.dateStart ?? ''" :min="minDate"
+                  @change="setDate('dateStart', ($event.target as HTMLInputElement).value)"
+                />
+              </label>
+            </div>
+            <div class="cd-proj-write__drow">
+              <span id="pd-end">{{ endLabel }}</span>
+              <label class="cd-proj-write__dval" :class="{ 'cd-proj-write__dval--empty': !draftProject.dateEnd }">
+                {{ draftProject.dateEnd ? fullDate(draftProject.dateEnd) : '날짜 고르기' }}
+                <AppIcon name="ui-calendar" />
+                <input
+                  type="date" class="cd-proj-write__date-input" aria-labelledby="pd-end"
+                  :value="draftProject.dateEnd ?? ''" :min="draftProject.dateStart || minDate"
+                  @change="setDate('dateEnd', ($event.target as HTMLInputElement).value)"
+                />
+              </label>
+            </div>
+          </div>
+          <div v-if="calc" class="cd-proj-write__calc">
+            {{ calc.head }}
+            <small v-if="calc.sub">{{ calc.sub }}</small>
+          </div>
+          <p class="cd-proj-write__date-hint">속도를 바꿔도 이 날짜에 있어요</p>
+        </template>
+        <template v-else>
         <p class="cd-proj-write__sub-label">{{ isPeriodDraft ? '몇 주 다니나요?' : '몇 주차 계획으로 만들까요?' }}</p>
         <div class="cd-proj-write__stepper">
           <button
@@ -232,6 +275,7 @@
           <template v-if="isPeriodDraft">주차별 할 일은 없어요. 다음 화면에서 다니는 날의 이름과 점검을 정해요</template>
           <template v-else>다음 화면에서 {{ weeks }}개 주차의 커리큘럼을 채워요. 기간은 언제든 다시 바꿀 수 있어요</template>
         </div>
+        </template>
       </div>
     </div>
 
@@ -259,6 +303,11 @@ import {
   type ProjectMethod, type MethodField,
 } from '../composables/projectMethods'
 import { takesExamDate } from '../lib/examDate'
+import { PART, isExam } from '../lib/examPace'
+import { canUseDates, fitCurriculumToWeeks, isDateKey, runsInDates, spanOfDates } from '../lib/projectDates'
+import { toDateKey } from '../composables/usePlanTimeline'
+import { getToday } from '@/shared/utils/dev-date'
+import type { Project } from '../types/career-design'
 
 const router = useRouter()
 const { draftPlan, draftProject, editingProjectId } = useCareerDesign()
@@ -353,7 +402,9 @@ const currentMethod = computed(() => methodDef(draftProject.method))
 // 기타(자기소개서·면접)에 예전에 넣은 값은 지우지 않는다(칸만 감춘다)
 const methodFields = computed(() => {
   const base = currentMethod.value?.fields ?? []
-  return takesExamDate(draftProject) ? [...base, { ...QUALIFICATION_EXTRA, placeholder: '' }] : base
+  // 날짜로 정하면 공모전의 '제출 마감일 (선택)'은 마감일과 같은 값이라 칸을 숨긴다(시안 '내가 정한 것', 2026-11-25)
+  const shown = dateMode.value ? base.filter((f) => f.key !== 'deadline') : base
+  return takesExamDate(draftProject) ? [...shown, { ...QUALIFICATION_EXTRA, placeholder: '' }] : shown
 })
 function pickMethod(m: ProjectMethod) {
   // 방식을 바꾸면 방식별 칸은 비우되 시험일은 남긴다(2026-11-22)
@@ -372,7 +423,89 @@ watch(() => draftProject.category, (c) => {
 })
 
 // 을/를 — 마지막 글자 받침으로. 라벨 끝의 '(선택)' 같은 괄호는 필수 칸엔 없다
+const josaIGa = (w: string) => { const c = w.trim().slice(-1).charCodeAt(0) - 0xac00; return c < 0 || c > 11171 ? '이(가)' : c % 28 ? '이' : '가' }
 const objectJosa = (w: string) => { const c = w.trim().slice(-1).charCodeAt(0) - 0xac00; return c < 0 || c > 11171 ? '을(를)' : c % 28 ? '을' : '를' }
+
+// ── 날짜로 정하기(2026-11-25, lib/projectDates.ts — 오너 정할 것 1~6 권장) ──
+// 날짜를 넣으면 그 날짜에 고정된다. 주 수는 두 날짜가 걸친 계획 주(시작 요일을 나중에 고르면 그때 다시 센다)
+const datesAllowed = computed(() => canUseDates(draftProject))
+const dateMode = ref(datesAllowed.value && (draftProject.dateStart !== undefined && draftProject.dateStart !== ''))
+// 고치기 전 시작일 — 진행 중인 계획에서 이미 지난 시작일을 그대로 두고 다른 칸만 고칠 수 있게(바꿀 때만 '오늘부터' 검사)
+const originalStart = draftProject.dateStart ?? ''
+watch(datesAllowed, (ok) => { if (!ok && dateMode.value) setDateMode(false) })
+const endLabel = computed(() => (isPeriodDraft.value ? '끝나는 날' : '마감일'))
+// 새 계획은 오늘부터, 고치는 계획은 계획 시작일부터(시안 '내가 정한 것')
+const minDate = computed(() => (draftPlan.editing && draftPlan.startDate ? draftPlan.startDate : toDateKey(getToday())))
+const planCtx = computed(() => ({ startDate: draftPlan.startDate || toDateKey(getToday()), reviewDay: draftPlan.reviewDay }))
+const DOW_ORDER: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
+const DOW_KO = ['일', '월', '화', '수', '목', '금', '토']
+const fullDate = (k: string) => { const [y, m, d] = k.split('-').map(Number); return `${y}.${m}.${d}(${DOW_KO[new Date(y!, m! - 1, d!).getDay()]})` }
+const datedSpan = computed(() => (dateMode.value && draftProject.dateStart && draftProject.dateEnd ? spanOfDates(draftProject.dateStart, draftProject.dateEnd, planCtx.value) : null))
+const runs = computed(() => (dateMode.value && draftProject.dateStart && draftProject.dateEnd ? runsInDates(draftProject.days, draftProject.dateStart, draftProject.dateEnd) : 0))
+const pausesOf = () => (draftProject.curriculum ?? []).filter((w) => w.pause).length
+/** 계산 줄 — '6주 · 월·수·금 17번' / '할 일은 단계 1·4·1주에 맞춰 18개예요'(템플릿·도우미에서 온 단계 꼴일 때만) */
+const calc = computed(() => {
+  const sp = datedSpan.value
+  if (!sp || dateBlocker.value) return null
+  const days = DOW_ORDER.filter((d) => draftProject.days?.includes(d)).join('·')
+  const head = `${sp.weeks}주 · ${days} ${runs.value}번`
+  const cur = draftProject.curriculum ?? []
+  if (isPeriodDraft.value || !cur.some((w) => PART.test(w.title))) return { head, sub: '' }
+  const fit = fitCurriculumToWeeks({ ...(draftProject as Project), curriculum: cur }, sp.weeks).curriculum ?? []
+  const phases: number[] = []
+  let prev = ''
+  for (const w of fit) { const t = w.title.replace(PART, '$1'); if (t === prev) phases[phases.length - 1]! += 1; else phases.push(1); prev = t }
+  const items = fit.reduce((n, w) => n + weekEntriesOf(w).length, 0)
+  return { head, sub: items ? `할 일은 단계 ${phases.join('·')}주에 맞춰 ${items}개예요` : '' }
+})
+const dateBlocker = computed(() => {
+  if (!dateMode.value) return null
+  const a = draftProject.dateStart; const b = draftProject.dateEnd
+  if (!a || !b) return `시작일과 ${endLabel.value}${objectJosa(endLabel.value)} 골라주세요`
+  if (!isDateKey(a) || !isDateKey(b)) return '날짜를 다시 골라주세요'
+  if (b < a) return `${endLabel.value}${josaIGa(endLabel.value)} 시작일보다 앞이에요`
+  if (a !== originalStart && a < minDate.value) return `시작일은 ${fullDate(minDate.value)}부터 고를 수 있어요`
+  if (!datedSpan.value) return `${endLabel.value}${josaIGa(endLabel.value)} 계획 시작보다 앞이에요`
+  if (!runs.value) return isPeriodDraft.value ? '이 날짜 안에 다니는 요일이 없어요' : '이 날짜 안에 실행 요일이 없어요'
+  return null
+})
+function setDateMode(on: boolean) {
+  if (on === dateMode.value) return
+  dateMode.value = on
+  if (on) {
+    if (draftProject.dateStart === '') delete draftProject.dateStart
+    if (draftProject.dateEnd === '') delete draftProject.dateEnd
+    return
+  }
+  // 주 수로 — 서버에 날짜가 있던 걸음이면 '' 둘을 남겨 서버가 지우게 한다. 지금 걸친 주 수는 그대로 둔다
+  if (datedSpan.value) draftProject.weeks = isPeriodDraft.value ? Math.max(1, datedSpan.value.weeks - pausesOf()) : datedSpan.value.weeks
+  const was = editingProjectId.value ? draftPlan.projects.find((p) => p.id === editingProjectId.value) : undefined
+  if (was?.dateStart) { draftProject.dateStart = ''; draftProject.dateEnd = '' }
+  else { delete draftProject.dateStart; delete draftProject.dateEnd }
+}
+function setDate(k: 'dateStart' | 'dateEnd', v: string) {
+  draftProject[k] = v
+}
+/** 날짜로 정한 걸음 — 걸친 주에 맞춘다. 직접 쓴 할 일이 잘리면 지금처럼 묻는다(템플릿 단계 꼴은 비율대로라 묻지 않는다). false = 취소 */
+function applyDates(): boolean {
+  const sp = datedSpan.value
+  if (!sp) return false
+  // 공모전 제출 마감일 = 마감일
+  if (draftProject.method === 'contest') draftProject.methodDetail = { ...(draftProject.methodDetail ?? {}), deadline: draftProject.dateEnd! }
+  // 큰 시험 분량 연결은 끊는다(기간을 직접 정한 것과 같다)
+  if (isExam(draftProject)) draftProject.studyHours = 0
+  if (isPeriodDraft.value) { draftProject.weeks = Math.max(1, sp.weeks - pausesOf()); return true }
+  const cur = draftProject.curriculum ?? []
+  if (cur.some((w) => PART.test(w.title))) {
+    const fit = fitCurriculumToWeeks({ ...(draftProject as Project), curriculum: cur }, sp.weeks)
+    draftProject.curriculum = fit.curriculum
+    draftProject.weeks = sp.weeks
+    return true
+  }
+  const before = draftProject.weeks
+  setWeeks(sp.weeks)
+  return draftProject.weeks === sp.weeks || before === sp.weeks
+}
 
 const tried = ref(false)
 const blocker = computed(() => {
@@ -380,12 +513,14 @@ const blocker = computed(() => {
   const miss = missingMethodField(draftProject.method, draftProject.methodDetail)
   if (miss) return `${miss}${objectJosa(miss)} 적어주세요`
   if (!draftProject.name?.trim()) return '프로젝트 이름을 적어주세요'
+  if (dateBlocker.value) return dateBlocker.value
   return null
 })
 
 function goNext() {
   tried.value = true
   if (blocker.value) return
+  if (dateMode.value && !applyDates()) return
   bypass()
   // 과정은 주차별 할 일 대신 '다니는 방식'(오늘 할 일 이름·점검·단계)으로
   router.push(isPeriodDraft.value ? '/career-design/project/period' : '/career-design/project/curriculum')
@@ -451,6 +586,35 @@ function goNext() {
   &__kind--period.cd-proj-write__kind--on { border-color: #8a5a00; background: #fffaf0; }
   &__kind--period.cd-proj-write__kind--on .cd-proj-write__kind-title { color: #8a5a00; }
   &__kind--period.cd-proj-write__kind--on .cd-proj-write__kind-dot { border-color: #8a5a00; background: #8a5a00; }
+
+  /* 주 수로 / 날짜로(2026-11-25) — 하나만 고르니 동그라미. 종류 고르기와 같은 모양 */
+  &__kinds--by { margin-bottom: 12px; }
+  &__by {
+    display: flex; align-items: center; gap: 6px; padding: 10px 12px; border: 1.5px solid #eee; border-radius: 12px; background: #fff;
+    font-family: inherit; font-size: 14px; font-weight: 800; color: #333; cursor: pointer;
+    &:focus-visible { outline: 2px solid var(--cat-color); outline-offset: 2px; }
+  }
+  &__by.cd-proj-write__kind--on { border-color: #222; }
+  &__by.cd-proj-write__kind--on .cd-proj-write__kind-dot { border-color: #222; background: #222; box-shadow: inset 0 0 0 3.5px #fff; }
+  &__dates { display: grid; gap: 8px; }
+  &__drow {
+    display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: center; gap: 8px;
+    > span { font-size: 13px; font-weight: 600; color: #555; }
+  }
+  &__dval {
+    position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    border: 1.5px solid #eee; border-radius: 10px; padding: 10px 12px; font-size: 14px; font-weight: 600; color: #333; cursor: pointer;
+    svg, .app-icon { width: 16px; height: 16px; color: #999; flex-shrink: 0; }
+    &:focus-within { border-color: var(--cat-color); }
+    &--empty { color: #aaa; }
+  }
+  &__date-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+  &__calc {
+    margin-top: 10px; padding: 10px 12px; border-radius: 10px; display: grid; gap: 2px;
+    background: color-mix(in srgb, var(--cat-color) 10%, white); color: var(--cat-color); font-size: 13px; font-weight: 700;
+    small { font-size: 12px; font-weight: 500; color: #4A6FA5; }
+  }
+  &__date-hint { font-size: 12px; color: #888; margin-top: 8px; }
 
   /* 다니는 기간 빠른 선택 */
   &__quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }

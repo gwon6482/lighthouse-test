@@ -31,7 +31,7 @@ export function isDateKey(s?: string | null): s is string {
 }
 
 /** '날짜로'를 열 수 있는 걸음 — 시험일 칸이 있는 자격 시험 걸음만 뺀다(정할 것 2) */
-export const canUseDates = (p: Pick<Project, 'category' | 'method'>) => !takesExamDate(p)
+export const canUseDates = (p: Partial<Pick<Project, 'category' | 'method'>>) => !takesExamDate(p)
 
 /** 걸음의 날짜 짝 — 둘 다 날짜이고 마감 ≥ 시작이며 날짜를 열 수 있는 걸음일 때만 */
 export function projectDatesOf(p: DatedFields): { start: string; end: string } | null {
