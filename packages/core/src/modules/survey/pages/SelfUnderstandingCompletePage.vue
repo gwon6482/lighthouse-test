@@ -38,7 +38,8 @@ import { computed } from 'vue'
 import { useSurvey } from '../composables/useSurvey'
 import { useAuthStore } from '@/shared/stores/auth'
 
-const { surveyId } = useSurvey()
+// 방금 낸 번호 — 지금 폼 번호(surveyId)가 아니다. 완료 화면을 새로고침하면 빈 폼을 새로 받아 번호가 바뀌기 때문
+const { submittedSurveyId: surveyId } = useSurvey()
 const authStore = useAuthStore()
 
 // 온보딩(/main/before) 흐름에서 검사를 시작했으면 온보딩 전용 결과 페이지로 분기

@@ -12,6 +12,9 @@
 // ⚠️ 비회원 검사 → 가입으로 잇는 열람 키(localStorage 'lh_guest_survey', shared/guest/guestSurvey)는 지우지 않는다.
 //    가입·로그인 직후 linkPendingGuestSurvey() 가 그 키로 방금 한 검사를 새 계정에 잇는다(setAuth 뒤에 불린다).
 export const SURVEY_ID_KEY = 'lh_survey_id'
+// 쓰다 만 자기이해 검사의 기기 저장본(modules/survey/composables/useSurvey) — 계정이 바뀌면 지운다(2026-11-25).
+// 검사 모듈을 아직 안 불러온 때(앱을 막 열고 바로 로그아웃·로그인)에도 지워야 해서 여기서 지운다. 메모리는 검사 모듈이 onAccountChange 로 비운다
+export const SURVEY_PROGRESS_KEYS = ['lh_survey_progress_v1', 'lh_survey_form_v1'] as const
 
 const listeners = new Set<() => void>()
 
@@ -30,6 +33,7 @@ export function onAccountChange(fn: () => void): () => void {
 export function clearAccountScope() {
   generation += 1
   try { sessionStorage.removeItem(SURVEY_ID_KEY) } catch { /* 저장소를 못 쓰면 남은 것도 없다 */ }
+  try { for (const k of SURVEY_PROGRESS_KEYS) localStorage.removeItem(k) } catch { /* 위와 같다 */ }
   for (const fn of listeners) {
     try { fn() } catch { /* 하나가 실패해도 나머지는 비운다 */ }
   }

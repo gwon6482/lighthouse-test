@@ -73,7 +73,9 @@ import { useSurvey } from '../composables/useSurvey'
 import { scale10Style } from '../scaleColors'
 
 const router = useRouter()
-const { setScaleType } = useSurvey()
+const { setScaleType, startNewIfFinished } = useSurvey()
+// 다시 검사하기 — 검사를 낸 뒤 들어왔으면 새로 시작한다(폼을 새로 받는다). 쓰다 만 검사는 그대로 이어 한다
+startNewIfFinished()
 
 function handleScaleSelect(type: 2 | 5 | 10) {
   setScaleType(type)
