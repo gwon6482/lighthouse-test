@@ -5,7 +5,7 @@
 import { useCareerDesign } from './useCareerDesign'
 import { toDateKey } from './usePlanTimeline'
 import { buildTimeline, examAgeOptions } from './usePlanPace'
-import { alignDated } from '../lib/projectDates'
+import { alignDated, expiredLine } from '../lib/projectDates'
 import { budgetHours, stripLoad, withRoutineLoad } from '../lib/routine'
 import { getToday } from '@/shared/utils/dev-date'
 import { useAuthStore } from '@/shared/stores/auth'
@@ -24,6 +24,8 @@ export function useDatedAlign() {
     const r = alignDated(draftPlan.projects, draftTimeline.value, c)
     if (!r.changed) return false
     draftPlan.projects.splice(0, draftPlan.projects.length, ...r.projects)
+    // 정한 날짜가 지나 주 수로 바꾼 걸음 — 타임라인·목표 화면에 한 줄로 알린다
+    if (r.expired.length) draftPlan.datedExpired = [...new Set([...(draftPlan.datedExpired ?? []), ...r.expired.map(expiredLine)])]
     if (!draftTimeline.value.length) return true          // 아직 배치 전(속도 단계 전) — 주 수만 맞춘다
     if (rebuild && !draftPlan.timelineManual && draftPlan.weeklyHours) {
       const L = withRoutineLoad(draftPlan.projects, draftPlan.routines)

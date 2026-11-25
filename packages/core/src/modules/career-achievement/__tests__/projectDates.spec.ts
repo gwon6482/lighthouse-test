@@ -4,6 +4,7 @@ import type { Project, TimelineSlot } from '@/modules/career-design/types/career
 import { expandPhases } from '@/modules/career-design/lib/examPace'
 import { generateItemsForWeek } from '../composables/useWeeklySchedule'
 import { roadmapStops } from '../lib/planBoard'
+import { pullAheadCandidates } from '../lib/pullAhead'
 
 const START = '2026-11-23'
 const contest = (extra: Partial<Project> = {}): Project => ({
@@ -25,6 +26,12 @@ describe('오늘 할 일 — 날짜 밖 요일은 빠진다', () => {
     const items = generateItemsForWeek({ startDate: START, reviewDay: '월', projects: [p], routines: [] }, tl(p), '2027-04-05', '2027-04-11')
     expect(items.map((i) => i.date)).toEqual(['2027-04-05', '2027-04-07'])
   })
+  it('타임라인 자리가 날짜와 어긋나면(옛 앱이 다시 놓음) 빼지 않고 타임라인대로', () => {
+    const p = contest()
+    const moved: TimelineSlot[] = [{ week: 18, projects: [p] }]   // 날짜는 15~20주차인데 18주차(3.22~)에 놓임
+    const items = generateItemsForWeek({ startDate: START, reviewDay: '월', projects: [p], routines: [] }, moved, '2027-04-12', '2027-04-18')
+    expect(items.map((i) => i.date)).toEqual(['2027-04-12', '2027-04-14', '2027-04-16'])
+  })
   it('날짜가 없으면 예전처럼 걸친 주 전체', () => {
     const p = contest({ dateStart: undefined, dateEnd: undefined })
     const items = generateItemsForWeek({ startDate: START, reviewDay: '월', projects: [p], routines: [] }, tl(p), '2027-03-01', '2027-03-07')
@@ -42,5 +49,16 @@ describe('로드맵 — 마감 지남', () => {
     expect(roadmapStops([p], tl(p), 20, done, '2027-04-09')[0]!.status).toBe('now')
     // 다 했으면 완료
     expect(roadmapStops([p], tl(p), 21, () => true, '2027-04-14')[0]!.status).toBe('done')
+  })
+})
+
+describe('미리 하기 — 날짜 걸음은 시작일 전에 당기지 않는다', () => {
+  it('오늘이 시작일보다 앞이면 후보에서 빠진다', () => {
+    const later = [{ date: '2027-03-03', items: [{ itemType: 'project' as const, itemId: 'contest' }] }]
+    const base = { todayItems: [], laterDays: later, isDone: () => false, hasUndoneThisWeek: () => true }
+    const p = contest()
+    expect(pullAheadCandidates({ ...base, todayKey: '2027-03-01', projectOf: () => p })).toEqual([])
+    expect(pullAheadCandidates({ ...base, todayKey: '2027-03-02', projectOf: () => p })).toEqual([{ projectId: 'contest', date: '2027-03-03' }])
+    expect(pullAheadCandidates({ ...base, todayKey: '2027-03-01', projectOf: () => ({ ...p, dateStart: undefined, dateEnd: undefined }) }).length).toBe(1)
   })
 })

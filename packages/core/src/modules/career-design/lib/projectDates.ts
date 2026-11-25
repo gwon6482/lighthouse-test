@@ -94,9 +94,31 @@ export function datedFixed(projects: Project[], ctx: DatedCtx, only: (p: Project
 
 // ── 주 수 맞추기 ──
 /**
+ * 템플릿·도우미에서 온 단계 꼴 그대로인가 — 모든 주의 이름이 'OOO (k/n)'(또는 한 주짜리 단계 이름)이고,
+ * 같은 단계의 주마다 할 일이 그 단계 첫 주와 똑같을 때만(2026-11-25 독립 검토 ①).
+ * 사용자가 어느 주에 줄을 하나라도 더하거나 고쳤으면 '직접 쓴 주차별 할 일'로 다룬다 — 비율로 다시 펴면 그 줄이 사라지기 때문
+ */
+export function isPlainPhases(cur: WeekCurriculum[]): boolean {
+  if (!cur.length || !cur.some((w) => PART.test(w.title))) return false
+  const rep = new Map<string, string>()
+  for (const w of cur) {
+    const m = w.title.match(PART)
+    const key = m ? m[1]! : w.title
+    const items = JSON.stringify((w.items ?? []).map((t) => t.trim()))
+    if (m && Number(m[2]) === 1) rep.set(key, items)
+    const r = rep.get(key) ?? (m ? undefined : items)
+    if (r === undefined) return false                 // 단계 첫 주(1/n) 없이 시작한 꼴 — 사용자가 손댄 것
+    if (!m) rep.set(key, items)
+    else if (r !== items) return false
+    if ((w.description ?? '').trim()) return false
+  }
+  return true
+}
+/**
  * 걸음의 커리큘럼을 weeks 주에 맞춘다.
  *   · 과정: 늘리고 줄이는 단계(stretchPhaseIndex)로 맞추고 쉬는 주는 같은 자리에(rebuildPeriodCurriculum) — 쉬는 주도 날짜 안이다
- *   · 템플릿·도우미에서 온 단계 꼴('OOO (k/n)'): 단계 비율대로(큰 시험의 scalePhases). 공모전 1·4·1주 → 4주 1·2·1, 7주 1·5·1
+ *   · 템플릿·도우미에서 온 단계 꼴('OOO (k/n)')이고 손대지 않았으면(isPlainPhases): 단계 비율대로(큰 시험의 scalePhases). 공모전 1·4·1주 → 4주 1·2·1, 7주 1·5·1
+ *     줄을 하나라도 고쳤으면 아래 '직접 쓴 할 일'과 같게 다룬다 — 사용자가 넣은 줄은 어떤 길에서도 사라지지 않는다
  *   · 직접 쓴 주차별 할 일: 늘리면 뒤에 빈 주('프로젝트명 - n주차'), 줄이면 잘린 주의 할 일을 남는 마지막 주에 옮긴다(조용히 지우지 않게 —
  *     시작 요일을 바꿔 7주 → 6주가 될 때처럼 물을 화면이 없는 곳에서 쓴다. 입력 화면은 지우기 전에 묻는다)
  */
@@ -122,7 +144,7 @@ export function fitCurriculumToWeeks(p: Project, weeks: number): Project {
       phases[i]!.weeks -= 1; sum -= 1
     }
     curriculum = rebuildPeriodCurriculum(phases, cur)
-  } else if (cur.some((w) => PART.test(w.title))) {
+  } else if (isPlainPhases(cur)) {
     curriculum = expandPhases(scalePhases(curriculumPhases(cur), want))
   } else if (want > cur.length) {
     curriculum = syncCurriculumLength(cur, want, p.name)
@@ -145,16 +167,30 @@ export function fitDated(p: Project, ctx: DatedCtx): Project {
  * 새 계획에서 시작 요일을 고를 때(손으로 옮긴 타임라인이어도), 계획 시작일이 바뀔 때, 수정 흐름에서 날짜를 바꾼 걸음에 쓴다.
  * 배치 안 된 날짜 걸음도 그 자리에 놓는다. 마감이 계획 시작 전인 걸음은 건드리지 않는다
  */
-export function alignDated(projects: Project[], timeline: TimelineSlot[], ctx: DatedCtx): { projects: Project[]; timeline: TimelineSlot[]; changed: boolean } {
+export function alignDated(projects: Project[], timeline: TimelineSlot[], ctx: DatedCtx): { projects: Project[]; timeline: TimelineSlot[]; changed: boolean; expired: Project[] } {
   let changed = false
-  const fitted = projects.map((p) => { const q = fitDated(p, ctx); if (q !== p) changed = true; return q })
+  // 계획 시작일이 뒤로 옮겨져 마감이 그 앞이 된 걸음(새 계획을 며칠 뒤 마쳤을 때 — 독립 검토 ④) — 날짜를 지워 주 수 걸음으로 바꾼다.
+  // 그대로 두면 고정도 안 되고 날짜 밖 요일 빼기로 할 일도 안 나오는 짐이 된다. 바꾼 것은 expired 로 돌려줘 한 줄로 알린다
+  const expired: Project[] = []
+  const live = projects.map((p) => {
+    const d = projectDatesOf(p)
+    if (!d || !ctx.startDate || d.end >= ctx.startDate) return p
+    expired.push(p)
+    changed = true
+    return { ...p, dateStart: '', dateEnd: '' }
+  })
+  if (expired.length) {
+    const byId = new Map(live.map((p) => [p.id, p]))
+    timeline = timeline.map((sl) => ({ week: sl.week, projects: sl.projects.map((p) => byId.get(p.id) ?? p) }))
+  }
+  const fitted = live.map((p) => { const q = fitDated(p, ctx); if (q !== p) changed = true; return q })
   const byId = new Map(fitted.map((p) => [p.id, p]))
   const want = datedFixed(fitted, ctx)
-  if (!want.size) return { projects: fitted, timeline, changed }
+  if (!want.size) return { projects: fitted, timeline, changed, expired }
   const at = new Map<string, number>()
   for (const sl of timeline) for (const p of sl.projects) if (!at.has(p.id) || sl.week < at.get(p.id)!) at.set(p.id, sl.week)
   for (const [id, w] of want) if (at.get(id) !== w) changed = true
-  if (!changed) return { projects: fitted, timeline, changed }
+  if (!changed) return { projects: fitted, timeline, changed, expired }
   const slots: TimelineSlot[] = timeline
     .map((sl) => ({ week: sl.week, projects: sl.projects.filter((p) => !want.has(p.id)).map((p) => byId.get(p.id) ?? p) }))
   for (const [id, w] of want) {
@@ -162,7 +198,22 @@ export function alignDated(projects: Project[], timeline: TimelineSlot[], ctx: D
     if (!sl) { sl = { week: w, projects: [] }; slots.push(sl) }
     sl.projects.push(byId.get(id)!)
   }
-  return { projects: fitted, timeline: slots.filter((sl) => sl.projects.length).sort((a, b) => a.week - b.week), changed }
+  return { projects: fitted, timeline: slots.filter((sl) => sl.projects.length).sort((a, b) => a.week - b.week), changed, expired }
+}
+/** 지난 날짜를 주 수로 바꾼 걸음의 한 줄 — "‘○○’은 정한 날짜(11.25~11.27)가 지나서 주 수로 바꿨어요." */
+export const expiredLine = (p: DatedFields & { name: string }) => {
+  const s = p.dateStart ?? ''; const e = p.dateEnd ?? ''
+  return `‘${p.name}’${eunNeun(p.name).slice(p.name.length)} 정한 날짜(${mdDot(s)}~${mdDot(e)})가 지나서 주 수로 바꿨어요.`
+}
+
+/**
+ * 타임라인 자리가 날짜가 걸친 주와 맞는가(독립 검토 ③). 맞을 때만 '날짜 밖 요일 빼기'를 한다 —
+ * 옛 앱이 다시 놓아 어긋났으면 놓인 주 전체가 날짜 밖이 되어 할 일이 통째로 사라지므로, 그때는 타임라인대로 보여 준다(바로잡기는 수정 흐름에서)
+ */
+export function datesMatchSlot(p: DatedFields, startWeek: number | undefined, ctx: DatedCtx): boolean {
+  if (startWeek == null) return false
+  const sp = datedSpanOf(p, ctx)
+  return !!sp && sp.startWeek === startWeek
 }
 
 // ── 알림(정할 것 3) ──

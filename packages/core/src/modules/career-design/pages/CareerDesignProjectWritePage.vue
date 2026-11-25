@@ -304,7 +304,7 @@ import {
 } from '../composables/projectMethods'
 import { takesExamDate } from '../lib/examDate'
 import { PART, isExam } from '../lib/examPace'
-import { canUseDates, fitCurriculumToWeeks, isDateKey, runsInDates, spanOfDates } from '../lib/projectDates'
+import { canUseDates, fitCurriculumToWeeks, isDateKey, isPlainPhases, runsInDates, spanOfDates } from '../lib/projectDates'
 import { toDateKey } from '../composables/usePlanTimeline'
 import { getToday } from '@/shared/utils/dev-date'
 import type { Project } from '../types/career-design'
@@ -450,7 +450,7 @@ const calc = computed(() => {
   const days = DOW_ORDER.filter((d) => draftProject.days?.includes(d)).join('·')
   const head = `${sp.weeks}주 · ${days} ${runs.value}번`
   const cur = draftProject.curriculum ?? []
-  if (isPeriodDraft.value || !cur.some((w) => PART.test(w.title))) return { head, sub: '' }
+  if (isPeriodDraft.value || !isPlainPhases(cur)) return { head, sub: '' }
   const fit = fitCurriculumToWeeks({ ...(draftProject as Project), curriculum: cur }, sp.weeks).curriculum ?? []
   const phases: number[] = []
   let prev = ''
@@ -496,7 +496,8 @@ function applyDates(): boolean {
   if (isExam(draftProject)) draftProject.studyHours = 0
   if (isPeriodDraft.value) { draftProject.weeks = Math.max(1, sp.weeks - pausesOf()); return true }
   const cur = draftProject.curriculum ?? []
-  if (cur.some((w) => PART.test(w.title))) {
+  // 손대지 않은 템플릿 단계 꼴만 비율대로(묻지 않음). 줄을 고쳤으면 직접 쓴 할 일처럼 — 잘릴 때 묻는다(독립 검토 ①)
+  if (isPlainPhases(cur)) {
     const fit = fitCurriculumToWeeks({ ...(draftProject as Project), curriculum: cur }, sp.weeks)
     draftProject.curriculum = fit.curriculum
     draftProject.weeks = sp.weeks

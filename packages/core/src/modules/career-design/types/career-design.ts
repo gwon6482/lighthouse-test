@@ -178,6 +178,7 @@ export interface DraftPlan {
   editBase?: EditBase       // 수정을 시작할 때의 원본 — 마칠 때 바뀐 것만 서버에 반영하고(commitEdit), 취소하면 그냥 버린다
   targetJobCode?: string    // 목표 직업의 진로백과 코드(로컬만) — 예시 진로설계(템플릿·도우미 추천)를 이 코드로 찾는다. 직접 적은 목표면 비어 있다
   templateTrack?: string | null   // 템플릿 화면에서 고른 갈래(로컬만) — 도우미 추천이 같은 갈래의 프로젝트를 보여 준다
+  datedExpired?: string[]   // 계획 시작일이 옮겨져 정한 날짜가 지나 주 수로 바꾼 걸음의 알림 한 줄씩(로컬만, 2026-11-25 lib/projectDates.expiredLine)
   timeline: TimelineMonth[]
 }
 

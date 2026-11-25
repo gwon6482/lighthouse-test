@@ -9,6 +9,8 @@
     <CdStepIndicator step="overview" />
 
     <div class="cd-plan-write__body">
+      <!-- 날짜로 정한 걸음의 날짜가 계획 시작일보다 앞이 되어 주 수로 바꾼 것(2026-11-25 독립 검토 ④) -->
+      <p v-for="line in draftPlan.datedExpired ?? []" :key="line" class="cd-plan-write__dated-note">{{ line }}</p>
 
       <!-- 목표 설정 -->
       <div class="cd-plan-write__section">
@@ -168,6 +170,8 @@ async function goNext() {
     border-radius: 16px;
     padding: 20px;
   }
+
+  &__dated-note { margin: 0; padding: 10px 14px; border-radius: 12px; background: #FFF4E5; color: #B54708; font-size: 12.5px; font-weight: 600; line-height: 1.5; word-break: keep-all; }
 
   &__section-title {
     font-size: 15px;

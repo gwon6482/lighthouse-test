@@ -8,7 +8,7 @@ import { expandPhases } from '../lib/examPace'
 import { startsOf } from '../lib/examDate'
 import { applyPeriodChange, periodCurriculum } from '../lib/period'
 import {
-  alignDated, canUseDates, datedFixed, datedFlips, datedRange, datedRangeSlash, fitCurriculumToWeeks, flipGroups, iga, eunNeun, isDateKey,
+  alignDated, canUseDates, datedFixed, datesMatchSlot, expiredLine, isPlainPhases, datedFlips, datedRange, datedRangeSlash, fitCurriculumToWeeks, flipGroups, iga, eunNeun, isDateKey,
   isDated, newFlips, outsideDates, projectDatesOf, runsInDates, spanOfDates,
 } from '../lib/projectDates'
 
@@ -265,5 +265,60 @@ describe('표시', () => {
     expect(eunNeun('공모전 도전')).toBe('공모전 도전은')
     expect(eunNeun('현장실습')).toBe('현장실습은')
     expect(iga('\'틈틈이\'')).toBe('\'틈틈이\'가')
+  })
+})
+
+describe('독립 검토 반영(2026-11-25)', () => {
+  it('① 단계 꼴에 사용자가 줄을 더했으면 비율로 다시 펴지 않는다 — 그 줄이 4주·7주 어느 쪽에서도 남는다', () => {
+    const p = contest()
+    expect(isPlainPhases(p.curriculum!)).toBe(true)
+    const edited: Project = { ...p, curriculum: p.curriculum!.map((w) => (w.title === '만들기 (2/4)' ? { ...w, items: [...w.items, '내가 더한 줄'] } : w)) }
+    expect(isPlainPhases(edited.curriculum!)).toBe(false)
+    for (const n of [4, 7, 2]) {
+      const fit = fitCurriculumToWeeks(edited, n)
+      expect(fit.curriculum!.length).toBe(n)
+      expect(fit.curriculum!.some((w) => w.items.includes('내가 더한 줄'))).toBe(true)
+    }
+    // 첫 주를 고친 것도 손댄 것
+    const firstEdited = { ...p, curriculum: p.curriculum!.map((w, i) => (i === 1 ? { ...w, items: ['다름'] } : w)) }
+    expect(isPlainPhases(firstEdited.curriculum!)).toBe(false)
+  })
+  it('② 날짜로 정한 딸린 걸음 — 새 계획 배치와 주간결산 다시 놓기가 같은 자리(날짜)', () => {
+    const pre = mk('pre', 3, 4)
+    const course: Project = { ...mk('school', 10, 40), period: true, course: true, days: ['월', '화', '수', '목', '금'], duration: 480 }
+    const rider: Project = { ...mk('rider', 2, 4), during: true, dateStart: '2026-12-07', dateEnd: '2026-12-20' }
+    const projects = [pre, course, rider]
+    const tl = buildTimeline(projects, 8, {}, { startDate: START, reviewDay: '월' })
+    const s1 = startsOf(tl.flatMap((sl) => sl.projects.map((project) => ({ week: sl.week, project }))))
+    expect(s1.get('rider')).toBe(3)
+    const r = rescheduleFrom(projects, tl, 2, 4, 60, { startDate: START, reviewDay: '월' })
+    const s2 = startsOf(r.timeline.flatMap((sl) => sl.projects.map((project) => ({ week: sl.week, project }))))
+    expect(s2.get('rider')).toBe(3)
+    // 날짜 없는 딸린 걸음은 예전처럼 과정 끝에
+    const plain = { ...rider, dateStart: undefined, dateEnd: undefined }
+    const s3 = startsOf(autoSchedule([pre, course, plain], 8, { fixed: datedFixed([pre, course, plain], CTX) }))
+    expect(s3.get('rider')).toBe(s3.get('school')! + 10 - 2)
+  })
+  it('② 고정된 무거운 과정 기간은 주간결산 다시 놓기(rescheduleCore)에서도 건너뛴다', () => {
+    const intern: Project = { ...mk('intern', 8, 40), period: true, days: ['월', '화', '수', '목', '금'], duration: 480, dateStart: '2026-12-21', dateEnd: '2027-02-14' }
+    const projects = [mk('A', 2, 4), mk('B', 6, 4), intern]
+    const tl = buildTimeline(projects, 16, {}, { startDate: START, reviewDay: '월' })
+    const r = rescheduleFrom(projects, tl, 2, 16, 60, { startDate: START, reviewDay: '월' })
+    const s = startsOf(r.timeline.flatMap((sl) => sl.projects.map((project) => ({ week: sl.week, project }))))
+    expect(s.get('intern')).toBe(5)
+    expect(s.get('B')).toBe(13)          // 2~4주차(3주)에 6주짜리가 안 들어가 인턴(5~12주) 뒤로
+  })
+  it('④ 계획 시작일이 마감 뒤로 옮겨지면 날짜를 지워 주 수 걸음으로, 한 줄', () => {
+    const p = contest({ dateStart: '2026-11-25', dateEnd: '2026-11-27' })
+    const r = alignDated([p], [{ week: 1, projects: [p] }], { startDate: '2026-11-28', reviewDay: '월' })
+    expect(r.changed).toBe(true)
+    expect([r.projects[0]!.dateStart, r.projects[0]!.dateEnd]).toEqual(['', ''])
+    expect(r.expired.map(expiredLine)).toEqual(['‘공모전 도전’은 정한 날짜(11.25~11.27)가 지나서 주 수로 바꿨어요.'])
+    expect(r.timeline[0]!.projects[0]!.dateStart).toBe('')
+  })
+  it('③ 자리와 날짜가 맞는지', () => {
+    expect(datesMatchSlot(contest(), 15, CTX)).toBe(true)
+    expect(datesMatchSlot(contest(), 18, CTX)).toBe(false)
+    expect(datesMatchSlot(contest(), undefined, CTX)).toBe(false)
   })
 })

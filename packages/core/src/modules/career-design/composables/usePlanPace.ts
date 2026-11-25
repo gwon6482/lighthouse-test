@@ -265,6 +265,9 @@ function rescheduleCore(
   // 과정에 딸린 프로젝트: 과정이 옮겨진 만큼 함께 옮긴다. 자리가 없던 것은 과정 끝에 맞춘다
   const newStart = new Map(placed.map(({ week, project }) => [project.id, week]))
   for (const p of riders) {
+    // 날짜로 정한 딸린 걸음(독립 검토 ②) — 과정을 따라가지 않고 그 날짜에(autoSchedule 이 고정 걸음을 먼저 까는 것과 같게)
+    const f = opts.fixed?.get(p.id)
+    if (f != null) { placed.push({ week: Math.max(fromWeek, f), project: p }); continue }
     const o = owners.get(p.id)!
     const oOld = startOf.get(o.id)
     const oNew = newStart.get(o.id) ?? oOld

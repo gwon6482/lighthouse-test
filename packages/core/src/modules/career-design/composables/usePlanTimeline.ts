@@ -312,7 +312,7 @@ export function autoSchedule(projects: Project[], budgetHours: number, opts: Sch
   const tail = new Map<string, number>()      // 과정 id → 딸린 프로젝트의 주 수 합
   for (const p of projects) {
     const o = owners.get(p.id)
-    if (o) tail.set(o.id, (tail.get(o.id) ?? 0) + projectWeeks(p))
+    if (o && opts.fixed?.get(p.id) == null) tail.set(o.id, (tail.get(o.id) ?? 0) + projectWeeks(p))   // 고정된 딸린 걸음은 과정 끝에 줄 세우지 않는다
   }
   const cursor = new Map<string, number>()    // 과정 id → 다음 딸린 프로젝트가 시작할 자리(0부터)
   let floor = 0
@@ -336,6 +336,7 @@ export function autoSchedule(projects: Project[], budgetHours: number, opts: Sch
   for (const p of projects) {
     const fixedAt = opts.fixed?.get(p.id)
     if (fixedAt != null) {                       // 고정 걸음 — 순서의 바닥만 맞춘다
+      if (owners.has(p.id)) continue             // 고정된 딸린 걸음(날짜) — 딸린 걸음은 원래 순서 바닥을 바꾸지 않는다(rescheduleCore 와 같게)
       const s = Math.max(0, fixedAt - 1)
       floor = Math.max(floor, s)
       lastEnd = Math.max(lastEnd, s + projectWeeks(p))

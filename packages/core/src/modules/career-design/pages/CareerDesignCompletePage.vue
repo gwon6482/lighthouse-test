@@ -473,11 +473,27 @@ function fasterPaceFor(datedId: string): string {
 }
 const datedLines = computed(() => {
   if (!draftPlan.startDate) return []
-  const out: string[] = []
+  const out: string[] = [...(draftPlan.datedExpired ?? [])]
   for (const g of flipGroups(datedFlips(draftPlan.projects, timelineStarts.value, datedCtx.value))) {
     const who = g.more ? `${g.first.name} 외 ${g.more}개` : g.first.name
     const faster = fasterPaceFor(g.dated.id)
     out.push(`${iga(who)} ${g.dated.name}(${rangeTight(g.dated)}) 뒤로 갔어요.${faster ? ` ‘${faster}’${euro(faster).slice(faster.length)} 바꾸면 앞에 들어가요.` : ''}`)
+  }
+  // 고정 걸음(날짜·시험일)끼리 겹쳐 한 주 시간이 속도를 넘는 주 — 자동 배치에서도 생긴다(독립 검토 ⑤). 막지 않고 한 줄
+  if (draftPlan.weeklyHours) {
+    const fixedIds = new Set(draftPlan.projects.filter((p) => isPlaced(p.id) && (datedSpanOf(p, datedCtx.value) || examDateOf(p))).map((p) => p.id))
+    const seen = new Set<string>()
+    for (const r of weekRows.value) {
+      const fx = r.bars.filter((b) => fixedIds.has(b.project.id)).map((b) => b.project)
+      if (fx.length < 2 || r.hours <= draftPlan.weeklyHours) continue
+      const d = fx.find((p) => isDated(p)) ?? fx[0]!
+      const other = fx.find((p) => p.id !== d.id)!
+      const key = [d.id, other.id].sort().join('|')
+      if (seen.has(key)) continue
+      seen.add(key)
+      const head = isDated(d) ? `${d.name}(${rangeTight(d)})` : d.name
+      out.push(`${head}${gwaWa(d.name).slice(-1)} ${iga(other.name)} 겹치는 주는 한 주 시간이 속도보다 많아요.`)
+    }
   }
   // 손으로 옮기거나 고친 계획 — 날짜 걸음 기간에 한 주 시간이 속도보다 많은 주가 있으면(혼자서 넘는 걸음은 빼고)
   if ((editing.value || draftPlan.timelineManual) && draftPlan.weeklyHours) {
@@ -485,7 +501,7 @@ const datedLines = computed(() => {
       const sp = isPlaced(p.id) ? datedSpanOf(p, datedCtx.value) : null
       if (!sp || projectHoursPerWeek(p) > draftPlan.weeklyHours) continue
       const over = weekRows.value.some((r) => r.week >= sp.startWeek && r.week <= sp.endWeek && r.bars.length > 1 && r.hours > draftPlan.weeklyHours!)
-      if (over) out.push(`${gwaWa(p.name).slice(0, -1)}(${rangeTight(p)})${gwaWa(p.name).slice(-1)} 겹치는 주는 한 주 시간이 속도보다 많아요.`)
+      if (over && !out.some((l) => l.startsWith(`${p.name}(`) && l.includes('겹치는 주'))) out.push(`${gwaWa(p.name).slice(0, -1)}(${rangeTight(p)})${gwaWa(p.name).slice(-1)} 겹치는 주는 한 주 시간이 속도보다 많아요.`)
     }
   }
   return out
