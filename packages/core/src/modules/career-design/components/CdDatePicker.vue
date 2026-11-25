@@ -67,6 +67,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { getToday } from '@/shared/utils/dev-date'
 
 const props = defineProps<{ modelValue: string; placeholder?: string; min?: string }>()
 const emit  = defineEmits<{ (e: 'update:modelValue', v: string): void }>()
@@ -75,7 +76,7 @@ const rootRef = ref<HTMLElement | null>(null)
 const isOpen  = ref(false)
 const panelStyle = ref<Record<string, string>>({})
 
-const today = new Date()
+const today = getToday() // 앱의 하루 — 최솟값(getToday)과 같은 '오늘'을 칠한다
 const viewYear  = ref(props.modelValue ? +props.modelValue.slice(0, 4) : today.getFullYear())
 const viewMonth = ref(props.modelValue ? +props.modelValue.slice(5, 7) - 1 : today.getMonth())
 

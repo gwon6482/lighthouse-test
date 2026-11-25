@@ -64,6 +64,7 @@ import { buildTimeline, examAgeOptions } from '../composables/usePlanPace'
 import { budgetHours, stripLoad, withRoutineLoad } from '../lib/routine'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useDatedAlign } from '../composables/useDatedAlign'
+import { getToday } from '@/shared/utils/dev-date'
 
 const router = useRouter()
 const { prevPath, nextPath, editing } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
@@ -95,7 +96,7 @@ function reanchorExams() {
 // 첫 리뷰일 — 1주차는 시작일(아직 없으면 오늘)부터 첫 리뷰일 전날까지 7~13일(2026-11-04)
 const firstReview = computed(() => {
   if (!draftPlan.reviewDay) return ''
-  const sd = parseDateKey(draftPlan.startDate) ?? new Date()
+  const sd = parseDateKey(draftPlan.startDate) ?? getToday()
   const d = firstReviewDate(sd, draftPlan.reviewDay)
   return `${d.getMonth() + 1}월 ${d.getDate()}일 ${draftPlan.reviewDay}요일`
 })

@@ -111,6 +111,7 @@
 
 <script setup lang="ts">
 import AppIcon from '@/shared/components/AppIcon.vue'
+import { getTodayKey } from '@/shared/utils/dev-date'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
@@ -141,8 +142,7 @@ const itemId = computed(() => String(route.params.id ?? ''))
 const dateKey = computed(() => String(route.query.date ?? toTodayKey()))
 
 function toTodayKey(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return getTodayKey() // 앱의 하루(하루 시작 시각 기준) — 홈이 ?date= 로 넘기는 날짜와 같은 규칙
 }
 
 const loading = ref(true)
