@@ -85,6 +85,8 @@ watch(() => props.open, async (v) => {
     color: #222;
     text-align: left;
     cursor: pointer;
+    outline: none;
+    &:focus-visible { background: #F7F7F8; }
     :deep(svg) { width: 18px; height: 18px; color: #666; }
     small { margin-left: auto; font-size: 12.5px; color: #999; }
     &--danger { color: #D93636; :deep(svg) { color: #D93636; } }
