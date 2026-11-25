@@ -28,6 +28,9 @@ export const useAchievementStore = defineStore('achievement', () => {
   const plan = ref<ActivePlan | null>(null)
   const loaded = ref(false)
   const loading = ref(false)
+  // 마지막 읽기가 실패했나(2026-11-25 핫픽스) — '진행 중인 계획이 없다'와 '못 읽었다'는 둘 다 plan 이 null 이라 따로 적는다.
+  // 진로달성 홈이 이걸 보고 가른다: 없으면 계획 전 홈(/main/before)으로, 못 읽었으면 '다시 불러오기'
+  const loadFailed = ref(false)
 
   const hasActivePlan = computed(() => !!plan.value && plan.value.status === 'active')
 
@@ -70,6 +73,7 @@ export const useAchievementStore = defineStore('achievement', () => {
       const target = plans.find((p: any) => p.status === 'active')
       if (!target) {
         plan.value = null
+        loadFailed.value = false
         clearRecordCaches() // 계획을 지웠으면 그 기록 캐시도(로그 탭에 남지 않게)
         return
       }
@@ -96,8 +100,10 @@ export const useAchievementStore = defineStore('achievement', () => {
         useAchievementEntries().loadFromServer(p.planId),
         useCurriculumCompletion().loadFromServer(p.planId),
       ])
+      loadFailed.value = false
     } catch {
       plan.value = null
+      loadFailed.value = true
     } finally {
       loaded.value = true
       loading.value = false
@@ -108,6 +114,7 @@ export const useAchievementStore = defineStore('achievement', () => {
     plan.value = null
     loaded.value = false
     loading.value = false
+    loadFailed.value = false
     clearRecordCaches() // 로그아웃 — 다음 사람이 같은 기기에서 이전 기록을 보지 않게
   }
   // 기기에 캐시한 실천 기록·완료 표시·커리큘럼 완료(localStorage) 비우기(2026-11-04)
@@ -122,6 +129,7 @@ export const useAchievementStore = defineStore('achievement', () => {
     plan,
     loaded,
     loading,
+    loadFailed,
     hasActivePlan,
     todayPendingCount,
     loadActivePlan,
