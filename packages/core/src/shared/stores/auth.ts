@@ -99,6 +99,8 @@ export const useAuthStore = defineStore('auth', () => {
   // 하루 시작 시각 바꾸기(마이페이지) — 다음 하루부터 적용. 서버가 적용 시점(from·since)을 정해 돌려준다
   async function updateDayStart(hour: number) {
     const res = await req.put('/api/user/profile', { settings: { dayStartHour: hour } })
+    // 옛 서버는 모르는 칸을 버리고 200 을 준다 — 저장되지 않았으면 실패로 알린다(배포 사이 잠깐)
+    if (res.data?.user?.settings?.dayStart?.hour !== hour) throw new Error('day start not saved')
     _applyUser(res.data.user)
   }
 
