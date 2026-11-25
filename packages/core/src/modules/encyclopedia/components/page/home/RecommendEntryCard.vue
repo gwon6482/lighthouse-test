@@ -90,7 +90,7 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { REASON_AXIS, whyParts } from '@/modules/survey/lib/jobGroupWhy'
 import type { JobGroupJob } from '@/modules/survey/types/survey'
 import { useMyJobGroups, loadMyTarget } from '../../../composables/useMyJobGroups'
-import { REP_JOBS, hasMoreJobs, type TargetLine } from '../../../lib/myJobGroups'
+import { REP_JOBS, hasMoreJobs, recHeading, type TargetLine } from '../../../lib/myJobGroups'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -112,7 +112,7 @@ const busy = computed(() => state.value === 'idle' || state.value === 'loading' 
 const heading = computed(() => {
   if (state.value === 'guest') return '나와 가까운 직업 찾기'
   // 목표가 있으면 추천은 대안으로 이름 붙인다(직무를 보여 줄 때만 — 검사 전 안내는 그대로)
-  return target.value && state.value === 'ready' && groups.value.length ? '다른 길도 살펴보기' : '나의 추천 진로'
+  return recHeading(!!target.value, state.value === 'ready' && groups.value.length > 0)
 })
 const sub = computed(() => {
   if (busy.value) return ''

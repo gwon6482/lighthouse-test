@@ -48,3 +48,23 @@ export function targetLine(t: TargetCareer | null | undefined): TargetLine | nul
   }
   return { title, jobCode: null }
 }
+
+/**
+ * 검사 날짜 글 'M월 D일'(기기 시각 기준). 올해가 아니면 연도를 붙인다. 읽을 수 없으면 ''.
+ * '나의 추천 진로' 화면 머리 — 다시 검사할 수 있어 어느 검사의 추천인지 밝힌다(2026-11-26 오너 결정 6).
+ */
+export function surveyDateLabel(iso: string | null | undefined, now: Date = new Date()): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const md = `${d.getMonth() + 1}월 ${d.getDate()}일`
+  return d.getFullYear() === now.getFullYear() ? md : `${d.getFullYear()}년 ${md}`
+}
+
+/**
+ * 추천 화면·카드의 제목 — 목표를 정했고 추천 직무가 보이면 '다른 길도 살펴보기', 아니면 '나의 추천 진로'.
+ * 진로백과 메인 카드와 '나의 추천 진로' 화면이 같은 규칙을 쓴다(2026-11-26 오너 결정 7).
+ */
+export function recHeading(hasTarget: boolean, groupsShown: boolean): string {
+  return hasTarget && groupsShown ? '다른 길도 살펴보기' : '나의 추천 진로'
+}

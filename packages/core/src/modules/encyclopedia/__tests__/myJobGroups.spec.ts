@@ -64,3 +64,35 @@ describe('목표 한 줄', () => {
     expect(targetLine(null)).toBeNull()
   })
 })
+
+// '나의 추천 진로' 화면(2026-11-26) — 머리의 검사 날짜와 제목
+import { recHeading, surveyDateLabel } from '../lib/myJobGroups'
+
+describe('surveyDateLabel — 검사 날짜 글', () => {
+  const now = new Date(2026, 10, 26, 1, 0) // 2026-11-26 01:00(기기 시각)
+  it('올해 검사는 "M월 D일"', () => {
+    expect(surveyDateLabel(new Date(2026, 10, 20, 15, 30).toISOString(), now)).toBe('11월 20일')
+  })
+  it('자정 직후 검사도 기기 날짜로 적는다(UTC 날짜가 아니다)', () => {
+    expect(surveyDateLabel(new Date(2026, 10, 21, 0, 10).toISOString(), now)).toBe('11월 21일')
+  })
+  it('올해가 아니면 연도를 붙인다', () => {
+    expect(surveyDateLabel(new Date(2025, 11, 31, 12, 0).toISOString(), now)).toBe('2025년 12월 31일')
+  })
+  it('없거나 읽을 수 없으면 빈 글', () => {
+    expect(surveyDateLabel('', now)).toBe('')
+    expect(surveyDateLabel(null, now)).toBe('')
+    expect(surveyDateLabel('날짜 아님', now)).toBe('')
+  })
+})
+
+describe('recHeading — 추천 화면·카드의 제목', () => {
+  it('목표가 있고 추천 직무가 보이면 "다른 길도 살펴보기"', () => {
+    expect(recHeading(true, true)).toBe('다른 길도 살펴보기')
+  })
+  it('목표가 없거나 직무가 안 보이면 "나의 추천 진로"', () => {
+    expect(recHeading(false, true)).toBe('나의 추천 진로')
+    expect(recHeading(true, false)).toBe('나의 추천 진로')
+    expect(recHeading(false, false)).toBe('나의 추천 진로')
+  })
+})

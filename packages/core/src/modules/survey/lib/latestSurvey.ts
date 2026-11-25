@@ -74,3 +74,19 @@ export async function resolveLatestSurveyId(): Promise<string> {
   if (accountGeneration() !== gen) return '' // 받는 사이 계정이 바뀌었다 — 앞 계정의 목록을 쓰지 않는다
   return chooseSurveyId(id, list)
 }
+
+/**
+ * 내 목록에서 이 검사의 제출 시각(ISO). 없거나 못 받으면 ''.
+ * '나의 추천 진로' 화면 머리의 검사 날짜(2026-11-26) — 방금 resolveLatestSurveyId 가 받아 둔 목록을 다시 쓴다.
+ */
+export async function surveySubmittedAt(surveyId: string): Promise<string> {
+  if (!surveyId) return ''
+  const gen = accountGeneration()
+  try {
+    const list = await listFor(gen, false)
+    if (accountGeneration() !== gen) return ''
+    return list.find((s) => s?.survey_id === surveyId)?.submitted_at ?? ''
+  } catch {
+    return ''
+  }
+}
