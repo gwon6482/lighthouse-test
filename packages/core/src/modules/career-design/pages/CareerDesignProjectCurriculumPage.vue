@@ -72,6 +72,7 @@ import { projectWeeks } from '../composables/usePlanTimeline'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
+import { useDatedAlign } from '../composables/useDatedAlign'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { DEFAULT_WEEKS, defaultWeekTitle, syncCurriculumLength, weekEntriesOf } from '../composables/useProjectCurriculum'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
@@ -79,6 +80,7 @@ import type { ProjectCategory, WeekCurriculum } from '../types/career-design'
 
 const router = useRouter()
 const { draftPlan, draftProject, editingProjectId, syncAddProject, syncUpdateProject } = useCareerDesign()
+const { alignDraft } = useDatedAlign()
 
 const WRITE_PATH = '/career-design/project/new'
 
@@ -216,6 +218,8 @@ async function saveProject() {
     // ⚠️ 필드를 하나씩 옮겨 담는 곳이다 — Project 에 필드를 늘리면 여기도 넣을 것(진행 방식이 한 번 빠졌었다)
     method: draftProject.method ?? null,
     methodDetail: { ...(draftProject.methodDetail ?? {}) },
+    // 날짜로 정한 프로젝트(2026-11-25) — 둘을 함께. 주 수로 바꾼 것은 '' 둘(서버가 지운다)
+    ...(draftProject.dateStart !== undefined || draftProject.dateEnd !== undefined ? { dateStart: draftProject.dateStart ?? '', dateEnd: draftProject.dateEnd ?? '' } : {}),
     // 고치기에서 과정 → 진도로 바꾼 것(2026-11-16) — 끈다는 값을 실어야 서버도 끈다. 그 밖엔 싣지 않는다
     ...(draftProject.period === false ? { period: false as const } : {}),
   }
@@ -237,6 +241,8 @@ async function saveProject() {
     draftPlan.projects.push(newProject)
     await syncAddProject(newProject)
   }
+  // 수정 흐름에서 날짜를 넣거나 바꾼 걸음은 그 날짜로 옮긴다(나머지는 그대로 — 2026-11-25)
+  if (draftPlan.editing) alignDraft({ rebuild: false })
 
   saved = true
   saving.value = false

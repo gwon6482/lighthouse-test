@@ -247,7 +247,7 @@ export function usePlanBoard() {
     const pl = plan.value
     if (!pl) return []
     const cur = phase.value === 'before' ? 0 : phase.value === 'finished' ? Number.MAX_SAFE_INTEGER : weekNumber.value
-    return roadmapStops(pl.projects, pl.timeline, cur, isItemDone)
+    return roadmapStops(pl.projects, pl.timeline, cur, isItemDone, phase.value === 'running' ? todayKey.value : '')
   })
   // 'M/D' — 계획 n주차의 월요일·일요일
   function weekSpanLabel(fromWeek: number, toWeek: number): string {

@@ -25,7 +25,7 @@ export const aheadFromNote = (note?: string | null): string | null =>
 
 export interface AheadItem { id?: string; itemType: 'project' | 'routine'; itemId: string; date?: string; note?: string; curriculumWeek?: number | null }
 export interface AheadDay { date: string; items: AheadItem[] }
-export interface AheadProject { period?: boolean; stoppedAt?: string }
+export interface AheadProject { period?: boolean; stoppedAt?: string; dateStart?: string; dateEnd?: string }
 export interface AheadCandidate { projectId: string; date: string }
 
 /**
@@ -60,6 +60,8 @@ export function pullAheadCandidates(o: {
       const p = o.projectOf(it.itemId)
       if (!p || p.period) continue
       if (p.stoppedAt && p.stoppedAt <= o.todayKey) continue
+      // 날짜로 정한 걸음(2026-11-25 독립 검토 ⑥) — 시작일 전에는 당겨 하지 않는다
+      if (p.dateStart && p.dateEnd && o.todayKey < p.dateStart) continue
       if (today.has(it.itemId) || o.skip?.has(it.itemId)) continue
       if (o.isDone(it.itemId, day.date) || o.isDone(it.itemId, o.todayKey)) continue
       if (!o.hasUndoneThisWeek(it.itemId)) continue

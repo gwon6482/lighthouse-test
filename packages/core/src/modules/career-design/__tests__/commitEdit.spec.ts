@@ -69,3 +69,30 @@ describe('수정 중 저장 미루기 + commitEdit', () => {
     expect(sig.some((s) => /projects|routines|timeline/.test(s))).toBe(false)
   })
 })
+
+// 날짜로 정한 프로젝트(2026-11-25) — 주 수로 되돌리면 '' 두 칸을 보내 서버가 지운다, 날짜를 넣으면 두 칸을 함께
+describe('commitEdit — 프로젝트 날짜 두 칸', () => {
+  const cd = useCareerDesign()
+  beforeEach(async () => {
+    cd.resetDraftPlan()
+    await cd.loadPlanFromApi('P1')
+    calls.length = 0
+  })
+  it('날짜를 넣으면 dateStart·dateEnd 를 함께, 주 수로 되돌리면 빈 글 둘을', async () => {
+    const a = cd.draftPlan.projects.find((p) => p.id === 'a')!
+    a.dateStart = '2026-11-10'; a.dateEnd = '2026-12-04'
+    expect(await cd.commitEdit()).toBe(true)
+    const put = calls.find((x) => x.m === 'put' && x.url.endsWith('/projects/a'))!
+    expect([put.body.dateStart, put.body.dateEnd]).toEqual(['2026-11-10', '2026-12-04'])
+    // 다시 수정 — 주 수로(입력 화면 setDateMode(false)가 남기는 모양)
+    await cd.loadPlanFromApi('P1')
+    const b = cd.draftPlan.projects.find((p) => p.id === 'b')!
+    b.dateStart = ''; b.dateEnd = ''
+    calls.length = 0
+    expect(await cd.commitEdit()).toBe(true)
+    const put2 = calls.find((x) => x.m === 'put' && x.url.endsWith('/projects/b'))!
+    expect([put2.body.dateStart, put2.body.dateEnd]).toEqual(['', ''])
+    // 날짜 칸이 없는 프로젝트(a 다시 읽음 — 서버 가짜는 날짜를 안 돌려줌)는 날짜 칸을 보내지 않는다
+    expect(calls.some((x) => x.url.endsWith('/projects/a'))).toBe(false)
+  })
+})

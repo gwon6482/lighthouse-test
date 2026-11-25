@@ -102,7 +102,8 @@ $rm-bar-h: 90px; // 실측 높이(노치 없는 폰) — 자동 이동 때 정�
   &:active { transform: scale(0.98); }
   &__top { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
   &__chip { flex: 0 0 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; font-size: 15px; }
-  &__when { flex: 1; min-width: 0; font-size: $fs-2xs; color: $color-text-secondary; font-variant-numeric: tabular-nums; }
+  // 날짜로 정한 걸음(2026-11-25)은 '3/2~4/9 · 15~20주차'로 길어진다 — '15~20'과 '주차' 사이에서 꺾이지 않게 낱말 단위로
+  &__when { flex: 1; min-width: 0; font-size: $fs-2xs; color: $color-text-secondary; font-variant-numeric: tabular-nums; word-break: keep-all; }
   &__status { flex: 0 0 auto; padding: 3px 8px; border-radius: $radius-pill; background: $color-surface-alt; font-size: 11px; font-weight: $tw-title; color: $color-text-secondary; }
   // 긴 이름(가운뎃점으로 이어진 과목 나열)이 좁은 폰 사파리에서 줄을 못 바꿔 7px 넘쳤다(2026-11-23 실측) — 낱말 안에서도 꺾이게
   &__name { grid-column: 1 / -1; min-width: 0; font-size: $fs-base; font-weight: $tw-title; word-break: keep-all; overflow-wrap: anywhere; }

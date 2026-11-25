@@ -45,7 +45,8 @@
                 <span class="rm-stop__chip" :style="{ color: categoryColor(s.project.category), background: tint(categoryColor(s.project.category)) }">
                   <AppIcon :name="s.project.period ? 'kind-period' : (methodIcon(s.project.method) || 'ui-target')" />
                 </span>
-                <span class="rm-stop__when">{{ s.startWeek }}~{{ s.endWeek }}주차 · {{ weekSpanLabel(s.startWeek, s.endWeek) }}</span>
+                <span v-if="datedRangeSlash(s.project)" class="rm-stop__when">{{ datedRangeSlash(s.project) }} · {{ s.startWeek }}~{{ s.endWeek }}주차</span>
+                <span v-else class="rm-stop__when">{{ s.startWeek }}~{{ s.endWeek }}주차 · {{ weekSpanLabel(s.startWeek, s.endWeek) }}</span>
                 <span class="rm-stop__status">{{ statusLabel(s) }}</span>
                 <AppIcon name="ui-chevron-down" class="rm-stop__chev chevron-toggle" :class="{ 'chevron-toggle--open': open[s.project.id] === 'all' }" />
               </span>
@@ -114,6 +115,7 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import { usePlanBoard } from '../composables/usePlanBoard'
 import { categoryColor, categoryLabel, roadmapWeekLabel, parsePlanDate, daysBetween, phaseProgress, phaseLineSub, type PhaseProgress, type RoadmapStop } from '../lib/planBoard'
 import { methodIcon } from '@/modules/career-design/composables/projectMethods'
+import { datedRangeSlash, mdSlash, projectDatesOf } from '@/modules/career-design/lib/projectDates'
 import PeriodTag from '@/modules/career-design/components/PeriodTag.vue'
 
 const router = useRouter()
@@ -144,6 +146,9 @@ function statusLabel(s: RoadmapStop): string {
   if (s.project.stoppedAt) return '그만둠'          // 과정을 주간결산에서 그만둔 것(2026-11-16)
   if (s.status === 'done') return '완료'
   if (s.status === 'now') return '진행 중'
+  // 날짜로 정한 걸음(2026-11-25) — 마감일이 보이게(정할 것 5). 오늘 할 일엔 더 나오지 않는다(지금 모든 걸음과 같음)
+  const dates = projectDatesOf(s.project)
+  if (s.status === 'past' && dates) return `${mdSlash(dates.end)} 마감 지남 · 남은 ${s.total - s.done}`
   if (s.status === 'past') return `남은 항목 ${s.total - s.done}`
   const wk = weekNumber.value
   return wk && phase.value === 'running' ? `${s.startWeek - wk}주 뒤 시작` : '예정'

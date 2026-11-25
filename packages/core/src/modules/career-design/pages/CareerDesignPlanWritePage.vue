@@ -9,6 +9,8 @@
     <CdStepIndicator step="overview" />
 
     <div class="cd-plan-write__body">
+      <!-- 날짜로 정한 걸음의 날짜가 계획 시작일보다 앞이 되어 주 수로 바꾼 것(2026-11-25 독립 검토 ④) -->
+      <p v-for="line in draftPlan.datedExpired ?? []" :key="line" class="cd-plan-write__dated-note">{{ line }}</p>
 
       <!-- 목표 설정 -->
       <div class="cd-plan-write__section">
@@ -82,10 +84,12 @@ import CdYellowHeader from '../components/CdYellowHeader.vue'
 import CdStepIndicator from '../components/CdStepIndicator.vue'
 import { useDesignSteps } from '../composables/useDesignSteps'
 import { getToday } from '@/shared/utils/dev-date'
+import { useDatedAlign } from '../composables/useDatedAlign'
 
 const router = useRouter()
 const { prevPath, nextPath, editing } = useDesignSteps() // 이전·다음은 새 계획/수정에 따라 다르다(useDesignSteps)
 const { draftPlan, finalizePlan } = useCareerDesign()
+const { alignDraft } = useDatedAlign()
 
 // ⚠️ 2026-10-20 순서 변경: 목표 설정은 진로설계의 **맨 마지막** 단계다
 //   (진로계획 세우기 → 프로젝트 구성 → 타임라인 → 루틴 → 주간 리뷰 요일 → 목표 설정 → 계획 완성).
@@ -115,7 +119,12 @@ const todayLabel = computed(() => {
 // 시작일은 오늘로 고정. 타임라인 슬롯은 '몇 주차'로 저장돼 있어, 시작일이 바뀌어도 배치 순서·간격은 그대로다
 onMounted(() => {
   // 새 계획만 시작일을 오늘로. ⚠️ 수정 중엔 그대로 둔다 — 오늘로 바꾸면 진행 중인 계획의 주차·기록이 전부 밀린다
-  if (!editing.value) draftPlan.startDate = todayKey.value // 종료일(예상 완료일)은 useCareerDesign 이 따라 계산한다
+  if (!editing.value) {
+    const was = draftPlan.startDate
+    draftPlan.startDate = todayKey.value // 종료일(예상 완료일)은 useCareerDesign 이 따라 계산한다
+    // 계획을 며칠 뒤 마쳐 시작일이 바뀌면 날짜로 정한 걸음의 주가 달라진다 — 그 날짜에 다시 맞춘다(2026-11-25)
+    if (was !== draftPlan.startDate) alignDraft({ rebuild: true })
+  }
 })
 
 // 미저장 이탈 가드 (R2) — 개요 입력(이름/목표직업/기간) 변경 시 이탈 경고.
@@ -161,6 +170,8 @@ async function goNext() {
     border-radius: 16px;
     padding: 20px;
   }
+
+  &__dated-note { margin: 0; padding: 10px 14px; border-radius: 12px; background: #FFF4E5; color: #B54708; font-size: 12.5px; font-weight: 600; line-height: 1.5; word-break: keep-all; }
 
   &__section-title {
     font-size: 15px;

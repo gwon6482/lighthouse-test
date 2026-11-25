@@ -52,6 +52,11 @@ export interface Project {
   //   주간 할 일 없이 다니는 날 '완료' 한 번(집중모드 없음), 점검은 주간결산, 속도와 상관없이 기간 그대로. 없으면 '진도'(기본)
   period?: boolean
   stoppedAt?: string    // 과정을 그만둔 날('YYYY-MM-DD') — 주간결산 '그만뒀어요'
+  // 날짜로 정한 프로젝트(2026-11-25, lib/projectDates.ts) — 시작일·마감일(과정은 끝나는 날) 'YYYY-MM-DD'. 둘이 함께 있을 때만 뜻이 있다.
+  //   ⚠️ 계획의 startDate·endDate 와 다른 칸(서버 Project.dateStart·dateEnd). 그 날짜에 고정되고 주 수는 걸친 계획 주.
+  //   '' = 날짜를 지움(주 수로 바꿈 — 서버가 지우도록 빈 글을 보낸다)
+  dateStart?: string
+  dateEnd?: string
   // 큰 시험(2026-11-17, 정할 것 2·3 — lib/examPace.ts) — 진로계획 라이브러리의 '첫 시험까지(빠른 경우)' 공부 총량(시간).
   //   속도 고르기·주간결산 속도 바꾸기가 기간을 '분량 ÷ 주당 시간'으로 다시 잡는다. 0·없음 = 보통 프로젝트(사용자가 기간을 직접 고치면 끊는다)
   studyHours?: number
@@ -173,6 +178,7 @@ export interface DraftPlan {
   editBase?: EditBase       // 수정을 시작할 때의 원본 — 마칠 때 바뀐 것만 서버에 반영하고(commitEdit), 취소하면 그냥 버린다
   targetJobCode?: string    // 목표 직업의 진로백과 코드(로컬만) — 예시 진로설계(템플릿·도우미 추천)를 이 코드로 찾는다. 직접 적은 목표면 비어 있다
   templateTrack?: string | null   // 템플릿 화면에서 고른 갈래(로컬만) — 도우미 추천이 같은 갈래의 프로젝트를 보여 준다
+  datedExpired?: string[]   // 계획 시작일이 옮겨져 정한 날짜가 지나 주 수로 바꾼 걸음의 알림 한 줄씩(로컬만, 2026-11-25 lib/projectDates.expiredLine)
   timeline: TimelineMonth[]
 }
 

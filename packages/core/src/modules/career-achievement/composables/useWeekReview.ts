@@ -18,6 +18,7 @@ import type { DayOfWeek, Project, Routine, TimelineSlot } from '@/modules/career
 import { budgetHours, measureOf, measureTrend, shortened, stripLoad, twoWeeksLow, withRoutineLoad, type WeekCount } from '@/modules/career-design/lib/routine'
 import { ROUTINE_COLOR } from './usePlanBoard'
 import { allItemsDone, examAfterChange, examDateOf, type ExamSlot } from '@/modules/career-design/lib/examDate'
+import { datedFlips, datedSpanOf, newFlips, type DatedFlip } from '@/modules/career-design/lib/projectDates'
 import { useCurriculumCompletion } from './useCurriculumCompletion'
 import { useAuthStore } from '@/shared/stores/auth'
 
@@ -331,7 +332,7 @@ export function useWeekReview() {
   // 과정 일정을 바꿨으면(3단계) 바뀐 과정을 넣고 계산한다. moved = 시작 주가 달라지는 프로젝트 수(지금 배치와 비교)
   function endIfPace(pace: Pace) {
     const pl = plan.value
-    if (!pl) return { endDate: '', weeks: 0, remaining: 0, moved: 0, timeline: [] as TimelineSlot[], changed: [] as Project[], exams: [] as ExamSlot[] }
+    if (!pl) return { endDate: '', weeks: 0, remaining: 0, moved: 0, timeline: [] as TimelineSlot[], changed: [] as Project[], exams: [] as ExamSlot[], flips: [] as DatedFlip[], datedKept: [] as Project[] }
     // 루틴 시간도 속도 예산에(2026-11-21 정할 것 5) — 붙은 루틴은 그 프로젝트 시간으로, 붙지 않은 루틴은 예산에서 먼저 뺀다
     const loaded = withRoutineLoad(projectsNow.value, pl.routines.filter((x) => !(routineDrafts[x.id]?.kind === 'stop')))
     // 시험일이 있는 걸음은 그 자리에 두고, 큰 시험이 시험일을 넘는지 함께 본다(2026-11-22 시험일 역산)
@@ -340,7 +341,14 @@ export function useWeekReview() {
     const raw = rescheduleFrom(loaded.projects, timelineNow.value, nextWeek.value, budgetHours(pace.hours, loaded.freeMin), 60, { startDate: pl.startDate, reviewDay: pl.reviewDay || '월', minStart: ageOpts.minStart })
     const plain = (p: Project): Project => { if (p.routineMin === undefined) return p; const { routineMin: _m, ...rest } = p; void _m; return rest }
     const r = { ...raw, timeline: stripLoad(raw.timeline, projectsNow.value), changed: raw.changed.map(plain) }
-    const remaining = pl.projects.filter((p) => { const sw = projectStartWeek(pl.timeline, p.id); return sw === null || sw >= nextWeek.value }).length
+    // 날짜로 정한 걸음(2026-11-25) — 아직 시작 전이어도 그 날짜에 그대로라 '다시 배치'에 세지 않고 따로 이름을 댄다
+    const notStarted = pl.projects.filter((p) => { const sw = projectStartWeek(pl.timeline, p.id); return sw === null || sw >= nextWeek.value })
+    const ctx = { startDate: pl.startDate, reviewDay: pl.reviewDay || '월' as const }
+    const datedKept = notStarted.filter((p) => !!datedSpanOf(p, ctx))
+    const remaining = notStarted.length - datedKept.length
+    // 그 속도로 바꾸면 앞 걸음이 날짜 걸음 뒤로 새로 밀리는 것(지금도 뒤에 있는 것은 빼고)
+    const startsIn = (t: TimelineSlot[]) => { const m = new Map<string, number>(); for (const sl of t) for (const x of sl.projects) if (!m.has(x.id) || sl.week < m.get(x.id)!) m.set(x.id, sl.week); return m }
+    const flips = newFlips(datedFlips(projectsNow.value, startsIn(r.timeline), ctx), datedFlips(projectsNow.value, startsIn(timelineNow.value), ctx))
     const end = weekDateRange(pl.startDate, r.endWeek, pl.reviewDay)?.end ?? ''
     const moved = pl.projects.filter((p) => {
       const was = projectStartWeek(pl.timeline, p.id)
@@ -348,7 +356,7 @@ export function useWeekReview() {
       return was !== null && was >= nextWeek.value && now !== was
     }).length
     // changed = 새 속도로 다시 잡은 큰 시험(2026-11-17) — 결산을 마칠 때 저장한다
-    return { endDate: end, weeks: r.endWeek, remaining, moved, timeline: r.timeline, changed: r.changed, exams: r.exams }
+    return { endDate: end, weeks: r.endWeek, remaining, moved, timeline: r.timeline, changed: r.changed, exams: r.exams, flips, datedKept }
   }
   /** 그 속도로 바꾸면 시험일을 넘기는 시험(가장 많이 넘는 것) — 지금 속도에서는 넘지 않을 때만(바꿔서 생기는 일만 알린다) */
   function examLateIfPace(pace: Pace): { late: ExamSlot; now: ExamSlot | null } | null {
@@ -426,6 +434,8 @@ export function useWeekReview() {
     for (const { after: p } of periodList) {
       await req.put(`/api/career-plan/${pl.planId}/projects/${p.id}`, {
         curriculum: p.curriculum, days: p.days, ...(p.stoppedAt ? { stoppedAt: p.stoppedAt } : {}),
+        // 날짜로 정한 과정(2026-11-25)은 끝나는 날도 함께 바뀐다(lib/period.ts applyPeriodChange)
+        ...(p.dateStart && p.dateEnd ? { dateStart: p.dateStart, dateEnd: p.dateEnd } : {}),
       })
     }
     // 시험 뒤(정할 것 9) — 시험일만 바꾼다(걸음은 완료 처리하지 않는다)

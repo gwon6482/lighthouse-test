@@ -35,6 +35,8 @@
       <p v-for="x in lateSlots" :key="`late-${x.id}`" class="cd-complete__exam-late">{{ COPY.lateLine(x.name, mdLabel(x.date), -x.spare) }}</p>
       <p v-for="w in examWarns" :key="w" class="cd-complete__exam-late">{{ w }}</p>
       <p v-if="editing && examSlots.length" class="cd-complete__exam-note">{{ COPY.editNote }}</p>
+      <!-- 날짜로 정한 걸음(2026-11-25) — 앞 걸음이 날짜 걸음 뒤로 갔을 때·손으로 옮겨 겹칠 때 한 줄(정할 것 3, 막지 않음) -->
+      <p v-for="line in datedLines" :key="line" class="cd-complete__exam-late">{{ line }}</p>
 
       <!-- 프로젝트 풀 -->
       <div class="cd-complete__section">
@@ -165,7 +167,7 @@
                   <div class="cd-complete__bar-main">
                     <span class="cd-complete__bar-name">{{ bar.project.name }}</span>
                     <span v-if="bar.pos === 'start' || bar.pos === 'only'" class="cd-complete__bar-span">
-                      {{ projectWeeks(bar.project) }}주
+                      {{ isDated(bar.project) ? datedRange(bar.project) : `${projectWeeks(bar.project)}주` }}
                     </span>
                     <button
                       v-if="bar.pos === 'start' || bar.pos === 'only'"
@@ -271,9 +273,10 @@ import {
 } from '../composables/usePlanTimeline'
 import { getToday } from '@/shared/utils/dev-date'
 import { budgetHours, stripLoad, withRoutineLoad } from '../lib/routine'
-import { DEFAULT_PACE_HOURS, buildTimeline, examAgeOptions, monthsLabel, paceByKey, paceOfHours, pacedProjects } from '../composables/usePlanPace'
+import { DEFAULT_PACE_HOURS, PACES, buildTimeline, examAgeOptions, monthsLabel, paceByKey, paceOfHours, pacedProjects, schedulePreview } from '../composables/usePlanPace'
 import { examDateOf, examDateWarnings, examReport, mdLabel, shortMdLabel, startsOf, weekEndMd, weekEndYm } from '../lib/examDate'
 import { COPY } from '../lib/examDateRules'
+import { datedFlips, datedRange, datedSpanOf, endWord, euro, flipGroups, gwaWa, iga, isDated, mdDow, projectDatesOf } from '../lib/projectDates'
 import { useAuthStore } from '@/shared/stores/auth'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
@@ -432,6 +435,7 @@ const examWarns = computed(() => examDateWarnings(draftPlan.projects, timelineSt
   w.kind === 'pair' ? COPY.pairWarn(w.text.after!, w.text.before!) : w.kind === 'gap' ? COPY.gapWarn(w.text.after!, w.text.before!, w.text.weeks!)
     : w.kind === 'grade' ? COPY.gradeWarn : COPY.courseWarn(w.text.course!)))
 // 시험 날 표시 — 시험 날짜가 든 주(시험이 둘 이상이면 이름 앞말을 붙인다)
+// 날짜로 정한 걸음(2026-11-25)은 마감일이 든 주에 같은 모양으로 '공모전 도전 마감 4.9(금)'(과정은 '끝')
 const examPins = computed(() => {
   const m = new Map<number, string[]>()
   if (!draftPlan.startDate) return m
@@ -442,7 +446,65 @@ const examPins = computed(() => {
     if (!w) continue
     m.set(w, [...(m.get(w) ?? []), COPY.pin(shortMdLabel(d), dated.length > 1 ? COPY.pinHead(p.name) : '')])
   }
+  for (const p of draftPlan.projects) {
+    const d = projectDatesOf(p)
+    if (!d || !isPlaced(p.id)) continue
+    const w = weekOfDate(draftPlan.startDate, parseDateKey(d.end)!, draftPlan.reviewDay)
+    if (!w) continue
+    m.set(w, [...(m.get(w) ?? []), `${COPY.pinHead(p.name)} ${endWord(p)} ${mdDow(d.end)}`])
+  }
   return m
+})
+
+// ── 날짜로 정한 걸음(2026-11-25) — 알림 줄 ──
+// 앞 순서 걸음이 날짜 걸음 전에 못 끝나 뒤로 갔으면 한 줄. 새 계획이고 자동 배치 그대로면 앞에 들어가는 속도의 이름을 댄다
+const datedCtx = computed(() => ({ startDate: draftPlan.startDate || toDateKey(getToday()), reviewDay: draftPlan.reviewDay }))
+const rangeTight = (p: Project) => datedRange(p, '~')
+function fasterPaceFor(datedId: string): string {
+  const now = draftPlan.weeklyHours
+  if (!now || draftPlan.timelineManual || editing.value) return ''
+  const L = withRoutineLoad(draftPlan.projects, draftPlan.routines)
+  const opts = examAgeOptions(datedCtx.value.startDate, auth.user?.age, draftPlan.reviewDay)
+  for (const pace of PACES.filter((x) => x.hours > now).sort((a, b) => a.hours - b.hours)) {
+    const pv = schedulePreview(L.projects, pace.hours, opts, { ...datedCtx.value, late: new Set(draftPlan.examLate ?? []) }, budgetHours(pace.hours, L.freeMin))
+    if (!datedFlips(pv.projects, pv.starts, datedCtx.value).some((f) => f.dated.id === datedId)) return pace.title
+  }
+  return ''
+}
+const datedLines = computed(() => {
+  if (!draftPlan.startDate) return []
+  const out: string[] = [...(draftPlan.datedExpired ?? [])]
+  for (const g of flipGroups(datedFlips(draftPlan.projects, timelineStarts.value, datedCtx.value))) {
+    const who = g.more ? `${g.first.name} 외 ${g.more}개` : g.first.name
+    const faster = fasterPaceFor(g.dated.id)
+    out.push(`${iga(who)} ${g.dated.name}(${rangeTight(g.dated)}) 뒤로 갔어요.${faster ? ` ‘${faster}’${euro(faster).slice(faster.length)} 바꾸면 앞에 들어가요.` : ''}`)
+  }
+  // 고정 걸음(날짜·시험일)끼리 겹쳐 한 주 시간이 속도를 넘는 주 — 자동 배치에서도 생긴다(독립 검토 ⑤). 막지 않고 한 줄
+  if (draftPlan.weeklyHours) {
+    const fixedIds = new Set(draftPlan.projects.filter((p) => isPlaced(p.id) && (datedSpanOf(p, datedCtx.value) || examDateOf(p))).map((p) => p.id))
+    const seen = new Set<string>()
+    for (const r of weekRows.value) {
+      const fx = r.bars.filter((b) => fixedIds.has(b.project.id)).map((b) => b.project)
+      if (fx.length < 2 || r.hours <= draftPlan.weeklyHours) continue
+      const d = fx.find((p) => isDated(p)) ?? fx[0]!
+      const other = fx.find((p) => p.id !== d.id)!
+      const key = [d.id, other.id].sort().join('|')
+      if (seen.has(key)) continue
+      seen.add(key)
+      const head = isDated(d) ? `${d.name}(${rangeTight(d)})` : d.name
+      out.push(`${head}${gwaWa(d.name).slice(-1)} ${iga(other.name)} 겹치는 주는 한 주 시간이 속도보다 많아요.`)
+    }
+  }
+  // 손으로 옮기거나 고친 계획 — 날짜 걸음 기간에 한 주 시간이 속도보다 많은 주가 있으면(혼자서 넘는 걸음은 빼고)
+  if ((editing.value || draftPlan.timelineManual) && draftPlan.weeklyHours) {
+    for (const p of draftPlan.projects) {
+      const sp = isPlaced(p.id) ? datedSpanOf(p, datedCtx.value) : null
+      if (!sp || projectHoursPerWeek(p) > draftPlan.weeklyHours) continue
+      const over = weekRows.value.some((r) => r.week >= sp.startWeek && r.week <= sp.endWeek && r.bars.length > 1 && r.hours > draftPlan.weeklyHours!)
+      if (over && !out.some((l) => l.startsWith(`${p.name}(`) && l.includes('겹치는 주'))) out.push(`${gwaWa(p.name).slice(0, -1)}(${rangeTight(p)})${gwaWa(p.name).slice(-1)} 겹치는 주는 한 주 시간이 속도보다 많아요.`)
+    }
+  }
+  return out
 })
 // 시험 직전으로 옮기기 — 손으로 옮긴 배치가 없을 때만(옮기면 다시 놓는다). 고른 것은 기억해 다시 놓을 때도 그 자리
 const auth = useAuthStore()
@@ -499,7 +561,7 @@ const hintText = computed(() => {
   const sel = selectedProject.value
   if (!sel) return '칩을 탭해서 선택하세요'
   const n = projectWeeks(sel)
-  return `"${sel.name}"(${n}주) 선택됨 — 시작할 주차를 탭하세요`
+  return `"${sel.name}"(${isDated(sel) ? datedRange(sel, '~') : `${n}주`}) 선택됨 — 시작할 주차를 탭하세요`
 })
 
 // ── 프로젝트 상세 팝업 ────────────────────────────
@@ -512,6 +574,14 @@ function placeAtWeek(week: number) {
   if (!project) return
   // 시작 주가 보이는 범위 안이면 놓는다. 끝 주는 막지 않는다 — 종료일은 예상 완료일이라 배치에 따라 늘어난다
   if (!canStartAt(week, totalWeeks.value)) return
+  // 날짜로 정한 걸음을 다른 주로 옮기면 날짜를 지운다 — 한 번 묻고, 옮기면 주 수 걸음이 된다(정할 것 6)
+  const own = draftPlan.projects.find((p) => p.id === project.id)
+  const span = own ? datedSpanOf(own, datedCtx.value) : null
+  if (own && span && span.startWeek !== week) {
+    if (!confirm('날짜를 지우고 옮길까요?\n옮기면 주 수로 정한 프로젝트가 돼요.')) return
+    own.dateStart = ''
+    own.dateEnd = ''
+  }
 
   // 이미 배치돼 있으면 옮기는 것 — 기존 시작주에서 뺀다.
   removeProject(project.id)

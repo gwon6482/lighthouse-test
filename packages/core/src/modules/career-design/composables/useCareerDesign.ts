@@ -149,6 +149,7 @@ export function useCareerDesign() {
     draftPlan.editBase = undefined
     draftPlan.targetJobCode = undefined
     draftPlan.templateTrack = undefined
+    draftPlan.datedExpired = undefined
     draftPlan.timeline = []
     draftTimeline.value = []
   }
@@ -234,6 +235,8 @@ export function useCareerDesign() {
     // 큰 시험 분량·나란히(2026-11-17) — 주간결산 속도 바꾸기가 남은 시험 기간을 다시 센다. 사용자가 기간을 직접 고쳐 끊으면 0 이 간다
     ...(p.studyHours !== undefined ? { studyHours: p.studyHours } : {}),
     ...(p.alongside !== undefined ? { alongside: p.alongside } : {}),
+    // 날짜로 정한 프로젝트(2026-11-25) — 두 칸을 함께. 주 수로 바꾸면 '' 둘을 보내 서버가 지운다(서버는 둘이 함께일 때만 받는다)
+    ...(p.dateStart !== undefined || p.dateEnd !== undefined ? { dateStart: p.dateStart ?? '', dateEnd: p.dateEnd ?? '' } : {}),
   })
 
   // STEP2: 프로젝트 추가
@@ -470,6 +473,9 @@ export function useCareerDesign() {
     delete draftProject.stoppedAt
     delete draftProject.course
     delete draftProject.during
+    // 날짜로 정한 프로젝트(2026-11-25) — 고치던 프로젝트의 날짜가 새 프로젝트에 따라붙지 않게
+    delete draftProject.dateStart
+    delete draftProject.dateEnd
   }
 
   return {
