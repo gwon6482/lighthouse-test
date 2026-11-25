@@ -78,6 +78,8 @@ $ah-overlap: 40px;
   &__name { margin: 0 0 2px; font-size: $fs-sm; font-weight: $tw-label; }
   &__headline { margin: 0; font-size: 20px; line-height: $lh-heading; font-weight: $tw-title; letter-spacing: $ls-heading; word-break: keep-all; }
   &__message { margin: 4px 0 0; font-size: $fs-sm; font-weight: $tw-body; color: rgba(0, 0, 0, 0.7); }
+  // 자정 ~ 하루 시작 시각에만 보이는 한 줄(2026-11-26 #102)
+  &__day { display: inline-block; margin: 8px 0 0; padding: 4px 10px; border-radius: 99px; background: rgba(255, 255, 255, 0.75); font-size: 12px; font-weight: $tw-strong; color: rgba(0, 0, 0, 0.8); }
 }
 
 .ah-ring {

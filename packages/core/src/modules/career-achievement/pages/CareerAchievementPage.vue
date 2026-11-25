@@ -40,6 +40,8 @@
             <p v-if="userName" class="ah-greet__name">{{ userName }}님,</p>
             <h1 class="ah-greet__headline">{{ headline }}</h1>
             <p class="ah-greet__message">{{ message }}</p>
+            <!-- 자정 ~ 하루 시작 시각에만 — 폰 달력은 다음 날인데 앱은 전날 할 일을 보이는 이유(2026-11-26 #102 정할 것 4) -->
+            <p v-if="carriedLine" class="ah-greet__day">{{ carriedLine }}</p>
           </div>
           <div v-if="phase === 'running'" class="ah-ring" :class="{ 'ah-ring--done': allDone }">
             <svg viewBox="0 0 64 64" aria-hidden="true">
@@ -235,6 +237,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
+import { useCarriedOverLine } from '@/shared/utils/dev-date'
 import { usePlanBoard } from '../composables/usePlanBoard'
 import { categoryColor, noPlanView, reviewMoment, shouldPromptReview } from '../lib/planBoard'
 import { useAchievementStore } from '@/shared/stores/achievement'
@@ -388,6 +391,10 @@ async function retry() {
   await load()
   afterLoad()
 }
+
+// 앱의 하루(2026-11-26 #102) — 홈에 있는 채로 하루가 바뀌면(앱으로 돌아옴·설정 적용) 새 하루의 일정으로 다시 읽는다
+const carriedLine = useCarriedOverLine()
+watch(todayKey, () => { void load() })
 
 const shown = ref(false)
 onMounted(async () => {
