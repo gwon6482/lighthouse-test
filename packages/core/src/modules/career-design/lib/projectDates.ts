@@ -80,6 +80,15 @@ export function outsideDates(p: DatedFields, dateKey: string): boolean {
   return !!d && (dateKey < d.start || dateKey > d.end)
 }
 
+/**
+ * 시작일만 정한 걸음(2026-11-26 #99 startOn) — 그날이 놓인 첫 주의 시작일 전 요일인가(오늘 할 일에서 뺀다).
+ * 타임라인 자리가 시작일의 주와 다르면(수정 흐름에서 옮김) 빼지 않는다 — 놓인 주 전체가 빠지지 않게
+ */
+export function beforeStartOn(p: Pick<Project, 'startOn'>, dateKey: string, startWeek: number | undefined, ctx: DatedCtx): boolean {
+  if (!isDateKey(p.startOn) || dateKey >= p.startOn || startWeek == null || !ctx.startDate) return false
+  return weekOfDate(ctx.startDate, parseDateKey(p.startOn)!, ctx.reviewDay) === startWeek
+}
+
 /** 날짜 걸음의 고정 자리(id → 시작 주, 1부터). only 로 고를 수 있다(주간결산: 아직 시작 안 한 것) */
 export function datedFixed(projects: Project[], ctx: DatedCtx, only: (p: Project) => boolean = () => true): Map<string, number> {
   const out = new Map<string, number>()

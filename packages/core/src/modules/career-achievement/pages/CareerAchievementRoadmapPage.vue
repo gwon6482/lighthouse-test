@@ -102,7 +102,12 @@
       </ol>
 
       <p v-if="!roadmap.length" class="rm-empty">타임라인에 배치한 프로젝트가 없어요.</p>
+      <!-- 새 프로젝트 시작하기(#99, 2026-11-26) — 홈 '이번 주 목표' 아래와 같은 흐름 -->
+      <div v-if="phase === 'running'" class="ah-add ah-add--roadmap">
+        <button type="button" class="ah-add__btn" @click="addOpen = true"><span aria-hidden="true">+</span> 새 프로젝트 시작하기</button>
+      </div>
     </template>
+    <AddProjectSheet :open="addOpen" @close="addOpen = false" />
   </div>
 </template>
 
@@ -117,9 +122,11 @@ import { categoryColor, categoryLabel, roadmapWeekLabel, parsePlanDate, daysBetw
 import { methodIcon } from '@/modules/career-design/composables/projectMethods'
 import { datedRangeSlash, mdSlash, projectDatesOf } from '@/modules/career-design/lib/projectDates'
 import PeriodTag from '@/modules/career-design/components/PeriodTag.vue'
+import AddProjectSheet from '../components/AddProjectSheet.vue'
 
 const router = useRouter()
 const { loading, plan, phase, today, load, progress, dDay, weekNumber, totalWeeks, roadmap, weekSpanLabel } = usePlanBoard()
+const addOpen = ref(false)
 
 const tint = (c: string) => `color-mix(in srgb, ${c} 14%, white)`
 const ymd = (s?: string) => { const d = parsePlanDate(s); return d ? `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}` : '' }

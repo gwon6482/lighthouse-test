@@ -187,6 +187,10 @@
           <p v-if="!weekGoals.length" class="ah-sec__empty">이번 주에 배치된 프로젝트가 없어요.</p>
         </div>
       </section>
+      <!-- 새 프로젝트 시작하기(#99, 2026-11-26) — '이번 주 목표' 카드는 통째로 로드맵 링크라 카드 밖 바로 아래에 따로 둔다 -->
+      <div v-if="phase === 'running'" class="ah-add">
+        <button type="button" class="ah-add__btn" @click="addOpen = true"><span aria-hidden="true">+</span> 새 프로젝트 시작하기</button>
+      </div>
 
       <!-- ③ 다가오는 일정 — 앞으로 3일 미리 보기만(체크 없음). 누르면 일정 조정 -->
       <section v-if="previews.length" class="ah-sec ah-sec--flush">
@@ -215,6 +219,8 @@
       :on-decide="(c) => decideEnded(endSheet!.routine.id, c)"
       @close="markAsked(endSheet.routine.id)"
     />
+
+    <AddProjectSheet :open="addOpen" @close="addOpen = false" />
 
     <!-- 끝낸 줄 메뉴·완료 취소 확인 판(#101) -->
     <DoneMenuSheet
@@ -268,6 +274,7 @@ import { daysUntil, examDateOf, mdLabel } from '@/modules/career-design/lib/exam
 import { COPY } from '@/modules/career-design/lib/examDateRules'
 import { elapsedOf, elapsedText, pausedEyebrow, type FocusSession } from '../lib/focusSession'
 import DoneMenuSheet from '../components/DoneMenuSheet.vue'
+import AddProjectSheet from '../components/AddProjectSheet.vue'
 import ConfirmSheet from '@/shared/components/ConfirmSheet.vue'
 import { showToast } from '@/shared/composables/useAppToast'
 import { formatMinutes } from '@/modules/encyclopedia/lib/preparation'
@@ -290,6 +297,7 @@ const {
   recordOf, undoPreview, undoProject,
 } = usePlanBoard()
 const endSheet = computed(() => (loading.value ? null : endedRoutines.value[0] ?? null))
+const addOpen = ref(false)   // 새 프로젝트 시작하기 — 고르기 시트(#99)
 
 // 가장 가까운 시험(오늘 포함) — 시험일 역산(2026-11-22)
 const nextExam = computed(() => {

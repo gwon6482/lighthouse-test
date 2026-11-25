@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { rebuildWeekItems, type RebuildItem } from '../lib/scheduleRebuild'
+import { generateItemsForWeek } from '../composables/useWeeklySchedule'
+import type { Project } from '@/modules/career-design/types/career-design'
 
 const P = (itemId: string, date: string, extra: Partial<RebuildItem> = {}): RebuildItem => ({ itemType: 'project', itemId, date, curriculumWeek: 1, ...extra })
 const R = (itemId: string, date: string): RebuildItem => ({ itemType: 'routine', itemId, date })
@@ -42,4 +44,16 @@ describe('이번 주를 오늘부터만 다시 만들기(#99)', () => {
     expect(sum(out)).toBe('25A 25r 26r')
   })
 
+  it('앱 배치와 맞물려 — 시작일만 정한 걸음은 놓인 첫 주의 시작일 전 요일에 칸이 없다(옛 서버처럼 통째로 다시 만들어도)', () => {
+    const base = { goal: '', priority: 'normal' as const, notification: false, missedNotification: false, notificationTime: '09:00', memo: '', curriculum: [{ week: 1, title: '1', items: ['x'] }] }
+    const A: Project = { ...base, id: 'A', name: 'A', category: 'skill', days: ['월', '화', '수', '목', '금'], duration: 60, curriculum: Array.from({ length: 4 }, (_, i) => ({ week: i + 1, title: `${i}`, items: ['x'] })) }
+    const C: Project = { ...base, id: 'C', name: 'C', category: 'skill', days: ['월', '수', '금'], duration: 90, startOn: '2026-11-26' }
+    const plan = { startDate: '2026-11-18', reviewDay: '수' as const, projects: [A, C], routines: [] }
+    const tl = [{ week: 1, projects: [A] }, { week: 2, projects: [C] }]
+    const items = generateItemsForWeek(plan, tl, '2026-11-25', '2026-12-01')
+    expect(items.filter((x) => x.itemId === 'C').map((x) => x.date)).toEqual(['2026-11-27', '2026-11-30'])
+    // 다음 주에 놓았으면(시작일의 주와 다른 자리) 빼지 않는다
+    const tl3 = [{ week: 1, projects: [A] }, { week: 3, projects: [C] }]
+    expect(generateItemsForWeek(plan, tl3, '2026-12-02', '2026-12-08').filter((x) => x.itemId === 'C').map((x) => x.date)).toEqual(['2026-12-02', '2026-12-04', '2026-12-07'])
+  })
 })

@@ -237,6 +237,8 @@ export function useCareerDesign() {
     ...(p.alongside !== undefined ? { alongside: p.alongside } : {}),
     // 날짜로 정한 프로젝트(2026-11-25) — 두 칸을 함께. 주 수로 바꾸면 '' 둘을 보내 서버가 지운다(서버는 둘이 함께일 때만 받는다)
     ...(p.dateStart !== undefined || p.dateEnd !== undefined ? { dateStart: p.dateStart ?? '', dateEnd: p.dateEnd ?? '' } : {}),
+    // 시작일만 정한 걸음(2026-11-26 홈에서 새 프로젝트 시작하기) — 계획 수정을 거쳐도 남게
+    ...(p.startOn !== undefined ? { startOn: p.startOn } : {}),
   })
 
   // STEP2: 프로젝트 추가

@@ -331,3 +331,16 @@ $ah-overlap: 40px;
   b { color: $color-text; font-weight: $tw-strong; font-variant-numeric: tabular-nums; white-space: nowrap; }
   &__loss { color: #D93636 !important; font-weight: $tw-strong; }
 }
+
+// 새 프로젝트 시작하기(#99, 2026-11-26) — 노란 '시작'보다 한 단계 낮은 점선 테두리. 홈 '이번 주 목표' 아래 · 로드맵 맨 아래
+.ah-add {
+  padding: $space-sm $space-lg 0;
+  &--roadmap { padding: $space-lg $space-lg $space-xl; }
+  &__btn {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 13px; border: 1.5px dashed $color-border-strong; border-radius: $radius-md; background: $color-surface;
+    font: inherit; font-size: $fs-md; font-weight: $tw-strong; color: $color-text; cursor: pointer;
+    span { font-size: 18px; line-height: 1; color: $color-text-secondary; }
+    &:active { background: $color-primary-tint; }
+  }
+}
