@@ -22,10 +22,10 @@
       <div class="rec-hero">
         <p class="rec-hero__label">
           <span><AppIcon name="ui-sparkle" /> {{ dateLabel ? `${dateLabel} 검사 결과` : '자기이해 검사 결과' }}</span>
-          <RouterLink v-if="surveyId" :to="`/self-understanding/result/${surveyId}`" class="rec-hero__link">결과 보기<AppIcon name="ui-chevron-right" /></RouterLink>
+          <RouterLink v-if="surveyId" :to="{ path: `/self-understanding/result/${surveyId}`, query: { at: 'groups' } }" class="rec-hero__link">결과 보기<AppIcon name="ui-chevron-right" /></RouterLink>
         </p>
         <h2 class="rec-hero__title">{{ heading }}</h2>
-        <p class="rec-hero__sub">{{ groupMode ? '검사 결과와 가까운 직무예요' : '검사 결과와 가까운 직업이에요' }}<template v-if="!target"><br>여기서부터 살펴보세요</template></p>
+        <p class="rec-hero__sub">{{ groupMode ? `검사 결과와 가까운 직무 ${groups.length}가지예요` : '검사 결과와 가까운 직업이에요' }}<template v-if="!target"><br>여기서부터 살펴보세요</template></p>
       </div>
 
       <!-- 목표를 정한 회원: 목표가 먼저, 추천은 '다른 길'로(메인 카드와 같은 규칙) -->
@@ -38,7 +38,7 @@
       >
         <span class="rec-goal__icon"><AppIcon name="ui-target" /></span>
         <span class="rec-goal__text">
-          <small>내 목표 직업</small>
+          <small>{{ targetCaption(targetGroup?.name) }}</small>
           <b>{{ target.title }}</b>
         </span>
         <AppIcon v-if="target.jobCode" name="ui-chevron-right" class="rec-goal__arrow" />
@@ -60,6 +60,7 @@
               <li v-for="job in g.jobs.slice(0, REP_JOBS)" :key="job.jobCode">
                 <button type="button" class="rec-grp__job" @click="openJob(job)">
                   <span class="rec-grp__job-t">{{ job.title }}</span>
+                  <span v-if="isTargetJob(job)" class="rec-grp__mine">내 목표</span>
                   <span v-if="groupSize(job) > 1" class="rec-group-badge">유사 {{ groupSize(job) }}개</span>
                   <JobGateBadges :job-code="job.jobCode" :max="1" />
                   <AppIcon name="ui-chevron-right" class="rec-grp__job-arrow" />
@@ -106,6 +107,9 @@
             />
           </div>
         </div>
+
+        <!-- 직무 3가지로 닫히지 않게 — 나머지 직무로 가는 길 한 줄(2026-11-26 진로상담 검토 2). 안내 글은 붙이지 않는다 -->
+        <RouterLink to="/career-encyclopedia/browse" class="rec-jobs__browse">다른 직무도 둘러보기<AppIcon name="ui-chevron-right" /></RouterLink>
       </section>
 
     </template>
@@ -127,10 +131,11 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useEncyclopedia } from '../composables/useEncyclopedia'
 import { useMyJobGroups, loadMyTarget } from '../composables/useMyJobGroups'
-import { REP_JOBS, hasMoreJobs, recHeading, surveyDateLabel, type TargetLine } from '../lib/myJobGroups'
+import { REP_JOBS, groupForJob, hasMoreJobs, recHeading, surveyDateLabel, targetCaption, unfoldJob, type TargetLine } from '../lib/myJobGroups'
 import { surveySubmittedAt } from '@/modules/survey/lib/latestSurvey'
 import { REASON_AXIS, whyParts } from '@/modules/survey/lib/jobGroupWhy'
 import { useAuthStore } from '@/shared/stores/auth'
+import type { JobGroupJob } from '@/modules/survey/types/survey'
 import RecommendedJobCard from '../components/page/home/RecommendedJobCard.vue'
 import AppHeader from '@/shared/components/AppHeader.vue'
 import JobGroupPicker from '@/shared/components/JobGroupPicker.vue'
@@ -146,7 +151,10 @@ const groupMode = computed(() => state.value === 'ready' && groups.value.length 
 
 // ── 목표 직업 ──
 const target = ref<TargetLine | null>(null)
-const heading = computed(() => recHeading(!!target.value, groupMode.value))
+// 목표 직업이 추천 직무 안에 있으면 '다른 길'이 아니다 — 어느 직무에 있는지 밝히고 그 직업 줄에 표시한다(진로상담 검토 1)
+const targetGroup = computed(() => (groupMode.value ? groupForJob(groups.value, target.value?.jobCode) : null))
+const heading = computed(() => recHeading(!!target.value, groupMode.value, !!targetGroup.value))
+const isTargetJob = (job: JobGroupJob) => !!target.value?.jobCode && unfoldJob(job).includes(target.value.jobCode)
 
 // ── 검사 날짜 ──
 const dateLabel = ref('')
