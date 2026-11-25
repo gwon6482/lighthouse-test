@@ -24,6 +24,8 @@ import { req } from '@/shared/api'
 import { attachedEnded, keepVersion, measureOf, recordOfWeek, type WeekCount } from '@/modules/career-design/lib/routine'
 import type { RoutineRecord } from '@/modules/career-design/types/career-design'
 import { homePullAhead, type AheadCandidate } from '../lib/pullAhead'
+import { useAchievementEntries } from './useAchievementEntries'
+import { lastCheckedIndex, moveAheadBack } from '../lib/undoDone'
 
 export interface PreviewLine { name: string; color: string }
 export interface DayPreview { key: string; dow: string; md: string; weekend: boolean; lines: PreviewLine[]; more: number; rest: boolean }
@@ -340,6 +342,77 @@ export function usePlanBoard() {
     }
   }
 
+  // ── 끝낸 줄(#101, 2026-11-26 — lib/undoDone.ts) ──
+  const entries = useAchievementEntries()
+  const { toggleItem } = useCurriculumCompletion()
+  const { updateSchedule } = useWeeklySchedule()
+  /** 오늘 그 일의 기록(시간·사진·메모). 없으면 null */
+  const recordOf = (itemType: 'project' | 'routine', id: string) => entries.getEntry(todayKey.value, itemType, id)
+  /**
+   * 완료 취소 때 풀 할 일 칸 — 그 주에 체크된 마지막 칸. 그 주에 끝낸 날 수가 체크 수보다 많으면(할 일을 다 채운 뒤에 끝낸 날)
+   * 오늘 완료가 칸을 체크하지 않았으므로 풀지 않는다
+   */
+  function undoTick(projectId: string): { week: number; idx: number } | null {
+    const pl = plan.value
+    const p = projectOf(projectId)
+    const wk = weekNumber.value
+    if (!pl || !p || p.period || !wk) return null
+    const wIdx = projectWeekIndexOn(pl.timeline, pl.startDate, p.id, today.value, pl.reviewDay)
+    const cw = wIdx ? p.curriculum?.find((c) => c.week === wIdx) : undefined
+    const n = weekEntriesOf(cw).length
+    if (!cw || !n) return null
+    const idx = lastCheckedIndex(n, (i) => isItemDone(p.id, cw.week, i))
+    if (idx < 0) return null
+    const range = weekDateRange(pl.startDate, wk, pl.reviewDay)
+    let doneDays = 0
+    if (range) {
+      const d = parseDateKey(range.start)!
+      for (let i = 0; i < 14 && toDateKey(d) <= range.end; i += 1) {
+        if (ach.isProjectDone(p.id, toDateKey(d))) doneDays += 1
+        d.setDate(d.getDate() + 1)
+      }
+    }
+    if (weekItemsDoneCount(p.id, cw.week, n) < doneDays) return null
+    return { week: cw.week, idx }
+  }
+  /** 완료 취소 확인 판의 숫자 — 지금 → 되돌린 뒤(오늘 할 일·연속 달성·이번 주 목표·전체 진행) */
+  function undoPreview(projectId: string) {
+    const pl = plan.value
+    const tick = undoTick(projectId)
+    const doneToday = ach.isProjectDone(projectId)
+    const without = (pid: string, w: number, i: number) => !(tick && pid === projectId && w === tick.week && i === tick.idx) && isItemDone(pid, w, i)
+    const streakAfter = pl
+      ? streakCount(today.value, pl.startDate,
+        (d) => itemsOn(d).length,
+        (d) => { const k = toDateKey(d); return itemsOn(d).filter((it) => itemDone(it, k) && !(k === todayKey.value && it.itemType === 'project' && it.itemId === projectId)).length })
+      : 0
+    const g = weekGoals.value.find((x) => x.project.id === projectId && !x.period)
+    return {
+      today: { before: todayDone.value, after: todayDone.value - (doneToday ? 1 : 0), total: todayTotal.value },
+      streak: { before: streak.value, after: streakAfter },
+      goal: g && tick ? { name: g.project.name, before: g.done, after: g.done - 1, total: g.total } : null,
+      progress: { before: progress.value.percent, after: overallProgress(pl?.projects ?? [], without).percent, shown: progress.value.done > 0 },
+    }
+  }
+  /**
+   * 완료 취소 — 기록을 지우고(서버 DELETE, 지금 동작 그대로) 그 주 할 일 체크 한 칸을 되돌린다.
+   * 미리 하기로 당겨 온 칸은 원래 요일이 아직 안 지났으면 그 요일로 돌려놓는다
+   */
+  async function undoProject(projectId: string): Promise<void> {
+    const pl = plan.value
+    if (!pl || !ach.isProjectDone(projectId)) return
+    const tick = undoTick(projectId)
+    ach.toggleProject(projectId)
+    entries.dropLocal(todayKey.value, 'project', projectId)
+    if (tick) toggleItem(projectId, tick.week, tick.idx)
+    const s = scheduleFor(todayKey.value)
+    const back = s ? moveAheadBack(s.items, { itemId: projectId, today: todayKey.value, weekEnd: s.weekEnd }) : null
+    if (s && back) {
+      const saved = await updateSchedule(pl.planId, s.weekStart, { items: back.items })
+      if (saved) schedules.value = schedules.value.map((x) => (x.weekStart === s.weekStart ? saved : x))
+    }
+  }
+
   async function load() {
     loading.value = true
     try {
@@ -383,5 +456,7 @@ export function usePlanBoard() {
     itemsOn, itemDone, projectOf, routineOf, isItemDone,
     // 루틴(2026-11-21)
     routineWeekCount, measureDue, saveRecord, endedRoutines, markAsked, decideEnded,
+    // 끝낸 줄(#101)
+    recordOf, undoPreview, undoProject,
   }
 }

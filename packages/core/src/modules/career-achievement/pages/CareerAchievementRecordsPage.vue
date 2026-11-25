@@ -32,7 +32,10 @@
         >{{ d.day }}</span>
       </div>
       <ul class="rc-grid">
-        <li v-for="e in g.items" :key="e.date + e.itemId" class="rc-card">
+        <li
+          v-for="e in g.items" :key="e.date + e.itemId" class="rc-card"
+          :class="{ 'rc-card--focus': focusKey === `${e.date}:${e.itemType}:${e.itemId}` }" :data-rec="`${e.date}:${e.itemType}:${e.itemId}`"
+        >
           <div class="rc-card__photo" :style="e.photoUrl ? undefined : { background: tint(categoryColor(e.itemCategory)), color: categoryColor(e.itemCategory) }">
             <img v-if="e.photoUrl" :src="e.photoUrl" :alt="e.itemName" loading="lazy">
             <AppIcon v-else name="ui-done" />
@@ -54,7 +57,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { useAchievementEntries } from '../composables/useAchievementEntries'
@@ -111,7 +115,16 @@ const tint = (c: string) => `color-mix(in srgb, ${c} 14%, white)`
 const DOW = ['일', '월', '화', '수', '목', '금', '토']
 const dayLabel = (k: string) => { const [y, m, d] = k.split('-').map(Number); return `${m}/${d} (${DOW[new Date(y!, m! - 1, d!).getDay()]})` }
 
+// 홈의 끝낸 줄 메뉴 '기록 보기'(#101, 2026-11-26) — 로그 상세(#98)가 생기기 전까지 그 카드로 내려 주고 잠깐 노랗게
+const route = useRoute()
+const focusKey = ref(typeof route.query.focus === 'string' ? route.query.focus : '')
+
 onMounted(async () => {
   try { await store.loadActivePlan() } finally { loading.value = false }
+  if (!focusKey.value) return
+  await nextTick()
+  const el = Array.from(document.querySelectorAll<HTMLElement>('[data-rec]')).find((x) => x.dataset.rec === focusKey.value)
+  el?.scrollIntoView({ block: 'center' })
+  setTimeout(() => { focusKey.value = '' }, 2500)
 })
 </script>

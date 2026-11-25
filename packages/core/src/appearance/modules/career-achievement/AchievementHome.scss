@@ -223,7 +223,7 @@ $ah-overlap: 40px;
     flex: 0 0 auto; padding: 6px 12px; border: 0; border-radius: 8px;
     background: $color-primary; font: inherit; font-size: $fs-xs; font-weight: $tw-strong; cursor: pointer;
   }
-  &__state { flex: 0 0 auto; font-size: $fs-xs; font-weight: $tw-strong; color: $color-success; }
+  &__state { flex: 0 0 auto; padding: 6px 2px; border: 0; background: none; font: inherit; font-size: $fs-xs; font-weight: $tw-strong; color: $color-success; cursor: pointer; }
   // 미리 하기(2026-11-23) — 테두리 버튼. 노란 '시작'보다 한 단계 낮게(쉬는 것도 계획이라 고를 수 있는 줄)
   &__ahead {
     flex: 0 0 auto; padding: 6px 12px; border: 1px solid $color-border-strong; border-radius: 8px;
@@ -246,6 +246,7 @@ $ah-overlap: 40px;
   &__eyebrow { font-size: 11px; font-weight: $tw-strong; letter-spacing: 0.02em; color: $amber-700; }
   &--done { opacity: 0.5; padding-top: 6px; padding-bottom: 6px; }
   &--done .ah-task__chip { flex-basis: 28px; height: 28px; border-radius: 8px; font-size: 15px; }
+  &--tap { cursor: pointer; }   // 끝낸 줄을 누르면(#101) — 메뉴 또는 바로 취소
   &--done &__check--on { opacity: 1; }
 }
 
@@ -320,4 +321,13 @@ $ah-overlap: 40px;
 @media (prefers-reduced-motion: reduce) {
   .ah-stats, .ah-greet, .ah-held, .ah-today, .ah-sec, .ah-ring--done { animation: none; }
   .ah-ring__fill { transition: none; }
+}
+
+// 완료 취소 확인 판(#101, 2026-11-26) — 공용 확인 시트 안의 숫자 표(시트는 body 로 옮겨져 그려진다)
+.ah-undo {
+  list-style: none; margin: 12px 0 0; padding: 12px 14px; display: grid; gap: 8px;
+  border-radius: $radius-md; background: #F7F7F8;
+  li { display: flex; justify-content: space-between; gap: 10px; font-size: $fs-sm; color: $color-text-secondary; }
+  b { color: $color-text; font-weight: $tw-strong; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  &__loss { color: #D93636 !important; font-weight: $tw-strong; }
 }

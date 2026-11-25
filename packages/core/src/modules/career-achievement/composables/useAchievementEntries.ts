@@ -117,6 +117,15 @@ export function useAchievementEntries() {
     }
   }
 
+  // 기기의 사본만 지운다(2026-11-26 #101 완료 취소) — 서버 기록은 완료 표시를 끄는 쪽(useAchievement.toggleProject)이 지운다
+  function dropLocal(date: string, itemType: AchievementItemType, itemId: string) {
+    const key = entryKey(date, itemType, itemId)
+    if (!(key in entries.value)) return
+    const next = { ...entries.value }
+    delete next[key]
+    entries.value = next
+  }
+
   function feedSorted(): AchievementEntry[] {
     return Object.values(entries.value).sort((a, b) => b.doneAt.localeCompare(a.doneAt))
   }
@@ -126,6 +135,7 @@ export function useAchievementEntries() {
     saveEntry,
     getEntry,
     removeEntry,
+    dropLocal,
     feedSorted,
     loadFromServer,
     // 진행 중 계획이 없어졌을 때(삭제 등) — 지운 계획의 기록이 로그 탭에 남지 않게(2026-11-04)

@@ -114,15 +114,16 @@
 
         <template v-if="finished.length">
           <p class="ah-today__divider">완료 {{ finished.length }}개</p>
+          <!-- 끝낸 줄을 누르면(#101, 2026-11-26) — 기록이 있는 줄은 작은 메뉴, '완료'만 누른 루틴·과정은 바로 취소 + 알림(lib/undoDone.ts) -->
           <ul class="ah-list ah-list--done">
-            <li v-for="t in finished" :key="t.key" class="ah-task ah-task--done">
+            <li v-for="t in finished" :key="t.key" class="ah-task ah-task--done ah-task--tap" @click="tapFinished(t)">
               <span class="ah-task__chip" :style="t.chipStyle"><AppIcon :name="t.icon" /></span>
               <div class="ah-task__body"><span class="ah-task__name">{{ t.name }}</span></div>
               <button
                 v-if="t.type !== 'project'" type="button" class="ah-task__check ah-task__check--on"
-                :aria-pressed="true" @click="toggleRow(t)"
+                :aria-pressed="true" @click.stop="tapFinished(t)"
               ><AppIcon name="ui-check" /> 완료</button>
-              <span v-else class="ah-task__state"><AppIcon name="ui-check" /> 완료</span>
+              <button v-else type="button" class="ah-task__state" aria-haspopup="dialog" @click.stop="tapFinished(t)"><AppIcon name="ui-check" /> 완료</button>
             </li>
           </ul>
         </template>
@@ -215,6 +216,24 @@
       @close="markAsked(endSheet.routine.id)"
     />
 
+    <!-- 끝낸 줄 메뉴·완료 취소 확인 판(#101) -->
+    <DoneMenuSheet
+      :open="!!menuRow" :name="menuRow?.name ?? ''" :sub="menuSub"
+      @view="viewRecord" @refocus="refocus" @undo="askUndo" @close="menuRow = null"
+    />
+    <ConfirmSheet
+      v-model="undoOpen" title="완료를 취소할까요?" :message="undoInfo?.summary ?? ''"
+      confirm-label="완료 취소" cancel-label="그대로 두기" @confirm="confirmUndo"
+    >
+      <ul v-if="undoInfo" class="ah-undo">
+        <li><span>오늘 할 일</span><b>{{ undoInfo.p.today.before }}/{{ undoInfo.p.today.total }} → {{ undoInfo.p.today.after }}/{{ undoInfo.p.today.total }}</b></li>
+        <li v-if="undoInfo.p.streak.before !== undoInfo.p.streak.after"><span>연속 달성</span><b>{{ undoInfo.p.streak.before }}일 → {{ undoInfo.p.streak.after }}일</b></li>
+        <li v-if="undoInfo.p.goal"><span>이번 주 목표 · {{ undoInfo.p.goal.name }}</span><b>할 일 {{ undoInfo.p.goal.before }}/{{ undoInfo.p.goal.total }} → {{ undoInfo.p.goal.after }}/{{ undoInfo.p.goal.total }}</b></li>
+        <li v-if="undoInfo.p.progress.shown && undoInfo.p.progress.before !== undoInfo.p.progress.after"><span>전체 진행</span><b>{{ undoInfo.p.progress.before }}% → {{ undoInfo.p.progress.after }}%</b></li>
+        <li v-if="undoInfo.loss" class="ah-undo__loss">{{ undoInfo.loss }}</li>
+      </ul>
+    </ConfirmSheet>
+
     <!-- 주간결산 팝업 — 한 주에 한 번(전날 다 했을 때 / 못 했으면 시작일 첫 접속) -->
     <div v-if="promptOpen" class="ah-pop" role="dialog" aria-modal="true" aria-labelledby="ah-pop-title">
       <div class="ah-pop__panel">
@@ -248,6 +267,11 @@ import type { Project } from '@/modules/career-design/types/career-design'
 import { daysUntil, examDateOf, mdLabel } from '@/modules/career-design/lib/examDate'
 import { COPY } from '@/modules/career-design/lib/examDateRules'
 import { elapsedOf, elapsedText, pausedEyebrow, type FocusSession } from '../lib/focusSession'
+import DoneMenuSheet from '../components/DoneMenuSheet.vue'
+import ConfirmSheet from '@/shared/components/ConfirmSheet.vue'
+import { showToast } from '@/shared/composables/useAppToast'
+import { formatMinutes } from '@/modules/encyclopedia/lib/preparation'
+import { lossLine, opensDoneMenu, recordSummary } from '../lib/undoDone'
 
 const router = useRouter()
 const goRoadmap = () => router.push({ name: 'Career Achievement Roadmap' })
@@ -263,6 +287,7 @@ const {
   pausedFor, heldSessions, resumeFocus, projectOf, todayKey,
   pullAhead, startAhead,
   routineWeekCount, measureDue, saveRecord, endedRoutines, markAsked, decideEnded,
+  recordOf, undoPreview, undoProject,
 } = usePlanBoard()
 const endSheet = computed(() => (loading.value ? null : endedRoutines.value[0] ?? null))
 
@@ -337,6 +362,60 @@ const rows = computed(() => {
   }
   return { pending: [...pausedRows, ...pending], finished }
 })
+// ── 끝낸 줄을 누르면(#101, 2026-11-26 오너 '(다) 작은 메뉴' — lib/undoDone.ts) ──
+const itemTypeOf = (t: TodayRow): 'project' | 'routine' => (t.type === 'routine' ? 'routine' : 'project')
+const menuRow = ref<TodayRow | null>(null)
+const recMeta = (t: TodayRow) => {
+  const e = recordOf(itemTypeOf(t), t.id)
+  return { minutes: e?.elapsedSec ? Math.round(e.elapsedSec / 60) : 0, photo: !!e?.photoUrl, note: !!e?.note?.trim() }
+}
+const menuSub = computed(() => {
+  const t = menuRow.value
+  if (!t) return ''
+  const m = recMeta(t)
+  return m.minutes > 0 ? `오늘 완료 · ${formatMinutes(m.minutes)}` : '오늘 완료'
+})
+function tapFinished(t: TodayRow) {
+  if (opensDoneMenu(t, !!recordOf(itemTypeOf(t), t.id))) { menuRow.value = t; return }
+  // 기록 없이 '완료'만 누른 루틴·과정 — 지금처럼 바로 취소하고 3초 동안 다시 완료할 수 있게
+  toggleRow(t)
+  showToast('되돌렸어요', 3000, { label: '다시 완료', run: () => { if (!rowDone(t)) toggleRow(t) } })
+}
+const rowDone = (t: TodayRow) => (t.type === 'routine' ? isRoutineDone(t.id) : isProjectDone(t.id))
+// 기록 보기 — 로그 상세(#98)가 생기기 전까지는 로그 탭의 그 카드로 내려 준다
+function viewRecord() {
+  const t = menuRow.value
+  menuRow.value = null
+  if (t) router.push({ name: 'Career Achievement Records', query: { focus: `${todayKey.value}:${itemTypeOf(t)}:${t.id}` } })
+}
+// 다시 집중하기 — 이미 있는 '끝낸 일 다시 집중'(v0.1.33, 시간 더하기)의 입구
+function refocus() {
+  const t = menuRow.value
+  menuRow.value = null
+  if (t) router.push({ path: `/career-achievement/start/${itemTypeOf(t)}/${t.id}`, query: { date: todayKey.value } })
+}
+const undoOpen = ref(false)
+const undoRow = ref<TodayRow | null>(null)
+const undoInfo = computed(() => {
+  const t = undoRow.value
+  if (!t) return null
+  const m = recMeta(t)
+  const p = undoPreview(t.id)
+  return { p, summary: `${t.name}\n${recordSummary(m, formatMinutes)}`, loss: lossLine(m, formatMinutes) }
+})
+function askUndo() {
+  undoRow.value = menuRow.value
+  menuRow.value = null
+  undoOpen.value = true
+}
+async function confirmUndo() {
+  const t = undoRow.value
+  if (!t) return
+  if (t.type === 'project') await undoProject(t.id)
+  else if (rowDone(t)) toggleRow(t)
+  undoRow.value = null
+}
+
 const held = computed(() => heldSessions.value.map((s) => {
   const p = projectOf(s.itemId)
   const c = categoryColor(p?.category ?? s.itemCategory)
