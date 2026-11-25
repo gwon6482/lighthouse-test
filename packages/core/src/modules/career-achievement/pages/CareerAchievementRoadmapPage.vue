@@ -6,6 +6,8 @@
       <span class="ah__empty-icon"><AppIcon name="ui-target" /></span>
       <p class="ah__empty-text">아직 진로계획이 없어요</p>
       <button class="ah__empty-btn" @click="router.push('/career-design')">진로계획 만들러 가기</button>
+      <!-- 계획이 없으면 하단 메뉴가 없다 — 로그아웃·탈퇴로 가는 길을 남긴다(진로달성 홈 v0.1.53과 같은 줄, 2026-11-26 나가는 길 점검) -->
+      <button type="button" class="ah__empty-link" @click="router.push('/mypage')"><AppIcon name="ui-avatar" />내 계정</button>
     </div>
 
     <template v-else>

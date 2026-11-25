@@ -19,6 +19,8 @@
       <template v-else>
         <p>결과를 불러오지 못했어요.<br />잠시 후 다시 시도해주세요.</p>
         <button type="button" class="rr__retry" @click="load">다시 시도</button>
+        <!-- 앱에서만: 나가는 길(랜딩 결과지에는 없다 — 랜딩은 브라우저 페이지라 뒤로 갈 수 있다, 2026-11-26) -->
+        <RouterLink to="/" class="rr__leave" data-export-skip>홈으로</RouterLink>
       </template>
     </div>
 
@@ -1232,6 +1234,7 @@ $c-text-3: #767676;  // 메타 — 분류·급여, 순위, 작은 안내
 }
 @keyframes rr-spin { to { transform: rotate(360deg); } }
 
+.rr__leave { margin-top: 4px; font-size: 0.875rem; font-weight: 600; color: #666; text-decoration: underline; text-underline-offset: 3px; }
 .rr__retry {
   padding: 12px 22px;
   border-radius: 10px;

@@ -19,6 +19,8 @@
       <AppIcon name="ui-photo" />
       아직 남긴 기록이 없어요.<br>프로젝트를 완료할 때 사진과 메모를 남기면 여기에 모여요.
     </p>
+    <!-- 계획이 없으면 하단 메뉴가 없다 — 나가는 길을 남긴다(2026-11-26 나가는 길 점검) -->
+    <RouterLink v-if="!loading && !store.hasActivePlan" to="/mypage" class="ah__empty-link rc-exit"><AppIcon name="ui-avatar" />내 계정</RouterLink>
 
     <section v-for="g in groups" :key="g.month" class="rc-month">
       <h2 class="rc-month__title">{{ g.label }} <small>{{ g.items.length }}개</small></h2>

@@ -159,6 +159,8 @@
   font-size: $fs-sm; line-height: 1.6; color: $color-text-tertiary;
   .app-icon { font-size: 40px; }
 }
+// 계획이 없어 하단 메뉴가 안 보일 때의 '내 계정'(2026-11-26)
+.rc-exit { display: flex; justify-content: center; margin: $space-sm auto 0; text-decoration: none; }
 .rc-month {
   padding: $space-xl $space-lg 0;
   &__title { margin: 0 0 $space-md; font-size: 16px; font-weight: $tw-title; small { font-size: $fs-xs; font-weight: $tw-label; color: $color-text-tertiary; margin-left: 4px; } }

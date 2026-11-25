@@ -28,6 +28,8 @@ const stubRoutes: RouteRecordRaw[] = [
       comingSoonMsg: '같은 진로를 향해 노력하는 동료들의 완료 피드와 응원을 곧 만날 수 있어요.',
     },
   },
+  // 없는 주소(옛 링크·잘못된 주소)는 흰 화면이 됐다 — '/' 로 보내면 진입 가드가 상태에 맞는 자리로 보낸다(2026-11-26 나가는 길 점검)
+  { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
 export default stubRoutes

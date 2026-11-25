@@ -6,8 +6,11 @@
     </div>
 
     <!-- 에러 -->
+    <!-- 예전에는 오류 문장(영어 그대로일 때도)만 보이고 나갈 길이 없었다(2026-11-26 나가는 길 점검) -->
     <div v-else-if="error" class="job-detail-page__error">
-      {{ error }}
+      <p>직업 정보를 불러오지 못했어요.<br>잠시 뒤 다시 시도해 주세요.</p>
+      <button type="button" class="job-detail-page__retry" @click="reloadJob">다시 시도</button>
+      <RouterLink to="/career-encyclopedia" class="job-detail-page__home">진로백과로</RouterLink>
     </div>
 
     <!-- 직업 상세 -->
@@ -139,6 +142,12 @@ function updateGuestFloat() {
   guestFloatShow.value = window.scrollY > 240 && !ctaSeen
 }
 onMounted(() => window.addEventListener('scroll', updateGuestFloat, { passive: true }))
+
+// 못 불러왔을 때 '다시 시도'(2026-11-26)
+function reloadJob() {
+  const code = String(route.params.jobCode ?? '')
+  if (code) loadJob(code)
+}
 onBeforeUnmount(() => window.removeEventListener('scroll', updateGuestFloat))
 watch(activeTab, () => nextTick(updateGuestFloat))   // 탭을 바꾸면 길이가 달라진다
 
