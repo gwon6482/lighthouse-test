@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { noPlanView } from '../lib/planBoard'
 import {
   objectJosa, planPhase, planDayNumber, dDayLabel, overallProgress, progressUpToWeek,
   streakCount, reviewBadge, todayMessage, journeyHeadline, roadmapWeekLabel,
@@ -166,5 +167,18 @@ describe('주간결산 시점', () => {
     expect(shouldPromptReview(start, { todayTotal: 3, todayDone: 0, prompted: false, done: false })).toBe(true)
     expect(shouldPromptReview(start, { todayTotal: 3, todayDone: 0, prompted: true, done: false })).toBe(false)
     expect(shouldPromptReview(start, { todayTotal: 3, todayDone: 0, prompted: false, done: true })).toBe(false)
+  })
+})
+
+describe('noPlanView — 진로달성 홈에 진행 중인 계획이 없을 때(2026-11-25 핫픽스)', () => {
+  it('계획이 있으면 홈', () => {
+    expect(noPlanView(true, false)).toBe('home')
+    expect(noPlanView(true, true)).toBe('home')
+  })
+  it('계획이 없으면 계획 전 홈으로 보낸다 — 하단 메뉴가 없어 로그아웃·탈퇴 길이 거기 있다', () => {
+    expect(noPlanView(false, false)).toBe('before')
+  })
+  it('못 읽었으면 보내지 않는다 — 계획이 있는 사람일 수 있다', () => {
+    expect(noPlanView(false, true)).toBe('retry')
   })
 })

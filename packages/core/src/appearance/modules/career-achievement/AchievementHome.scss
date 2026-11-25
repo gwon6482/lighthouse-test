@@ -15,6 +15,12 @@ $ah-overlap: 40px;
   &__empty-icon { font-size: 40px; color: $color-text-tertiary; }
   &__empty-text { margin: 0; font-size: $fs-md; }
   &__empty-btn { padding: 12px 20px; border: 0; border-radius: $radius-lg; background: $color-primary; font-weight: $tw-strong; font-size: $fs-md; }
+  // 계획 전에는 하단 메뉴가 없다 — '내 계정'(계획 전 홈의 mb__account 와 같은 모양)
+  &__empty-link {
+    display: inline-flex; align-items: center; gap: 5px; margin-top: $space-sm; padding: 10px 12px; border: 0; background: none;
+    font-family: inherit; font-size: $fs-sm; font-weight: $fw-medium; color: $color-text-secondary; cursor: pointer;
+    .app-icon { font-size: 18px; }
+  }
 }
 
 // ── ①② 노란 영역 ─────────────────────────────

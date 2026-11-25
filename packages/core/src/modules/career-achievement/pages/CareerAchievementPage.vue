@@ -1,11 +1,14 @@
 <template>
   <div class="ah">
-    <div v-if="loading" class="ah__loading">불러오는 중...</div>
+    <div v-if="loading || leaving" class="ah__loading">불러오는 중...</div>
 
+    <!-- 진행 중인 계획이 없으면 계획 전 홈(/main/before)으로 보낸다(아래 afterLoad). 여기 남는 것은 '못 읽었을 때'뿐 —
+         계획 전에는 하단 메뉴가 없어서 '내 계정'(로그아웃·탈퇴)을 꼭 둔다(2026-11-25 핫픽스) -->
     <div v-else-if="!plan" class="ah__empty">
       <span class="ah__empty-icon"><AppIcon name="ui-target" /></span>
-      <p class="ah__empty-text">아직 진로계획이 없어요</p>
-      <button class="ah__empty-btn" @click="router.push('/career-design')">진로계획 만들러 가기</button>
+      <p class="ah__empty-text">진로계획을 불러오지 못했어요</p>
+      <button type="button" class="ah__empty-btn" @click="retry">다시 불러오기</button>
+      <button type="button" class="ah__empty-link" @click="router.push('/mypage')"><AppIcon name="ui-avatar" />내 계정</button>
     </div>
 
     <template v-else>
@@ -233,7 +236,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { usePlanBoard } from '../composables/usePlanBoard'
-import { categoryColor, reviewMoment, shouldPromptReview } from '../lib/planBoard'
+import { categoryColor, noPlanView, reviewMoment, shouldPromptReview } from '../lib/planBoard'
+import { useAchievementStore } from '@/shared/stores/achievement'
 import { reviewState } from '../composables/useReviewState'
 import { methodIcon } from '@/modules/career-design/composables/projectMethods'
 import PeriodTag from '@/modules/career-design/components/PeriodTag.vue'
@@ -369,9 +373,26 @@ function startReview() {
   router.push({ name: 'Career Achievement Review', params: { step: '1' } })
 }
 
+// 진행 중인 계획이 없으면 계획 전 홈으로(2026-11-25 핫픽스 — lib/planBoard noPlanView). 못 읽었으면 여기 남아 다시 불러오게 한다
+const achievementStore = useAchievementStore()
+const leaving = ref(false)
+function afterLoad(): boolean {
+  if (noPlanView(!!plan.value, achievementStore.loadFailed) !== 'before') return false
+  leaving.value = true
+  router.replace('/main/before')
+  return true
+}
+async function retry() {
+  loading.value = true
+  await achievementStore.loadActivePlan(true)
+  await load()
+  afterLoad()
+}
+
 const shown = ref(false)
 onMounted(async () => {
   await load()
+  if (afterLoad()) return
   requestAnimationFrame(() => requestAnimationFrame(() => { shown.value = true }))
 })
 </script>
