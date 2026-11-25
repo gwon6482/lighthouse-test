@@ -78,57 +78,7 @@
   margin: 0;
 }
 
-/* ── 섹션 공통 ── */
-.rec-section {
-  padding: 24px 0 4px;
-}
-
-.rec-section__header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 20px;
-  margin-bottom: 4px;
-}
-
-.rec-section__title {
-  font-size: 16px;
-  font-weight: 800;
-  color: #1A1A2E;
-  margin: 0;
-  letter-spacing: -0.3px;
-}
-
-.rec-section__badge {
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 20px;
-}
-
-.rec-section__badge--blue {
-  background: #EEF2FF;
-  color: #4F46E5;
-}
-
-.rec-section__badge--green {
-  background: #ECFDF5;
-  color: #059669;
-}
-
-.rec-section__desc {
-  font-size: 12.5px;
-  color: #888;
-  margin: 0 0 14px;
-  padding: 0 20px;
-  line-height: 1.5;
-}
-
-/* ── 종합 추천 섹션 ── */
-.rec-section--comprehensive {
-  margin: 0 0 8px;
-}
-
+/* ── 직업 목록(직업 하나씩 보기) ── */
 .rec-list {
   display: flex;
   flex-direction: column;
@@ -145,54 +95,83 @@
   margin: 0;
 }
 
-/* ── T2 카드 ── */
-.rec-t2rec-list {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding: 4px 20px 12px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.rec-t2rec-list::-webkit-scrollbar { display: none; }
-
-.rec-t2rec-card {
-  flex-shrink: 0;
-  width: 210px;
-  background: #fff;
-  border: 1px solid #E8E8EC;
-  border-radius: 16px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  cursor: pointer;
-  transition: box-shadow 0.15s, transform 0.1s;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-}
-
-.rec-t2rec-card:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.09);
-}
-
-.rec-t2rec-card-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.rec-t2rec-title {
-  font-size: 15px;
+/* ── 히어로: 검사 날짜 줄의 결과지 링크(2026-11-26) ── */
+.rec-hero__label { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.rec-hero__link {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  font-size: 12px;
   font-weight: 700;
-  color: #111;
-  line-height: 1.3;
+  color: #4F46E5;
+  text-decoration: none;
 }
 
-/* 묶음 직업 배지. 고용24가 여러 직업을 한 직업으로 묶어 조사해 점수가 같은 경우
-   (전문의 13종 등) 추천 목록이 한 자리로 접힌다 — 몇 개가 묶였는지 알려준다. */
+/* ── 내 목표 직업 한 줄(메인 카드 rec-entry__goal 과 같은 모양) ── */
+.rec-goal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 16px 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 199, 0, 0.55);
+  border-radius: 14px;
+  background: #FFFBEA;
+  font: inherit;
+  text-align: left;
+  color: #1A1A2E;
+}
+button.rec-goal { cursor: pointer; }
+.rec-goal__icon { flex: none; font-size: 18px; color: #B07800; }
+.rec-goal__text { flex: 1; min-width: 0; display: grid; }
+.rec-goal__text small { font-size: 11px; color: #888; }
+.rec-goal__text b { font-size: 14px; font-weight: 700; word-break: keep-all; }
+.rec-goal__arrow { flex: none; font-size: 15px; color: #bbb; }
+
+/* ── 직무 3가지 — 펼친 카드 ── */
+.rec-groups { display: grid; gap: 10px; padding: 16px 16px 0; }
+.rec-groups .comp-skeleton-list { padding: 0; }
+.rec-grp {
+  display: grid;
+  gap: 6px;
+  padding: 14px 14px 8px;
+  border-radius: 16px;
+  background: #fff;
+}
+.rec-grp__name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.4;
+  color: #1A1A2E;
+  word-break: keep-all;
+  &::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: #E0C35A; transform: translateY(-2px); }
+}
+.rec-grp__why { margin: 0; font-size: 12.5px; line-height: 1.5; color: #555; word-break: keep-all; }
+.rec-grp__kw { font-weight: 700; color: #8A5E00; }
+.rec-grp__ax { color: #9a9a9a; }
+.rec-grp__label { margin: 4px 0 0; padding-top: 8px; border-top: 1px solid #F0EEE6; font-size: 11px; font-weight: 600; color: #8a8a8a; }
+.rec-grp__jobs { margin: 0; padding: 0; list-style: none; }
+.rec-grp__job {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rec-grp__job-t { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; color: #1A1A2E; word-break: keep-all; }
+.rec-grp__mine { flex: none; padding: 1px 7px; border-radius: 999px; background: #FFF4C7; font-size: 11px; font-weight: 700; color: #8A5E00; }
+.rec-grp__job-arrow { flex: none; font-size: 15px; color: #bbb; }
+.rec-grp__more { display: inline-flex; align-items: center; padding: 4px 0 6px; font-size: 12px; font-weight: 700; color: #8A6A00; text-decoration: none; }
+
 .rec-group-badge {
   flex-shrink: 0;
   margin-left: 6px;
@@ -205,71 +184,31 @@
   white-space: nowrap;
 }
 
-.rec-t2rec-score {
-  flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, #4F46E5, #6366F1);
-  padding: 2px 7px;
-  border-radius: 20px;
-}
-
-.rec-t2rec-class {
-  font-size: 11.5px;
-  color: #999;
-  margin: 0;
-}
-
-.rec-t2rec-label {
-  font-size: 12px;
-  color: #555;
-  line-height: 2;
-  margin: 4px 0 0;
-}
-
-.rec-t2rec-pill {
-  display: inline-block;
-  padding: 0.1rem 0.45rem;
-  border-radius: 100px;
-  font-size: 11px;
-  font-weight: 600;
-  vertical-align: middle;
-  border: 1px solid transparent;
-}
-
-.rec-t2rec-pill--interest { background: #E8F6F6; color: #2E8585; border-color: #B8E0E0; }
-.rec-t2rec-pill--talent   { background: #EBF2FF; color: #3D7FE8; border-color: #B8CFFF; }
-.rec-t2rec-pill--value    { background: #F3EEFF; color: #7C50CC; border-color: #CEB8F5; }
-
-.rec-t2rec-meta {
-  font-size: 11.5px;
-  color: #999;
-  margin: 0;
-  margin-top: auto;
-  padding-top: 8px;
-  border-top: 1px solid #F0F0EC;
-}
-
-/* ── T2 스켈레톤 ── */
-.rec-t2rec-skeleton-list {
+/* ── 직업 하나씩 보기(접어 둔 종합 추천) ── */
+.rec-jobs { padding: 14px 0 0; }
+.rec-jobs__fold {
   display: flex;
+  align-items: center;
   gap: 10px;
-  padding: 4px 20px 12px;
-  overflow: hidden;
-}
-
-.rec-t2rec-skeleton {
-  flex-shrink: 0;
-  width: 210px;
-  height: 160px;
-  background: linear-gradient(90deg, #ebebeb 25%, #e0e0e0 50%, #ebebeb 75%);
-  background-size: 200% 100%;
-  animation: rec-shimmer 1.4s infinite;
+  width: calc(100% - 32px);
+  margin: 0 16px 10px;
+  padding: 13px 14px;
+  border: none;
   border-radius: 16px;
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  color: #1A1A2E;
+  cursor: pointer;
 }
+.rec-jobs__fold-text { flex: 1; min-width: 0; display: grid; }
+.rec-jobs__fold-text b { font-size: 14px; font-weight: 700; }
+.rec-jobs__fold-text small { font-size: 12px; color: #888; }
+.rec-jobs__fold-icon { flex: none; font-size: 16px; color: #bbb; transition: transform 0.15s; &.is-open { transform: rotate(180deg); } }
 
-/* ── 종합 추천 스켈레톤 ── */
+.rec-jobs__browse { display: flex; align-items: center; justify-content: center; margin: 6px 16px 0; padding: 12px; font-size: 13px; font-weight: 700; color: #555; text-decoration: none; }
+
+/* ── 스켈레톤 ── */
 .comp-skeleton-list {
   display: flex;
   flex-direction: column;

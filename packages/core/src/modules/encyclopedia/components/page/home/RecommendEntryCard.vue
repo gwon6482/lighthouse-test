@@ -13,7 +13,7 @@
     >
       <span class="rec-entry__goal-icon"><AppIcon name="ui-target" /></span>
       <span class="rec-entry__goal-text">
-        <small>내 목표 직업</small>
+        <small>{{ targetCaption(targetGroup?.name) }}</small>
         <b>{{ target.title }}</b>
       </span>
       <AppIcon v-if="target.jobCode" name="ui-chevron-right" class="rec-entry__goal-arrow" />
@@ -90,7 +90,7 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { REASON_AXIS, whyParts } from '@/modules/survey/lib/jobGroupWhy'
 import type { JobGroupJob } from '@/modules/survey/types/survey'
 import { useMyJobGroups, loadMyTarget } from '../../../composables/useMyJobGroups'
-import { REP_JOBS, hasMoreJobs, type TargetLine } from '../../../lib/myJobGroups'
+import { REP_JOBS, groupForJob, hasMoreJobs, recHeading, targetCaption, type TargetLine } from '../../../lib/myJobGroups'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -109,10 +109,12 @@ async function loadTarget() {
 // 직무 자리는 세 줄 자리(실제 줄과 같은 높이)로 잡는다
 const busy = computed(() => state.value === 'idle' || state.value === 'loading' || !targetDone.value)
 
+// 목표 직업이 추천 직무 안에 있으면 '다른 길'로 부르지 않는다('나의 추천 진로' 화면과 같은 규칙, 2026-11-26 진로상담 검토 1)
+const targetGroup = computed(() => (state.value === 'ready' ? groupForJob(groups.value, target.value?.jobCode) : null))
 const heading = computed(() => {
   if (state.value === 'guest') return '나와 가까운 직업 찾기'
   // 목표가 있으면 추천은 대안으로 이름 붙인다(직무를 보여 줄 때만 — 검사 전 안내는 그대로)
-  return target.value && state.value === 'ready' && groups.value.length ? '다른 길도 살펴보기' : '나의 추천 진로'
+  return recHeading(!!target.value, state.value === 'ready' && groups.value.length > 0, !!targetGroup.value)
 })
 const sub = computed(() => {
   if (busy.value) return ''
