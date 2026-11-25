@@ -15,6 +15,8 @@ import { saveGuestSurvey } from '@/shared/guest/guestSurvey'
  */
 import { ref, computed, reactive, watch, onMounted } from 'vue'
 import { fetchSurveyForm, submitSurveyResponse } from '../survey.api'
+import { SURVEY_ERROR, isSurveyIdTaken, submittedIdOf } from '../lib/surveySubmit'
+import { SURVEY_ID_KEY, SURVEY_PROGRESS_KEYS, onAccountChange } from '@/shared/auth/accountScope'
 import type { SurveyFormResponse, SurveyAnswers, T3Answers, SurveyQuestion, PageInfo, PartIntroData } from '../types/survey'
 
 // ============================================================
@@ -24,8 +26,8 @@ import type { SurveyFormResponse, SurveyAnswers, T3Answers, SurveyQuestion, Page
 //   ※ 서버가 매 요청마다 문항 순서를 랜덤화하므로, 진행 중에는 캐시된 구조를 재사용해야
 //     페이지 위치·답변이 어긋나지 않는다. 제출/초기화 시 캐시를 비워 다음엔 새로 받는다.
 // ============================================================
-const STORAGE_KEY = 'lh_survey_progress_v1'
-const FORM_KEY = 'lh_survey_form_v1'
+// 키 이름은 shared/auth/accountScope 가 함께 쓴다(계정이 바뀌면 지운다)
+const [STORAGE_KEY, FORM_KEY] = SURVEY_PROGRESS_KEYS
 
 interface PersistedProgress {
   answers?: Partial<SurveyAnswers>
@@ -116,6 +118,11 @@ function clearPersistedProgress() {
     localStorage.removeItem(FORM_KEY)
   } catch { /* noop */ }
 }
+// 방금 낸 검사 번호(완료 화면의 '결과 보고서 보기'가 쓴다). 새로고침 뒤에는 탭에 둔 번호를 쓴다(submittedSurveyId)
+const lastSubmittedId = ref('')
+// 이 탭에서 검사를 냈는가 — 다음에 검사 화면에 들어오면 새로 시작한다(lib/surveySubmit.ts '이어 하기와 새로 하기')
+let finished = false
+
 // 검사 전체 초기화 — 답변·진행위치·저장본 리셋 (답변방식 변경 등)
 function resetSurvey() {
   const def = defaultAnswers()
@@ -127,6 +134,28 @@ function resetSurvey() {
   currentPageIndex.value = 0
   clearPersistedProgress()
 }
+// 새 검사로 — 답·쪽·저장본에 더해 폼(번호·문항 순서)도 버린다. 다음 화면이 폼을 새로 받는다
+function clearSurveyState() {
+  resetSurvey()
+  surveyData.value = null
+  surveyId.value = ''
+  error.value = null
+}
+/** 검사를 낸 뒤 다시 검사 화면에 들어왔으면 새로 시작한다. 쓰다 만 검사(이어 하기)는 건드리지 않는다. 새로 시작했으면 true */
+function startNewIfFinished(): boolean {
+  if (!finished) return false
+  finished = false
+  clearSurveyState()
+  return true
+}
+// 계정이 바뀌면(로그인·로그아웃·가입) 쓰다 만 검사와 방금 낸 번호를 비운다 — 앞 사람의 답이 다음 사람에게 보이지 않게.
+// 비회원 검사 → 가입으로 잇는 열람 키(lh_guest_survey)는 여기서 지우지 않는다(가입 뒤 linkPendingGuestSurvey 가 쓴다)
+onAccountChange(() => {
+  finished = false
+  lastSubmittedId.value = ''
+  clearSurveyState()
+})
+
 watch(answers, persistProgress, { deep: true })
 watch(currentPageIndex, persistProgress)
 watch(scaleType, persistProgress)
@@ -325,10 +354,10 @@ export function useSurvey() {
         if (currentPageIndex.value > lastIndex) currentPageIndex.value = lastIndex < 0 ? 0 : lastIndex
         else if (currentPageIndex.value < 0) currentPageIndex.value = 0
       } else {
-        throw new Error('설문지를 불러오는데 실패했습니다.')
+        throw new Error(SURVEY_ERROR.load)
       }
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : '설문지를 불러오는데 실패했습니다.'
+    } catch {
+      error.value = SURVEY_ERROR.load
     } finally {
       isLoading.value = false
     }
@@ -400,48 +429,59 @@ export function useSurvey() {
     return false
   })
 
-  // 설문 제출
+  // 설문 제출 — 서버가 '이미 쓴 번호'(409 survey_id_taken)라고 하면 폼을 새로 받아 새 번호로 한 번만 다시 낸다(답은 그대로)
   async function submitSurvey(respondentId: string) {
     isLoading.value = true
     error.value = null
 
+    const post = () => submitSurveyResponse({
+      survey_id: surveyId.value,
+      respondent_id: respondentId,
+      answer_type: `type_${scaleType.value}` as 'type_2' | 'type_5' | 'type_10',
+      answers,
+    })
+
     try {
-      // const response = await submitSurveyResponse({
-      //   survey_id: surveyId.value,
-      //   respondent_id: respondentId,
-      //   answers
-      // })
-
-      // if (!response.success) {
-      //   throw new Error(response.error?.message || '제출에 실패했습니다.')
-      // }
-
-      // return response
-
-      const { data } = await submitSurveyResponse({
-        survey_id: surveyId.value,
-        respondent_id: respondentId,
-        answer_type: `type_${scaleType.value}` as 'type_2' | 'type_5' | 'type_10',
-        answers,
-      })
+      let res
+      try {
+        res = await post()
+      } catch (e) {
+        if (!isSurveyIdTaken(e)) throw e
+        const { data: form } = await fetchSurveyForm()
+        if (!form?.survey_id || form.survey_id === surveyId.value) throw e
+        surveyId.value = form.survey_id
+        persistForm()
+        res = await post()
+      }
+      const { data } = res
 
       if (!data.success) {
-        throw new Error(data.error?.message || '제출에 실패했습니다.')
+        throw new Error(SURVEY_ERROR.submit)
       }
 
-      // 제출 완료 → 저장된 진행상황 정리 (완료된 설문 재복원 방지)
+      // 제출 완료 → 저장된 진행상황 정리 (완료된 설문 재복원 방지) · 다음에 검사 화면에 오면 새로 시작
       clearPersistedProgress()
+      lastSubmittedId.value = surveyId.value
+      finished = true
       // 비회원 제출이면 서버가 열람 키를 준다 — 이 기기에 두고 결과 조회·삭제·가입 뒤 연결에 쓴다(shared/guest/guestSurvey)
       if (data.guestKey) saveGuestSurvey(surveyId.value, data.guestKey)
 
       return data
     } catch (e) {
-      error.value = e instanceof Error ? e.message : '제출에 실패했습니다.'
+      error.value = SURVEY_ERROR.submit
       throw e
     } finally {
       isLoading.value = false
     }
   }
+
+  // 방금 낸 검사 번호 — 이 탭에서 낸 것이 먼저, 새로고침 뒤에는 탭에 둔 번호(SURVEY_ID_KEY).
+  // 완료 화면은 이것을 쓴다(예전엔 지금 폼 번호를 써서, 완료 화면을 새로고침하면 새로 받은 빈 폼의 번호로 결과를 찾았다)
+  const submittedSurveyId = computed(() => {
+    let tab: string | null = null
+    try { tab = sessionStorage.getItem(SURVEY_ID_KEY) } catch { /* 저장소를 못 씀 */ }
+    return submittedIdOf(lastSubmittedId.value, tab)
+  })
 
   // 컴포넌트 마운트 시 설문지 로드
   // surveyData가 이미 있으면 loadSurvey() 스킵하도록 가드 추가 (기존 첫 로드 동작은 그대로). if문은 마지막 페이지 이동용 임시라 삭제해도 됨.
@@ -486,5 +526,7 @@ export function useSurvey() {
     submitSurvey,
     clearPersistedProgress,
     resetSurvey,
+    startNewIfFinished,
+    submittedSurveyId,
   }
 }

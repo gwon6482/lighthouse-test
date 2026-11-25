@@ -155,7 +155,10 @@ const {
   goToPrevPage,
   submitSurvey,
   resetSurvey,
+  startNewIfFinished,
 } = useSurvey()
+// 검사를 낸 뒤 다시 들어왔으면 새 번호·빈 답·첫 쪽에서(쓰다 만 검사는 그대로 이어 한다). 마운트 전에 비워야 폼을 새로 받는다
+startNewIfFinished()
 
 // 정상 전진(제출 등)일 때 이탈 가드를 통과시키는 플래그
 let bypassLeave = false

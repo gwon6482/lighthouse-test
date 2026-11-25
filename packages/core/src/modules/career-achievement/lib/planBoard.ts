@@ -271,3 +271,17 @@ export function roadmapWeekLabel(startWeek: number, projectWeek: number, current
   const now = planWeek === currentWeek
   return { title: `${now ? '이번 주 · ' : ''}${planWeek}주차`, sub: `프로젝트 ${projectWeek}주째`, now }
 }
+
+/**
+ * 진로달성 홈에 진행 중인 계획이 없을 때 어디로 가나(2026-11-25 핫픽스).
+ * 계획 전에는 하단 메뉴(마이)가 없다 — 예전엔 '진로계획 만들러 가기' 버튼만 있어 로그아웃·탈퇴할 길이 없었다
+ * (주소로 바로 들어오거나, 로그인 뒤 돌아갈 곳이 이 화면이었거나, 계획을 지운 뒤).
+ *   home   = 계획이 있다 — 홈을 그린다
+ *   before = 계획이 없다 — 계획 전 홈(/main/before, '내 계정' 이 있다)으로 보낸다
+ *   retry  = 못 읽었다(연결 문제) — 계획이 있을 수도 있으니 보내지 않고 '다시 불러오기' + '내 계정'
+ */
+export type NoPlanView = 'home' | 'before' | 'retry'
+export function noPlanView(hasPlan: boolean, loadFailed: boolean): NoPlanView {
+  if (hasPlan) return 'home'
+  return loadFailed ? 'retry' : 'before'
+}
