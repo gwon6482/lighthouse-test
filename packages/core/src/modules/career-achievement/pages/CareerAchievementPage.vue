@@ -106,6 +106,8 @@
             </div>
             <button v-if="t.session" type="button" class="ah-task__btn" @click="resumeFocus(t.session)">이어 하기</button>
             <button v-else-if="t.type === 'project'" type="button" class="ah-task__btn" @click="startProject(t.project!)">시작</button>
+            <!-- 집중모드를 켠 루틴(2026-11-26 #95)은 '완료' 대신 '시작' 하나(오너: 둘 다 있는 건 별로) -->
+            <button v-else-if="t.type === 'routine' && t.routine && routineFocusable(t.routine)" type="button" class="ah-task__btn" @click="startRoutine(t.routine)">시작</button>
             <!-- 루틴·과정(2026-11-16)은 집중모드 없이 '완료' 한 번 -->
             <button v-else type="button" class="ah-task__check" :aria-pressed="false" @click="toggleRow(t)">완료</button>
           </li>
@@ -118,8 +120,9 @@
             <li v-for="t in finished" :key="t.key" class="ah-task ah-task--done">
               <span class="ah-task__chip" :style="t.chipStyle"><AppIcon :name="t.icon" /></span>
               <div class="ah-task__body"><span class="ah-task__name">{{ t.name }}</span></div>
+              <!-- 집중으로 남긴 루틴(2026-11-26)은 시간·사진·글이 있어 눌러도 지우지 않는다(끝낸 프로젝트 줄과 같게 — 되돌리기는 #101) -->
               <button
-                v-if="t.type !== 'project'" type="button" class="ah-task__check ah-task__check--on"
+                v-if="t.type !== 'project' && !t.recorded" type="button" class="ah-task__check ah-task__check--on"
                 :aria-pressed="true" @click="toggleRow(t)"
               ><AppIcon name="ui-check" /> 완료</button>
               <span v-else class="ah-task__state"><AppIcon name="ui-check" /> 완료</span>
@@ -141,6 +144,27 @@
             </li>
           </ul>
         </template>
+
+        <!-- 바로 집중(2026-11-26 #96) — 할 일을 고르지 않고. 모든 날 카드 맨 아래. 오늘 한 것은 회색 줄로(할 일 수·링에는 안 넣는다) -->
+        <ul v-if="todayFree.length" class="ah-list ah-free-list">
+          <li v-for="e in todayFree" :key="e.itemId" class="ah-task ah-task--free">
+            <span class="ah-task__chip ah-task__chip--free"><AppIcon name="ui-duration" /></span>
+            <div class="ah-task__body">
+              <span class="ah-task__name">{{ cardName(e) }}</span>
+              <span class="ah-task__focus">{{ FREE_LABEL }} · {{ logMinutesLabel(e.elapsedSec) }}</span>
+            </div>
+          </li>
+        </ul>
+        <div v-if="freeSession" class="ah-task ah-task--next ah-free-held">
+          <span class="ah-task__chip ah-task__chip--free"><AppIcon name="ui-duration" /></span>
+          <div class="ah-task__body">
+            <span class="ah-task__eyebrow">{{ pausedEyebrow(freeSession.date, todayKey, false) }}</span>
+            <span class="ah-task__name">{{ FREE_LABEL }}</span>
+            <span class="ah-task__focus">{{ pausedSub(freeSession) }}</span>
+          </div>
+          <button type="button" class="ah-task__btn" @click="resumeFocus(freeSession)">이어 하기</button>
+        </div>
+        <button v-else type="button" class="ah-today__free" @click="startFree"><AppIcon name="ui-duration" /> 바로 집중하기</button>
       </section>
 
       <!-- 이번 주 기록 재기(2026-11-21 루틴 리뉴얼) — 기준 넘기·실력 올리기 루틴의 주 1회 기록. 매일 분량은 루틴, 재기는 여기 -->
@@ -248,6 +272,9 @@ import type { Project } from '@/modules/career-design/types/career-design'
 import { daysUntil, examDateOf, mdLabel } from '@/modules/career-design/lib/examDate'
 import { COPY } from '@/modules/career-design/lib/examDateRules'
 import { elapsedOf, elapsedText, pausedEyebrow, type FocusSession } from '../lib/focusSession'
+import { cardName, FREE_LABEL } from '../lib/focusLog'
+import { logMinutesLabel } from '../lib/focusTimer'
+import type { Routine } from '@/modules/career-design/types/career-design'
 
 const router = useRouter()
 const goRoadmap = () => router.push({ name: 'Career Achievement Roadmap' })
@@ -263,6 +290,7 @@ const {
   pausedFor, heldSessions, resumeFocus, projectOf, todayKey,
   pullAhead, startAhead,
   routineWeekCount, measureDue, saveRecord, endedRoutines, markAsked, decideEnded,
+  routineFocusable, startRoutine, routineRecorded, freeSession, startFree, todayFree, routineOf,
 } = usePlanBoard()
 const endSheet = computed(() => (loading.value ? null : endedRoutines.value[0] ?? null))
 
@@ -286,7 +314,7 @@ const allDone = computed(() => todayTotal.value > 0 && todayDone.value >= todayT
 
 // 오늘 할 일 한 줄 — 프로젝트·루틴을 한 목록으로(구분은 칩 색: 프로젝트=분류 색, 루틴=파랑)
 // 과정(2026-11-16)은 루틴처럼 '완료' 한 번 — 칩은 과정 그림, 아래 줄은 '근무 · 6/12주'
-interface TodayRow { key: string; type: 'project' | 'routine' | 'period'; id: string; name: string; sub: string; icon: string; chipStyle?: Record<string, string>; project?: Project; session?: FocusSession }
+interface TodayRow { key: string; type: 'project' | 'routine' | 'period'; id: string; name: string; sub: string; icon: string; chipStyle?: Record<string, string>; project?: Project; routine?: Routine; session?: FocusSession; recorded?: boolean }
 // 멈춘 집중 한 줄 — 홈에서는 '23분 40초'(시트의 '23:40'은 시각처럼 읽혀서)
 const pausedSub = (s: FocusSession) => `${elapsedText(elapsedOf(s, Date.now()))} 집중했어요`
 const PERIOD_CHIP = { color: '#8A5A00', background: '#FFF4D6' }
@@ -326,18 +354,36 @@ const rows = computed(() => {
     ;(isProjectDone(p.id) ? finished : pending).push(row)
   }
   for (const r of todayRoutines.value) {
+    const done = isRoutineDone(r.id)
+    // 멈춘 루틴 집중(2026-11-26) — 프로젝트처럼 '잠시 멈춤 · 이어 하기'로 맨 위에
+    const s = done ? null : pausedFor(r.id, 'routine')
+    if (s) {
+      pausedRows.push({
+        key: 'r' + r.id, type: 'routine', id: r.id, name: r.name, routine: r, session: s,
+        sub: pausedSub(s), icon: 'ui-repeat', chipStyle: { color: ROUTINE_COLOR, background: ROUTINE_TINT },
+      })
+      continue
+    }
     // '이번 주 1/3번'(2026-11-21 루틴 리뉴얼 정할 것 6) — 연속 기록이 아니라 그 주에 나온 날 중 한 날
     const wc = routineWeekCount(r.id, weekNumber.value)
     const row: TodayRow = {
-      key: 'r' + r.id, type: 'routine', id: r.id, name: r.name,
+      key: 'r' + r.id, type: 'routine', id: r.id, name: r.name, routine: r,
       sub: `루틴 · ${r.duration}분` + (wc.planned > 1 ? ` · 이번 주 ${wc.done}/${wc.planned}번` : ''),
       icon: 'ui-repeat', chipStyle: { color: ROUTINE_COLOR, background: ROUTINE_TINT },
+      recorded: done && routineRecorded(r.id),
     }
-    ;(isRoutineDone(r.id) ? finished : pending).push(row)
+    ;(done ? finished : pending).push(row)
   }
   return { pending: [...pausedRows, ...pending], finished }
 })
 const held = computed(() => heldSessions.value.map((s) => {
+  if (s.itemType === 'routine') {
+    return {
+      key: s.date + s.itemId, session: s, name: routineOf(s.itemId)?.name ?? s.itemName, sub: pausedSub(s),
+      eyebrow: pausedEyebrow(s.date, todayKey.value, !!s.afterDone),
+      icon: 'ui-repeat', chipStyle: { color: ROUTINE_COLOR, background: ROUTINE_TINT },
+    }
+  }
   const p = projectOf(s.itemId)
   const c = categoryColor(p?.category ?? s.itemCategory)
   return {

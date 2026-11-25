@@ -2,9 +2,11 @@ import { req } from '@/shared/api'
 import type { ProjectCategory } from '@/modules/career-design/types/career-design'
 
 // 서버 AchievementRecord 1건 (user_data.achievement_records)
+// itemType 'free' = 바로 집중(2026-11-26) — itemId 'f'+시작 시각, done 늘 false, itemName 은 '무엇을 했나요', projectId 는 이어지는 프로젝트
+export type AchievementItemType = 'project' | 'routine' | 'free'
 export interface AchievementRecordDto {
   date: string
-  itemType: 'project' | 'routine'
+  itemType: AchievementItemType
   itemId: string
   done: boolean
   itemName?: string
@@ -16,6 +18,7 @@ export interface AchievementRecordDto {
   difficulty?: 1 | 2 | 3 | 4 | 5 | null
   note?: string
   curriculumWeek?: number | null
+  projectId?: string
 }
 
 export interface CurriculumItemDto {
@@ -39,7 +42,7 @@ export async function fetchAchievements(
 export async function upsertAchievement(
   planId: string,
   date: string,
-  itemType: 'project' | 'routine',
+  itemType: AchievementItemType,
   itemId: string,
   body: Partial<AchievementRecordDto>,
 ): Promise<AchievementRecordDto | null> {
@@ -53,7 +56,7 @@ export async function upsertAchievement(
 export async function deleteAchievement(
   planId: string,
   date: string,
-  itemType: 'project' | 'routine',
+  itemType: AchievementItemType,
   itemId: string,
 ): Promise<boolean> {
   await req.delete(`/api/career-plan/${planId}/achievements/${date}/${itemType}/${itemId}`)

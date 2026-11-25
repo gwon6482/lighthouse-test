@@ -111,6 +111,7 @@ export interface Routine {
   pauseWeeks?: number[]        // 쉬는 계획 주차(주간결산 '한 주 쉬기')
   endedAt?: string             // 끝낸 날 — 그날부터 안 나온다
   records?: RoutineRecord[]    // 주 1회 기록(계획 주차가 열쇠)
+  focus?: boolean              // 집중모드로 하기(2026-11-26 #95) — 홈에서 '완료' 대신 '시작'. 없음 = 꺼짐(옛 루틴·라이브러리 제안)
 }
 
 // 타임라인 슬롯 — week 는 프로젝트의 **시작 주차**(1-based).

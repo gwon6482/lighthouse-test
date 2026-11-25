@@ -9,15 +9,25 @@
 // - 지우는 때: 집중 취소 · 저장 · 그 날짜에 완료됨(다른 기기 포함) · 계획에서 빠짐 · 다른 계획 · 그제 이전 · 로그아웃
 //   단, 이미 완료한 항목을 다시 집중한 것(afterDone)은 '완료됨'으로 지우지 않는다 — 시작할 때부터 완료라
 //   그 규칙이 곧바로 지워 '나중에 이어 하기'가 조용히 사라졌다(2026-11-19 사용성 QA)
+// - 2026-11-26 집중모드 넓히기: 루틴(#95)·바로 집중(#96)도 같은 규칙. 바로 집중(free)은 itemId 'f' + 시작 시각이고 한 번에 하나만,
+//   완료 판정이 없어(완료가 아니다) 저장·취소·계획이 바뀜·그제 이전에만 지운다.
+//   ⚠️ 옛 앱(11-25까지)은 이 저장소에서 project 가 아닌 것을 버린다 — 옛 앱이 다시 쓰면 멈춘 루틴·바로 집중이 사라진다(시간만, 서버 기록 없음)
 import type { ProjectCategory } from '@/modules/career-design/types/career-design'
 
 export const FOCUS_SESSIONS_KEY = 'lh_focus_sessions_v1'
+
+export type FocusItemType = 'project' | 'routine' | 'free'
+export const FOCUS_ITEM_TYPES: readonly FocusItemType[] = ['project', 'routine', 'free']
+export const asFocusItemType = (v: unknown): FocusItemType => (v === 'routine' || v === 'free' ? v : 'project')
+// 바로 집중의 항목 열쇠 — 'f' + 시작 시각(서버도 같은 꼴만 받는다)
+export const FREE_ID_RE = /^f\d{10,15}$/
+export const newFreeId = (now: number) => `f${Math.floor(now)}`
 
 export interface FocusSession {
   v: 1
   planId: string
   date: string              // 'YYYY-MM-DD' — 기록이 들어갈 날(시작한 날)
-  itemType: 'project'
+  itemType: FocusItemType
   itemId: string
   itemName: string          // 계획을 못 불러와도 화면을 그리려고
   itemCategory?: ProjectCategory
@@ -69,7 +79,8 @@ export const isAlive = (s: Pick<FocusSession, 'date'>, todayKey: string) => s.da
 export interface PruneContext {
   planId: string
   projectIds: Set<string>
-  isDone: (date: string, itemId: string) => boolean
+  routineIds?: Set<string>  // 없으면(옛 호출) 루틴 집중은 계획에서 빠진 것으로 본다
+  isDone: (date: string, itemId: string, itemType: 'project' | 'routine') => boolean
   todayKey: string
 }
 // ⚠️ 계획을 제대로 불러온 경우에만 부른다. 연결이 안 되면 계획이 null 로 보이는데, 그때 지우면 오프라인에서 멈춘 집중이 사라진다
@@ -77,8 +88,9 @@ export function pruneSessions(map: FocusSessionMap, ctx: PruneContext): FocusSes
   const out: FocusSessionMap = {}
   for (const [k, s] of Object.entries(map)) {
     if (s.planId && s.planId !== ctx.planId) continue
-    if (!ctx.projectIds.has(s.itemId)) continue
-    if (!s.afterDone && ctx.isDone(s.date, s.itemId)) continue
+    if (s.itemType === 'project' && !ctx.projectIds.has(s.itemId)) continue
+    if (s.itemType === 'routine' && !ctx.routineIds?.has(s.itemId)) continue
+    if (s.itemType !== 'free' && !s.afterDone && ctx.isDone(s.date, s.itemId, s.itemType)) continue
     if (!isAlive(s, ctx.todayKey)) continue
     out[k] = s
   }
@@ -136,7 +148,8 @@ export function parseSessions(raw: string | null | undefined): FocusSessionMap {
   const out: FocusSessionMap = {}
   for (const v of Object.values(obj as Record<string, unknown>)) {
     const s = v as Partial<FocusSession> | null
-    if (!s || s.v !== 1 || s.itemType !== 'project') continue
+    if (!s || s.v !== 1 || !FOCUS_ITEM_TYPES.includes(s.itemType as FocusItemType)) continue
+    if (s.itemType === 'free' && !FREE_ID_RE.test(String(s.itemId))) continue
     if (typeof s.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s.date)) continue
     if (typeof s.itemId !== 'string' || !s.itemId || typeof s.itemName !== 'string') continue
     if (typeof s.accSec !== 'number' || !Number.isFinite(s.accSec) || typeof s.goalMin !== 'number') continue
@@ -148,4 +161,12 @@ export function parseSessions(raw: string | null | undefined): FocusSessionMap {
     out[keyOf(ok)] = { ...rest, ...(from ? { from } : {}), planId: typeof s.planId === 'string' ? s.planId : '', segStart: ok.state === 'running' ? ok.segStart : null }
   }
   return out
+}
+
+// 바로 집중은 한 번에 하나(2026-11-26 내가 정한 것 2) — 그 계획의 살아 있는 것 중 가장 최근
+export function freeSessionOf(map: FocusSessionMap, planId: string, todayKey: string): FocusSession | null {
+  const list = Object.values(map)
+    .filter((s) => s.itemType === 'free' && (!s.planId || s.planId === planId) && isAlive(s, todayKey))
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+  return list[0] ?? null
 }

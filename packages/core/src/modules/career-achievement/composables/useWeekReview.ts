@@ -4,6 +4,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { usePlanBoard } from './usePlanBoard'
 import { useAchievementEntries } from './useAchievementEntries'
+import { minutesByKind, minutesSplitLine } from '../lib/focusLog'
 import { computeWeekRangeContaining, parseDateKey, toDateKey } from './useWeeklySchedule'
 import { weekOfDate, projectStartWeek, planWeekCount, weekDateRange, duringOwners } from '@/modules/career-design/composables/usePlanTimeline'
 import { weekEntriesOf } from '@/modules/career-design/composables/useProjectCurriculum'
@@ -129,9 +130,13 @@ export function useWeekReview() {
   const weekEntries = computed(() => {
     void entries.value
     const r = range.value
-    return r ? feedSorted().filter((e) => e.itemType === 'project' && e.date >= r.weekStart && e.date <= r.weekEnd) : []
+    // 프로젝트 · 집중으로 남긴 루틴 · 바로 집중(2026-11-26 집중모드 넓히기 — 오너 결정 3·6). 완료 수·%는 위 days 로 따로 센다
+    return r ? feedSorted().filter((e) => e.date >= r.weekStart && e.date <= r.weekEnd) : []
   })
-  const minutes = computed(() => Math.round(weekEntries.value.reduce((n, e) => n + (e.elapsedSec ? e.elapsedSec / 60 : e.duration), 0)))
+  const minutesBy = computed(() => minutesByKind(weekEntries.value))
+  const minutes = computed(() => Math.round(minutesBy.value.total))
+  // '쌓은 시간' 아래 한 줄 — 둘 이상일 때만('프로젝트 5시간 40분 · 루틴 1시간 58분 · 바로 집중 42분')
+  const minutesSplit = computed(() => minutesSplitLine(minutesBy.value))
   const photos = computed(() => weekEntries.value.filter((e) => e.photoUrl).length)
   const headline = computed(() => {
     const p = percent.value
@@ -495,7 +500,7 @@ export function useWeekReview() {
     ...board,
     finishReview,
     range, weekNo, rangeLabel, totalWeeks,
-    days, planned, done, percent, fullDays, workDays, minutes, photos, headline,
+    days, planned, done, percent, fullDays, workDays, minutes, minutesSplit, photos, headline,
     weekGain, beforePercent,
     weeklyHours, paceOptions, currentPace, recommendedPace, endIfPace, nextWeek, currentEnd,
     nextDays,

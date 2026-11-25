@@ -19,7 +19,8 @@ import {
   todayMessage, journeyHeadline, categoryColor, roadmapStops,
 } from '../lib/planBoard'
 import { useFocusSessions } from './useFocusSessions'
-import { sessionKey, isAlive, type FocusSession } from '../lib/focusSession'
+import { sessionKey, isAlive, freeSessionOf, type FocusSession } from '../lib/focusSession'
+import { useAchievementEntries } from './useAchievementEntries'
 import { req } from '@/shared/api'
 import { attachedEnded, keepVersion, measureOf, recordOfWeek, type WeekCount } from '@/modules/career-design/lib/routine'
 import type { RoutineRecord } from '@/modules/career-design/types/career-design'
@@ -43,6 +44,7 @@ export function usePlanBoard() {
   const { isItemDone, weekItemsDoneCount } = useCurriculumCompletion()
   const { ensureWeekSchedule, fetchSchedules, retryAhead } = useWeeklySchedule()
   const focus = useFocusSessions()
+  const entriesStore = useAchievementEntries()
 
   const loading = ref(true)
   const schedules = ref<WeeklySchedule[]>([])
@@ -99,27 +101,54 @@ export function usePlanBoard() {
     if (p.period) { ach.toggleProject(p.id); return }   // 과정은 집중모드 없이 '완료' 한 번(2026-11-16)
     router.push({ path: `/career-achievement/start/project/${p.id}`, query: { date: todayKey.value } })
   }
-  // ── 멈춘 집중(2026-11-19) — 그 기기에만. 오늘 목록의 그 프로젝트 줄은 '잠시 멈춤 · 이어 하기'로 ──
-  function pausedFor(projectId: string): FocusSession | null {
-    return focus.get(sessionKey(todayKey.value, 'project', projectId))
+  // ── 루틴 집중(2026-11-26 #95) — 집중모드를 켠 루틴(1회 시간이 있는 것)만 '시작'. 과정·0분 루틴은 '완료' 한 번 ──
+  const routineFocusable = (r: Routine) => r.focus === true && Number(r.duration) > 0
+  function startRoutine(r: Routine) {
+    router.push({ path: `/career-achievement/start/routine/${r.id}`, query: { date: todayKey.value } })
   }
-  // 오늘 목록에 없는 멈춘 집중(어제 것, 일정을 다른 날로 옮긴 것) — '오늘 할 일' 위에 따로 한 장
+  /** 그날 집중으로 남긴 루틴인가(기록 화면에서 저장 — 시간·사진·글이 있다). '완료'만 누른 루틴은 기록이 없다 */
+  const routineRecorded = (routineId: string, dateKey?: string) => !!entriesStore.getEntry(dateKey ?? todayKey.value, 'routine', routineId)
+
+  // ── 바로 집중(2026-11-26 #96) — 할 일을 고르지 않고. 한 번에 하나(멈춘 것이 있으면 그것을 이어 한다) ──
+  const freeSession = computed<FocusSession | null>(() => {
+    const pl = plan.value
+    return pl ? freeSessionOf(focus.sessions.value, pl.planId, todayKey.value) : null
+  })
+  function startFree() {
+    const s = freeSession.value
+    if (s) return resumeFocus(s)
+    router.push({ path: '/career-achievement/start/free/new', query: { date: todayKey.value } })
+  }
+  /** 오늘 남긴 바로 집중 — '오늘 할 일' 카드 안의 회색 줄(오늘 할 일 수·링에는 넣지 않는다) */
+  const todayFree = computed(() => {
+    void entriesStore.entries.value
+    return entriesStore.feedSorted().filter((e) => e.itemType === 'free' && e.date === todayKey.value).reverse()
+  })
+
+  // ── 멈춘 집중(2026-11-19) — 그 기기에만. 오늘 목록의 그 프로젝트 줄은 '잠시 멈춤 · 이어 하기'로 ──
+  function pausedFor(projectId: string, itemType: 'project' | 'routine' = 'project'): FocusSession | null {
+    return focus.get(sessionKey(todayKey.value, itemType, projectId))
+  }
+  // 오늘 목록에 없는 멈춘 집중(어제 것, 일정을 다른 날로 옮긴 것) — '오늘 할 일' 위에 따로 한 장.
+  // 루틴(2026-11-26)도 같다. 바로 집중은 여기 말고 '바로 집중하기' 자리에 나온다
   const heldSessions = computed<FocusSession[]>(() => {
     const pl = plan.value
     if (!pl) return []
-    const todayIds = new Set(todayProjects.value.map((p) => p.id))
+    const todayIds = new Set([...todayProjects.value.map((p) => 'p' + p.id), ...todayRoutines.value.map((r) => 'r' + r.id)])
     return Object.values(focus.sessions.value)
       .filter((s) => {
-        if ((s.planId && s.planId !== pl.planId) || !projectOf(s.itemId) || !isAlive(s, todayKey.value)) return false
-        const done = ach.isProjectDone(s.itemId, s.date)
+        if (s.itemType === 'free') return false
+        const isRoutine = s.itemType === 'routine'
+        if ((s.planId && s.planId !== pl.planId) || !(isRoutine ? routineOf(s.itemId) : projectOf(s.itemId)) || !isAlive(s, todayKey.value)) return false
+        const done = isRoutine ? ach.isRoutineDone(s.itemId, s.date) : ach.isProjectDone(s.itemId, s.date)
         if (done && !s.afterDone) return false // 다른 기기에서 완료 — 정리에서 지운다
         // 오늘 목록의 아직 안 한 줄은 그 자리에 '잠시 멈춤'으로 나온다. 완료한 줄(다시 집중)은 여기 한 장으로(2026-11-19 QA)
-        return !(s.date === todayKey.value && todayIds.has(s.itemId) && !done)
+        return !(s.date === todayKey.value && todayIds.has((isRoutine ? 'r' : 'p') + s.itemId) && !done)
       })
       .sort((a, b) => a.date.localeCompare(b.date) || a.updatedAt - b.updatedAt)
   })
   function resumeFocus(s: FocusSession) {
-    router.push({ path: `/career-achievement/start/project/${s.itemId}`, query: { date: s.date } })
+    router.push({ path: `/career-achievement/start/${s.itemType}/${s.itemId}`, query: { date: s.date } })
   }
   const toggleRoutine = (id: string) => ach.toggleRoutine(id)
   // 과정(2026-11-16) — 다니는 날 '완료' 한 번(루틴처럼). 하루 완료 기록은 프로젝트와 같은 자리에 남는다
@@ -352,7 +381,8 @@ export function usePlanBoard() {
         focus.prune({
           planId: pl.planId,
           projectIds: new Set(pl.projects.map((p) => p.id)),
-          isDone: (date, id) => ach.isProjectDone(id, date),
+          routineIds: new Set(pl.routines.map((r) => r.id)),
+          isDone: (date, id, type) => (type === 'routine' ? ach.isRoutineDone(id, date) : ach.isProjectDone(id, date)),
           todayKey: todayKey.value,
         })
       }
@@ -375,12 +405,14 @@ export function usePlanBoard() {
     previews,
     todayProjects, todayRoutines, todayFocus, startProject, toggleRoutine, toggleProject, periodToday,
     pausedFor, heldSessions, resumeFocus,
+    // 집중모드 넓히기(2026-11-26)
+    routineFocusable, startRoutine, routineRecorded, freeSession, startFree, todayFree, routineOf,
     pullAhead, startAhead,
     isProjectDone: ach.isProjectDone, isRoutineDone: ach.isRoutineDone,
     weekGoals, weekNumber, review,
     totalWeeks, roadmap, weekSpanLabel,
     // 주간결산이 쓴다 — 날짜별 항목·완료 판정
-    itemsOn, itemDone, projectOf, routineOf, isItemDone,
+    itemsOn, itemDone, projectOf, isItemDone,
     // 루틴(2026-11-21)
     routineWeekCount, measureDue, saveRecord, endedRoutines, markAsked, decideEnded,
   }
