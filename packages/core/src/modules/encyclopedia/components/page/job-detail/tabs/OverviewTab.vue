@@ -106,7 +106,7 @@
         <h3 class="overview-section__title">{{ section.title }}</h3>
         <span v-if="locked" class="g-pill"><AppIcon name="ui-privacy" :size="12" />가입 후</span>
         <button
-          v-else
+          v-else-if="cardsFor(section).some(c => c.between.length)"
           type="button"
           class="compare-toggle"
           :class="{ 'compare-toggle--on': showInter[section.title] }"
@@ -123,8 +123,11 @@
             <span class="pf-badge">{{ cat.dimKey }}</span>
           </div>
 
+          <!-- 고용24 자료가 빈 영역(값이 전부 0, 2026-11-27) — 값 0인 항목을 '특히 중요해요'로 그리지 않는다(lib/detailChips) -->
+          <p v-if="cat.empty" class="pf-empty" data-test="pf-empty">자료가 없어요</p>
+
           <!-- 직업 내 (기본 노출, 상위 3개) -->
-          <div class="pf-block">
+          <div v-if="!cat.empty" class="pf-block">
             <p class="pf-block-label">
               <svg class="pf-icon pf-icon--within" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="12" cy="12" r="9" />
@@ -133,7 +136,8 @@
               </svg>
               이 직업에서 특히 중요해요
             </p>
-            <ul class="pf-chips">
+            <p v-if="!cat.within.length" class="pf-empty">자료가 없어요</p>
+            <ul v-else class="pf-chips">
               <li v-for="(item, ii) in cat.within" :key="item.code" :class="{ 'g-veil': locked && ii > 0 }">
                 <button
                   type="button"
@@ -152,7 +156,7 @@
           </div>
 
           <!-- 직업 간 (토글 시 노출, 상위 3개) -->
-          <div v-show="showInter[section.title]" class="pf-block">
+          <div v-if="!cat.empty" v-show="showInter[section.title]" class="pf-block">
             <p class="pf-block-label">
               <svg class="pf-icon pf-icon--between" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M18.9 7a8 8 0 0 1 1.1 5v1a6 6 0 0 0 .8 3" />
@@ -163,7 +167,8 @@
               </svg>
               다른 직업과 뚜렷이 구별돼요
             </p>
-            <ul class="pf-chips">
+            <p v-if="!cat.between.length" class="pf-empty">자료가 없어요</p>
+            <ul v-else class="pf-chips">
               <li v-for="item in cat.between" :key="item.code">
                 <button
                   type="button"
@@ -366,6 +371,7 @@ import { useCareerAttributes } from '@/shared/composables/useCareerAttributes'
 import JobGateGuide from '@/shared/components/JobGateGuide.vue'
 import { outlookView, verdictSentence, verdictWhen, verdictTone, sourceText, groupLine, subjectLine, outlookLinkLabel } from '../../../../lib/outlook'
 import { waySourceView } from '../../../../lib/waySource'
+import { topRankItems } from '../../../../lib/detailChips'
 
 const props = defineProps<{ job: Job; locked?: boolean }>()
 
@@ -416,8 +422,6 @@ type FactorKey = keyof JobDetails
 type DimKey = '중요도' | '수준'
 type CompareKey = '직업내' | '직업간'
 
-const TOP_N = 3
-
 const detailSections: Array<{ title: string; keys: FactorKey[] }> = [
   { title: '개인요소', keys: ['성격', '지식', '흥미', '가치관'] },
   { title: '업무요소', keys: ['업무수행능력', '업무활동', '업무환경'] },
@@ -434,8 +438,8 @@ function dimensionsOf(catKey: FactorKey): DimKey[] {
 }
 
 function getItems(catKey: FactorKey, dimKey: DimKey, compareKey: CompareKey): RankItem[] {
-  const items = (props.job.details[catKey] as CategoryRankings)[dimKey]?.[compareKey] ?? []
-  return [...items].sort((a, b) => b.score - a.score).slice(0, TOP_N)
+  // 값 0인 항목(고용24 자료 없음)은 뺀다 — lib/detailChips
+  return topRankItems((props.job.details[catKey] as CategoryRankings)[dimKey]?.[compareKey])
 }
 
 interface FactorCard {
@@ -443,6 +447,8 @@ interface FactorCard {
   dimKey: DimKey
   within: RankItem[]
   between: RankItem[]
+  /** 직업 내·직업 간 모두 값이 없다 → 칸에 '자료가 없어요' 한 줄만 */
+  empty: boolean
 }
 
 const hasEducationInfo = computed(() =>
@@ -516,14 +522,16 @@ function openDefFor(cat: FactorCard, block: DefBlock): string | null {
   return hit ? definitionOf(hit.code) : null
 }
 
+// 자료 없는 칸은 구역 맨 아래로(순서는 그대로 유지) — 값이 있는 칸이 먼저 보이고,
+// 비회원 맛보기(첫 칸만 또렷)가 '자료가 없어요'가 되지 않게 한다(2026-11-27)
 function cardsFor(section: { keys: FactorKey[] }): FactorCard[] {
-  return section.keys.flatMap(catKey =>
-    dimensionsOf(catKey).map(dimKey => ({
-      catKey,
-      dimKey,
-      within: getItems(catKey, dimKey, '직업내'),
-      between: getItems(catKey, dimKey, '직업간'),
-    })),
+  const cards = section.keys.flatMap(catKey =>
+    dimensionsOf(catKey).map((dimKey) => {
+      const within = getItems(catKey, dimKey, '직업내')
+      const between = getItems(catKey, dimKey, '직업간')
+      return { catKey, dimKey, within, between, empty: !within.length && !between.length }
+    }),
   )
+  return [...cards.filter(c => !c.empty), ...cards.filter(c => c.empty)]
 }
 </script>

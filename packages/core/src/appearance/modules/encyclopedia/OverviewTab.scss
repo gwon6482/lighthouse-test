@@ -164,6 +164,13 @@
   &--between { stroke: #ba7517; }
 }
 
+/* 고용24 자료가 빈 칸(2026-11-27) — 칩 자리에 한 줄 */
+.pf-empty {
+  margin: 0;
+  font-size: 13px;
+  color: #6b6b6b;
+}
+
 .pf-chips {
   list-style: none;
   display: flex;
