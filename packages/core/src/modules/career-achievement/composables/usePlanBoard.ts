@@ -25,7 +25,6 @@ import { req } from '@/shared/api'
 import { attachedEnded, keepVersion, measureOf, recordOfWeek, type WeekCount } from '@/modules/career-design/lib/routine'
 import type { RoutineRecord } from '@/modules/career-design/types/career-design'
 import { homePullAhead, type AheadCandidate } from '../lib/pullAhead'
-import { useAchievementEntries } from './useAchievementEntries'
 import { lastCheckedIndex, moveAheadBack } from '../lib/undoDone'
 
 export interface PreviewLine { name: string; color: string }
@@ -372,7 +371,7 @@ export function usePlanBoard() {
   }
 
   // ── 끝낸 줄(#101, 2026-11-26 — lib/undoDone.ts) ──
-  const entries = useAchievementEntries()
+  const entries = entriesStore
   const { toggleItem } = useCurriculumCompletion()
   const { updateSchedule } = useWeeklySchedule()
   /** 오늘 그 일의 기록(시간·사진·메모). 없으면 null */
@@ -427,6 +426,12 @@ export function usePlanBoard() {
    * 완료 취소 — 기록을 지우고(서버 DELETE, 지금 동작 그대로) 그 주 할 일 체크 한 칸을 되돌린다.
    * 미리 하기로 당겨 온 칸은 원래 요일이 아직 안 지났으면 그 요일로 돌려놓는다
    */
+  /** 기록이 있는 루틴(집중으로 끝냄)의 완료 취소 — 서버 기록은 완료 표시를 끄며 지우고, 기기의 사본도 지운다(로그·'기록 있음' 표시가 남지 않게) */
+  function undoRoutine(routineId: string): void {
+    if (!ach.isRoutineDone(routineId)) return
+    ach.toggleRoutine(routineId)
+    entries.dropLocal(todayKey.value, 'routine', routineId)
+  }
   async function undoProject(projectId: string): Promise<void> {
     const pl = plan.value
     if (!pl || !ach.isProjectDone(projectId)) return
@@ -489,6 +494,6 @@ export function usePlanBoard() {
     // 루틴(2026-11-21)
     routineWeekCount, measureDue, saveRecord, endedRoutines, markAsked, decideEnded,
     // 끝낸 줄(#101)
-    recordOf, undoPreview, undoProject,
+    recordOf, undoPreview, undoProject, undoRoutine,
   }
 }

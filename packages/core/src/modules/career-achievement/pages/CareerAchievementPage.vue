@@ -325,7 +325,7 @@ const {
   pullAhead, startAhead,
   routineWeekCount, measureDue, saveRecord, endedRoutines, markAsked, decideEnded,
   routineFocusable, startRoutine, routineRecorded, freeSession, startFree, todayFree, routineOf,
-  recordOf, undoPreview, undoProject,
+  recordOf, undoPreview, undoProject, undoRoutine,
 } = usePlanBoard()
 const endSheet = computed(() => (loading.value ? null : endedRoutines.value[0] ?? null))
 const addOpen = ref(false)   // 새 프로젝트 시작하기 — 고르기 시트(#99)
@@ -462,6 +462,7 @@ async function confirmUndo() {
   const t = undoRow.value
   if (!t) return
   if (t.type === 'project') await undoProject(t.id)
+  else if (t.type === 'routine') undoRoutine(t.id)
   else if (rowDone(t)) toggleRow(t)
   undoRow.value = null
 }
