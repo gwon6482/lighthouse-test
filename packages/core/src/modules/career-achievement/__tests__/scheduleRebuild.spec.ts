@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { rebuildWeekItems, type RebuildItem } from '../lib/scheduleRebuild'
+import { rebuildStart, rebuildWeekItems, type RebuildItem } from '../lib/scheduleRebuild'
 import { generateItemsForWeek } from '../composables/useWeeklySchedule'
 import type { Project } from '@/modules/career-design/types/career-design'
 
@@ -37,6 +37,15 @@ describe('이번 주를 오늘부터만 다시 만들기(#99)', () => {
     const generated = [P('A', '2026-11-26', { curriculumWeek: 2 }), P('A', '2026-11-27', { curriculumWeek: 2 }), P('A', '2026-11-30', { curriculumWeek: 2 }), P('A', '2026-12-01', { curriculumWeek: 2 })]
     const out = rebuildWeekItems(kept, generated, '2026-11-26').filter((x) => x.itemId === 'A' && x.date >= '2026-11-26')
     expect(out.map((x) => x.date.slice(8))).toEqual(['26', '27', '30', '01'])
+  })
+  it('표시된 뒤 며칠 지나 열면 — 그 사이 지난 요일도 예전 칸 그대로(오늘부터만)', () => {
+    expect(rebuildStart('2026-11-25', '2026-11-27')).toBe('2026-11-27')
+    expect(rebuildStart('2026-11-27', '2026-11-26')).toBe('2026-11-27')
+    const generated = [P('A', '2026-11-25'), P('C', '2026-11-25'), P('A', '2026-11-26'), P('C', '2026-11-26'), P('A', '2026-11-27'), P('C', '2026-11-27')]
+    const out = sum(rebuildWeekItems(kept, generated, rebuildStart('2026-11-25', '2026-11-27')))
+    expect(out).not.toContain('25C')
+    expect(out).not.toContain('26C')
+    expect(out).toContain('27C')
   })
   it('계획에서 빠진 일 — 남은 칸이 사라지고, 지운 일의 지난 칸도 남기지 않는다', () => {
     const generated = [R('r', '2026-11-26')]

@@ -5,7 +5,8 @@ import type {
 } from '@/modules/career-design/types/career-design'
 import { weekOfDate, weekDateRange, projectsActiveInWeek } from '@/modules/career-design/composables/usePlanTimeline'
 import { beforeStartOn, datesMatchSlot, outsideDates } from '@/modules/career-design/lib/projectDates'
-import { rebuildWeekItems } from '../lib/scheduleRebuild'
+import { rebuildStart, rebuildWeekItems } from '../lib/scheduleRebuild'
+import { getToday } from '@/shared/utils/dev-date'
 import { uid } from '@/shared/utils/uid'
 import { routineOnDay, voiceOverlap } from '@/modules/career-design/lib/routine'
 import { onAccountChange } from '@/shared/auth/accountScope'
@@ -269,7 +270,8 @@ export function useWeeklySchedule() {
     )
     // 계획이 바뀐 이번 주 — 지난 요일은 그대로 두고 그 날부터만 다시 만든다(lib/scheduleRebuild.ts). 옛 서버는 rebuild 가 없어 예전처럼 통째로
     const ids = new Set([...plan.projects.map((p) => `project:${p.id}`), ...plan.routines.map((r) => `routine:${r.id}`)])
-    const items = rebuild ? rebuildWeekItems(rebuild.items, generated, rebuild.from, (it) => ids.has(`${it.itemType}:${it.itemId}`)) : generated
+    const from = rebuild ? rebuildStart(rebuild.from, toDateKey(getToday())) : ''
+    const items = rebuild ? rebuildWeekItems(rebuild.items, generated, from, (it) => ids.has(`${it.itemType}:${it.itemId}`)) : generated
     return await createSchedule(planId, weekStart, weekEnd, items)
   }
 

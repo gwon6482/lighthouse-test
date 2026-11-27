@@ -10,6 +10,12 @@
 //     바뀌었으면 계획대로. 미리 하기로 지난 요일에 당겨 간 칸은 남은 칸 수에 넣어 세고, 계획대로 다시 만들 때도 그 요일 칸을 뺀다
 import { aheadFromNote } from './pullAhead'
 
+/**
+ * 실제로 다시 만들기 시작할 날 — 서버가 적은 날(표시한 날)과 앱의 오늘 가운데 늦은 날(2026-11-27 이어받아 점검).
+ * 표시된 뒤 며칠 앱을 열지 않았으면 서버의 날은 이미 지났다 — 그 사이 지난 요일은 예전 칸 그대로 둔다(새 칸이 '못 한 날'이 되지 않게)
+ */
+export const rebuildStart = (serverFrom: string, today: string): string => (today > serverFrom ? today : serverFrom)
+
 export interface RebuildItem { id?: string; itemType: 'project' | 'routine'; itemId: string; date: string; note?: string; curriculumWeek?: number | null }
 
 /** exists — 계획에 아직 있는 일인가(지운 프로젝트·루틴의 지난 칸은 남기지 않는다 — 할 수 없는 칸이 연속 달성을 끊지 않게) */
