@@ -104,7 +104,7 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted, useTemplateRef } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import ConfirmSheet from '@/shared/components/ConfirmSheet.vue'
-import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
+import { useActivePlanSource } from '@/modules/career-achievement/composables/useActivePlanSource'
 import { projectWeekIndexOn } from '@/modules/career-design/composables/usePlanTimeline'
 import { weekEntriesOf } from '@/modules/career-design/composables/useProjectCurriculum'
 import { useAchievement } from '../composables/useAchievement'
@@ -122,7 +122,8 @@ import type { DayOfWeek, Project, Routine } from '@/modules/career-design/types/
 
 const route = useRoute()
 const router = useRouter()
-const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
+// 홈과 같은 '진행 중인 계획'을 읽는다 — 편집 사본(draftPlan)이 다른 계획이면 항목을 못 찾았다(2026-11-27 핫픽스)
+const { plan: activePlan, timeline: activeTimeline, load: loadActivePlanSource } = useActivePlanSource()
 const { isProjectDone, isRoutineDone, toggleProject, toggleRoutine } = useAchievement()
 const { isItemDone, toggleItem } = useCurriculumCompletion()
 const { saveEntry, getEntry } = useAchievementEntries()
@@ -161,9 +162,9 @@ const saving = ref(false)
 const item = computed<Project | Routine | null>(() => {
   if (!itemId.value) return null
   if (itemType.value === 'project') {
-    return draftPlan.projects.find(p => p.id === itemId.value) ?? null
+    return activePlan.projects.find(p => p.id === itemId.value) ?? null
   }
-  return draftPlan.routines.find(r => r.id === itemId.value) ?? null
+  return activePlan.routines.find(r => r.id === itemId.value) ?? null
 })
 
 // 분류 색·라벨은 planBoard 의 CATEGORY_META(정본) — 이 화면에 있던 복제 표는 2026-11-19 지움
@@ -268,7 +269,7 @@ function advanceProjectCurriculum(project: Project, dateKey: string) {
   const target = new Date(y, m - 1, d)
 
   // 커리큘럼 N주차 = 계획주차 - 타임라인 시작주차 + 1
-  const wIdx = projectWeekIndexOn(draftTimeline.value, draftPlan.startDate, project.id, target, draftPlan.reviewDay)
+  const wIdx = projectWeekIndexOn(activeTimeline.value, activePlan.startDate, project.id, target, activePlan.reviewDay)
   if (wIdx === null) return
 
 
@@ -307,7 +308,7 @@ async function save() {
       photoUrl,
       difficulty: difficulty.value,
       note: note.value.trim(),
-      planId: draftPlan.planId ?? undefined,
+      planId: activePlan.planId ?? undefined,
     }
     // 미리 하기(2026-11-23) — 옮겨 올 칸의 원래 날짜. 멈춘 집중을 지우기 전에 읽는다(이어 하기로 왔으면 주소에 없을 수 있다)
     const ahead = aheadTarget()
@@ -380,11 +381,7 @@ onMounted(async () => {
   try {
     // 완료 표시·앞 기록을 서버 기준으로(이미 읽었으면 바로 끝난다) — 다시 집중한 시간을 앞 기록에 더하려고
     await useAchievementStore().loadActivePlan().catch(() => {})
-    if (!draftPlan.planId) {
-      const plans = await fetchMyPlans()
-      const target = plans.find((p: any) => p.status === 'active') ?? plans[0]
-      if (target?.planId) await loadPlanFromApi(target.planId)
-    }
+    await loadActivePlanSource()
     // 이미 작성한 entry가 있으면 prefill (수정용)
     const existing = getEntry(dateKey.value, itemType.value, itemId.value)
     if (existing) {

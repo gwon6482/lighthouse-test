@@ -13,7 +13,7 @@
 
     <div v-if="loading" class="ws__loading">불러오는 중...</div>
 
-    <template v-else-if="!draftPlan.planId">
+    <template v-else-if="!activePlan.planId">
       <div class="ws__empty">
         <span class="ws__empty-icon"><AppIcon name="ui-calendar" /></span>
         <h2 class="ws__empty-title">진로계획이 없어요</h2>
@@ -95,7 +95,7 @@
         </h2>
         <p class="ws__empty-text">
           <template v-if="notStarted">
-            이 진로계획은 {{ fmtDateLabel(draftPlan.startDate) }}에 시작해요.<br />
+            이 진로계획은 {{ fmtDateLabel(activePlan.startDate) }}에 시작해요.<br />
             시작일이 되면 이번 주 일정이 자동으로 만들어져요.
           </template>
           <template v-else>
@@ -118,7 +118,7 @@
             </div>
             <div class="ws-sheet__list">
               <button
-                v-for="p in draftPlan.projects"
+                v-for="p in activePlan.projects"
                 :key="p.id"
                 class="ws-sheet__row"
                 @click="addItem(p.id)"
@@ -134,7 +134,7 @@
                 </div>
                 <span class="ws-sheet__row-plus">＋</span>
               </button>
-              <p v-if="!draftPlan.projects.length" class="ws-sheet__empty">등록된 프로젝트가 없어요.</p>
+              <p v-if="!activePlan.projects.length" class="ws-sheet__empty">등록된 프로젝트가 없어요.</p>
             </div>
           </div>
         </div>
@@ -150,7 +150,7 @@ import { useRouter } from 'vue-router'
 import { useUnsavedGuard } from '@/shared/composables/useUnsavedGuard'
 import { safeBack } from '@/shared/utils/navigation'
 import AppHeader from '@/shared/components/AppHeader.vue'
-import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
+import { useActivePlanSource } from '@/modules/career-achievement/composables/useActivePlanSource'
 import {
   useWeeklySchedule, computeWeekRangeContaining, parseDateKey, toDateKey,
 } from '../composables/useWeeklySchedule'
@@ -162,7 +162,8 @@ import { uid } from '@/shared/utils/uid'
 import { categoryColor, categoryLabel } from '../lib/planBoard'
 
 const router = useRouter()
-const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
+// 홈과 같은 '진행 중인 계획'을 읽는다 — 편집 사본(draftPlan)이 다른 계획이면 항목을 못 찾았다(2026-11-27 핫픽스)
+const { plan: activePlan, timeline: activeTimeline, load: loadActivePlanSource } = useActivePlanSource()
 const { updateSchedule, ensureWeekSchedule } = useWeeklySchedule()
 const { isProjectDone, isRoutineDone, toggleProject, toggleRoutine } = useAchievement()
 
@@ -181,14 +182,14 @@ const addSheetDate = ref('')
 
 // reviewDay 는 주차 계산에 쓰이지 않으므로(=헬퍼에서 무시됨) startDate 만 있으면 계산.
 const currentRange = computed<{ weekStart: string; weekEnd: string } | null>(() => {
-  if (!draftPlan.startDate) return null
-  return computeWeekRangeContaining(getToday(), draftPlan.startDate, (draftPlan.reviewDay || '월') as DayOfWeek)
+  if (!activePlan.startDate) return null
+  return computeWeekRangeContaining(getToday(), activePlan.startDate, (activePlan.reviewDay || '월') as DayOfWeek)
 })
 
 // 계획 시작일이 오늘보다 미래여서 "이번 주"가 아직 없는 경우
 const notStarted = computed(() => {
-  if (!draftPlan.startDate) return false
-  return toDateKey(getToday()) < draftPlan.startDate
+  if (!activePlan.startDate) return false
+  return toDateKey(getToday()) < activePlan.startDate
 })
 
 interface DayCardItem {
@@ -227,7 +228,7 @@ const currentDays = computed<DayCard[]>(() => {
     const rawItems = itemsByDate[key] ?? []
     const items: DayCardItem[] = []
     for (const it of rawItems) {
-      const p = draftPlan.projects.find(x => x.id === it.itemId)
+      const p = activePlan.projects.find(x => x.id === it.itemId)
       if (!p) continue
       items.push({
         id:        it.id,
@@ -301,13 +302,13 @@ function cancelEdit() {
 }
 
 async function applyEdit() {
-  if (!dirty.value || !draftPlan.planId || !currentSchedule.value || !draftItems.value) return
+  if (!dirty.value || !activePlan.planId || !currentSchedule.value || !draftItems.value) return
   if (!confirm('이대로 이번 주 일정을 저장할까요?')) return
   const before = currentSchedule.value.items
   const next = draftItems.value
   saving.value = true
   try {
-    const updated = await updateSchedule(draftPlan.planId, currentSchedule.value.weekStart, { items: next })
+    const updated = await updateSchedule(activePlan.planId, currentSchedule.value.weekStart, { items: next })
     if (!updated) { alert('저장하지 못했어요. 잠시 후 다시 시도해 주세요.'); return }
     // 정합성: 뺀 일정에 남아 있던 완료 표시는 함께 해제(예전엔 지우는 즉시 했다)
     for (const it of before) {
@@ -327,16 +328,12 @@ async function applyEdit() {
 
 onMounted(async () => {
   try {
-    if (!draftPlan.planId) {
-      const plans = await fetchMyPlans()
-      const target = plans.find((p: any) => p.status === 'active') ?? plans[0]
-      if (target?.planId) await loadPlanFromApi(target.planId)
-    }
-    if (draftPlan.planId && currentRange.value) {
+    await loadActivePlanSource()
+    if (activePlan.planId && currentRange.value) {
       currentSchedule.value = await ensureWeekSchedule(
-        draftPlan.planId,
-        { startDate: draftPlan.startDate, endDate: draftPlan.endDate, reviewDay: draftPlan.reviewDay, projects: draftPlan.projects, routines: draftPlan.routines },
-        draftTimeline.value,
+        activePlan.planId,
+        { startDate: activePlan.startDate, endDate: activePlan.endDate, reviewDay: activePlan.reviewDay, projects: activePlan.projects, routines: activePlan.routines },
+        activeTimeline.value,
         currentRange.value.weekStart,
         currentRange.value.weekEnd,
       )

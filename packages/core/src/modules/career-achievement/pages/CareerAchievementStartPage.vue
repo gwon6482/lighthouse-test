@@ -113,7 +113,7 @@
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
-import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
+import { useActivePlanSource } from '@/modules/career-achievement/composables/useActivePlanSource'
 import type { Project, Routine } from '@/modules/career-design/types/career-design'
 import { CATEGORY_META } from '../lib/planBoard'
 import {
@@ -130,7 +130,8 @@ import { sessionKey, elapsedOf, elapsedText, subjectJosa, type FocusSession } fr
 
 const route = useRoute()
 const router = useRouter()
-const { draftPlan, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
+// 홈과 같은 '진행 중인 계획'을 읽는다 — 편집 사본(draftPlan)이 다른 계획이면 항목을 못 찾았다(2026-11-27 핫픽스)
+const { plan: activePlan, load: loadActivePlanSource } = useActivePlanSource()
 const achStore = useAchievementStore()
 const focusSessions = useFocusSessions()
 const ach = useAchievement()
@@ -149,8 +150,8 @@ const loading = ref(true)
 
 const item = computed<Project | Routine | null>(() => {
   if (!itemId.value) return null
-  if (itemType.value === 'project') return draftPlan.projects.find(p => p.id === itemId.value) ?? null
-  return draftPlan.routines.find(r => r.id === itemId.value) ?? null
+  if (itemType.value === 'project') return activePlan.projects.find(p => p.id === itemId.value) ?? null
+  return activePlan.routines.find(r => r.id === itemId.value) ?? null
 })
 // 멈춘 집중(2026-11-19) — 프로젝트만. 계획을 못 불러와도(오프라인) 기기에 적어 둔 이름으로 그린다
 const keepable = itemType.value === 'project'
@@ -260,7 +261,7 @@ function persist() {
   const s: FocusSession = {
     v: 1,
     // 홈이 정리할 때 맞춰 보는 계획 — 홈과 같은 '진행 중인 계획'(achievement store) 기준
-    planId: achStore.plan?.planId ?? saved.value?.planId ?? draftPlan.planId ?? '',
+    planId: achStore.plan?.planId ?? saved.value?.planId ?? activePlan.planId ?? '',
     date: dateKey.value,
     itemType: 'project',
     itemId: itemId.value,
@@ -389,15 +390,7 @@ onMounted(async () => {
   document.addEventListener('visibilitychange', onVisible)
   try {
     await Promise.all([
-      (async () => {
-        if (!draftPlan.planId) {
-          const plans = await fetchMyPlans()
-          const target = plans.find((p: any) => p.status === 'active') ?? plans[0]
-          if (target?.planId) await loadPlanFromApi(target.planId)
-        }
-      })(),
-      // 멈춘 집중의 계획 번호를 홈과 같은 기준으로 적으려고(이미 읽었으면 바로 끝난다)
-      keepable ? achStore.loadActivePlan() : null,
+      loadActivePlanSource(),
     ])
   } catch {
     // 연결이 안 되면 계획 없이 — 기기에 적어 둔 멈춘 집중은 그대로 연다

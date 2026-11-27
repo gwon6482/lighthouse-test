@@ -13,7 +13,7 @@
 
     <div v-if="loading" class="wr__loading">불러오는 중...</div>
 
-    <template v-else-if="!draftPlan.planId">
+    <template v-else-if="!activePlan.planId">
       <div class="wr__empty">
         <span class="wr__empty-icon"><AppIcon name="ui-calendar" /></span>
         <h2 class="wr__empty-title">진로계획이 없어요</h2>
@@ -133,7 +133,7 @@ import AppIcon from '@/shared/components/AppIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/shared/components/AppHeader.vue'
-import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
+import { useActivePlanSource } from '@/modules/career-achievement/composables/useActivePlanSource'
 import {
   useWeeklySchedule, computeWeekRangeContaining, parseDateKey, toDateKey,
 } from '../composables/useWeeklySchedule'
@@ -144,7 +144,8 @@ import type { ProjectCategory, DayOfWeek } from '@/modules/career-design/types/c
 import { uid } from '@/shared/utils/uid'
 
 const router = useRouter()
-const { draftPlan, draftTimeline, fetchMyPlans, loadPlanFromApi } = useCareerDesign()
+// 홈과 같은 '진행 중인 계획'을 읽는다 — 편집 사본(draftPlan)이 다른 계획이면 항목을 못 찾았다(2026-11-27 핫픽스)
+const { plan: activePlan, timeline: activeTimeline, load: loadActivePlanSource } = useActivePlanSource()
 const { fetchScheduleByWeek, updateSchedule, ensureWeekSchedule } = useWeeklySchedule()
 const { isProjectDone, isRoutineDone, toggleProject, toggleRoutine } = useAchievement()
 
@@ -176,8 +177,8 @@ function closeAddSheet() {
 // schedule 의 items 를 변경하고 즉시 BE 동기화 (autosave) — currentSchedule 전용
 async function persistItems(_target: EditTarget, newItems: WeeklySchedule['items']) {
   const sched = currentSchedule
-  if (!draftPlan.planId || !sched.value) return
-  const planId = draftPlan.planId
+  if (!activePlan.planId || !sched.value) return
+  const planId = activePlan.planId
   const weekStart = sched.value.weekStart
   sched.value = { ...sched.value, items: newItems }
   currentSaving.value = true
@@ -241,15 +242,15 @@ const CAT_LABEL: Record<ProjectCategory, string> = {
 }
 
 // 첫 진입(회고할 직전 주가 없는 상태) — hero / 섹션 카피를 setup 모드로 전환
-const isFirstSetup = computed(() => draftPlan.planId !== null && !prevRange.value)
+const isFirstSetup = computed(() => activePlan.planId !== null && !prevRange.value)
 
 // 오늘 기준 "직전 주" 범위 계산. 현재 주가 첫 주(직전 주가 plan.startDate 이전)면 null.
 const prevRange = computed<{ weekStart: string; weekEnd: string } | null>(() => {
-  if (!draftPlan.startDate) return null
-  const cur = computeWeekRangeContaining(getToday(), draftPlan.startDate, (draftPlan.reviewDay || '월') as DayOfWeek)
+  if (!activePlan.startDate) return null
+  const cur = computeWeekRangeContaining(getToday(), activePlan.startDate, (activePlan.reviewDay || '월') as DayOfWeek)
   if (!cur) return null
   const curStart = parseDateKey(cur.weekStart)
-  const planStart = parseDateKey(draftPlan.startDate)
+  const planStart = parseDateKey(activePlan.startDate)
   if (!curStart || !planStart) return null
 
   const prevEnd = new Date(curStart)
@@ -282,8 +283,8 @@ const summary = computed(() => {
 
 // 이번 주 범위 (첫 주 일정 편집용)
 const currentRange = computed<{ weekStart: string; weekEnd: string } | null>(() => {
-  if (!draftPlan.startDate) return null
-  return computeWeekRangeContaining(getToday(), draftPlan.startDate, (draftPlan.reviewDay || '월') as DayOfWeek)
+  if (!activePlan.startDate) return null
+  return computeWeekRangeContaining(getToday(), activePlan.startDate, (activePlan.reviewDay || '월') as DayOfWeek)
 })
 
 // 요일별 카드 데이터 (project 만 — 루틴은 days 로 자동 배치, 주간 조정 UI 에 노출 안 함)
@@ -326,7 +327,7 @@ function buildDayCards(
     const rawItems = itemsByDate[key] ?? []
     const items: DayCardItem[] = []
     for (const it of rawItems) {
-      const p = draftPlan.projects.find(x => x.id === it.itemId)
+      const p = activePlan.projects.find(x => x.id === it.itemId)
       if (!p) continue
       items.push({
         id: it.id,
@@ -371,7 +372,7 @@ const missedProjects = computed<MissedProject[]>(() => {
   for (const it of prevSchedule.value.items) {
     if (it.itemType !== 'project') continue
     if (isProjectDone(it.itemId, it.date)) continue
-    const p = draftPlan.projects.find(x => x.id === it.itemId)
+    const p = activePlan.projects.find(x => x.id === it.itemId)
     if (!p) continue
     const od = parseDateKey(it.date)
     if (!od) continue
@@ -420,7 +421,7 @@ const missedRoutineNames = computed<string[]>(() => {
   for (const it of items) {
     if (it.itemType !== 'routine') continue
     if (isRoutineDone(it.itemId, it.date)) continue
-    const r = draftPlan.routines.find(x => x.id === it.itemId)
+    const r = activePlan.routines.find(x => x.id === it.itemId)
     if (r) set.add(r.name)
   }
   return Array.from(set)
@@ -452,10 +453,10 @@ function fmtTimestamp(iso: string | null): string {
 }
 
 async function saveReview() {
-  if (!draftPlan.planId || !prevRange.value) return
+  if (!activePlan.planId || !prevRange.value) return
   saving.value = true
   try {
-    const updated = await updateSchedule(draftPlan.planId, prevRange.value.weekStart, {
+    const updated = await updateSchedule(activePlan.planId, prevRange.value.weekStart, {
       reviewNote: reviewNote.value.trim(),
       status:     'reviewed',
     })
@@ -471,36 +472,32 @@ function goToSchedule() {
 
 onMounted(async () => {
   try {
-    if (!draftPlan.planId) {
-      const plans = await fetchMyPlans()
-      const target = plans.find((p: any) => p.status === 'active') ?? plans[0]
-      if (target?.planId) await loadPlanFromApi(target.planId)
-    }
+    await loadActivePlanSource()
 
     // 첫 진입(직전 주 없음)이면 회고할 게 없음 → 이번 주 일정 페이지로 바로 이동
-    if (draftPlan.planId && !prevRange.value) {
+    if (activePlan.planId && !prevRange.value) {
       router.replace('/career-achievement/weekly-schedule')
       return
     }
 
-    if (draftPlan.planId && prevRange.value) {
-      const s = await fetchScheduleByWeek(draftPlan.planId, prevRange.value.weekStart)
+    if (activePlan.planId && prevRange.value) {
+      const s = await fetchScheduleByWeek(activePlan.planId, prevRange.value.weekStart)
       prevSchedule.value = s
       if (s) reviewNote.value = s.reviewNote ?? ''
     }
     // 이번 주 schedule — 자동 이월 대상으로 로드
-    if (draftPlan.planId && currentRange.value) {
+    if (activePlan.planId && currentRange.value) {
       currentSchedule.value = await ensureWeekSchedule(
-        draftPlan.planId,
-        { startDate: draftPlan.startDate, endDate: draftPlan.endDate, reviewDay: draftPlan.reviewDay, projects: draftPlan.projects, routines: draftPlan.routines },
-        draftTimeline.value,
+        activePlan.planId,
+        { startDate: activePlan.startDate, endDate: activePlan.endDate, reviewDay: activePlan.reviewDay, projects: activePlan.projects, routines: activePlan.routines },
+        activeTimeline.value,
         currentRange.value.weekStart,
         currentRange.value.weekEnd,
       )
     }
     // 자동 이월: 지난 주에 놓친 프로젝트를 같은 요일로 이번 주에 자동 추가
     // — isCarriedOver 중복 체크로 idempotent (재진입 시 안전)
-    if (prevSchedule.value && currentSchedule.value && draftPlan.planId) {
+    if (prevSchedule.value && currentSchedule.value && activePlan.planId) {
       const toAdd: WeeklySchedule['items'] = []
       for (const m of missedProjects.value) {
         if (isCarriedOver(m)) continue
