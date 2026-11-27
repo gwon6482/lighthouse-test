@@ -4,7 +4,7 @@
     <div v-if="modelValue" class="dss" @click.self="close" @keydown.esc="close">
       <div class="dss__sheet" role="dialog" aria-modal="true" aria-labelledby="dss-title" aria-describedby="dss-desc">
         <p id="dss-title" class="dss__title">하루 시작 시간</p>
-        <p id="dss-desc" class="dss__desc">이 시각 전까지는 전날의 하루로 봐요</p>
+        <p id="dss-desc" class="dss__desc">이 시각 전까지는 전날의 하루로 봐요. 바꾸면 다음 하루부터 적용돼요.</p>
         <div class="dss__opts" role="radiogroup" aria-labelledby="dss-title">
           <label v-for="h in DAY_START_HOURS" :key="h" class="dss__opt" :class="{ 'dss__opt--on': choice === h }">
             <input v-model="choice" type="radio" name="day-start" :value="h" class="dss__radio" />

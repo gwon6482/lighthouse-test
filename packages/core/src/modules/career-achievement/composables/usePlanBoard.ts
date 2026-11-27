@@ -405,18 +405,23 @@ export function usePlanBoard() {
     if (weekItemsDoneCount(p.id, cw.week, n) < doneDays) return null
     return { week: cw.week, idx }
   }
-  /** 완료 취소 확인 판의 숫자 — 지금 → 되돌린 뒤(오늘 할 일·연속 달성·이번 주 목표·전체 진행) */
-  function undoPreview(projectId: string) {
+  /**
+   * 완료 취소 확인 판의 숫자 — 지금 → 되돌린 뒤(오늘 할 일·연속 달성·이번 주 목표·전체 진행).
+   * 집중으로 끝낸 루틴도 이 판을 쓴다(2026-11-27 사용성 확인 — 루틴인데 프로젝트로 세어 '1/8 → 1/8'로 보였다).
+   * 루틴은 그 주 할 일 칸·이번 주 목표·전체 진행을 바꾸지 않는다(오늘 할 일과 연속 달성만)
+   */
+  function undoPreview(id: string, itemType: 'project' | 'routine' = 'project') {
     const pl = plan.value
-    const tick = undoTick(projectId)
-    const doneToday = ach.isProjectDone(projectId)
+    const projectId = itemType === 'project' ? id : ''
+    const tick = itemType === 'project' ? undoTick(id) : null
+    const doneToday = itemType === 'routine' ? ach.isRoutineDone(id) : ach.isProjectDone(id)
     const without = (pid: string, w: number, i: number) => !(tick && pid === projectId && w === tick.week && i === tick.idx) && isItemDone(pid, w, i)
     const streakAfter = pl
       ? streakCount(today.value, pl.startDate,
         (d) => itemsOn(d).length,
-        (d) => { const k = toDateKey(d); return itemsOn(d).filter((it) => itemDone(it, k) && !(k === todayKey.value && it.itemType === 'project' && it.itemId === projectId)).length })
+        (d) => { const k = toDateKey(d); return itemsOn(d).filter((it) => itemDone(it, k) && !(k === todayKey.value && it.itemType === itemType && it.itemId === id)).length })
       : 0
-    const g = weekGoals.value.find((x) => x.project.id === projectId && !x.period)
+    const g = itemType === 'project' ? weekGoals.value.find((x) => x.project.id === projectId && !x.period) : undefined
     return {
       today: { before: todayDone.value, after: todayDone.value - (doneToday ? 1 : 0), total: todayTotal.value },
       streak: { before: streak.value, after: streakAfter },

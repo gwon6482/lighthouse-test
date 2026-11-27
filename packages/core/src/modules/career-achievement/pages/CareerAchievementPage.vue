@@ -450,7 +450,7 @@ const undoInfo = computed(() => {
   const t = undoRow.value
   if (!t) return null
   const m = recMeta(t)
-  const p = undoPreview(t.id)
+  const p = undoPreview(t.id, itemTypeOf(t))
   return { p, summary: `${t.name}\n${recordSummary(m, formatMinutes)}`, loss: lossLine(m, formatMinutes) }
 })
 function askUndo() {
