@@ -7,6 +7,8 @@
       <div class="cfs__sheet" role="alertdialog" aria-modal="true" aria-labelledby="cfs-title" :aria-describedby="message ? 'cfs-msg' : undefined">
         <p id="cfs-title" class="cfs__title">{{ title }}</p>
         <p v-if="message" id="cfs-msg" class="cfs__msg">{{ message }}</p>
+        <!-- 숫자 표 같은 덧붙임(2026-11-26 완료 취소 확인 판) -->
+        <slot />
         <button ref="okEl" type="button" class="cfs__ok" @click="ok">{{ confirmLabel }}</button>
         <button type="button" class="cfs__cancel" @click="close">{{ cancelLabel }}</button>
       </div>

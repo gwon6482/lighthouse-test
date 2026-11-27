@@ -52,6 +52,13 @@ export default [
     meta: { swReloadTo: true, showBottomNav: true, themeColor: THEME_COLOR.primary },
   },
   {
+    // 홈에서 새 프로젝트 시작하기 — 확인(#99, 2026-11-26). 고르기는 홈·로드맵의 시트, 만들기는 진로설계 '새로운 프로젝트 추가'(?add=1)
+    path: '/career-achievement/add/confirm',
+    name: 'Career Achievement Add Confirm',
+    component: () => import('./pages/CareerAchievementAddConfirmPage.vue'),
+    meta: { noSwReload: true },
+  },
+  {
     path: '/career-achievement/weekly-schedule',
     name: 'Career Achievement Weekly Schedule',
     component: () => import('./pages/CareerAchievementSchedulePage.vue'),

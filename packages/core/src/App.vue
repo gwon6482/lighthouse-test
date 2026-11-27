@@ -6,7 +6,7 @@ import { useAchievementStore } from '@/shared/stores/achievement'
 import { useHardwareBack } from '@/shared/composables/useHardwareBack'
 import BottomNav from '@/shared/components/BottomNav.vue'
 import AppIcon from '@/shared/components/AppIcon.vue'
-import { appToast } from '@/shared/composables/useAppToast'
+import { appToast, appToastAction, runToastAction } from '@/shared/composables/useAppToast'
 
 const authStore = useAuthStore()
 const achievementStore = useAchievementStore()
@@ -41,8 +41,9 @@ watch(() => authStore.user, (u) => {
 
   <!-- 잠깐 알림(useAppToast) — 앱 종료 안내와 같은 모양·자리. 화면 읽기 프로그램에도 읽힌다(role=status) -->
   <Transition name="exit-toast">
-    <div v-if="appToast && !showExitToast" :key="appToast" class="exit-toast app-toast" role="status">
+    <div v-if="appToast && !showExitToast" :key="appToast" class="exit-toast app-toast" :class="{ 'app-toast--action': appToastAction }" role="status">
       <AppIcon name="ui-check" :size="15" />{{ appToast }}
+      <button v-if="appToastAction" type="button" class="app-toast__action" @click="runToastAction">{{ appToastAction.label }}</button>
     </div>
   </Transition>
 </template>
@@ -68,6 +69,22 @@ watch(() => authStore.user, (u) => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+// 버튼이 있는 알림(2026-11-26 '되돌렸어요 · 다시 완료') — 이것만 누를 수 있다
+.app-toast--action {
+  pointer-events: auto;
+  padding-right: 6px;
+}
+.app-toast__action {
+  margin-left: 6px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #FFD84D;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .exit-toast-enter-active,

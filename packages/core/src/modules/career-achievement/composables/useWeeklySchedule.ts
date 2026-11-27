@@ -4,7 +4,9 @@ import type {
   Project, Routine, DayOfWeek, TimelineSlot,
 } from '@/modules/career-design/types/career-design'
 import { weekOfDate, weekDateRange, projectsActiveInWeek } from '@/modules/career-design/composables/usePlanTimeline'
-import { datesMatchSlot, outsideDates } from '@/modules/career-design/lib/projectDates'
+import { beforeStartOn, datesMatchSlot, outsideDates } from '@/modules/career-design/lib/projectDates'
+import { rebuildStart, rebuildWeekItems } from '../lib/scheduleRebuild'
+import { getToday } from '@/shared/utils/dev-date'
 import { uid } from '@/shared/utils/uid'
 import { routineOnDay, voiceOverlap } from '@/modules/career-design/lib/routine'
 import { onAccountChange } from '@/shared/auth/accountScope'
@@ -19,6 +21,9 @@ export interface WeeklyScheduleItem {
   curriculumWeek?: number | null
   note?: string
 }
+
+// 다시 만들 주(2026-11-26) — from 날부터 다시 만들고, 그 전 칸은 items 그대로 둔다
+export interface WeekRebuild { from: string; items: WeeklyScheduleItem[] }
 
 // 한 주의 확정된 일정 전체. planId + weekStart 로 식별.
 export interface WeeklySchedule {
@@ -124,6 +129,8 @@ export function generateItemsForWeek(
       // 날짜로 정한 걸음(2026-11-25) — 첫 주·마지막 주의 날짜 밖 요일은 뺀다(시작 전날·마감 다음 날에 할 일이 뜨지 않게).
       // 타임라인 자리가 날짜가 걸친 주와 맞을 때만 — 어긋나 있으면(옛 앱이 다시 놓음 등) 빼지 않고 타임라인대로(할 일이 통째로 사라지지 않게)
       if (outsideDates(p, dateKey) && datesMatchSlot(p, startWeekOf.get(p.id), { startDate: plan.startDate, reviewDay: plan.reviewDay })) continue
+      // 시작일만 정한 걸음(2026-11-26 #99 '오늘부터') — 놓인 첫 주의 시작일 전 요일은 뺀다
+      if (beforeStartOn(p, dateKey, startWeekOf.get(p.id), { startDate: plan.startDate, reviewDay: plan.reviewDay })) continue
 
       // 커리큘럼 n주차 = 계획주차 - 프로젝트 시작주차 + 1.
       // 주차 모델에서는 배치 자체가 주 단위라 나눗셈 없이 바로 떨어진다.
@@ -176,11 +183,19 @@ export function useWeeklySchedule() {
 
   // 특정 주 1건 조회. 없으면 null
   async function fetchScheduleByWeek(planId: string, weekStart: string): Promise<WeeklySchedule | null> {
+    return (await fetchWeek(planId, weekStart)).schedule
+  }
+  // 조회 + 다시 만들 주(2026-11-26, 서버 rebuildFrom) — 계획이 바뀐 이번 주는 schedule 이 null 이고 rebuild 에 그 날 전 칸이 온다
+  async function fetchWeek(planId: string, weekStart: string): Promise<{ schedule: WeeklySchedule | null; rebuild: WeekRebuild | null }> {
     try {
       const res = await req.get(`/api/career-plan/${planId}/weekly-schedule/${weekStart}`)
-      return res.data.schedule ?? null
+      const rb = res.data.rebuild
+      return {
+        schedule: res.data.schedule ?? null,
+        rebuild: rb && typeof rb.from === 'string' && Array.isArray(rb.items) ? { from: rb.from, items: rb.items } : null,
+      }
     } catch {
-      return null
+      return { schedule: null, rebuild: null }
     }
   }
 
@@ -245,14 +260,18 @@ export function useWeeklySchedule() {
     weekStart: string,
     weekEnd: string,
   ): Promise<WeeklySchedule | null> {
-    const existing = await fetchScheduleByWeek(planId, weekStart)
+    const { schedule: existing, rebuild } = await fetchWeek(planId, weekStart)
     if (existing) return existing
-    const items = generateItemsForWeek(
+    const generated = generateItemsForWeek(
       { startDate: plan.startDate, endDate: plan.endDate, reviewDay: plan.reviewDay, projects: plan.projects, routines: plan.routines },
       timeline,
       weekStart,
       weekEnd,
     )
+    // 계획이 바뀐 이번 주 — 지난 요일은 그대로 두고 그 날부터만 다시 만든다(lib/scheduleRebuild.ts). 옛 서버는 rebuild 가 없어 예전처럼 통째로
+    const ids = new Set([...plan.projects.map((p) => `project:${p.id}`), ...plan.routines.map((r) => `routine:${r.id}`)])
+    const from = rebuild ? rebuildStart(rebuild.from, toDateKey(getToday())) : ''
+    const items = rebuild ? rebuildWeekItems(rebuild.items, generated, from, (it) => ids.has(`${it.itemType}:${it.itemId}`)) : generated
     return await createSchedule(planId, weekStart, weekEnd, items)
   }
 

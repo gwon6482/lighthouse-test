@@ -4,7 +4,7 @@
       title="주차별 커리큘럼"
       :subtitle="`${draftProject.name || '프로젝트'} · 총 ${curriculum.length}주`"
       :color="currentColor"
-      back-to="/career-design/project/new"
+      :back-to="addMode ? '/career-design/project/new?add=1' : '/career-design/project/new'"
     />
 
     <div class="cd-proj-curr__body">
@@ -60,7 +60,7 @@
     <!-- 하단 버튼 -->
     <div class="cd-proj-curr__footer">
       <button class="cd-proj-curr__cta" :disabled="saving" @click="saveProject">
-        {{ editingProjectId ? '수정하기' : '추가하기' }}
+        {{ addMode ? '다음' : editingProjectId ? '수정하기' : '추가하기' }}
       </button>
     </div>
   </div>
@@ -71,7 +71,8 @@ import { isExam } from '../lib/examPace'
 import { projectWeeks } from '../composables/usePlanTimeline'
 import AppIcon from '@/shared/components/AppIcon.vue'
 import { computed, nextTick, onMounted, ref } from 'vue'
-import { useRouter, onBeforeRouteLeave } from 'vue-router'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
+import { useAddProject } from '@/modules/career-achievement/composables/useAddProject'
 import { useDatedAlign } from '../composables/useDatedAlign'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { DEFAULT_WEEKS, defaultWeekTitle, syncCurriculumLength, weekEntriesOf } from '../composables/useProjectCurriculum'
@@ -83,6 +84,10 @@ const { draftPlan, draftProject, editingProjectId, syncAddProject, syncUpdatePro
 const { alignDraft } = useDatedAlign()
 
 const WRITE_PATH = '/career-design/project/new'
+// 홈에서 새 프로젝트 시작하기(#99, 2026-11-26) — 직접 만들기의 할 일 적기. 저장하면 계획 초안(draftPlan)에 넣지 않고 확인 화면으로
+const route = useRoute()
+const addState = useAddProject().state
+const addMode = computed(() => route.query.add === '1' && addState.active)
 
 const categoryColorMap: Record<ProjectCategory, string> = {
   qualification: '#1DB95A',
@@ -106,7 +111,7 @@ onMounted(() => {
   window.scrollTo(0, 0)
   // 1단계를 건너뛰고 직접 들어온 경우 — 채울 프로젝트가 없으니 되돌린다.
   if (!draftProject.name) {
-    router.replace(WRITE_PATH)
+    router.replace(addMode.value ? { path: WRITE_PATH, query: { add: '1' } } : WRITE_PATH)
     return
   }
   draftProject.curriculum = syncCurriculumLength(
@@ -222,6 +227,14 @@ async function saveProject() {
     ...(draftProject.dateStart !== undefined || draftProject.dateEnd !== undefined ? { dateStart: draftProject.dateStart ?? '', dateEnd: draftProject.dateEnd ?? '' } : {}),
     // 고치기에서 과정 → 진도로 바꾼 것(2026-11-16) — 끈다는 값을 실어야 서버도 끈다. 그 밖엔 싣지 않는다
     ...(draftProject.period === false ? { period: false as const } : {}),
+  }
+
+  if (addMode.value) {
+    draftProject.weeks = finalCurriculum.length
+    saved = true
+    saving.value = false
+    router.push('/career-achievement/add/confirm')
+    return
   }
 
   if (editingProjectId.value) {

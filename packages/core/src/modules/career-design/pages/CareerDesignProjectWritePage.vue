@@ -1,16 +1,25 @@
 <template>
   <div class="cd-proj-write" :style="{ '--cat-color': currentColor }">
     <CdYellowHeader
+      v-if="!addMode"
       title="새로운 프로젝트 추가"
-      :subtitle="`${draftPlan.targetJob || '목표 직업'}을 위한 프로젝트를 만들어 보세요`"
+      :subtitle="`${forJob(draftPlan.targetJob)} 위한 프로젝트를 만들어 보세요`"
       :color="currentColor"
       back-to="/career-design/plan/projects"
+    />
+    <!-- 홈에서 새 프로젝트 시작하기(#99, 2026-11-26) — 예시에서 골랐으면 이름과 '분류 · 방식' 한 줄, 직접 만들면 지금 제목 -->
+    <CdYellowHeader
+      v-else
+      :title="fromExample ? (draftProject.name || '새 프로젝트') : '새 프로젝트 시작하기'"
+      :subtitle="fromExample ? exampleLine : `${forJob(ctxPlan.targetJob)} 위한 프로젝트를 만들어 보세요`"
+      :color="currentColor"
+      back-to="/career-achievement"
     />
 
     <div class="cd-proj-write__body">
       <!-- 프로젝트 종류(2026-11-16, 등록 화면 시안 정할 것 1) — 기본은 진도. 과정이면 아래 칸 이름이 다니는 것에 맞게 바뀌고,
            '다음'이 주차별 할 일 대신 '다니는 방식'(오늘 할 일 이름·점검)으로 간다 -->
-      <div class="cd-proj-write__section">
+      <div v-if="!addMode" class="cd-proj-write__section">
         <h3 class="cd-proj-write__label">프로젝트 종류</h3>
         <div class="cd-proj-write__kinds" role="radiogroup" aria-label="프로젝트 종류">
           <button
@@ -33,7 +42,7 @@
       </div>
 
       <!-- 카테고리 선택 -->
-      <div class="cd-proj-write__section">
+      <div v-if="!folded" class="cd-proj-write__section">
         <h3 class="cd-proj-write__label">카테고리</h3>
         <div class="cd-proj-write__categories">
           <div
@@ -58,7 +67,7 @@
       </div>
 
       <!-- 진행 방식 (필수, 🧪 시안 2026-10-26) — 어떻게 해 나갈지·언제 끝났다고 할지를 정한다(projectMethods.ts) -->
-      <div class="cd-proj-write__section">
+      <div v-if="!folded" class="cd-proj-write__section">
         <h3 class="cd-proj-write__label">진행 방식</h3>
         <p class="cd-proj-write__sub-label">이 프로젝트를 어떻게 해 나갈지 골라주세요</p>
         <div class="cd-proj-write__methods">
@@ -88,7 +97,7 @@
       </div>
 
       <!-- 프로젝트 이름 -->
-      <div class="cd-proj-write__section">
+      <div v-if="!folded" class="cd-proj-write__section">
         <h3 class="cd-proj-write__label">프로젝트 이름</h3>
         <input
           v-model="draftProject.name"
@@ -98,7 +107,7 @@
       </div>
 
       <!-- 계획 목표 -->
-      <div class="cd-proj-write__section">
+      <div v-if="!folded" class="cd-proj-write__section">
         <h3 class="cd-proj-write__label">계획 목표</h3>
         <input
           v-model="draftProject.goal"
@@ -150,7 +159,7 @@
       </div>
 
       <!-- 우선순위 -->
-      <div class="cd-proj-write__section">
+      <div v-if="!folded" class="cd-proj-write__section">
         <h3 class="cd-proj-write__label">우선순위</h3>
         <div class="cd-proj-write__priorities">
           <button
@@ -166,7 +175,7 @@
       </div>
 
       <!-- 알림 설정 -->
-      <div class="cd-proj-write__section">
+      <div v-if="!folded" class="cd-proj-write__section">
         <h3 class="cd-proj-write__label">알림설정</h3>
         <div class="cd-proj-write__notify-row">
           <div class="cd-proj-write__notify-text">
@@ -194,7 +203,7 @@
       </div>
 
       <!-- 메모 -->
-      <div class="cd-proj-write__section">
+      <div v-if="!folded" class="cd-proj-write__section">
         <h3 class="cd-proj-write__label">메모 (선택)</h3>
         <textarea
           v-model="draftProject.memo"
@@ -270,13 +279,34 @@
             :aria-pressed="weeks === q.weeks" @click="setWeeks(q.weeks)"
           >{{ q.label }}</button>
         </div>
-        <div class="cd-proj-write__tip">
+        <div v-if="!fromExample" class="cd-proj-write__tip">
           <AppIcon name="ui-tip" />
           <template v-if="isPeriodDraft">주차별 할 일은 없어요. 다음 화면에서 다니는 날의 이름과 점검을 정해요</template>
           <template v-else>다음 화면에서 {{ weeks }}개 주차의 커리큘럼을 채워요. 기간은 언제든 다시 바꿀 수 있어요</template>
         </div>
         </template>
       </div>
+
+      <!-- 언제 시작해요(#99) — 하나만 고르니 동그라미. 날짜로 정하면 그 날짜에 놓여 숨긴다 -->
+      <div v-if="addMode && !dateMode && choices" class="cd-proj-write__section">
+        <h3 class="cd-proj-write__label">언제 시작해요</h3>
+        <div class="cd-proj-write__kinds cd-proj-write__kinds--by" role="radiogroup" aria-label="언제 시작해요">
+          <button type="button" class="cd-proj-write__by" :class="{ 'cd-proj-write__kind--on': add.state.when === 'today' }" role="radio" :aria-checked="add.state.when === 'today'" @click="add.state.when = 'today'">
+            <span class="cd-proj-write__by-text">오늘부터<small>{{ mdDow(choices.today) }}</small></span><i class="cd-proj-write__kind-dot" />
+          </button>
+          <button type="button" class="cd-proj-write__by" :class="{ 'cd-proj-write__kind--on': add.state.when === 'next' }" role="radio" :aria-checked="add.state.when === 'next'" @click="add.state.when = 'next'">
+            <span class="cd-proj-write__by-text">다음 주부터<small>{{ mdDow(choices.next) }}</small></span><i class="cd-proj-write__kind-dot" />
+          </button>
+        </div>
+      </div>
+
+      <!-- 예시에서 골랐으면 1주차 할 일을 미리 — 할 일 적기 화면은 건너뛴다. 예시 단서는 내용 아래 -->
+      <div v-if="addMode && fromExample && firstWeek.length" class="cd-proj-write__section">
+        <h3 class="cd-proj-write__label">1주차 할 일</h3>
+        <p class="cd-proj-write__first">{{ firstWeek.join(' · ') }}</p>
+        <p class="cd-proj-write__date-hint">예시 · 현직자 검토 전</p>
+      </div>
+      <button v-if="folded" type="button" class="cd-proj-write__unfold" @click="unfolded = true">이름·분류·진행 방식도 고치기</button>
     </div>
 
     <!-- 하단 버튼 -->
@@ -289,12 +319,16 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUnsavedGuard } from '@/shared/composables/useUnsavedGuard'
+import { useAchievementStore } from '@/shared/stores/achievement'
+import { useAddProject } from '@/modules/career-achievement/composables/useAddProject'
+import { mdDow, startChoices } from '@/modules/career-achievement/lib/addProject'
+import { categoryLabel } from '@/modules/career-achievement/lib/planBoard'
 import { useCareerDesign } from '../composables/useCareerDesign'
 import { MIN_WEEKS, DEFAULT_WEEKS, clampWeeks, weekEntriesOf } from '../composables/useProjectCurriculum'
 import { PERIOD_MINUTES, PERIOD_QUICK_WEEKS, periodActiveWeeks } from '../lib/period'
-import { formatMinutes } from '@/modules/encyclopedia/lib/preparation'
+import { formatMinutes, josaEulReul } from '@/modules/encyclopedia/lib/preparation'
 import CdYellowHeader from '../components/CdYellowHeader.vue'
 import type { DayOfWeek, Priority, ProjectCategory } from '../types/career-design'
 import AppIcon from '@/shared/components/AppIcon.vue'
@@ -311,6 +345,26 @@ import type { Project } from '../types/career-design'
 
 const router = useRouter()
 const { draftPlan, draftProject, editingProjectId } = useCareerDesign()
+
+// ── 홈에서 새 프로젝트 시작하기(#99, 2026-11-26 — career-achievement/composables/useAddProject) ──
+// 같은 화면을 다시 쓴다. 계획은 진로설계 초안(draftPlan)이 아니라 진행 중인 계획(achievement store)을 본다 — 다른 초안을 덮지 않게.
+// 과정(다니는 곳)은 여기서 만들지 않는다(종류 칸을 숨긴다 — 앞뒤 걸음을 옮기는 문이라 계획 수정에서)
+const route = useRoute()
+const achStore = useAchievementStore()
+const add = useAddProject()
+const addMode = computed(() => route.query.add === '1' && add.state.active && !!achStore.plan)
+const fromExample = computed(() => addMode.value && add.state.source === 'example')
+const unfolded = ref(false)
+// 예시에서 골랐으면 종류·분류·방식·이름·목표·우선순위·알림·메모를 접어 둔다(시안 '내가 정한 것' 3). 막히는 칸이 있으면 펼친다
+const folded = computed(() => fromExample.value && !unfolded.value)
+const ctxPlan = computed(() => (addMode.value && achStore.plan
+  ? { targetJob: achStore.plan.targetJob, startDate: achStore.plan.startDate, reviewDay: achStore.plan.reviewDay, editing: false }
+  : { targetJob: draftPlan.targetJob, startDate: draftPlan.startDate, reviewDay: draftPlan.reviewDay, editing: !!draftPlan.editing }))
+const choices = computed(() => (addMode.value && achStore.plan ? startChoices(achStore.plan, getToday()) : null))
+const exampleLine = computed(() => [categoryLabel(draftProject.category), methodDef(draftProject.method)?.label].filter(Boolean).join(' · '))
+// '마케터를' · 'UX·UI 디자이너를' — 받침에 맞춘 을/를(예전엔 늘 '을')
+const forJob = (job?: string) => { const j = job || '목표 직업'; return `${j}${josaEulReul(j)}` }
+const firstWeek = computed(() => weekEntriesOf(draftProject.curriculum?.[0]).filter((t) => t.trim()))
 
 onMounted(() => {
   window.scrollTo(0, 0)
@@ -348,8 +402,9 @@ function setKind(period: boolean) {
   if ((draftProject.duration ?? 0) > 180) draftProject.duration = 60
 }
 
-// 미저장 이탈 가드 (R2)
+// 미저장 이탈 가드 (R2) — 홈에서 시작하기는 예시 값이라 묻지 않고 나간다(브라우저 기본 확인 창을 띄우지 않게)
 const { bypass } = useUnsavedGuard(() => JSON.stringify(draftProject))
+if (addMode.value) bypass()
 
 const categories: { value: ProjectCategory; label: string }[] = [
   { value: 'qualification', label: '자격요건' },
@@ -375,6 +430,8 @@ const weeks = computed(() => draftProject.weeks ?? DEFAULT_WEEKS)
 
 function setWeeks(n: number) {
   const next = clampWeeks(n)
+  // 예시에서 고른 걸음 — 할 일은 '다음'에서 단계 비율대로 맞춘다(지우지 않으니 묻지 않는다)
+  if (fromExample.value) { draftProject.weeks = next; return }
   // 기간을 줄이면 잘려나가는 뒤쪽 주차의 작성 내용이 사라진다 → 실제로 채운 게 있을 때만 확인.
   const dropped = (draftProject.curriculum ?? []).slice(next).filter(w => w.items.length > 0).length
   if (dropped > 0 && !confirm(`${next + 1}주차부터 작성한 내용 ${dropped}개가 삭제돼요.\n계속할까요?`)) return
@@ -435,8 +492,8 @@ const originalStart = draftProject.dateStart ?? ''
 watch(datesAllowed, (ok) => { if (!ok && dateMode.value) setDateMode(false) })
 const endLabel = computed(() => (isPeriodDraft.value ? '끝나는 날' : '마감일'))
 // 새 계획은 오늘부터, 고치는 계획은 계획 시작일부터(시안 '내가 정한 것')
-const minDate = computed(() => (draftPlan.editing && draftPlan.startDate ? draftPlan.startDate : toDateKey(getToday())))
-const planCtx = computed(() => ({ startDate: draftPlan.startDate || toDateKey(getToday()), reviewDay: draftPlan.reviewDay }))
+const minDate = computed(() => (ctxPlan.value.editing && ctxPlan.value.startDate ? ctxPlan.value.startDate : toDateKey(getToday())))
+const planCtx = computed(() => ({ startDate: ctxPlan.value.startDate || toDateKey(getToday()), reviewDay: ctxPlan.value.reviewDay }))
 const DOW_ORDER: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']
 const DOW_KO = ['일', '월', '화', '수', '목', '금', '토']
 const fullDate = (k: string) => { const [y, m, d] = k.split('-').map(Number); return `${y}.${m}.${d}(${DOW_KO[new Date(y!, m! - 1, d!).getDay()]})` }
@@ -512,7 +569,8 @@ const tried = ref(false)
 const blocker = computed(() => {
   if (!draftProject.method) return '진행 방식을 골라주세요'
   const miss = missingMethodField(draftProject.method, draftProject.methodDetail)
-  if (miss) return `${miss}${objectJosa(miss)} 적어주세요`
+  // 예시에서 고른 걸음은 방식별 칸(목표량·책 이름 등)을 묻지 않는다 — 템플릿·도우미로 담은 걸음과 같게(#99)
+  if (miss && !fromExample.value) return `${miss}${objectJosa(miss)} 적어주세요`
   if (!draftProject.name?.trim()) return '프로젝트 이름을 적어주세요'
   if (dateBlocker.value) return dateBlocker.value
   return null
@@ -520,9 +578,21 @@ const blocker = computed(() => {
 
 function goNext() {
   tried.value = true
-  if (blocker.value) return
+  if (blocker.value) { unfolded.value = true; return }
   if (dateMode.value && !applyDates()) return
   bypass()
+  if (addMode.value) {
+    // 예시 — 할 일 적기는 건너뛰고 확인으로. 주 수를 바꿨으면 단계 비율대로 맞춘다. 직접 만들기 — 할 일 적기(add 모드) → 확인
+    if (fromExample.value) {
+      if ((draftProject.curriculum?.length ?? 0) !== weeks.value) {
+        draftProject.curriculum = fitCurriculumToWeeks({ ...(draftProject as Project), curriculum: draftProject.curriculum ?? [] }, weeks.value).curriculum
+      }
+      router.push('/career-achievement/add/confirm')
+    } else {
+      router.push({ path: '/career-design/project/curriculum', query: { add: '1' } })
+    }
+    return
+  }
   // 과정은 주차별 할 일 대신 '다니는 방식'(오늘 할 일 이름·점검·단계)으로
   router.push(isPeriodDraft.value ? '/career-design/project/period' : '/career-design/project/curriculum')
 }
@@ -616,6 +686,10 @@ function goNext() {
     small { font-size: 12px; font-weight: 500; color: #4A6FA5; }
   }
   &__date-hint { font-size: 12px; color: #888; margin-top: 8px; }
+  /* 홈에서 새 프로젝트 시작하기(#99) — 언제 시작해요의 날짜, 1주차 할 일, 접은 칸 펼치기 */
+  &__by-text { display: grid; gap: 2px; text-align: left; small { font-size: 12.5px; font-weight: 500; color: #888; } }
+  &__first { font-size: 14px; line-height: 1.55; color: #333; }
+  &__unfold { align-self: center; padding: 8px 12px; border: 0; background: none; font: inherit; font-size: 13.5px; color: #777; text-decoration: underline; cursor: pointer; }
 
   /* 다니는 기간 빠른 선택 */
   &__quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
