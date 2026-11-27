@@ -2,13 +2,45 @@
   <div class="cac">
     <header class="cac__header">
       <button type="button" class="cac__back" aria-label="뒤로" @click="goBack"><AppIcon name="ui-back" /></button>
-      <span class="cac__header-title">기록 작성</span>
+      <span class="cac__header-title">{{ isFree ? '집중 기록' : '기록 작성' }}</span>
       <span class="cac__header-spacer" />
     </header>
 
     <div v-if="loading" class="cac__loading">불러오는 중...</div>
 
-    <template v-else-if="item">
+    <!-- 바로 집중(2026-11-26 #96) — 무엇을 했나요 한 줄(40자, 비워도 저장) + 이어지는 프로젝트 하나(선택). 사진·별점·긴 글은 없다 -->
+    <template v-else-if="isFree && canSaveFree">
+      <div class="cac__item">
+        <span class="cac__item-cat cac__item-cat--free">{{ FREE_LABEL }}</span>
+        <div class="cac__item-meta">
+          <span>소요시간 · <strong>{{ elapsedLabel }}</strong></span>
+          <span v-if="focusGoalMin">목표 · {{ focusGoalMin }}분</span>
+        </div>
+      </div>
+      <section class="cac__section">
+        <label class="cac__label" for="cac-free-text">무엇을 했나요</label>
+        <input id="cac-free-text" v-model="freeText" class="cac__line" maxlength="40" placeholder="예: 포트폴리오 README 정리" />
+        <div class="cac__counter">{{ freeText.length }} / 40</div>
+      </section>
+      <section v-if="freeProjects.length" class="cac__section">
+        <span class="cac__label">이어지는 프로젝트 <span class="cac__label-opt">(선택)</span></span>
+        <div class="cac__chips" role="radiogroup" aria-label="이어지는 프로젝트">
+          <button
+            v-for="p in freeProjects" :key="p.id" type="button" role="radio" class="cac__chip"
+            :class="{ 'cac__chip--on': freeProject === p.id }" :aria-checked="freeProject === p.id"
+            @click="freeProject = freeProject === p.id ? '' : p.id"
+          >{{ p.name }}</button>
+        </div>
+      </section>
+      <div class="cac__actions">
+        <button class="cac__btn cac__btn--ghost" @click="goBack">취소</button>
+        <button class="cac__btn cac__btn--primary" :disabled="saving" @click="saveFree">
+          {{ saving ? '저장 중...' : '저장' }}
+        </button>
+      </div>
+    </template>
+
+    <template v-else-if="!isFree && item">
       <!-- 항목 요약 -->
       <div class="cac__item">
         <span
@@ -116,7 +148,9 @@ import { CATEGORY_META } from '../lib/planBoard'
 import { useFocusSessions } from '../composables/useFocusSessions'
 import { useWeeklySchedule, queueAhead, computeWeekRangeContaining, parseDateKey } from '../composables/useWeeklySchedule'
 import { aheadFromForSave } from '../lib/pullAhead'
-import { sessionKey, combinedElapsed, recordTimeLabel } from '../lib/focusSession'
+import { sessionKey, combinedElapsed, recordTimeLabel, asFocusItemType, FREE_ID_RE } from '../lib/focusSession'
+import { FREE_LABEL } from '../lib/focusLog'
+import { projectsActiveInWeek, weekOfDate } from '@/modules/career-design/composables/usePlanTimeline'
 import { useAchievementStore } from '@/shared/stores/achievement'
 import { showToast } from '@/shared/composables/useAppToast'
 import type { DayOfWeek, Project, Routine } from '@/modules/career-design/types/career-design'
@@ -132,7 +166,8 @@ const focusSessions = useFocusSessions()
 const { moveAheadOnSave } = useWeeklySchedule()
 const achStore = useAchievementStore()
 
-const itemType = computed<'project' | 'routine'>(() => (route.params.type === 'routine' ? 'routine' : 'project'))
+const itemType = computed(() => asFocusItemType(route.params.type))
+const isFree = computed(() => itemType.value === 'free')   // 바로 집중(2026-11-26 #96)
 const itemId = computed(() => String(route.params.id ?? ''))
 const dateKey = computed(() => String(route.query.date ?? toTodayKey()))
 // 멈춘 집중(2026-11-19) — 저장하면 지우고, 취소·뒤로는 지우지 않아 홈에 '잠시 멈춤'으로 남는다(정할 것 7)
@@ -160,7 +195,7 @@ const loading = ref(true)
 const saving = ref(false)
 
 const item = computed<Project | Routine | null>(() => {
-  if (!itemId.value) return null
+  if (!itemId.value || isFree.value) return null
   if (itemType.value === 'project') {
     return activePlan.projects.find(p => p.id === itemId.value) ?? null
   }
@@ -176,10 +211,56 @@ const categoryInfo = computed(() => {
 
 // 이미 완료한 일을 다시 집중했으면 앞 기록 시간에 더한다(2026-11-19 오너 결정). 메모·사진·난이도는 앞 기록에서 채운 그대로
 const combined = computed(() => {
+  if (isFree.value) return combinedElapsed(0, false, elapsedSec.value) // 바로 집중은 한 번마다 한 건(열쇠가 시작 시각)
   const existing = getEntry(dateKey.value, itemType.value, itemId.value)
   const done = itemType.value === 'project' ? isProjectDone(itemId.value, dateKey.value) : isRoutineDone(itemId.value, dateKey.value)
   return combinedElapsed(existing?.elapsedSec, done, elapsedSec.value)
 })
+
+// ── 바로 집중(2026-11-26 #96) ──
+// 진행 중인 계획이 있어야 저장한다(계획 아래 기록 — 오너 결정 7). 열쇠는 'f' + 시작 시각
+const freeText = ref('')
+const freeProject = ref('')
+const canSaveFree = computed(() => FREE_ID_RE.test(itemId.value) && !!(achStore.plan?.planId ?? activePlan.planId))
+// 고를 프로젝트 — 그 날짜가 든 주에 놓인 프로젝트(과정 빼고). 없으면 계획의 프로젝트 모두
+const freeProjects = computed(() => {
+  const pl = achStore.plan
+  const projects = (pl?.projects ?? activePlan.projects).filter((p) => !p.period)
+  const d = parseDateKey(dateKey.value)
+  const wk = pl && d ? weekOfDate(pl.startDate, d, pl.reviewDay) : null
+  if (pl && wk) {
+    const ids = new Set(projectsActiveInWeek(pl.timeline, wk, pl.projects).map((p) => p.id))
+    const inWeek = projects.filter((p) => ids.has(p.id))
+    if (inWeek.length) return inWeek
+  }
+  return projects
+})
+async function saveFree() {
+  if (!canSaveFree.value) return
+  saving.value = true
+  try {
+    const entry: AchievementEntry = {
+      date: dateKey.value,
+      itemType: 'free',
+      itemId: itemId.value,
+      itemName: freeText.value.replace(/\s+/g, ' ').trim().slice(0, 40),
+      duration: focusGoalMin.value ?? 0, // 고른 목표(분) — 쌓은 시간에는 쓰지 않는다(집중한 시간만)
+      elapsedSec: combined.value.total,
+      doneAt: new Date().toISOString(),
+      difficulty: 3,                       // 칸 모양만 — 서버로 보내지 않는다
+      note: '',
+      planId: achStore.plan?.planId ?? activePlan.planId ?? undefined,
+      ...(freeProject.value ? { projectId: freeProject.value } : {}),
+    }
+    saveEntry(entry)
+    focusSessions.remove(focusKey.value) // 저장했으니 멈춘 집중은 끝. 완료로 치지 않는다(오너 결정 5·6)
+    leaving = true
+    showToast('기록을 저장했어요')
+    router.replace('/career-achievement')
+  } finally {
+    saving.value = false
+  }
+}
 const elapsedLabel = computed(() => recordTimeLabel(combined.value.total, combined.value.prev))
 
 // ── form state ───────────────────────────────────
@@ -348,11 +429,14 @@ const initialNote = ref('')
 const initialPhoto = ref('')
 const leaveOpen = ref(false)
 let leaving = false
-const lost = computed(() => ({
-  note: !!note.value.trim() && note.value.trim() !== initialNote.value.trim(),
-  photo: !!photo.value && photo.value !== initialPhoto.value,
-}))
+const lost = computed(() => (isFree.value
+  ? { note: !!freeText.value.trim() || !!freeProject.value, photo: false }
+  : {
+    note: !!note.value.trim() && note.value.trim() !== initialNote.value.trim(),
+    photo: !!photo.value && photo.value !== initialPhoto.value,
+  }))
 const leaveMessage = computed(() => {
+  if (isFree.value) return '적은 내용은 사라져요. 집중한 시간은 남아요.'
   const what = lost.value.note && lost.value.photo ? '적은 메모와 사진은' : lost.value.note ? '적은 메모는' : '고른 사진은'
   return `${what} 사라져요. 집중한 시간은 남아요.`
 })
@@ -382,8 +466,8 @@ onMounted(async () => {
     // 완료 표시·앞 기록을 서버 기준으로(이미 읽었으면 바로 끝난다) — 다시 집중한 시간을 앞 기록에 더하려고
     await useAchievementStore().loadActivePlan().catch(() => {})
     await loadActivePlanSource()
-    // 이미 작성한 entry가 있으면 prefill (수정용)
-    const existing = getEntry(dateKey.value, itemType.value, itemId.value)
+    // 이미 작성한 entry가 있으면 prefill (수정용) — 바로 집중은 고치는 화면이 없다(시안 '하지 않는 것')
+    const existing = isFree.value ? null : getEntry(dateKey.value, itemType.value, itemId.value)
     if (existing) {
       photo.value = existing.photoUrl ?? ''
       difficulty.value = existing.difficulty
@@ -462,9 +546,14 @@ onMounted(async () => {
     padding: 3px 10px;
     border-radius: 8px;
 
+    // 루틴은 홈과 같은 파랑(2026-11-26 — 예전엔 노랑), 바로 집중은 회색
     &--routine {
-      background: #FFFBEC;
-      color: #CC9D00;
+      background: #E6F0FF;
+      color: #3B6FD8;
+    }
+    &--free {
+      background: #EEEEEE;
+      color: #555;
     }
   }
 
@@ -609,6 +698,19 @@ onMounted(async () => {
       border-color: #FFC700;
       background: #fff;
     }
+  }
+
+  // 바로 집중(2026-11-26) — 한 줄 칸과 프로젝트 칩(하나만, 다시 누르면 풀림)
+  &__line {
+    width: 100%; box-sizing: border-box; border: 1px solid #eee; border-radius: 10px; padding: 12px;
+    font-size: 15px; font-family: inherit; background: #fafafa; color: #222;
+    &:focus { outline: none; border-color: #FFD100; background: #fff; }
+  }
+  &__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  &__chip {
+    padding: 8px 12px; border: 1px solid #E2E2E2; border-radius: 999px; background: #fff;
+    font: inherit; font-size: 13px; font-weight: 600; color: #444; cursor: pointer; word-break: keep-all;
+    &--on { border-color: #222; background: #222; color: #fff; }
   }
 
   &__counter {

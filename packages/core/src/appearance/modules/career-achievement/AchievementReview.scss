@@ -46,6 +46,7 @@
   > div { display: grid; gap: 2px; padding: 16px; border-radius: $radius-lg; background: $color-surface; }
   strong { font-size: 22px; font-weight: $fw-bold; font-variant-numeric: tabular-nums; small { font-size: 14px; font-weight: $fw-medium; color: $color-text-secondary; } }
   span { font-size: $fs-xs; color: $color-text-secondary; } }
+.wv-split { margin: 10px 2px 0; font-size: $fs-xs; color: $color-text-secondary; font-variant-numeric: tabular-nums; word-break: keep-all; }
 
 // 2
 .wv-grow { display: grid; gap: 10px; padding: 18px; border-radius: $radius-card; background: $color-surface;

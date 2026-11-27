@@ -32,6 +32,8 @@
       <p class="fm-setup__end">지금 시작하면 <b>{{ endAtLabel }}</b>에 끝나요</p>
       <div class="fm-setup__presets">
         <button v-for="m in FOCUS_PRESETS" :key="m" type="button" :class="{ on: goalMin === m }" @click="setGoal(m)">{{ m }}분</button>
+        <!-- 루틴(2026-11-26) — 1회 시간과 바쁜 날 최소를 칩으로 더(이미 있는 값이면 빼고) -->
+        <button v-for="c in extraPresets" :key="c.min" type="button" :class="{ on: goalMin === c.min }" @click="setGoal(c.min)">{{ c.label }}</button>
       </div>
 
       <div class="fm-setup__opts">
@@ -127,7 +129,9 @@ import { useAchievementStore } from '@/shared/stores/achievement'
 import { useFocusSessions } from '../composables/useFocusSessions'
 import { useAchievement } from '../composables/useAchievement'
 import { validDateKey } from '../lib/pullAhead'
-import { sessionKey, elapsedOf, elapsedText, subjectJosa, type FocusSession } from '../lib/focusSession'
+import { sessionKey, elapsedOf, elapsedText, subjectJosa, asFocusItemType, freeSessionOf, newFreeId, FREE_ID_RE, type FocusSession } from '../lib/focusSession'
+import { FREE_LABEL } from '../lib/focusLog'
+import { ROUTINE_COLOR } from '../composables/usePlanBoard'
 
 const route = useRoute()
 const router = useRouter()
@@ -138,8 +142,12 @@ const focusSessions = useFocusSessions()
 const ach = useAchievement()
 const HOME = '/career-achievement'
 
-const itemType = computed<'project' | 'routine'>(() => (route.params.type === 'routine' ? 'routine' : 'project'))
-const itemId = computed(() => String(route.params.id ?? ''))
+// 종류 — 프로젝트 · 루틴(2026-11-26 #95) · 바로 집중(#96, 항목 없이). 바로 집중의 항목 열쇠는 'f' + 시작 시각으로
+// 시작할 때 정한다(주소는 /start/free/new). 이어 하기·새로 고침은 주소의 열쇠, 없으면 기기에 멈춰 둔 바로 집중(한 번에 하나)
+const itemType = computed(() => asFocusItemType(route.params.type))
+const isFree = computed(() => itemType.value === 'free')
+const freeId = ref(FREE_ID_RE.test(String(route.params.id ?? '')) ? String(route.params.id) : '')
+const itemId = computed(() => (isFree.value ? freeId.value : String(route.params.id ?? '')))
 const dateKey = computed(() => String(route.query.date ?? toTodayKey()))
 
 function toTodayKey(): string {
@@ -149,27 +157,47 @@ function toTodayKey(): string {
 const loading = ref(true)
 
 const item = computed<Project | Routine | null>(() => {
-  if (!itemId.value) return null
+  if (!itemId.value || isFree.value) return null
   if (itemType.value === 'project') return activePlan.projects.find(p => p.id === itemId.value) ?? null
   return activePlan.routines.find(r => r.id === itemId.value) ?? null
 })
-// 멈춘 집중(2026-11-19) — 프로젝트만. 계획을 못 불러와도(오프라인) 기기에 적어 둔 이름으로 그린다
-const keepable = itemType.value === 'project'
+// 멈춘 집중(2026-11-19) — 계획을 못 불러와도(오프라인) 기기에 적어 둔 이름으로 그린다.
+// 2026-11-26부터 루틴·바로 집중도 멈춤·나중에 이어 하기·집중 취소가 프로젝트와 같다(내가 정한 것 2) — 아래 confirm() 길은 이제 쓰지 않는다
+const keepable: boolean = true
 const focusKey = computed(() => sessionKey(dateKey.value, itemType.value, itemId.value))
 const saved = ref<FocusSession | null>(null)
 // 미리 하기(2026-11-23) — 옮겨 올 칸의 원래 날짜. 주소에 없으면(이어 하기·새로 고침) 기기에 적어 둔 멈춘 집중의 것
 const aheadFrom = computed(() => validDateKey(route.query.from) ?? saved.value?.from ?? null)
-const itemName = computed(() => item.value?.name ?? saved.value?.itemName ?? '')
+const itemName = computed(() => (isFree.value ? FREE_LABEL : item.value?.name ?? saved.value?.itemName ?? ''))
 const category = computed(() => {
   const c = itemType.value === 'project' ? ((item.value as Project | null)?.category ?? saved.value?.itemCategory) : undefined
   return c ? CATEGORY_META[c] : null
 })
-const chipLabel = computed(() => category.value?.label ?? '루틴')
-const chipStyle = computed(() => {
-  const color = category.value?.color ?? '#FFD100'
-  return { color, background: `color-mix(in srgb, ${color} 18%, transparent)` }
+const chipLabel = computed(() => category.value?.label ?? (isFree.value ? FREE_LABEL : '루틴'))
+// 칩 색 — 프로젝트는 분류 색, 루틴은 홈과 같은 파랑, 바로 집중은 회색(2026-11-26 내가 정한 것 5)
+const chipColor = computed(() => category.value?.color ?? (isFree.value ? '#6B6B6B' : itemType.value === 'routine' ? ROUTINE_COLOR : '#FFD100'))
+const chipStyle = computed(() => ({ color: chipColor.value, background: `color-mix(in srgb, ${chipColor.value} 18%, transparent)` }))
+// 이름 아래 한 줄 — 프로젝트는 목표, 루틴은 함께 하는 프로젝트, 바로 집중은 끝나고 적는다는 안내
+const projectGoal = computed(() => {
+  if (isFree.value) return '무엇을 했는지는 끝나고 적어요'
+  if (itemType.value === 'routine') {
+    const pid = (item.value as Routine | null)?.projectId
+    return (pid && activePlan.projects.find((p) => p.id === pid)?.name) || ''
+  }
+  return (item.value as Project | null)?.goal ?? ''
 })
-const projectGoal = computed(() => (itemType.value === 'project' ? (item.value as Project | null)?.goal ?? '' : ''))
+// 루틴 목표 칩(2026-11-26 내가 정한 것 5) — 1회 시간, 바쁜 날 최소가 있으면 하나 더. 기본 칩과 같은 값이면 더하지 않는다
+const extraPresets = computed(() => {
+  if (itemType.value !== 'routine') return []
+  const r = item.value as Routine | null
+  const base = FOCUS_PRESETS as readonly number[]
+  const out: { min: number; label: string }[] = []
+  const d = r ? clampGoal(r.duration) : 0
+  if (d && !base.includes(d)) out.push({ min: d, label: `${d}분` })
+  const m = r?.minMinutes ? clampGoal(r.minMinutes) : 0
+  if (m && m !== d && !base.includes(m)) out.push({ min: m, label: `바쁜 날 ${m}분` })
+  return out
+})
 
 // ── 설정 ──
 type Phase = 'setup' | 'count' | 'run' | 'done'
@@ -222,6 +250,7 @@ function countdown() {
   window.setTimeout(step, 800)
 }
 function begin() {
+  if (isFree.value && !freeId.value) freeId.value = newFreeId(Date.now()) // 바로 집중의 열쇠는 시작할 때
   accSec.value = 0
   reachedNotified = false
   resume()
@@ -256,24 +285,26 @@ function finish() {
 // ── 멈춘 집중을 기기에 적어 두기(2026-11-19 정할 것 6 — 집중하는 동안 늘. 꺼진 동안도 벽시계로 센다) ──
 const sheetStep = ref<'menu' | 'confirm'>('menu')
 function persist() {
-  if (!keepable || !itemName.value) return
+  if (!keepable || !itemName.value || !itemId.value) return
   const running = phase.value === 'run' && !paused.value
   const s: FocusSession = {
     v: 1,
     // 홈이 정리할 때 맞춰 보는 계획 — 홈과 같은 '진행 중인 계획'(achievement store) 기준
     planId: achStore.plan?.planId ?? saved.value?.planId ?? activePlan.planId ?? '',
     date: dateKey.value,
-    itemType: 'project',
+    itemType: itemType.value,
     itemId: itemId.value,
     itemName: itemName.value,
-    itemCategory: (item.value as Project | null)?.category ?? saved.value?.itemCategory,
+    itemCategory: itemType.value === 'project' ? ((item.value as Project | null)?.category ?? saved.value?.itemCategory) : undefined,
     goalMin: goalMin.value,
     accSec: accSec.value,
     state: running ? 'running' : 'paused',
     segStart: running ? segStart : null,
     reached: reachedNotified,
     // 시작할 때 이미 완료였나 — 한 번 정하면 그대로(이어 하는 동안 바뀌지 않게)
-    afterDone: saved.value ? !!saved.value.afterDone : ach.isProjectDone(itemId.value, dateKey.value),
+    afterDone: saved.value ? !!saved.value.afterDone
+      : itemType.value === 'routine' ? ach.isRoutineDone(itemId.value, dateKey.value)
+      : itemType.value === 'project' ? ach.isProjectDone(itemId.value, dateKey.value) : false,
     ...(aheadFrom.value ? { from: aheadFrom.value } : {}),
     keepAwake: keepAwake.value,
     notify: notify.value,
@@ -395,7 +426,13 @@ onMounted(async () => {
   } catch {
     // 연결이 안 되면 계획 없이 — 기기에 적어 둔 멈춘 집중은 그대로 연다
   } finally {
-    const s = keepable ? focusSessions.get(focusKey.value) : null
+    // 바로 집중을 새로 열었는데 멈춰 둔 것이 있으면 그것을 이어 한다(한 번에 하나 — 내가 정한 것 2)
+    if (isFree.value && !freeId.value) {
+      const planId = achStore.plan?.planId ?? activePlan.planId ?? ''
+      const f = freeSessionOf(focusSessions.sessions.value, planId, dateKey.value)
+      if (f) freeId.value = f.itemId
+    }
+    const s = keepable && itemId.value ? focusSessions.get(focusKey.value) : null
     if (s) restore(s)
     else goalMin.value = clampGoal(item.value?.duration)
     loading.value = false

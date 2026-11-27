@@ -163,6 +163,7 @@ export function useCareerDesign() {
     draftRoutine.projectId = ''
     draftRoutine.measure = null
     draftRoutine.onCourseDays = false
+    draftRoutine.focus = false
     delete draftRoutine.minMinutes
     delete draftRoutine.safety
     delete draftRoutine.notification
@@ -308,6 +309,7 @@ export function useCareerDesign() {
     minMinutes: r.minMinutes ?? null,
     safety: r.safety ?? null,
     ...(r.onCourseDays !== undefined ? { onCourseDays: r.onCourseDays } : {}),
+    ...(r.focus !== undefined ? { focus: r.focus === true } : {}),   // 집중모드로 하기(2026-11-26) — 옛 서버는 버린다
   })
 
   // 루틴 추가

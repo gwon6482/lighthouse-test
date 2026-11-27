@@ -176,6 +176,13 @@ $ah-overlap: 40px;
     &--done { background: $color-success-tint; color: $color-success; }
   }
   &__more { width: 100%; margin-top: $space-sm; padding: 10px; border: 0; border-radius: $radius-md; background: $color-surface-alt; font: inherit; font-size: $fs-xs; font-weight: $tw-label; color: $color-text-secondary; cursor: pointer; }
+  // 바로 집중하기(2026-11-26 #96) — 카드 맨 아래 점선 버튼. 할 일보다 한 단계 낮게
+  &__free {
+    display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: $space-md; padding: 11px;
+    border: 1.5px dashed $color-border-strong; border-radius: $radius-md; background: $color-surface;
+    font: inherit; font-size: $fs-sm; font-weight: $tw-strong; color: $color-text-secondary; cursor: pointer;
+    .app-icon { font-size: 17px; }
+  }
   &__divider {
     display: flex; align-items: center; gap: $space-sm; margin: $space-lg 0 $space-sm;
     font-size: 11px; font-weight: $tw-label; color: $color-text-tertiary;
@@ -203,6 +210,8 @@ $ah-overlap: 40px;
   .ah-task--next { margin-bottom: 0; }
   + .ah-today { margin-top: $space-md; }
 }
+.ah-free-list { margin-top: $space-md; }
+.ah-free-held { margin-top: $space-md; }
 .ah-hero--flat + .ah-held { margin-top: $space-lg; } // 걸칠 자리가 없는 노란 영역(계획 시작 전·완료 후)
 
 .ah-list { list-style: none; margin: 0; padding: 0; display: grid; gap: $space-sm; }
@@ -217,6 +226,7 @@ $ah-overlap: 40px;
     flex: 0 0 36px; height: 36px; display: grid; place-items: center;
     border-radius: 10px; font-size: 18px;
     &--routine { background: #E6F0FF; color: #3B6FD8; }
+    &--free { background: #EEEEEE; color: #6B6B6B; }   // 바로 집중은 회색(2026-11-26 내가 정한 것 5)
   }
   &__body { flex: 1; min-width: 0; display: grid; gap: 2px; }
   &__name { font-size: $fs-md; font-weight: $tw-strong; }
@@ -247,6 +257,7 @@ $ah-overlap: 40px;
   }
   &__eyebrow { font-size: 11px; font-weight: $tw-strong; letter-spacing: 0.02em; color: $amber-700; }
   &--done { opacity: 0.5; padding-top: 6px; padding-bottom: 6px; }
+  &--free { padding-top: 6px; padding-bottom: 6px; .ah-task__chip { flex-basis: 28px; height: 28px; border-radius: 8px; font-size: 15px; } .ah-task__name { color: $color-text-secondary; } }
   &--done .ah-task__chip { flex-basis: 28px; height: 28px; border-radius: 8px; font-size: 15px; }
   &--done &__check--on { opacity: 1; }
 }

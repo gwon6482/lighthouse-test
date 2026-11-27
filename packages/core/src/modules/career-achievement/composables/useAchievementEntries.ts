@@ -2,12 +2,12 @@ import { ref, watch } from 'vue'
 import type { ProjectCategory } from '@/modules/career-design/types/career-design'
 import {
   fetchAchievements, upsertAchievement, deleteAchievement,
-  type AchievementRecordDto,
+  type AchievementRecordDto, type AchievementItemType,
 } from '@/modules/career-achievement/achievement.api'
 
 const STORAGE_KEY = 'lh_achievement_entries_v1'
 
-export type AchievementItemType = 'project' | 'routine'
+export type { AchievementItemType }
 
 export interface AchievementEntry {
   date: string                 // 'YYYY-MM-DD'
@@ -22,6 +22,7 @@ export interface AchievementEntry {
   difficulty: 1 | 2 | 3 | 4 | 5
   note: string
   planId?: string
+  projectId?: string           // 바로 집중(free)의 이어지는 프로젝트(2026-11-26)
 }
 
 type EntryMap = Record<string, AchievementEntry>   // key: `${date}:${itemType}:${itemId}`
@@ -64,6 +65,7 @@ function recordToEntry(r: AchievementRecordDto): AchievementEntry | null {
     photoUrl: r.photoUrl || undefined,
     difficulty: (r.difficulty ?? 3) as 1 | 2 | 3 | 4 | 5,
     note: r.note ?? '',
+    ...(r.itemType === 'free' && r.projectId ? { projectId: r.projectId } : {}),
   }
 }
 
@@ -87,6 +89,14 @@ export function useAchievementEntries() {
 
     const planId = activePlanId.value ?? entry.planId
     if (planId) {
+      // 바로 집중(2026-11-26)은 완료가 아니다 — done:false, 사진·난이도·메모 없이 한 줄과 프로젝트만
+      if (entry.itemType === 'free') {
+        upsertAchievement(planId, entry.date, 'free', entry.itemId, {
+          done: false, itemName: entry.itemName, duration: entry.duration, elapsedSec: entry.elapsedSec,
+          doneAt: entry.doneAt, projectId: entry.projectId ?? '',
+        }).catch(() => {})
+        return
+      }
       upsertAchievement(planId, entry.date, entry.itemType, entry.itemId, {
         done: true,
         itemName: entry.itemName,

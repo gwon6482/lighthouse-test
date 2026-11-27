@@ -243,7 +243,8 @@ function logout() {
 
 // 완료 기록 수(숫자 칸) — 기록 자체는 하단 탭 '로그'에서 본다(2026-10-29)
 const { feedSorted, entries } = useAchievementEntries()
-const records = computed(() => { void entries.value; return feedSorted().filter((e) => e.itemType === 'project') })
+// 로그 탭 '완료 기록'과 같은 수(2026-11-26 — 집중으로 남긴 루틴·바로 집중 카드도 센다)
+const records = computed(() => { void entries.value; return feedSorted() })
 // 진행 중 계획 — 계획 상세(보기·수정)로 가는 입구(메인 '내 진로계획' 타일을 뺀 뒤, 2026-10-30)
 const activePlanId = computed(() => achievementStore.plan?.planId ?? '')
 // 진로계획 전인가 — 홈·entryGuard 와 같은 기준(진행 중(active) 계획이 있나 · 설계 중(draft)만 있으면 계획 전).

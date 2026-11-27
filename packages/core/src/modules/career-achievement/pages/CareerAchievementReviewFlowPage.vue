@@ -56,6 +56,8 @@
           <div><strong>{{ minutes >= 60 ? `${Math.floor(minutes / 60)}시간` : `${minutes}분` }}</strong><span>쌓은 시간</span></div>
           <div><strong>{{ photos }}</strong><span>남긴 사진</span></div>
         </div>
+        <!-- 쌓은 시간을 나눠서(2026-11-26 집중모드 넓히기 — 둘 이상일 때만) -->
+        <p v-if="minutesSplit" class="wv-split">{{ minutesSplit }}</p>
       </section>
 
       <!-- 2. 전체 계획에서의 성장 -->
@@ -196,7 +198,7 @@ const step = computed(() => Math.min(5, Math.max(1, Number(route.params.step) ||
 const {
   loading, plan, load, streak, progress,
   range, weekNo, rangeLabel, totalWeeks,
-  days, planned, done, percent, fullDays, workDays, minutes, photos, headline,
+  days, planned, done, percent, fullDays, workDays, minutes, minutesSplit, photos, headline,
   weekGain, beforePercent,
   paceOptions, currentPace, recommendedPace, endIfPace, nextWeek, nextDays, finishReview, currentEnd,
   periodCards, periodChanges, periodPreview,

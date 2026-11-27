@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
   FOCUS_SESSIONS_KEY, sessionKey, keyOf, elapsedOf, pauseAt, resumeAt, settleForHome, shiftDayKey, isAlive,
-  pruneSessions, elapsedText, subjectJosa, pausedEyebrow, parseSessions, combinedElapsed, recordTimeLabel, type FocusSession, type FocusSessionMap,
+  pruneSessions, freeSessionOf, elapsedText, subjectJosa, pausedEyebrow, parseSessions, combinedElapsed, recordTimeLabel, type FocusSession, type FocusSessionMap,
 } from '../lib/focusSession'
 
 const T0 = new Date(2026, 10, 18, 21, 0, 0).getTime() // 11/18 21:00
@@ -98,6 +98,36 @@ describe('focusSession — 정리', () => {
     expect(Object.values(out)).toEqual([again])
   })
 
+  it('루틴 집중(2026-11-26) — 계획에서 빠진 루틴·그날 완료한 루틴은 지운다', () => {
+    const keep = make({ itemType: 'routine', itemId: 'r1', date: '2026-11-19' })
+    const gone = make({ itemType: 'routine', itemId: 'r9', date: '2026-11-19' })
+    const done = make({ itemType: 'routine', itemId: 'r2', date: '2026-11-19' })
+    const out = pruneSessions(map(keep, gone, done), ctx({
+      routineIds: new Set(['r1', 'r2']),
+      isDone: (date, id, type) => type === 'routine' && id === 'r2',
+    }))
+    expect(Object.values(out)).toEqual([keep])
+    // 옛 호출(routineIds 없음)이면 루틴 집중은 계획에서 빠진 것으로
+    expect(pruneSessions(map(keep), ctx())).toEqual({})
+  })
+
+  it('바로 집중(2026-11-26) — 완료 판정 없이 다른 계획·그제 이전만 지운다', () => {
+    const free = make({ itemType: 'free', itemId: 'f1764140000000', itemName: '바로 집중', date: '2026-11-18' })
+    const oldFree = make({ itemType: 'free', itemId: 'f1764000000000', itemName: '바로 집중', date: '2026-11-17' })
+    const out = pruneSessions(map(free, oldFree), ctx({ isDone: () => true }))
+    expect(Object.values(out)).toEqual([free])
+  })
+
+  it('바로 집중은 한 번에 하나 — 살아 있는 것 중 가장 최근', () => {
+    const a = make({ itemType: 'free', itemId: 'f1764140000000', date: '2026-11-19', updatedAt: 10 })
+    const b = make({ itemType: 'free', itemId: 'f1764150000000', date: '2026-11-19', updatedAt: 20 })
+    const other = make({ itemType: 'free', itemId: 'f1764160000000', date: '2026-11-19', updatedAt: 30, planId: 'plan-b' })
+    const proj = make({ date: '2026-11-19', updatedAt: 40 })
+    expect(freeSessionOf(map(a, b, other, proj), 'plan-a', '2026-11-19')).toEqual(b)
+    expect(freeSessionOf(map(proj), 'plan-a', '2026-11-19')).toBeNull()
+    expect(freeSessionOf(map(a), 'plan-a', '2026-11-21')).toBeNull()   // 그제 이전
+  })
+
   it('계획 번호를 못 적은 것(빈 값)은 계획 번호로 지우지 않는다', () => {
     const s = make({ planId: '', date: '2026-11-19' })
     expect(Object.keys(pruneSessions(map(s), ctx()))).toEqual([keyOf(s)])
@@ -149,7 +179,8 @@ describe('focusSession — 기기 저장본 읽기', () => {
     const raw = JSON.stringify({
       whatever: ok,
       a: { ...ok, v: 2 },
-      b: { ...ok, itemType: 'routine' },
+      b: { ...ok, itemType: 'memo' },
+      g: { ...ok, itemType: 'free', itemId: 'p1' },   // 바로 집중 열쇠는 'f' + 시작 시각만
       c: { ...ok, date: '11/18' },
       d: { ...ok, state: 'running', segStart: null },
       e: { ...ok, accSec: 'x' },
@@ -158,6 +189,10 @@ describe('focusSession — 기기 저장본 읽기', () => {
     expect(parseSessions(raw)).toEqual({ [keyOf(ok)]: ok })
     const again = { ...ok, afterDone: true }
     expect(parseSessions(JSON.stringify({ x: again }))[keyOf(again)]!.afterDone).toBe(true)
+    // 루틴·바로 집중(2026-11-26)도 읽는다
+    const r = { ...ok, itemType: 'routine' as const, itemId: 'r1' }
+    const f = { ...ok, itemType: 'free' as const, itemId: 'f1764140000000' }
+    expect(Object.values(parseSessions(JSON.stringify({ r, f })))).toEqual([r, f])
     expect(parseSessions('not json')).toEqual({})
     expect(parseSessions('[1]')).toEqual({})
     expect(parseSessions(null)).toEqual({})

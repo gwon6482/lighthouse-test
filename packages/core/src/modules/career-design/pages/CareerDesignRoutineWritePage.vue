@@ -95,6 +95,20 @@
         </div>
       </div>
 
+      <!-- 집중모드로 하기(2026-11-26 #95) — 켜면 홈 '오늘 할 일'에서 '완료' 대신 '시작'(집중 → 기록 남기기 → 그날 완료). 기본은 꺼짐 -->
+      <div class="cd-rt-write__section">
+        <button
+          type="button" class="cd-rt-write__switch" role="switch" :aria-checked="focusMode"
+          @click="focusMode = !focusMode"
+        >
+          <span class="cd-rt-write__switch-text">
+            <span class="cd-rt-write__label">집중모드로 하기</span>
+            <span class="cd-rt-write__hint">홈에서 ‘시작’을 눌러 시간을 재고 기록을 남겨요</span>
+          </span>
+          <span class="cd-rt-write__tgl" :class="{ on: focusMode }" aria-hidden="true" />
+        </button>
+      </div>
+
       <!-- 주 1회 기록 재기(정할 것 4) — 기준 넘기·실력 올리기만 -->
       <div v-if="kind !== 'keep'" class="cd-rt-write__section">
         <h3 class="cd-rt-write__label">주 1회 기록 재기 <span class="cd-rt-write__optional">선택</span></h3>
@@ -184,6 +198,10 @@ const minMinutes = computed({
   get: () => draftRoutine.minMinutes ?? 0,
   set: (v: number) => { if (v) draftRoutine.minMinutes = v; else delete draftRoutine.minMinutes },
 })
+const focusMode = computed({
+  get: () => draftRoutine.focus === true,
+  set: (v: boolean) => { draftRoutine.focus = v },
+})
 const measureLabel = ref(draftRoutine.measure?.label ?? '')
 // 고른 단위 — 거리·무게는 숫자 + 단위(m·cm·kg). 없으면 시간
 const measureOpt = ref(Math.max(0, MEASURE_OPTIONS.findIndex((o) => o.unit === draftRoutine.measure?.unit && (o.suffix ?? '') === (draftRoutine.measure?.suffix ?? ''))))
@@ -217,6 +235,7 @@ async function saveRoutine() {
     ...(draftRoutine.minNote ? { minNote: draftRoutine.minNote } : {}),
     ...(safety.value.length ? { safety: [...safety.value] } : {}),
     onCourseDays: draftRoutine.onCourseDays === true,
+    focus: draftRoutine.focus === true,
   }
 
   if (editingRoutineId.value) {
@@ -446,6 +465,18 @@ async function saveRoutine() {
     &--small { width: auto; padding: 8px 10px; font-size: 13px; }
   }
   &__check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: #555; input { width: 18px; height: 18px; accent-color: #222; } }
+  &__switch {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+    padding: 0; border: 0; background: none; text-align: left; font-family: inherit; cursor: pointer;
+    .cd-rt-write__label { display: block; margin: 0; }
+    .cd-rt-write__hint { display: block; margin: 4px 0 0; }
+  }
+  &__switch-text { flex: 1; min-width: 0; }
+  &__tgl {
+    position: relative; flex: none; width: 44px; height: 26px; border-radius: 999px; background: #E2DED3; transition: background .2s;
+    &::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 3px rgba(0, 0, 0, .2); }
+    &.on { background: #FFC700; &::after { transform: translateX(18px); } }
+  }
   &__min { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
   &__min-label { font-size: 13px; color: #555; }
   &__safety { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; background: #FFF4E5; font-size: 12.5px; line-height: 1.5; color: #5B3A12; word-break: keep-all; p { display: flex; gap: 6px; margin: 0; } }
