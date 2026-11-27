@@ -3,12 +3,14 @@
 // ⚠️ 계획 전체 수정(commitEdit)은 쓰지 않는다 — 프로젝트 하나 더하기 + 타임라인 저장만(루틴·시작 요일·목표는 건드리지 않는다)
 import { reactive, watch } from 'vue'
 import { req } from '@/shared/api'
+import { onAccountChange } from '@/shared/auth/accountScope'
 import type { Project, TimelineSlot } from '@/modules/career-design/types/career-design'
 import { useCareerDesign } from '@/modules/career-design/composables/useCareerDesign'
 import { DEFAULT_WEEKS } from '@/modules/career-design/composables/useProjectCurriculum'
 import { withSlot, type StartWhen } from '../lib/addProject'
 
-const KEY = 'lh_add_project_v1'
+export const ADD_PROJECT_KEY = 'lh_add_project_v1'
+const KEY = ADD_PROJECT_KEY
 export interface AddState { active: boolean; source: 'example' | 'manual'; when: StartWhen; planId: string; savedId: string }
 const blank = (): AddState => ({ active: false, source: 'manual', when: 'today', planId: '', savedId: '' })
 function read(): AddState {
@@ -16,6 +18,8 @@ function read(): AddState {
 }
 const state = reactive<AddState>(read())
 watch(state, (v) => { try { sessionStorage.setItem(KEY, JSON.stringify(v)) } catch { /* 저장 못 해도 이번 화면은 된다 */ } }, { deep: true })
+// 계정이 바뀌면 앞 계정의 '새 프로젝트 시작하기' 흐름(planId)을 버린다(2026-11-27). 만들던 프로젝트 값은 진로설계가 비운다
+onAccountChange(() => { Object.assign(state, blank()) })
 
 // 예시에서 고른 걸음 → 만들기 화면 값. 설계 중에만 쓰는 칸(출처·수준·설명·공식 안내 등)은 담지 않는다
 const COPY_KEYS = ['category', 'name', 'goal', 'days', 'duration', 'priority', 'notification', 'missedNotification', 'notificationTime', 'memo', 'weeks', 'curriculum', 'method', 'methodDetail', 'studyHours'] as const

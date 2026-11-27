@@ -483,14 +483,8 @@ async function submit() {
     }
     dropDraft() // 가입을 마쳤다 — 임시 보관 지움
 
-    // localStorage 는 오프라인 캐시로만 유지한다(다른 화면과 같은 방침).
-    // 저장 실패가 가입 자체를 막으면 안 되므로 삼켜준다.
-    try {
-      localStorage.setItem(
-        'lh_onboarding_v1',
-        JSON.stringify({ q1: form.q1, q2: form.q2, q3: form.q3, at: new Date().toISOString() }),
-      )
-    } catch { /* quota */ }
+    // 가입 답(Q1~Q3)은 서버(User.onboarding)에만 둔다 — 예전 기기 사본 'lh_onboarding_v1'은 읽는 곳이 없어 저장을 멈췄다(2026-11-27).
+    // 이미 기기에 있는 것은 accountScope 가 지운다
 
     // 비회원 검사 → 가입이면 그 검사를 계정에 연결하고 결과지 전체로 돌아간다(소개 슬라이드·환영은 건너뜀, 2026-11-09).
     // 결과지의 [다음 단계로]가 3단계(/main/before)로 이어 준다

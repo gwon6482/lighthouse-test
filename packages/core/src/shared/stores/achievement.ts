@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { req } from '@/shared/api'
+import { accountGeneration, onAccountChange } from '@/shared/auth/accountScope'
 import { useAchievement } from '@/modules/career-achievement/composables/useAchievement'
 import { useAchievementEntries } from '@/modules/career-achievement/composables/useAchievementEntries'
 import { useCurriculumCompletion } from '@/modules/career-achievement/composables/useCurriculumCompletion'
@@ -58,17 +59,22 @@ export const useAchievementStore = defineStore('achievement', () => {
 
   // ⚠️ 읽는 중에 또 불리면 **그 결과를 기다린다**(2026-10-29). 예전엔 바로 return 해서, 하단 탭이 먼저 읽기 시작한 뒤
   //    화면이 부르면 계획이 아직 없는 채로 넘어갔다 → 진로정보의 채용 소식이 새로고침 때 안 나오던 원인
+  // ⚠️ 계정이 바뀌면(accountScope) 읽던 것을 버린다(2026-11-27) — 앞 계정의 응답이 늦게 와서 새 계정의 계획 자리를 채우거나
+  //    loaded=true 로 막아 새 계정의 계획을 다시 읽지 않는 일이 없게. 세대(accountGeneration)가 다르면 결과를 쓰지 않는다
   let inflight: Promise<void> | null = null
   async function loadActivePlan(force = false): Promise<void> {
     if (inflight) return inflight
     if (loaded.value && !force) return
-    inflight = loadActivePlanNow().finally(() => { inflight = null })
-    return inflight
+    const p: Promise<void> = loadActivePlanNow(accountGeneration()).finally(() => { if (inflight === p) inflight = null })
+    inflight = p
+    return p
   }
-  async function loadActivePlanNow(): Promise<void> {
+  async function loadActivePlanNow(gen: number): Promise<void> {
+    const stale = () => gen !== accountGeneration()
     loading.value = true
     try {
       const listRes = await req.get('/api/career-plan')
+      if (stale()) return
       const plans = listRes.data.plans ?? []
       const target = plans.find((p: any) => p.status === 'active')
       if (!target) {
@@ -78,6 +84,7 @@ export const useAchievementStore = defineStore('achievement', () => {
         return
       }
       const detailRes = await req.get(`/api/career-plan/${target.planId}`)
+      if (stale()) return
       const p = detailRes.data.plan
       plan.value = {
         planId:    p.planId,
@@ -100,13 +107,23 @@ export const useAchievementStore = defineStore('achievement', () => {
         useAchievementEntries().loadFromServer(p.planId),
         useCurriculumCompletion().loadFromServer(p.planId),
       ])
+      // 기록을 받는 사이 계정이 바뀌었다 — 앞 계정의 기록이 사본에 들어갔을 수 있어 비운다.
+      // 새 계정이 이미 다 읽었으면 그 기록을 다시 받는다(읽는 중이면 그쪽 응답이 덮는다)
+      if (stale()) {
+        clearRecordCaches()
+        if (loaded.value) void loadActivePlan(true)
+        return
+      }
       loadFailed.value = false
     } catch {
+      if (stale()) return
       plan.value = null
       loadFailed.value = true
     } finally {
-      loaded.value = true
-      loading.value = false
+      if (!stale()) {
+        loaded.value = true
+        loading.value = false
+      }
     }
   }
 
@@ -115,8 +132,13 @@ export const useAchievementStore = defineStore('achievement', () => {
     loaded.value = false
     loading.value = false
     loadFailed.value = false
+    inflight = null
     clearRecordCaches() // 로그아웃 — 다음 사람이 같은 기기에서 이전 기록을 보지 않게
   }
+  // 계정이 바뀌는 모든 길(로그인·가입·소셜 복귀·로그아웃·탈퇴·401·404 로 풀림)에서 비운다(2026-11-27).
+  // 예전엔 App.vue 의 watch(user) 만 불러서, 앱을 열자마자 표가 거절되면(null → null) 기록 사본이 남았고
+  // 계정이 바로 바뀌면 loaded=true 라 새 계정의 계획을 다시 읽지 않았다
+  onAccountChange(reset)
   // 기기에 캐시한 실천 기록·완료 표시·커리큘럼 완료(localStorage) 비우기(2026-11-04)
   function clearRecordCaches() {
     useAchievement().clearCache()

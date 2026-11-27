@@ -1,14 +1,15 @@
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, nextTick } from 'vue'
 import type { CareerPlan, Project, Routine, DraftPlan, TimelineSlot } from '../types/career-design'
 import { req } from '@/shared/api'
 import { DEFAULT_WEEKS } from './useProjectCurriculum'
 import { projectedEndDate, toDateKey } from './usePlanTimeline'
 import { getToday } from '@/shared/utils/dev-date'
+import { onAccountChange } from '@/shared/auth/accountScope'
 
 // ── 작성 중 draft 자동저장/복원 (R3) ──
 // 진로계획 작성(플랜/프로젝트/루틴/타임라인)은 메모리 전용이라 새로고침·앱종료 시 전부 유실됐다.
 // 설문 useSurvey.persistProgress 패턴처럼 localStorage 에 스냅샷을 저장/복원한다.
-const DRAFT_KEY = 'lh_cd_draft'
+export const DRAFT_KEY = 'lh_cd_draft'
 interface PersistedDraft {
   draftPlan?: Partial<DraftPlan>
   draftRoutine?: Partial<Routine>
@@ -511,3 +512,19 @@ export function useCareerDesign() {
     fetchPublicPlans,
   }
 }
+
+// 계정이 바뀌면(로그인·가입·소셜 복귀·로그아웃·탈퇴·401·404 로 풀림) 앞 계정의 편집 사본과 계획 목록을 비운다(2026-11-27 오너 결정).
+// 예전엔 지우는 곳이 없어 다음 계정에 앞 계정의 계획 이름·목표·프로젝트·planId 가 남았다(11-27 '항목을 찾을 수 없어요'의 뿌리).
+// ⚠️ 로그인 표 연장(fetchMe 의 같은 계정 새 표)에는 불리지 않는다 — 쓰던 계획이 날아가지 않게(accountScope.ts)
+onAccountChange(() => {
+  const cd = useCareerDesign()
+  cd.resetDraftPlan()
+  cd.resetDraftProject()
+  cd.resetDraftRoutine()
+  editingProjectId.value = null
+  editingRoutineId.value = null
+  plans.value = []
+  // 비운 값도 위 watch 가 곧 한 번 적는다 — 그 뒤에 열쇠를 지운다(기본값만 남은 사본도 두지 않게)
+  try { localStorage.removeItem(DRAFT_KEY) } catch { /* 저장소를 못 쓰면 남은 것도 없다 */ }
+  void nextTick(() => { try { localStorage.removeItem(DRAFT_KEY) } catch { /* 위와 같다 */ } })
+})

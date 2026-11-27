@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { req } from '@/shared/api'
-import { clearAccountScope } from '@/shared/auth/accountScope'
+import { clearAccountScope, clearAccountDeviceKeys } from '@/shared/auth/accountScope'
 import { setDayStartRule } from '@/shared/utils/dev-date'
 import type { DayStartRule } from '@/shared/utils/appDay'
 
@@ -32,6 +32,9 @@ const TOKEN_KEY = 'lh_token'
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem(TOKEN_KEY))
   const user = ref<AuthUser | null>(null)
+  // 로그인 표 없이 열었으면 기기에 남은 계정 사본은 주인이 없다 — 지운다(2026-11-27, 이 고침 전에 로그아웃한 기기에 남은 것까지).
+  // 비회원 검사(진행·열람 키)는 그대로 둔다
+  if (!token.value) clearAccountDeviceKeys()
 
   const isLoggedIn = computed(() => !!token.value)
 

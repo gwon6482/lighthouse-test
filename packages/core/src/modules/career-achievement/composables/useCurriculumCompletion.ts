@@ -1,7 +1,7 @@
 import { ref, watch } from 'vue'
 import { fetchCurriculum, upsertCurriculum } from '@/modules/career-achievement/achievement.api'
 
-const STORAGE_KEY = 'lh_curriculum_items_v1'
+export const STORAGE_KEY = 'lh_curriculum_items_v1'
 
 type ItemMap = Record<string, true>   // key: `${projectId}:${week}:${idx}`
 

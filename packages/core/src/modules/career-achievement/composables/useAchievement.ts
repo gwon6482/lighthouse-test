@@ -6,7 +6,7 @@ import {
   fetchAchievements, upsertAchievement, deleteAchievement,
 } from '@/modules/career-achievement/achievement.api'
 
-const STORAGE_KEY = 'lh_achievement_v1'
+export const STORAGE_KEY = 'lh_achievement_v1'
 
 type DailyCompletion = { projects: string[]; routines: string[] }
 type CompletionMap = Record<string, DailyCompletion>   // key: 'YYYY-MM-DD'

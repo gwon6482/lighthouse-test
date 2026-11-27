@@ -37,6 +37,8 @@ const DOW: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토']
 export const ROUTINE_COLOR = '#3B6FD8'
 export const ROUTINE_TINT = '#E6F0FF'
 
+export const ROUTINE_END_ASKED_KEY = 'lh_routine_end_asked'
+
 export function usePlanBoard() {
   const router = useRouter()
   const store = useAchievementStore()
@@ -337,7 +339,7 @@ export function usePlanBoard() {
     }
   }
   /** 붙은 프로젝트가 끝난 루틴 — 한 번만 묻는다(이 기기). 고르지 않고 닫아도 다시 묻지 않는다(그 루틴은 이미 일정에 안 나온다) */
-  const ASKED_KEY = 'lh_routine_end_asked'
+  const ASKED_KEY = ROUTINE_END_ASKED_KEY // 계정이 바뀌면 accountScope 가 지운다(2026-11-27)
   const asked = ref<string[]>((() => { try { return JSON.parse(localStorage.getItem(ASKED_KEY) || '[]') } catch { return [] } })())
   const endedRoutines = computed(() => {
     const pl = plan.value
