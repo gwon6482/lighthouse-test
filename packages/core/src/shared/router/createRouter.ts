@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { isChunkLoadError, nextChunkRecovery, resetAppCache, retryChunk } from './chunkReload'
 import { applyThemeColor } from './themeColor'
 import { installSwUpdate } from './swUpdate'
+import { refreshAppDay } from '@/shared/utils/dev-date'
 
 // 화면 파일(lazy 컴포넌트) 불러오기를 감싼다 — 실패하면 같은 화면 안에서 한 번 더(chunkReload.ts retryChunk, 2026-11-17).
 // 라우터는 함수인 component 를 lazy 로 다루므로 함수만 감싼다
@@ -24,6 +25,11 @@ export function makeRouter(routes: RouteRecordRaw[]) {
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: withChunkRetry(routes),
     scrollBehavior: () => ({ top: 0 }),
+  })
+
+  // 홈으로 올 때 '오늘'을 다시 센다 — 앱을 켜 둔 채 하루 시작 시각을 넘겼으면 새 하루로(2026-11-26 #102 정할 것 4)
+  router.beforeEach((to) => {
+    if (to.path === '/career-achievement') refreshAppDay()
   })
 
   // 라우트 이동 시 줌 초기화 (iOS 입력 포커스 후 줌 복원)

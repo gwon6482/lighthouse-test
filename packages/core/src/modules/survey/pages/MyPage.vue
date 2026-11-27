@@ -127,6 +127,20 @@
       </ul>
     </section>
 
+    <!-- 설정 — 하루 시작 시간(2026-11-26 #102). 계획을 실천하는 화면에만 쓰여 계획 전에는 숨긴다 -->
+    <section v-if="!beforePlan" class="mp-sec">
+      <h2 class="mp-sec__title">설정</h2>
+      <ul class="mp-links">
+        <li>
+          <button type="button" class="mp-link mp-link--menu" aria-haspopup="dialog" @click="showDayStart = true">
+            <AppIcon name="ui-duration" class="mp-link__icon" /><span class="mp-link__label">하루 시작 시간</span>
+            <span class="mp-link__value">{{ dayStartLabel(dayStartHour) }}<small v-if="dayStartLater">다음 하루부터</small></span>
+            <AppIcon name="ui-chevron-right" class="mp-link__arrow" />
+          </button>
+        </li>
+      </ul>
+    </section>
+
     <!-- 계정. 🚨 탈퇴는 **되돌릴 수 없다** — 맨 아래에 두고 약하게 강조한다.
          개인정보처리방침에 '파기'를 명시했으므로 앱에서 탈퇴할 길이 있어야 한다. -->
     <section class="mp-sec mp-account">
@@ -145,6 +159,7 @@
 
     <AccountDeleteSheet v-model="showDelete" @deleted="onDeleted" />
     <ConfirmSheet v-model="showLogout" title="로그아웃할까요?" confirm-label="로그아웃" @confirm="logout" />
+    <DayStartSheet v-model="showDayStart" :hour="dayStartHour" :on-save="saveDayStart" />
   </div>
 </template>
 
@@ -158,6 +173,9 @@ import { req } from '@/shared/api'
 import AccountDeleteSheet from '../components/AccountDeleteSheet.vue'
 import { markAccountDeleted } from '@/shared/auth/farewell'
 import ConfirmSheet from '@/shared/components/ConfirmSheet.vue'
+import DayStartSheet from '../components/DayStartSheet.vue'
+import { dayStartHourOf, dayStartLabel, dayStartPending } from '@/shared/utils/appDay'
+import { showToast } from '@/shared/composables/useAppToast'
 import JobGateBadges from '@/shared/components/JobGateBadges.vue'
 import { AREA_ICON } from '@/modules/survey/surveyIcons'
 import { useAchievementEntries } from '@/modules/career-achievement/composables/useAchievementEntries'
@@ -236,6 +254,19 @@ const beforePlan = computed(() => achievementStore.loaded && !achievementStore.h
 function backToStart() {
   if (window.history.state?.back === '/main/before') router.back()
   else router.replace('/main/before')
+}
+// 하루 시작 시간(2026-11-26 #102) — 계정 설정. 바꾸면 다음 하루부터(서버가 적용 시점을 정한다)
+const showDayStart = ref(false)
+const dayStartHour = computed(() => dayStartHourOf(user.value?.settings?.dayStart))
+const dayStartLater = computed(() => dayStartPending(user.value?.settings?.dayStart, new Date()))
+async function saveDayStart(hour: number): Promise<boolean> {
+  try {
+    await authStore.updateDayStart(hour)
+    showToast(`다음 하루부터 ${dayStartLabel(hour)}에 하루가 바뀌어요`, 2600)
+    return true
+  } catch {
+    return false
+  }
 }
 // 휴지통(30일 보관) 계획 수 — 있을 때만 '최근 삭제한 계획'을 보여 준다(2026-11-04)
 const trashCount = ref(0)

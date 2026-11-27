@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { req } from '@/shared/api'
 import { clearAccountScope } from '@/shared/auth/accountScope'
+import { setDayStartRule } from '@/shared/utils/dev-date'
+import type { DayStartRule } from '@/shared/utils/appDay'
 
 export interface AuthUser {
   uid: string
@@ -21,6 +23,8 @@ export interface AuthUser {
   }
   // 소셜 전용 계정에는 provider: 'local' 항목이 없다.
   authProviders?: { provider: string; providerId: string }[]
+  // 계정 설정 — 하루 시작 시각(2026-11-26 #102, 고른 적이 없으면 없음 → 기본 새벽 4시)만 읽는다
+  settings?: { dayStart?: DayStartRule }
 }
 
 const TOKEN_KEY = 'lh_token'
@@ -30,6 +34,12 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<AuthUser | null>(null)
 
   const isLoggedIn = computed(() => !!token.value)
+
+  // 계정 정보를 받으면 그 계정의 하루 시작 시각으로 '오늘'을 센다(dev-date.ts). 로그아웃이면 기본 시각
+  function _applyUser(u: AuthUser | null) {
+    user.value = u
+    setDayStartRule(u?.settings?.dayStart ?? null)
+  }
 
   function _applyToken(t: string) {
     token.value = t
@@ -41,7 +51,7 @@ export const useAuthStore = defineStore('auth', () => {
     const res = await req.post('/api/auth/login', { email, password })
     clearAccountScope() // 계정이 바뀐다 — 앞 계정의 검사 id·담아 둔 추천을 비운다(accountScope.ts)
     _applyToken(res.data.token)
-    user.value = res.data.user
+    _applyUser(res.data.user)
   }
 
   // 자동로그인(2026-11-04): 토큰은 90일, 앱이 열릴 때마다 여기서 연장된다(서버가 하루 지난 토큰이면 새 토큰을 준다).
@@ -52,7 +62,7 @@ export const useAuthStore = defineStore('auth', () => {
     req.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
     try {
       const res = await req.get('/api/auth/me')
-      user.value = res.data.user
+      _applyUser(res.data.user)
       if (typeof res.data.token === 'string' && res.data.token) _applyToken(res.data.token)
       return 'ok'
     } catch (e: any) {
@@ -68,13 +78,13 @@ export const useAuthStore = defineStore('auth', () => {
   function setAuth(t: string, u: AuthUser) {
     clearAccountScope()
     _applyToken(t)
-    user.value = u
+    _applyUser(u)
   }
 
   function logout() {
     clearAccountScope()
     token.value = null
-    user.value = null
+    _applyUser(null)
     localStorage.removeItem(TOKEN_KEY)
     delete req.defaults.headers.common['Authorization']
   }
@@ -86,5 +96,13 @@ export const useAuthStore = defineStore('auth', () => {
     _applyToken(t)
   }
 
-  return { token, user, isLoggedIn, login, logout, fetchMe, setAuth, applyToken }
+  // 하루 시작 시각 바꾸기(마이페이지) — 다음 하루부터 적용. 서버가 적용 시점(from·since)을 정해 돌려준다
+  async function updateDayStart(hour: number) {
+    const res = await req.put('/api/user/profile', { settings: { dayStartHour: hour } })
+    // 옛 서버는 모르는 칸을 버리고 200 을 준다 — 저장되지 않았으면 실패로 알린다(배포 사이 잠깐)
+    if (res.data?.user?.settings?.dayStart?.hour !== hour) throw new Error('day start not saved')
+    _applyUser(res.data.user)
+  }
+
+  return { token, user, isLoggedIn, login, logout, fetchMe, setAuth, applyToken, updateDayStart }
 })

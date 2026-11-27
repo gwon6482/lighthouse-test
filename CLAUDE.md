@@ -44,7 +44,9 @@ pnpm icons          # public/icons/*.svg → 아이콘 묶음 다시 만들기
   - 검사 결과지 디자인의 정본은 랜딩 `ResearchResult.vue`이고, 여기 `SurveyResultBody`는 사본이다.
   - 계획 기간 계산 `encyclopedia/lib/preparation.ts` `sumWeeks`는 서버 `services/planLibrary` `pathOf` totals와 같은 규칙이다.
   - 프로젝트 분류 5개의 색·라벨 표는 여러 곳에 복제돼 있다.
-  - 위 셋 중 하나를 바꾸면 상대도 함께 바꾼다.
+  - 앱의 하루(하루 시작 시간, 2026-11-26) `shared/utils/appDay.ts`가 정본이고 서버 `services/appDay.js`가 사본이다(서버 `check-method-sync.js`가 대조).
+  - 위 넷 중 하나를 바꾸면 상대도 함께 바꾼다.
+- **'오늘'은 `getToday()`·`getTodayKey()`(`shared/utils/dev-date.ts`)로만 얻는다.** `new Date()`로 날짜를 만들지 않는다 — 하루는 하루 시작 시각(기본 새벽 4시, 계정 설정)에 바뀌고, 앱을 열 때·돌아올 때·홈으로 올 때만 다시 센다. 실제 달력을 쓰는 곳(채용 공고 마감·검사 결과 내보내기 날짜·휴지통)만 예외.
 - 직업인 조사의 분류·진행 방식은 이 앱의 영역·진행 방식과 1:1이다(랜딩·API와 함께 고친다).
 - 진로백과 '분류로 찾기'(2026-11-17, 운영 2026-11-18~)의 판정 규칙·기준값·매핑은 서버(`lighthouse-api` `services/jobBrowse`)에만 둔다. 이 레포는 공개라 사본을 두지 않고 이름·개수·이유 문장만 받아 그린다.
 - 프로젝트 저장은 화면마다 필드를 골라 담는다. 커리큘럼 화면은 주의 checks·pause를 버리므로 '과정' 프로젝트는 그 화면을 거치지 않는다.
